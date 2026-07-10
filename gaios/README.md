@@ -19,6 +19,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [08](08-automatizacion-ia/08-automatizacion-ia.md) | Automatización e IA Transversal | 🟢 Publicado |
 | [09](09-gestion-conocimiento/09-gestion-conocimiento.md) | Gestión del Conocimiento | 🟢 Publicado |
 | [10](10-gobierno-corporativo/10-gobierno-corporativo.md) | Gobierno Corporativo / EOS | 🟢 Publicado |
+| [11](11-atencion-cliente/11-atencion-cliente.md) | Atención al Cliente / Postventa | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -120,6 +121,14 @@ gaios/
     checklist-modulo10.md            ← checklist de aceptación
     prompts-ia-modulo10.md           ← prompts de IA reutilizables
     kpis-dashboard-gobierno.md       ← scorecard ejecutivo
+  11-atencion-cliente/
+    11-atencion-cliente.md           ← capítulo principal (15 secciones)
+    sop-gestion-tickets-soporte.md   ← SOP: gestión de tickets por Tier/SLA
+    sop-customer-health-renovacion.md ← SOP: health score y renovación
+    plantilla-encuesta-nps-csat.md   ← plantilla de encuesta NPS/CSAT
+    checklist-modulo11.md            ← checklist de aceptación
+    prompts-ia-modulo11.md           ← prompts de IA reutilizables
+    kpis-dashboard-atencion-cliente.md ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

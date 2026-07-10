@@ -14,7 +14,7 @@
 | 07 | Tecnología / Infraestructura (stack, seguridad, integraciones) | Director de Tecnología | 00 | 🟢 Publicado | Habilita automatización de todos los módulos |
 | 08 | Automatización e IA transversal | Chief AI Officer | 00, 07 | 🟢 Publicado | Reducción de trabajo repetitivo |
 | 09 | Gestión del Conocimiento (SECI, biblioteca, onboarding de saber-hacer) | Especialista en Gestión del Conocimiento | 00, 05 | 🟢 Publicado | Reducción de dependencia de personas clave |
-| 10 | Gobierno Corporativo / EOS (Accountability Chart, L10, Scorecard) | COO | 00 | ⚪ Planeado | Reducción de dependencia del CEO |
+| 10 | Gobierno Corporativo / EOS (Accountability Chart, L10, Scorecard) | COO | 00 | 🟢 Publicado | Reducción de dependencia del CEO |
 | 11 | Atención al Cliente / Servicio Postventa | Director Comercial | 00, 01 | ⚪ Planeado | Retención, reducción de errores |
 | 12 | Calidad / Mejora Continua (Lean Six Sigma transversal) | Consultor Lean Six Sigma | 00, 03 | ⚪ Planeado | Reducción de errores |
 

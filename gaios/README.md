@@ -18,6 +18,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [07](07-tecnologia/07-tecnologia.md) | Tecnología / Infraestructura | 🟢 Publicado |
 | [08](08-automatizacion-ia/08-automatizacion-ia.md) | Automatización e IA Transversal | 🟢 Publicado |
 | [09](09-gestion-conocimiento/09-gestion-conocimiento.md) | Gestión del Conocimiento | 🟢 Publicado |
+| [10](10-gobierno-corporativo/10-gobierno-corporativo.md) | Gobierno Corporativo / EOS | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -111,6 +112,14 @@ gaios/
     checklist-modulo9.md             ← checklist de aceptación
     prompts-ia-modulo9.md            ← prompts de IA reutilizables
     kpis-dashboard-conocimiento.md   ← formulario/dashboard de seguimiento
+  10-gobierno-corporativo/
+    10-gobierno-corporativo.md       ← capítulo principal (15 secciones)
+    sop-reunion-l10.md               ← SOP: reunión L10
+    sop-rocks-trimestrales.md        ← SOP: Rocks trimestrales
+    plantilla-accountability-chart.md ← Accountability Chart
+    checklist-modulo10.md            ← checklist de aceptación
+    prompts-ia-modulo10.md           ← prompts de IA reutilizables
+    kpis-dashboard-gobierno.md       ← scorecard ejecutivo
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

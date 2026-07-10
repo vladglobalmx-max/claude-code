@@ -13,6 +13,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [02](02-marketing/02-marketing.md) | Marketing | 🟢 Publicado |
 | [03](03-operaciones-sop/03-operaciones-sop.md) | Operaciones / SOPs Core | 🟢 Publicado |
 | [04](04-compras/04-compras.md) | Compras / Cadena de Suministro | 🟢 Publicado |
+| [05](05-rrhh/05-rrhh.md) | Recursos Humanos | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -63,6 +64,15 @@ gaios/
     checklist-modulo4.md             ← checklist de aceptación
     prompts-ia-modulo4.md            ← prompts de IA reutilizables
     kpis-dashboard-compras.md        ← formulario/dashboard de seguimiento
+  05-rrhh/
+    05-rrhh.md                       ← capítulo principal (15 secciones)
+    sop-seleccion-estructurada.md    ← SOP: selección estructurada
+    sop-onboarding-30-60-90.md       ← SOP: onboarding 30-60-90
+    sop-gestion-desempeno-okr.md     ← SOP: gestión de desempeño (OKRs)
+    plantilla-scorecard-puesto.md    ← plantilla de scorecard de puesto
+    checklist-modulo5.md             ← checklist de aceptación
+    prompts-ia-modulo5.md            ← prompts de IA reutilizables
+    kpis-dashboard-rrhh.md           ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

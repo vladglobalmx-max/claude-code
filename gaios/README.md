@@ -16,6 +16,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [05](05-rrhh/05-rrhh.md) | Recursos Humanos | 🟢 Publicado |
 | [06](06-finanzas/06-finanzas.md) | Finanzas / Control | 🟢 Publicado |
 | [07](07-tecnologia/07-tecnologia.md) | Tecnología / Infraestructura | 🟢 Publicado |
+| [08](08-automatizacion-ia/08-automatizacion-ia.md) | Automatización e IA Transversal | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -93,6 +94,14 @@ gaios/
     checklist-modulo7.md             ← checklist de aceptación
     prompts-ia-modulo7.md            ← prompts de IA reutilizables
     kpis-dashboard-tecnologia.md     ← formulario/dashboard de seguimiento
+  08-automatizacion-ia/
+    08-automatizacion-ia.md          ← capítulo principal (15 secciones)
+    sop-priorizacion-automatizaciones.md ← SOP: matriz valor-factibilidad
+    sop-gobierno-ia-human-in-the-loop.md ← SOP: gobierno de IA
+    plantilla-ficha-automatizacion.md ← ficha de automatización
+    checklist-modulo8.md             ← checklist de aceptación
+    prompts-ia-modulo8.md            ← prompts de IA reutilizables
+    kpis-dashboard-automatizacion.md ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

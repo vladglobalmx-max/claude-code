@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Tokens de diseño GAIOS (Instrucción Maestra §19): empresarial, tecnológico,
+  oscuro por defecto pero legible, acento azul eléctrico, sin exceso de efectos.
+  Formato HSL sin la función hsl() para poder usar <alpha-value> en Tailwind.
+*/
+:root {
+  --gaios-bg: 222 26% 8%;
+  --gaios-surface: 222 22% 12%;
+  --gaios-surface-2: 222 18% 17%;
+  --gaios-border: 222 14% 24%;
+  --gaios-ink: 210 20% 98%;
+  --gaios-ink-soft: 216 12% 74%;
+  --gaios-ink-faint: 216 10% 52%;
+  --gaios-accent: 212 92% 58%;
+  --gaios-accent-ink: 0 0% 100%;
+  --gaios-success: 152 55% 45%;
+  --gaios-warning: 38 92% 55%;
+  --gaios-danger: 4 72% 55%;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="light"] {
+  --gaios-bg: 210 25% 97%;
+  --gaios-surface: 0 0% 100%;
+  --gaios-surface-2: 210 20% 94%;
+  --gaios-border: 210 16% 85%;
+  --gaios-ink: 222 30% 12%;
+  --gaios-ink-soft: 216 12% 34%;
+  --gaios-ink-faint: 216 10% 50%;
+  --gaios-accent: 212 92% 46%;
+  --gaios-accent-ink: 0 0% 100%;
+}
+
+* {
+  border-color: hsl(var(--gaios-border));
+}
+
+body {
+  background-color: hsl(var(--gaios-bg));
+  color: hsl(var(--gaios-ink));
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: hsl(var(--gaios-accent) / 0.25);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--gaios-border));
+  border-radius: 999px;
+}

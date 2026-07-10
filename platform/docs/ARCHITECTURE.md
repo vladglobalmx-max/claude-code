@@ -134,7 +134,7 @@ platform/
     └── icons/
 ```
 
-**Regla de aislamiento:** `lib/supabase/admin.ts` (service role) y `lib/ai/claude.ts` solo pueden importarse desde archivos dentro de `app/api/**` o Server Actions — nunca desde un componente `"use client"`. Se refuerza con ESLint (`no-restricted-imports`) además de la revisión de código.
+**Regla de aislamiento:** `lib/supabase/admin.ts` (service role) y `lib/ai/claude.ts` solo pueden importarse desde archivos dentro de `app/api/**` o Server Actions — nunca desde un componente `"use client"`. Se refuerza con el paquete `server-only`, que hace fallar el build si alguno de esos módulos termina empaquetado en el bundle del cliente.
 
 ---
 
@@ -438,12 +438,11 @@ vitest, @testing-library/react         -- pruebas (a partir de Fase 1.1)
 
 ---
 
-## 8. Próximo paso
+## 8. Estado de implementación
 
-Este documento es la entrega solicitada en la sección 28 ("Entrega primero la arquitectura, el esquema de base de datos y la estructura de carpetas"). Antes de generar el scaffold de código (`platform/package.json`, componentes, migraciones ejecutables) se pide confirmación sobre:
+Esta arquitectura fue aprobada y el scaffold ejecutable ya está construido en este mismo directorio (`platform/`): proyecto Next.js inicializado, las 7 migraciones SQL, el design system base, y las 5 herramientas funcionales de la sección 22 conectadas a Claude de extremo a extremo. Ver [`README.md`](../README.md) para instrucciones de instalación, variables de entorno y credenciales de demo.
 
-1. ¿La estructura de carpetas y el árbol de rutas propuesto se aprueba tal cual, o hay ajustes?
-2. ¿El esquema de datos de la sección 3 cubre lo esperado para Fase 1, o falta algún campo/entidad?
-3. Confirmar el nombre del proyecto/carpeta (`platform/`) dentro de este mismo repositorio, o si debe vivir en un repositorio aparte.
-
-Con esa confirmación, el siguiente entregable es el scaffold ejecutable: proyecto Next.js inicializado, migraciones SQL aplicables, design system base, y las 5 herramientas funcionales de la sección 22 conectadas a Claude.
+Pendiente explícitamente (no construido en este scaffold, por decisión de alcance de Fase 1):
+- Los 15 prompts restantes del catálogo de herramientas de la sección 9 (quedaron como registros `inactive`/`draft` en el seed, listos para que el Administrador de IA los complete desde `/admin/prompts`).
+- Búsqueda semántica sobre `document_chunks` (la tabla y la extensión `pgvector` ya existen, sin uso funcional todavía).
+- Conexión a un proyecto Supabase real — el scaffold corre hoy contra Supabase local (`supabase start` + `supabase db reset`).

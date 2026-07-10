@@ -10,6 +10,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 |---|---|---|
 | [00](00-arquitectura-maestra/00-arquitectura-maestra.md) | Arquitectura Maestra | 🟢 Publicado |
 | [01](01-comercial-crm/01-comercial-crm.md) | Comercial / CRM | 🟢 Publicado |
+| [02](02-marketing/02-marketing.md) | Marketing | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -33,6 +34,15 @@ gaios/
     checklist-modulo1.md             ← checklist de aceptación
     prompts-ia-modulo1.md            ← prompts de IA reutilizables
     kpis-dashboard-comercial.md      ← formulario/dashboard de seguimiento
+  02-marketing/
+    02-marketing.md                  ← capítulo principal (15 secciones)
+    sop-generacion-contenido.md      ← SOP: calendario y producción editorial
+    sop-lead-scoring-mql.md          ← SOP: lead scoring y SLA Marketing-Ventas
+    sop-gestion-campanas.md          ← SOP: ciclo de vida de campañas
+    plantilla-brief-campana.md       ← plantilla de brief de campaña
+    checklist-modulo2.md             ← checklist de aceptación
+    prompts-ia-modulo2.md            ← prompts de IA reutilizables
+    kpis-dashboard-marketing.md      ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

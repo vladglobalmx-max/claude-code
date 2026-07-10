@@ -11,6 +11,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [00](00-arquitectura-maestra/00-arquitectura-maestra.md) | Arquitectura Maestra | 🟢 Publicado |
 | [01](01-comercial-crm/01-comercial-crm.md) | Comercial / CRM | 🟢 Publicado |
 | [02](02-marketing/02-marketing.md) | Marketing | 🟢 Publicado |
+| [03](03-operaciones-sop/03-operaciones-sop.md) | Operaciones / SOPs Core | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -43,6 +44,15 @@ gaios/
     checklist-modulo2.md             ← checklist de aceptación
     prompts-ia-modulo2.md            ← prompts de IA reutilizables
     kpis-dashboard-marketing.md      ← formulario/dashboard de seguimiento
+  03-operaciones-sop/
+    03-operaciones-sop.md            ← capítulo principal (15 secciones)
+    sop-mapeo-proceso-sipoc.md       ← SOP: mapeo de procesos (SIPOC)
+    sop-analisis-causa-raiz.md       ← SOP: 5 Whys / Ishikawa
+    sop-gestion-no-conformidades.md  ← SOP: gestión de no conformidades
+    plantilla-proyecto-dmaic.md      ← plantilla de charter DMAIC
+    checklist-modulo3.md             ← checklist de aceptación
+    prompts-ia-modulo3.md            ← prompts de IA reutilizables
+    kpis-dashboard-operaciones.md    ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

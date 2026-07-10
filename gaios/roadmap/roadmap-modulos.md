@@ -11,7 +11,7 @@
 | 04 | Compras / Cadena de suministro | Director de Compras | 00, 03 | 🟢 Publicado | Reducción de costos y errores |
 | 05 | Recursos Humanos (reclutamiento, onboarding, desempeño) | Director de RRHH | 00 | 🟢 Publicado | Escalabilidad, reducción dependencia CEO |
 | 06 | Finanzas / Control (presupuesto, cobranza, reporting) | CFO | 00 | 🟢 Publicado | Reducción de errores, control |
-| 07 | Tecnología / Infraestructura (stack, seguridad, integraciones) | Director de Tecnología | 00 | ⚪ Planeado | Habilita automatización de todos los módulos |
+| 07 | Tecnología / Infraestructura (stack, seguridad, integraciones) | Director de Tecnología | 00 | 🟢 Publicado | Habilita automatización de todos los módulos |
 | 08 | Automatización e IA transversal | Chief AI Officer | 00, 07 | ⚪ Planeado | Reducción de trabajo repetitivo |
 | 09 | Gestión del Conocimiento (SECI, biblioteca, onboarding de saber-hacer) | Especialista en Gestión del Conocimiento | 00, 05 | ⚪ Planeado | Reducción de dependencia de personas clave |
 | 10 | Gobierno Corporativo / EOS (Accountability Chart, L10, Scorecard) | COO | 00 | ⚪ Planeado | Reducción de dependencia del CEO |

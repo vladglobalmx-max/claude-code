@@ -15,6 +15,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [04](04-compras/04-compras.md) | Compras / Cadena de Suministro | 🟢 Publicado |
 | [05](05-rrhh/05-rrhh.md) | Recursos Humanos | 🟢 Publicado |
 | [06](06-finanzas/06-finanzas.md) | Finanzas / Control | 🟢 Publicado |
+| [07](07-tecnologia/07-tecnologia.md) | Tecnología / Infraestructura | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -83,6 +84,15 @@ gaios/
     checklist-modulo6.md             ← checklist de aceptación
     prompts-ia-modulo6.md            ← prompts de IA reutilizables
     kpis-dashboard-finanzas.md       ← formulario/dashboard de seguimiento
+  07-tecnologia/
+    07-tecnologia.md                 ← capítulo principal (15 secciones)
+    sop-gestion-accesos-iam.md       ← SOP: gestión de accesos e identidad
+    sop-gestion-cambios.md           ← SOP: gestión de cambios
+    sop-backup-recuperacion.md       ← SOP: respaldo y recuperación
+    plantilla-catalogo-integraciones.md ← catálogo de integraciones
+    checklist-modulo7.md             ← checklist de aceptación
+    prompts-ia-modulo7.md            ← prompts de IA reutilizables
+    kpis-dashboard-tecnologia.md     ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

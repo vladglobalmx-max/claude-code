@@ -8,7 +8,7 @@
 | 01 | Comercial / CRM (ventas, pipeline, prospección) | Director Comercial | 00 | 🟢 Publicado | Incremento de ventas |
 | 02 | Marketing (generación de demanda, contenido, branding) | Director de Marketing | 00, 01 | 🟢 Publicado | Incremento de ventas |
 | 03 | Operaciones / SOPs core (Lean Six Sigma) | Director de Operaciones | 00 | 🟢 Publicado | Reducción de errores, productividad |
-| 04 | Compras / Cadena de suministro | Director de Compras | 00, 03 | ⚪ Planeado | Reducción de costos y errores |
+| 04 | Compras / Cadena de suministro | Director de Compras | 00, 03 | 🟢 Publicado | Reducción de costos y errores |
 | 05 | Recursos Humanos (reclutamiento, onboarding, desempeño) | Director de RRHH | 00 | ⚪ Planeado | Escalabilidad, reducción dependencia CEO |
 | 06 | Finanzas / Control (presupuesto, cobranza, reporting) | CFO | 00 | ⚪ Planeado | Reducción de errores, control |
 | 07 | Tecnología / Infraestructura (stack, seguridad, integraciones) | Director de Tecnología | 00 | ⚪ Planeado | Habilita automatización de todos los módulos |

@@ -12,6 +12,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [01](01-comercial-crm/01-comercial-crm.md) | Comercial / CRM | 🟢 Publicado |
 | [02](02-marketing/02-marketing.md) | Marketing | 🟢 Publicado |
 | [03](03-operaciones-sop/03-operaciones-sop.md) | Operaciones / SOPs Core | 🟢 Publicado |
+| [04](04-compras/04-compras.md) | Compras / Cadena de Suministro | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -53,6 +54,15 @@ gaios/
     checklist-modulo3.md             ← checklist de aceptación
     prompts-ia-modulo3.md            ← prompts de IA reutilizables
     kpis-dashboard-operaciones.md    ← formulario/dashboard de seguimiento
+  04-compras/
+    04-compras.md                    ← capítulo principal (15 secciones)
+    sop-segmentacion-proveedores-kraljic.md ← SOP: Matriz de Kraljic
+    sop-cotizacion-rfq.md            ← SOP: cotización y RFQ
+    sop-control-tres-vias.md         ← SOP: three-way match
+    plantilla-scorecard-proveedor.md ← plantilla de evaluación de proveedor
+    checklist-modulo4.md             ← checklist de aceptación
+    prompts-ia-modulo4.md            ← prompts de IA reutilizables
+    kpis-dashboard-compras.md        ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

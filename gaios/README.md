@@ -17,6 +17,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [06](06-finanzas/06-finanzas.md) | Finanzas / Control | 🟢 Publicado |
 | [07](07-tecnologia/07-tecnologia.md) | Tecnología / Infraestructura | 🟢 Publicado |
 | [08](08-automatizacion-ia/08-automatizacion-ia.md) | Automatización e IA Transversal | 🟢 Publicado |
+| [09](09-gestion-conocimiento/09-gestion-conocimiento.md) | Gestión del Conocimiento | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -102,6 +103,14 @@ gaios/
     checklist-modulo8.md             ← checklist de aceptación
     prompts-ia-modulo8.md            ← prompts de IA reutilizables
     kpis-dashboard-automatizacion.md ← formulario/dashboard de seguimiento
+  09-gestion-conocimiento/
+    09-gestion-conocimiento.md       ← capítulo principal (15 secciones)
+    sop-captura-conocimiento-offboarding.md ← SOP: captura en offboarding
+    sop-auditoria-brechas-conocimiento.md ← SOP: auditoría de brechas
+    plantilla-articulo-base-conocimiento.md ← plantilla de artículo
+    checklist-modulo9.md             ← checklist de aceptación
+    prompts-ia-modulo9.md            ← prompts de IA reutilizables
+    kpis-dashboard-conocimiento.md   ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

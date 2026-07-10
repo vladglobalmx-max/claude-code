@@ -14,6 +14,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [03](03-operaciones-sop/03-operaciones-sop.md) | Operaciones / SOPs Core | 🟢 Publicado |
 | [04](04-compras/04-compras.md) | Compras / Cadena de Suministro | 🟢 Publicado |
 | [05](05-rrhh/05-rrhh.md) | Recursos Humanos | 🟢 Publicado |
+| [06](06-finanzas/06-finanzas.md) | Finanzas / Control | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -73,6 +74,15 @@ gaios/
     checklist-modulo5.md             ← checklist de aceptación
     prompts-ia-modulo5.md            ← prompts de IA reutilizables
     kpis-dashboard-rrhh.md           ← formulario/dashboard de seguimiento
+  06-finanzas/
+    06-finanzas.md                   ← capítulo principal (15 secciones)
+    sop-presupuesto-anual.md         ← SOP: presupuesto anual por driver
+    sop-ciclo-cobranza.md            ← SOP: ciclo de cobranza (Order-to-Cash)
+    sop-cierre-contable-mensual.md   ← SOP: cierre contable mensual
+    plantilla-reporte-financiero-mensual.md ← plantilla de reporte mensual
+    checklist-modulo6.md             ← checklist de aceptación
+    prompts-ia-modulo6.md            ← prompts de IA reutilizables
+    kpis-dashboard-finanzas.md       ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

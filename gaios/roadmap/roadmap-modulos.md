@@ -5,7 +5,7 @@
 | # | Módulo | Dueño funcional | Depende de | Estado | Impacto principal |
 |---|---|---|---|---|---|
 | 00 | Arquitectura Maestra | Arquitecto Empresarial | — | 🟢 Publicado | Fundacional |
-| 01 | Comercial / CRM (ventas, pipeline, prospección) | Director Comercial | 00 | ⚪ Planeado | Incremento de ventas |
+| 01 | Comercial / CRM (ventas, pipeline, prospección) | Director Comercial | 00 | 🟢 Publicado | Incremento de ventas |
 | 02 | Marketing (generación de demanda, contenido, branding) | Director de Marketing | 00, 01 | ⚪ Planeado | Incremento de ventas |
 | 03 | Operaciones / SOPs core (Lean Six Sigma) | Director de Operaciones | 00 | ⚪ Planeado | Reducción de errores, productividad |
 | 04 | Compras / Cadena de suministro | Director de Compras | 00, 03 | ⚪ Planeado | Reducción de costos y errores |

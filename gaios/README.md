@@ -9,6 +9,7 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | # | Módulo | Estado |
 |---|---|---|
 | [00](00-arquitectura-maestra/00-arquitectura-maestra.md) | Arquitectura Maestra | 🟢 Publicado |
+| [01](01-comercial-crm/01-comercial-crm.md) | Comercial / CRM | 🟢 Publicado |
 
 Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
 
@@ -23,6 +24,15 @@ gaios/
     checklist-modulo0.md             ← checklist de aceptación de calidad
     prompts-ia-modulo0.md            ← prompts de IA reutilizables
     kpis-dashboard.md                ← formulario/dashboard de seguimiento
+  01-comercial-crm/
+    01-comercial-crm.md              ← capítulo principal (15 secciones)
+    sop-calificacion-leads-meddic.md ← SOP: calificación BANT/MEDDIC
+    sop-revision-pipeline-semanal.md ← SOP: forecast call semanal
+    sop-higiene-datos-crm.md         ← SOP: higiene de datos del CRM
+    plantilla-ficha-oportunidad.md   ← plantilla de campos del CRM
+    checklist-modulo1.md             ← checklist de aceptación
+    prompts-ia-modulo1.md            ← prompts de IA reutilizables
+    kpis-dashboard-comercial.md      ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

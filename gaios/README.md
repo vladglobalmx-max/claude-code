@@ -4,6 +4,8 @@ Sistema operativo empresarial para empresas B2B: elimina trabajo repetitivo, red
 
 Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquitectura-maestra/plantilla-estandar-documento.md`), auditado por el checklist de aceptación (`00-arquitectura-maestra/checklist-modulo0.md`) antes de publicarse.
 
+**Roadmap inicial completo: 13 módulos (00-12) publicados.**
+
 ## Índice de módulos
 
 | # | Módulo | Estado |
@@ -20,8 +22,9 @@ Cada módulo sigue el mismo estándar documental de 15 secciones (ver `00-arquit
 | [09](09-gestion-conocimiento/09-gestion-conocimiento.md) | Gestión del Conocimiento | 🟢 Publicado |
 | [10](10-gobierno-corporativo/10-gobierno-corporativo.md) | Gobierno Corporativo / EOS | 🟢 Publicado |
 | [11](11-atencion-cliente/11-atencion-cliente.md) | Atención al Cliente / Postventa | 🟢 Publicado |
+| [12](12-calidad/12-calidad.md) | Calidad / Mejora Continua | 🟢 Publicado |
 
-Ver el roadmap completo y el orden de construcción sugerido en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md).
+Ver el roadmap completo en [`roadmap/roadmap-modulos.md`](roadmap/roadmap-modulos.md). El Módulo 12 cierra el ciclo de gobierno de calidad y audita el cumplimiento real de todos los demás.
 
 ## Estructura del repositorio
 
@@ -129,6 +132,14 @@ gaios/
     checklist-modulo11.md            ← checklist de aceptación
     prompts-ia-modulo11.md           ← prompts de IA reutilizables
     kpis-dashboard-atencion-cliente.md ← formulario/dashboard de seguimiento
+  12-calidad/
+    12-calidad.md                    ← capítulo principal (15 secciones)
+    sop-auditoria-interna-cumplimiento.md ← SOP: auditoría interna + gemba walk
+    sop-evento-kaizen.md             ← SOP: evento Kaizen
+    plantilla-reporte-copq.md        ← plantilla de costo de no calidad
+    checklist-modulo12.md            ← checklist de aceptación
+    prompts-ia-modulo12.md           ← prompts de IA reutilizables
+    kpis-dashboard-calidad.md        ← formulario/dashboard de seguimiento
   roadmap/
     roadmap-modulos.md               ← taxonomía y dependencias de todos los módulos
   <nn>-<nombre-del-siguiente-modulo>/

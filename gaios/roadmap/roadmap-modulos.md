@@ -16,7 +16,7 @@
 | 09 | Gestión del Conocimiento (SECI, biblioteca, onboarding de saber-hacer) | Especialista en Gestión del Conocimiento | 00, 05 | 🟢 Publicado | Reducción de dependencia de personas clave |
 | 10 | Gobierno Corporativo / EOS (Accountability Chart, L10, Scorecard) | COO | 00 | 🟢 Publicado | Reducción de dependencia del CEO |
 | 11 | Atención al Cliente / Servicio Postventa | Director Comercial | 00, 01 | 🟢 Publicado | Retención, reducción de errores |
-| 12 | Calidad / Mejora Continua (Lean Six Sigma transversal) | Consultor Lean Six Sigma | 00, 03 | ⚪ Planeado | Reducción de errores |
+| 12 | Calidad / Mejora Continua (Lean Six Sigma transversal) | Consultor Lean Six Sigma | 00, 03 | 🟢 Publicado | Reducción de errores |
 
 **Leyenda de estado:** 🟢 Publicado · 🟡 En construcción · ⚪ Planeado · 🔴 Bloqueado.
 

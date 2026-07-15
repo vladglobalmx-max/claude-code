@@ -9,7 +9,9 @@ test.describe("login flow (Módulo 1)", () => {
     await page.fill('input[name="password"]', "wrong-password");
     await page.click('button[type="submit"]');
 
-    await expect(page.getByRole("alert")).toHaveText("Correo o contraseña incorrectos.");
+    // Next's own route announcer (#__next-route-announcer__) also has
+    // role="alert", so scope to the login form's error message specifically.
+    await expect(page.getByText("Correo o contraseña incorrectos.")).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
 

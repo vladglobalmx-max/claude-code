@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { auth } from "@/lib/auth/auth";
+import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma/client";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/permissions";
 import { computeMarginPctFromSalePrice } from "@/lib/catalog/margin";
@@ -15,11 +15,11 @@ export default async function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  const role = session!.user.role;
+  const session = await requireSession();
+  const role = session.user.role;
 
   const userBusinessUnits = await prisma.userBusinessUnit.findMany({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     select: { businessUnitId: true },
   });
   const businessUnitIds = userBusinessUnits.map((ubu) => ubu.businessUnitId);
@@ -43,16 +43,30 @@ export default async function ProductDetailPage({
   const currentPriceItem = product.priceListItems[0];
   const listPrice = currentPriceItem?.listPrice.toNumber() ?? null;
 
+  const canManageProducts = hasPermission(role, PERMISSIONS.MANAGE_PRODUCTS) && canViewCosts;
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <Link href="/products" className="text-sm text-zinc-500 hover:underline">
-          ← Productos
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">{product.name}</h1>
-        <p className="text-sm text-zinc-500">
-          {product.businessUnit.code} · {product.businessUnit.name} · SKU {product.internalSku}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Link href="/products" className="text-sm text-zinc-500 hover:underline">
+            ← Productos
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            {product.name}
+          </h1>
+          <p className="text-sm text-zinc-500">
+            {product.businessUnit.code} · {product.businessUnit.name} · SKU {product.internalSku}
+          </p>
+        </div>
+        {canManageProducts ? (
+          <Link
+            href={`/products/${product.id}/edit`}
+            className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            Editar
+          </Link>
+        ) : null}
       </div>
 
       <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">

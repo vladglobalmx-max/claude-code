@@ -1,16 +1,16 @@
 import Link from "next/link";
 
-import { auth } from "@/lib/auth/auth";
+import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma/client";
 import { projectProduct, type ProductForProjection } from "@/lib/catalog/project";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/permissions";
 
 export default async function ProductsPage() {
-  const session = await auth();
-  const role = session!.user.role;
+  const session = await requireSession();
+  const role = session.user.role;
 
   const userBusinessUnits = await prisma.userBusinessUnit.findMany({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     select: { businessUnitId: true },
   });
   const businessUnitIds = userBusinessUnits.map((ubu) => ubu.businessUnitId);
@@ -28,6 +28,7 @@ export default async function ProductsPage() {
 
   const canViewCosts = hasPermission(role, PERMISSIONS.VIEW_COSTS);
   const canViewMarginPct = canViewCosts || hasPermission(role, PERMISSIONS.VIEW_MARGIN_PCT);
+  const canManageProducts = hasPermission(role, PERMISSIONS.MANAGE_PRODUCTS) && canViewCosts;
 
   const rows = products.map((product) => {
     const cost = product.costs[0];
@@ -51,12 +52,24 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Productos · Precios</h1>
-        <p className="text-sm text-zinc-500">
-          Catálogo de tus líneas de negocio asignadas. Módulo 3 (alcance básico) — ver
-          docs/ARCHITECTURE.md §6/§7/§8.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            Productos · Precios
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Catálogo de tus líneas de negocio asignadas. Módulo 3 (alcance básico) — ver
+            docs/ARCHITECTURE.md §6/§7/§8.
+          </p>
+        </div>
+        {canManageProducts ? (
+          <Link
+            href="/products/new"
+            className="shrink-0 rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            + Nuevo producto
+          </Link>
+        ) : null}
       </div>
 
       {rows.length === 0 ? (

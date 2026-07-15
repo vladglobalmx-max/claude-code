@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth/auth";
+import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma/client";
 import { PERMISSIONS, ROLE_LABELS, hasPermission } from "@/lib/auth/permissions";
 
 export default async function DashboardPage() {
-  const session = await auth();
-  const role = session!.user.role;
+  const session = await requireSession();
+  const role = session.user.role;
 
   const businessUnits = await prisma.businessUnit.findMany({
     where: { deletedAt: null },
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          Bienvenido, {session!.user.fullName}
+          Bienvenido, {session.user.fullName}
         </h1>
         <p className="text-sm text-zinc-500">
           Rol: {ROLE_LABELS[role]} · Módulo 1 (Cimientos) — login, roles/permisos y líneas de

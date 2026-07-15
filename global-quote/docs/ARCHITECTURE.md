@@ -441,7 +441,7 @@ Cada versión posterior al envío:
 
 ### 7.4 Cuándo se emite el folio
 
-Para no "quemar" consecutivos con borradores que el vendedor nunca completa, el folio se asigna en el primer `guardar` explícito (no en cada tecleo de un formulario en memoria en el cliente) — es decir, al crear el registro de `Borrador` en base de datos, no antes. Esto es una decisión de producto explícita a validar con Dirección General, ya que el brief pide "irreversible": irreversible se interpreta aquí como *una vez guardado, nunca se reutiliza o edita*, no como *se genera con cada tecla*.
+Para no "quemar" consecutivos con borradores que el vendedor nunca completa, el folio se asigna en el primer `guardar` explícito (no en cada tecleo de un formulario en memoria en el cliente) — es decir, al crear el registro de `Borrador` en base de datos, no antes. **Validado con Dirección General (2026-07-15):** "irreversible" se interpreta como *una vez guardado, nunca se reutiliza o edita*, no como *se genera con cada tecla*.
 
 ---
 

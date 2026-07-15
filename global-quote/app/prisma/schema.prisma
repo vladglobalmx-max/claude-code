@@ -1,0 +1,96 @@
+// GLOBAL QUOTE — Modulo 1 (Cimientos): roles, permisos, lineas de negocio y usuarios.
+// Ver docs/ARCHITECTURE.md secciones 4 y 5 para el modelo completo planeado.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleCode {
+  SUPER_ADMIN
+  DIRECCION_GENERAL
+  ADMINISTRACION
+  GERENTE_VENTAS
+  VENDEDOR
+  MARKETING
+  CONSULTA
+}
+
+enum FolioNumberingMode {
+  ANNUAL
+  CONTINUOUS
+}
+
+model BusinessUnit {
+  id                 String             @id @default(uuid()) @db.Uuid
+  code               String             @unique
+  name               String
+  legalName          String?            @map("legal_name")
+  taxId              String?            @map("tax_id")
+  address            String?
+  logoUrl            String?            @map("logo_url")
+  colorPrimary       String?            @map("color_primary")
+  colorSecondary     String?            @map("color_secondary")
+  minMarginDefault   Decimal?           @map("min_margin_default") @db.Decimal(5, 2)
+  folioNumberingMode FolioNumberingMode @default(ANNUAL) @map("folio_numbering_mode")
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  deletedAt          DateTime?          @map("deleted_at")
+
+  userBusinessUnits UserBusinessUnit[]
+
+  @@map("business_units")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        RoleCode @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                  String    @id @default(uuid()) @db.Uuid
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  fullName            String    @map("full_name")
+  roleId              String    @map("role_id") @db.Uuid
+  active              Boolean   @default(true)
+  twoFactorEnabled    Boolean   @default(false) @map("two_factor_enabled")
+  discountLimitPct    Decimal?  @map("discount_limit_pct") @db.Decimal(5, 2)
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  role              Role               @relation(fields: [roleId], references: [id])
+  userBusinessUnits UserBusinessUnit[]
+
+  @@map("users")
+}
+
+model UserBusinessUnit {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  businessUnitId String   @map("business_unit_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessUnitId])
+  @@map("user_business_units")
+}

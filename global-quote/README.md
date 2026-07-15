@@ -4,9 +4,9 @@
 
 Sistema empresarial de cotizaciones multilínea de negocio (TSS, TLL, GFB, TFS, JUN, GTX, GSM) que controla productos, costos, precios, márgenes, clientes, vendedores, autorizaciones, seguimiento comercial, conversión a pedido, historial, evidencias e indicadores — no es un generador de PDFs.
 
-**Estado actual: fase de planeación.** Este directorio contiene el entregable pre-código exigido antes de escribir una sola línea de aplicación: resumen ejecutivo, arquitectura funcional y técnica, roles y permisos, modelo de datos, flujo de cotización, sistema de folios, reglas de margen/autorización, mapa de pantallas y plan de MVP dividido en módulos.
+**Estado actual: Módulo 1 (Cimientos) construido.** `docs/ARCHITECTURE.md` es el entregable pre-código (resumen ejecutivo, arquitecturas, roles y permisos, modelo de datos, flujo de cotización, folios, márgenes/autorización, mapa de pantallas y plan de MVP). El código vive en [`app/`](app/README.md): login (Auth.js), RBAC de 7 roles y líneas de negocio, con pruebas unitarias, de integración y e2e pasando. Los módulos 2 en adelante (catálogo, clientes, folios, cotizaciones, autorizaciones, PDF...) se construyen uno a la vez según `docs/ARCHITECTURE.md §10`.
 
-Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · Código: [`app/`](app/README.md).
 
 ## Relación con GAIOS y con `platform/`
 
@@ -17,4 +17,4 @@ Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Próximo paso
 
-Validar este documento con Dirección General (Vladimir Peña Elizondo) antes de iniciar el Módulo 1 del plan de MVP (§10 de `ARCHITECTURE.md`).
+Construir el Módulo 2 (líneas de negocio + configuración) y el Módulo 3 (catálogo) sobre los cimientos ya validados, según el plan de `docs/ARCHITECTURE.md §10`.

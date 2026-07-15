@@ -25,6 +25,31 @@ enum FolioNumberingMode {
   CONTINUOUS
 }
 
+enum Currency {
+  MXN
+  USD
+}
+
+enum ProductType {
+  STANDARD
+  CONFIGURABLE
+  PROJECT
+  KIT
+  COMBO
+  SERVICE
+  INSTALLATION
+  FREIGHT
+  PROMOTIONAL
+  CUSTOM
+  BACKORDER
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  DISCONTINUED
+}
+
 model BusinessUnit {
   id                 String             @id @default(uuid()) @db.Uuid
   code               String             @unique
@@ -43,6 +68,9 @@ model BusinessUnit {
   deletedAt          DateTime?          @map("deleted_at")
 
   userBusinessUnits UserBusinessUnit[]
+  categories        Category[]
+  products          Product[]
+  priceLists        PriceList[]
 
   @@map("business_units")
 }
@@ -93,4 +121,115 @@ model UserBusinessUnit {
 
   @@unique([userId, businessUnitId])
   @@map("user_business_units")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 3 (Catalogo, alcance basico): categorias, productos, costos con
+// vigencia y listas de precios. Ver docs/ARCHITECTURE.md §5.2 y §8.1.
+// Fuera de este alcance por ahora: imagenes/documentos, kits/combos reales,
+// precios por volumen/cliente (vienen despues, sin requerir migracion nueva).
+// ---------------------------------------------------------------------------
+
+model Category {
+  id             String    @id @default(uuid()) @db.Uuid
+  businessUnitId String    @map("business_unit_id") @db.Uuid
+  parentId       String?   @map("parent_id") @db.Uuid
+  name           String
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  parent       Category?    @relation("CategoryToSubcategory", fields: [parentId], references: [id])
+  subcategories Category[]  @relation("CategoryToSubcategory")
+  products     Product[]
+
+  @@unique([businessUnitId, name])
+  @@map("categories")
+}
+
+model Product {
+  id                 String        @id @default(uuid()) @db.Uuid
+  businessUnitId     String        @map("business_unit_id") @db.Uuid
+  categoryId         String?       @map("category_id") @db.Uuid
+  internalSku        String        @unique @map("internal_sku")
+  supplierSku        String?       @map("supplier_sku")
+  barcode            String?
+  name               String
+  shortDescription   String?       @map("short_description")
+  technicalDescription String?     @map("technical_description")
+  type               ProductType   @default(STANDARD)
+  status             ProductStatus @default(ACTIVE)
+  uom                String        @default("PZA")
+  minOrderQty        Int           @default(1) @map("min_order_qty")
+  leadTimeDays       Int?          @map("lead_time_days")
+  warranty           String?
+  countryOfOrigin    String?       @map("country_of_origin")
+  purchaseCurrency   Currency      @default(MXN) @map("purchase_currency")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  deletedAt          DateTime?     @map("deleted_at")
+
+  businessUnit    BusinessUnit     @relation(fields: [businessUnitId], references: [id])
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  costs           ProductCost[]
+  priceListItems  PriceListItem[]
+
+  @@map("products")
+}
+
+/// Vigencias de costo por producto. La ausencia de solapamiento entre
+/// vigencias se garantiza con un EXCLUDE constraint agregado a mano en
+/// migration.sql (Prisma no expresa EXCLUDE), ver docs/ARCHITECTURE.md §5.3.
+model ProductCost {
+  id               String    @id @default(uuid()) @db.Uuid
+  productId        String    @map("product_id") @db.Uuid
+  purchaseCost     Decimal   @map("purchase_cost") @db.Decimal(12, 4)
+  logisticsCost    Decimal   @default(0) @map("logistics_cost") @db.Decimal(12, 4)
+  importExpenses   Decimal   @default(0) @map("import_expenses") @db.Decimal(12, 4)
+  landedCost       Decimal   @map("landed_cost") @db.Decimal(12, 4)
+  targetMarginPct  Decimal   @map("target_margin_pct") @db.Decimal(5, 2)
+  minMarginPct     Decimal   @map("min_margin_pct") @db.Decimal(5, 2)
+  effectiveFrom    DateTime  @default(now()) @map("effective_from")
+  effectiveTo      DateTime? @map("effective_to")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  createdBy        String?   @map("created_by")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_costs")
+}
+
+model PriceList {
+  id             String    @id @default(uuid()) @db.Uuid
+  businessUnitId String    @map("business_unit_id") @db.Uuid
+  code           String    @unique
+  name           String
+  currency       Currency  @default(MXN)
+  validFrom      DateTime  @default(now()) @map("valid_from")
+  validTo        DateTime? @map("valid_to")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  businessUnit BusinessUnit    @relation(fields: [businessUnitId], references: [id])
+  items        PriceListItem[]
+
+  @@map("price_lists")
+}
+
+model PriceListItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  priceListId  String   @map("price_list_id") @db.Uuid
+  productId    String   @map("product_id") @db.Uuid
+  listPrice    Decimal  @map("list_price") @db.Decimal(12, 2)
+  specialPrice Decimal? @map("special_price") @db.Decimal(12, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  priceList PriceList @relation(fields: [priceListId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([priceListId, productId])
+  @@map("price_list_items")
 }

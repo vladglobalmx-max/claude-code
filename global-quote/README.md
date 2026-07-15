@@ -4,7 +4,7 @@
 
 Sistema empresarial de cotizaciones multilínea de negocio (TSS, TLL, GFB, TFS, JUN, GTX, GSM) que controla productos, costos, precios, márgenes, clientes, vendedores, autorizaciones, seguimiento comercial, conversión a pedido, historial, evidencias e indicadores — no es un generador de PDFs.
 
-**Estado actual: Módulo 1 (Cimientos) construido.** `docs/ARCHITECTURE.md` es el entregable pre-código (resumen ejecutivo, arquitecturas, roles y permisos, modelo de datos, flujo de cotización, folios, márgenes/autorización, mapa de pantallas y plan de MVP). El código vive en [`app/`](app/README.md): login (Auth.js), RBAC de 7 roles y líneas de negocio, con pruebas unitarias, de integración y e2e pasando. Los módulos 2 en adelante (catálogo, clientes, folios, cotizaciones, autorizaciones, PDF...) se construyen uno a la vez según `docs/ARCHITECTURE.md §10`.
+**Estado actual: Módulo 1 (Cimientos) y Módulo 3 (Catálogo, alcance básico) construidos.** `docs/ARCHITECTURE.md` es el entregable pre-código (resumen ejecutivo, arquitecturas, roles y permisos, modelo de datos, flujo de cotización, folios, márgenes/autorización, mapa de pantallas y plan de MVP). El código vive en [`app/`](app/README.md): login (Auth.js), RBAC de 7 roles y líneas de negocio, y un catálogo de productos con costos/márgenes/precios para la línea GFB — con el motor de margen y la proyección de datos por rol ya probados de extremo a extremo. Faltan Módulo 2 (folios/config por línea), clientes, cotizaciones, autorizaciones y PDF, según `docs/ARCHITECTURE.md §10`.
 
 Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · Código: [`app/`](app/README.md).
 

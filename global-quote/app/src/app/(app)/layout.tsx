@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { label: "Inicio · Dashboard", href: "/dashboard", enabled: true },
   { label: "Cotizaciones", enabled: false },
   { label: "Autorizaciones", enabled: false },
-  { label: "Clientes · Contactos", enabled: false },
+  { label: "Clientes · Contactos", href: "/customers", enabled: true },
   { label: "Productos · Precios", href: "/products", enabled: true },
   { label: "Líneas de negocio", enabled: false },
   { label: "Pedidos", enabled: false },

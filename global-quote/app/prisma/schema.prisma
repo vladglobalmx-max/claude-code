@@ -71,6 +71,7 @@ model BusinessUnit {
   categories        Category[]
   products          Product[]
   priceLists        PriceList[]
+  customers         Customer[]
 
   @@map("business_units")
 }
@@ -106,6 +107,7 @@ model User {
 
   role              Role               @relation(fields: [roleId], references: [id])
   userBusinessUnits UserBusinessUnit[]
+  assignedCustomers Customer[]
 
   @@map("users")
 }
@@ -214,6 +216,7 @@ model PriceList {
 
   businessUnit BusinessUnit    @relation(fields: [businessUnitId], references: [id])
   items        PriceListItem[]
+  customers    Customer[]
 
   @@map("price_lists")
 }
@@ -232,4 +235,115 @@ model PriceListItem {
 
   @@unique([priceListId, productId])
   @@map("price_list_items")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 4 (Clientes y contactos, alcance basico): ficha de cliente, sus
+// direcciones y sus contactos. Ver docs/ARCHITECTURE.md §11.
+// Alcance de RBAC: un Vendedor solo ve/crea clientes con assignedSellerId
+// igual a si mismo ("no ver clientes de otros vendedores, salvo
+// autorizacion" — brief §4); el resto de roles con permiso de ver clientes
+// ve todos los de sus lineas de negocio asignadas (mismo patron que
+// products.ts). Fuera de este alcance: documentos fiscales adjuntos,
+// historial de cotizaciones/pedidos (no existen todavia esos modulos),
+// reasignacion por Gerente de Ventas (solo lectura de sus lineas por ahora).
+// ---------------------------------------------------------------------------
+
+enum CustomerStatus {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+}
+
+enum AddressType {
+  FISCAL
+  DELIVERY
+}
+
+enum DecisionPower {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model PaymentTerms {
+  id         String   @id @default(uuid()) @db.Uuid
+  code       String   @unique
+  name       String
+  creditDays Int      @default(0) @map("credit_days")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customers Customer[]
+
+  @@map("payment_terms")
+}
+
+model Customer {
+  id                   String         @id @default(uuid()) @db.Uuid
+  businessUnitId       String         @map("business_unit_id") @db.Uuid
+  legalName            String         @map("legal_name")
+  tradeName            String?        @map("trade_name")
+  taxId                String?        @map("tax_id")
+  industry             String?
+  segment              String?
+  assignedSellerId     String?        @map("assigned_seller_id") @db.Uuid
+  paymentTermsId       String?        @map("payment_terms_id") @db.Uuid
+  creditLimit          Decimal        @default(0) @map("credit_limit") @db.Decimal(12, 2)
+  preferredCurrency    Currency       @default(MXN) @map("preferred_currency")
+  priceListId          String?        @map("price_list_id") @db.Uuid
+  authorizedDiscountPct Decimal       @default(0) @map("authorized_discount_pct") @db.Decimal(5, 2)
+  notes                String?
+  status               CustomerStatus @default(PROSPECT)
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  deletedAt            DateTime?      @map("deleted_at")
+
+  businessUnit  BusinessUnit      @relation(fields: [businessUnitId], references: [id])
+  assignedSeller User?            @relation(fields: [assignedSellerId], references: [id])
+  paymentTerms  PaymentTerms?     @relation(fields: [paymentTermsId], references: [id])
+  priceList     PriceList?        @relation(fields: [priceListId], references: [id])
+  addresses     CustomerAddress[]
+  contacts      Contact[]
+
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id         String      @id @default(uuid()) @db.Uuid
+  customerId String      @map("customer_id") @db.Uuid
+  type       AddressType
+  street     String
+  city       String
+  state      String
+  zip        String
+  country    String      @default("México")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, type])
+  @@map("customer_addresses")
+}
+
+model Contact {
+  id             String         @id @default(uuid()) @db.Uuid
+  customerId     String         @map("customer_id") @db.Uuid
+  name           String
+  position       String?
+  area           String?
+  email          String?
+  phone          String?
+  whatsapp       String?
+  decisionPower  DecisionPower? @map("decision_power")
+  preferences    String?
+  lastContactAt  DateTime?      @map("last_contact_at")
+  nextFollowupAt DateTime?      @map("next_followup_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  deletedAt      DateTime?      @map("deleted_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
 }

@@ -373,6 +373,194 @@ async function seedGfbCatalog() {
   console.log(`Catálogo GFB: ${GFB_PRODUCTS.length} productos con costo y precio de lista.`);
 }
 
+// ---------------------------------------------------------------------------
+// Modulo 4 (Clientes y contactos, alcance basico), linea GFB. Ver
+// docs/ARCHITECTURE.md §11. Nombres y datos de contacto ficticios (§27/§28).
+// ---------------------------------------------------------------------------
+
+const PAYMENT_TERMS = [
+  { code: "CONTADO", name: "Contado", creditDays: 0 },
+  { code: "CREDITO15", name: "Crédito 15 días", creditDays: 15 },
+  { code: "CREDITO30", name: "Crédito 30 días", creditDays: 30 },
+  { code: "CREDITO60", name: "Crédito 60 días", creditDays: 60 },
+] as const;
+
+type GfbCustomerSeed = {
+  legalName: string;
+  tradeName: string;
+  taxId: string;
+  industry: string;
+  segment: string;
+  status: "PROSPECT" | "ACTIVE" | "INACTIVE";
+  assignedSellerEmail: string | null;
+  paymentTermsCode: (typeof PAYMENT_TERMS)[number]["code"] | null;
+  hasPriceList: boolean;
+  creditLimit: number;
+  authorizedDiscountPct: number;
+  contact: {
+    name: string;
+    position: string;
+    email: string;
+    phone: string;
+    decisionPower: "LOW" | "MEDIUM" | "HIGH";
+  };
+};
+
+const GFB_CUSTOMERS: GfbCustomerSeed[] = [
+  {
+    legalName: "Distribuidora Higiene del Norte S.A. de C.V.",
+    tradeName: "Higiene del Norte",
+    taxId: "DHN890512AB1",
+    industry: "Distribución",
+    segment: "Mayoreo",
+    status: "ACTIVE",
+    assignedSellerEmail: "diego.ramirez@globalsuppliermty.com",
+    paymentTermsCode: "CREDITO30",
+    hasPriceList: true,
+    creditLimit: 150000,
+    authorizedDiscountPct: 8,
+    contact: {
+      name: "Roberto Cantú",
+      position: "Gerente de Compras",
+      email: "roberto.cantu@higienedelnorte.example.mx",
+      phone: "+52 81 5555 0110",
+      decisionPower: "HIGH",
+    },
+  },
+  {
+    legalName: "Farmacias Salud Total México S.A. de C.V.",
+    tradeName: "Salud Total",
+    taxId: "FST020317CD2",
+    industry: "Retail farmacéutico",
+    segment: "Cadena regional",
+    status: "ACTIVE",
+    assignedSellerEmail: "diego.ramirez@globalsuppliermty.com",
+    paymentTermsCode: "CREDITO15",
+    hasPriceList: true,
+    creditLimit: 80000,
+    authorizedDiscountPct: 5,
+    contact: {
+      name: "Mariana López",
+      position: "Compradora — Categoría Cuidado Bucal",
+      email: "mariana.lopez@saludtotal.example.mx",
+      phone: "+52 81 5555 0223",
+      decisionPower: "MEDIUM",
+    },
+  },
+  {
+    legalName: "Tiendas de Conveniencia RapiExpress S.A. de C.V.",
+    tradeName: "RapiExpress",
+    taxId: "TCR150908EF3",
+    industry: "Retail de conveniencia",
+    segment: "Prospecto",
+    status: "PROSPECT",
+    assignedSellerEmail: "diego.ramirez@globalsuppliermty.com",
+    paymentTermsCode: null,
+    hasPriceList: false,
+    creditLimit: 0,
+    authorizedDiscountPct: 0,
+    contact: {
+      name: "Jorge Peña",
+      position: "Encargado de Compras",
+      email: "jorge.pena@rapiexpress.example.mx",
+      phone: "+52 81 5555 0334",
+      decisionPower: "LOW",
+    },
+  },
+  {
+    // Cuenta "casa" sin vendedor asignado — sirve para probar que un
+    // Vendedor NO la ve (solo ve las suyas), mientras Administración/DG sí.
+    legalName: "Grupo Comercial Fresh Retail S.A. de C.V.",
+    tradeName: "Fresh Retail",
+    taxId: "GCF110624GH4",
+    industry: "Retail",
+    segment: "Cuenta corporativa",
+    status: "ACTIVE",
+    assignedSellerEmail: null,
+    paymentTermsCode: "CONTADO",
+    hasPriceList: true,
+    creditLimit: 0,
+    authorizedDiscountPct: 0,
+    contact: {
+      name: "Alejandra Ruiz",
+      position: "Directora de Compras",
+      email: "alejandra.ruiz@freshretail.example.mx",
+      phone: "+52 81 5555 0445",
+      decisionPower: "HIGH",
+    },
+  },
+];
+
+async function seedGfbCustomers() {
+  const gfb = await prisma.businessUnit.findUniqueOrThrow({ where: { code: "GFB" } });
+  const priceList = await prisma.priceList.findUnique({ where: { code: "GFB-LISTA-GENERAL" } });
+
+  for (const term of PAYMENT_TERMS) {
+    await prisma.paymentTerms.upsert({
+      where: { code: term.code },
+      update: { name: term.name, creditDays: term.creditDays },
+      create: term,
+    });
+  }
+
+  for (const item of GFB_CUSTOMERS) {
+    const assignedSeller = item.assignedSellerEmail
+      ? await prisma.user.findUnique({ where: { email: item.assignedSellerEmail } })
+      : null;
+    const paymentTerms = item.paymentTermsCode
+      ? await prisma.paymentTerms.findUnique({ where: { code: item.paymentTermsCode } })
+      : null;
+
+    const existing = await prisma.customer.findFirst({
+      where: { businessUnitId: gfb.id, legalName: item.legalName },
+    });
+
+    const customer = await (existing
+      ? prisma.customer.update({
+          where: { id: existing.id },
+          data: {
+            tradeName: item.tradeName,
+            taxId: item.taxId,
+            industry: item.industry,
+            segment: item.segment,
+            status: item.status,
+            assignedSellerId: assignedSeller?.id,
+            paymentTermsId: paymentTerms?.id,
+            priceListId: item.hasPriceList ? priceList?.id : null,
+            creditLimit: item.creditLimit,
+            authorizedDiscountPct: item.authorizedDiscountPct,
+          },
+        })
+      : prisma.customer.create({
+          data: {
+            businessUnitId: gfb.id,
+            legalName: item.legalName,
+            tradeName: item.tradeName,
+            taxId: item.taxId,
+            industry: item.industry,
+            segment: item.segment,
+            status: item.status,
+            assignedSellerId: assignedSeller?.id,
+            paymentTermsId: paymentTerms?.id,
+            priceListId: item.hasPriceList ? priceList?.id : null,
+            creditLimit: item.creditLimit,
+            authorizedDiscountPct: item.authorizedDiscountPct,
+          },
+        }));
+
+    const existingContact = await prisma.contact.findFirst({
+      where: { customerId: customer.id, name: item.contact.name },
+    });
+    if (!existingContact) {
+      await prisma.contact.create({
+        data: { customerId: customer.id, ...item.contact },
+      });
+    }
+  }
+
+  console.log(`Clientes GFB: ${GFB_CUSTOMERS.length} clientes con 1 contacto cada uno.`);
+}
+
 async function main() {
   console.log("Seeding GLOBAL QUOTE — Módulo 1 (business units, roles, usuarios demo)");
 
@@ -423,6 +611,7 @@ async function main() {
   console.log(`Listo. ${DEMO_USERS.length} usuarios demo con contraseña compartida: ${DEMO_PASSWORD}`);
 
   await seedGfbCatalog();
+  await seedGfbCustomers();
 }
 
 main()

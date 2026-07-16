@@ -19,7 +19,16 @@ Aplicación Next.js del sistema **GLOBAL QUOTE — Quotation & Commercial Contro
 - `/products/new` y `/products/[id]/edit`: alta y edición de producto, costo y precio de lista (`Administración`/`Super Admin` únicamente — permiso `products.manage` + `products.view_costs`, revalidado en la página *y* en el Server Action, nunca solo en una capa). Editar el costo **nunca sobrescribe** la vigencia anterior: la cierra (`effective_to = ahora`) y crea una nueva fila, conservando el historial (`docs/ARCHITECTURE.md §7.3`). El formulario recalcula costo aterrizado/margen en vivo con el mismo motor de `margin.ts`.
 - Catálogo demo: 12 productos ficticios de la línea GFB (Got Fresh Breath México), uno de ellos (`GFB-ENJ-004`) con un precio de lista deliberadamente viejo para demostrar la bandera de margen insuficiente (§8.2 — requeriría autorización de Dirección General).
 
-**Fuera de este alcance** (vienen en Módulos 2/3 ampliado o después, ver `docs/ARCHITECTURE.md §10`): imágenes/documentos, kits/combos, precios por volumen/cliente, alta de categorías desde la UI, clientes, motor de folios, cotizaciones, autorizaciones, PDF, auditoría.
+**Fuera de este alcance** (vienen en Módulos 2/3 ampliado o después, ver `docs/ARCHITECTURE.md §10`): imágenes/documentos, kits/combos, precios por volumen/cliente, alta de categorías desde la UI.
+
+### Módulo 4 — Clientes y contactos (alcance básico, línea GFB)
+- Modelo de datos: `customers`, `customer_addresses` (fiscal/entrega — modelado en el schema, sin UI todavía), `contacts` y `payment_terms` (`docs/ARCHITECTURE.md §11`).
+- Alcance de visibilidad por rol, no por campo (`src/lib/customers/scope.ts`): un Vendedor **solo ve los clientes que tiene asignados** (`assignedSellerId`); el resto de roles con permiso ve todos los clientes de sus líneas de negocio. Una cuenta sin vendedor asignado ("cuenta casa") es invisible para un Vendedor aunque esté en su línea — verificado en `tests/e2e/customers.spec.ts`.
+- Dos rutas de alta en `/customers/new`, la misma página para ambos casos: un **Vendedor** crea un "prospecto" (razón social, RFC, industria, notas) que queda auto-asignado a sí mismo — no puede fijar condiciones comerciales; **Administración/Super Admin** además capturan vendedor asignado, condiciones de pago, lista de precios, línea de crédito y descuento autorizado. Ambos casos comparten un único Server Action (`createCustomerAction`) que decide qué campos aceptar según el permiso de quien llama, nunca según lo que el formulario del cliente diga tener.
+- `/customers/[id]`: ficha con información comercial (proyectada por rol, igual que el catálogo) y contactos, con un formulario para agregar contactos.
+- `/customers/[id]/edit`: edición completa — `Administración`/`Super Admin` únicamente.
+
+**Fuera de este alcance**: UI de direcciones fiscal/entrega, reasignación de cartera por Gerente de Ventas (hoy solo lectura de todos los clientes de su línea), historial de cotizaciones/pedidos por cliente (esos módulos no existen todavía), documentos fiscales adjuntos.
 
 ## Requisitos
 
@@ -77,7 +86,9 @@ npm run test:e2e     # e2e (Playwright) — requiere `npm run dev` corriendo en 
 - `tests/integration/login.test.ts`: login real contra la base de datos sembrada para los 7 roles, más bloqueo por intentos fallidos y cuentas inactivas.
 - `tests/integration/catalog.test.ts`: el catálogo sembrado de GFB, y que el `EXCLUDE` constraint de `product_costs` rechaza dos vigencias abiertas para el mismo producto.
 - `tests/integration/catalog-mutations.test.ts`: las funciones de mutación (`createProductWithCostAndPrice`, `replaceProductCost`, ...) contra Postgres real — SKU duplicado rechazado, historial de costos preservado al recostear.
-- `tests/e2e/login.spec.ts`, `tests/e2e/products.spec.ts` y `tests/e2e/product-crud.spec.ts`: navegador real — contraseña incorrecta, redirección sin sesión, RBAC del dashboard y del catálogo, y el flujo completo de alta/edición de producto por Administración (un Vendedor es redirigido con `?error=forbidden` si intenta `/products/new`).
+- `tests/unit/customer-scope.test.ts`: el alcance de visibilidad de clientes por rol.
+- `tests/integration/customer-mutations.test.ts`: alta de prospecto vs. alta completa, edición y alta de contacto contra Postgres real.
+- `tests/e2e/login.spec.ts`, `tests/e2e/products.spec.ts`, `tests/e2e/product-crud.spec.ts` y `tests/e2e/customers.spec.ts`: navegador real — contraseña incorrecta, redirección sin sesión, RBAC del dashboard/catálogo/clientes, el flujo completo de alta/edición de producto y de cliente (un Vendedor es redirigido con `?error=forbidden` si intenta `/products/new`; un prospecto creado por un Vendedor queda auto-asignado a él).
 
 > **Nota del entorno de pruebas:** Next.js 16 solo permite peticiones de assets de desarrollo (HMR, chunks) desde `localhost` por defecto (`allowedDevOrigins`). Acceder al servidor de desarrollo desde `127.0.0.1` rompe la hidratación del cliente en silencio (sin error visible) — usa siempre `http://localhost:<puerto>`, tanto a mano como en `playwright.config.ts` (`E2E_BASE_URL`).
 
@@ -110,4 +121,5 @@ app/
 - **Next.js 16** renombró `middleware.ts` a `proxy.ts`; el archivo en la raíz de este proyecto ya usa la convención nueva.
 - `import "server-only"` en `lib/prisma/client.ts` y `lib/auth/verify-credentials.ts` impide que esos módulos (con costos, contraseñas y la cadena de conexión) terminen en el bundle del cliente — el build de Next falla si eso ocurre. Vitest resuelve `server-only` a su build vacío (`vitest.config.ts`) porque no corre bajo el bundler de Next.
 - `lib/auth/session.ts` (`requireSession()`) reemplaza el patrón `session!.user` en todas las páginas: si `auth()` devuelve `null` en un punto donde no debería (JWT expirado entre el proxy y el render, por ejemplo), redirige a `/login` en vez de tronar con una excepción — se detectó en la práctica al construir el CRUD de productos.
-- Las páginas que requieren un permiso (`/products/new`, `/products/[id]/edit`) usan `redirect("/dashboard?error=forbidden")`, igual que `proxy.ts`, en vez de `notFound()` — consistente en toda la app y más fácil de verificar en pruebas e2e.
+- Las páginas que requieren un permiso (`/products/new`, `/products/[id]/edit`, `/customers/new`, `/customers/[id]/edit`) usan `redirect("/dashboard?error=forbidden")`, igual que `proxy.ts`, en vez de `notFound()` — consistente en toda la app y más fácil de verificar en pruebas e2e.
+- Otro bug real que solo apareció al probar en navegador: `AddContactForm` no tenía un input `area`, pero `contactSchema` lo declaraba requerido — `formData.get("area")` devolvía `null` y Zod lo rechazaba con "expected string, received null". La lección: cuando un formulario y su schema se escriben por separado, un campo faltante en el formulario falla en tiempo de ejecución, no en el typecheck — vale la pena revisar ambos lado a lado, y las pruebas e2e (no las unitarias) son las que lo detectan.

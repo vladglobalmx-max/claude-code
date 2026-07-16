@@ -20,6 +20,25 @@ export default async function AdminIndexPage() {
       </div>
 
       <Link
+        href="/admin/business-units"
+        className="rounded-lg border border-zinc-200 bg-white p-5 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+      >
+        <p className="font-semibold text-zinc-900 dark:text-zinc-50">Líneas de negocio</p>
+        <p className="text-sm text-zinc-500">
+          Da de alta líneas nuevas y configura datos fiscales, cuentas bancarias y términos y
+          condiciones de cada una.
+        </p>
+      </Link>
+
+      <Link
+        href="/admin/taxes"
+        className="rounded-lg border border-zinc-200 bg-white p-5 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+      >
+        <p className="font-semibold text-zinc-900 dark:text-zinc-50">Impuestos</p>
+        <p className="text-sm text-zinc-500">Catálogo global de impuestos (IVA, exento, tasa 0%).</p>
+      </Link>
+
+      <Link
         href="/admin/sequences"
         className="rounded-lg border border-zinc-200 bg-white p-5 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
       >

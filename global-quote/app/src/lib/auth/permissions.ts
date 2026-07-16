@@ -116,6 +116,7 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, PermissionCode> = {
   "/admin/users": PERMISSIONS.MANAGE_USERS,
   "/admin/sequences": PERMISSIONS.CONFIGURE_SEQUENCES,
   "/admin/business-units": PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
+  "/admin/taxes": PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
   "/admin/audit": PERMISSIONS.VIEW_AUDIT,
 };
 

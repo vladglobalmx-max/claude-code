@@ -67,13 +67,15 @@ model BusinessUnit {
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
 
-  userBusinessUnits UserBusinessUnit[]
-  categories        Category[]
-  products          Product[]
-  priceLists        PriceList[]
-  customers         Customer[]
-  sequenceSettings  SequenceSettings[]
-  quotations        Quotation[]
+  userBusinessUnits  UserBusinessUnit[]
+  categories         Category[]
+  products           Product[]
+  priceLists         PriceList[]
+  customers          Customer[]
+  sequenceSettings   SequenceSettings[]
+  quotations         Quotation[]
+  bankAccounts       BankAccount[]
+  termsAndConditions TermsAndConditions[]
 
   @@map("business_units")
 }
@@ -117,6 +119,7 @@ model User {
   quotationApprovalsDecided   QuotationApproval[] @relation("QuotationApprovalApprover")
   quotationVersionsCreated    QuotationVersion[]
   auditLogs                   AuditLog[]
+  termsAndConditionsCreated   TermsAndConditions[]
 
   @@map("users")
 }
@@ -585,4 +588,63 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([occurredAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 2 (Lineas de negocio + configuracion). Ver docs/ARCHITECTURE.md
+// §5.2/§10. `sequence_settings` ya se configura por linea a traves de
+// `business_units.folio_numbering_mode` (Modulo 5) — no tiene su propio
+// prefijo/regla de reinicio en este esquema, asi que este modulo no le
+// agrega nada nuevo a ese modelo, solo CRUD para bank_accounts,
+// terms_and_conditions y taxes, mas un CRUD real para business_units (que
+// hasta ahora solo se creaban via seed).
+// ---------------------------------------------------------------------------
+
+model BankAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  businessUnitId String   @map("business_unit_id") @db.Uuid
+  bankName       String   @map("bank_name")
+  accountHolder  String   @map("account_holder")
+  accountNumber  String   @map("account_number")
+  clabe          String?
+  currency       Currency @default(MXN)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+
+  @@map("bank_accounts")
+}
+
+/// Versionadas: una vigente por linea (`effective_to = null`). El texto
+/// anterior nunca se edita ni se borra, igual que `product_costs`.
+model TermsAndConditions {
+  id             String    @id @default(uuid()) @db.Uuid
+  businessUnitId String    @map("business_unit_id") @db.Uuid
+  content        String
+  effectiveFrom  DateTime  @default(now()) @map("effective_from")
+  effectiveTo    DateTime? @map("effective_to")
+  createdById    String    @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@map("terms_and_conditions")
+}
+
+/// Catalogo global (no por linea) — IVA 16%, exento, tasa 0%, etc.
+/// (docs/ARCHITECTURE.md §5.2). Aplicarlos a una cotizacion es fuera de
+/// este alcance: hoy es solo el catalogo de configuracion.
+model Tax {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  ratePct   Decimal  @map("rate_pct") @db.Decimal(5, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("taxes")
 }

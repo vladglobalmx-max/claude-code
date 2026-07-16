@@ -22,7 +22,12 @@ const NAV_ITEMS: {
   },
   { label: "Clientes · Contactos", href: "/customers", enabled: true },
   { label: "Productos · Precios", href: "/products", enabled: true },
-  { label: "Líneas de negocio", enabled: false },
+  {
+    label: "Líneas de negocio",
+    href: "/admin/business-units",
+    enabled: true,
+    permission: PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
+  },
   { label: "Pedidos", enabled: false },
   { label: "Reportes", enabled: false },
   {

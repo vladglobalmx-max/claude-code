@@ -13,6 +13,8 @@ import {
   submitQuotation,
 } from "@/lib/quotations/mutations";
 import { quotationHeaderSchema, quotationItemSchema } from "@/lib/quotations/validation";
+import { addFollowup, FollowupMutationError } from "@/lib/followups/mutations";
+import { followupSchema } from "@/lib/followups/validation";
 
 function formatZodError(error: unknown): string {
   if (error && typeof error === "object" && "issues" in error) {
@@ -148,6 +150,36 @@ export async function submitQuotationAction(
     });
   } catch (error) {
     if (error instanceof QuotationMutationError) return error.message;
+    throw error;
+  }
+
+  redirect(`/quotations/${quotationId}`);
+}
+
+export async function addFollowupAction(
+  quotationId: string,
+  _prevState: string | undefined,
+  formData: FormData,
+): Promise<string | undefined> {
+  const session = await requireSession();
+  if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
+    redirect("/dashboard?error=forbidden");
+  }
+
+  const parsed = followupSchema.safeParse({
+    contactMethod: formData.get("contactMethod"),
+    nextFollowupAt: formData.get("nextFollowupAt"),
+    closeProbabilityPct: formData.get("closeProbabilityPct"),
+    competitor: formData.get("competitor"),
+    objection: formData.get("objection"),
+    comments: formData.get("comments"),
+  });
+  if (!parsed.success) return formatZodError(parsed.error);
+
+  try {
+    await addFollowup({ quotationId, ownerId: session.user.id, ...parsed.data });
+  } catch (error) {
+    if (error instanceof FollowupMutationError) return error.message;
     throw error;
   }
 

@@ -14,6 +14,7 @@ const NAV_ITEMS: {
 }[] = [
   { label: "Inicio · Dashboard", href: "/dashboard", enabled: true },
   { label: "Cotizaciones", href: "/quotations", enabled: true },
+  { label: "Seguimiento", href: "/followups", enabled: true },
   {
     label: "Autorizaciones",
     href: "/approvals",

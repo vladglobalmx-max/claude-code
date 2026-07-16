@@ -120,6 +120,7 @@ model User {
   quotationVersionsCreated    QuotationVersion[]
   auditLogs                   AuditLog[]
   termsAndConditionsCreated   TermsAndConditions[]
+  quotationFollowups          QuotationFollowup[]
 
   @@map("users")
 }
@@ -449,6 +450,7 @@ model Quotation {
   statusHistory QuotationStatusHistory[]
   approvals     QuotationApproval[]
   versions      QuotationVersion[]
+  followups     QuotationFollowup[]
 
   @@map("quotations")
 }
@@ -647,4 +649,41 @@ model Tax {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("taxes")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 11 (Seguimiento). Ver docs/ARCHITECTURE.md §5.2/§6.1/§10. Nuestra
+// maquina de estados (Modulo 6) colapsa "Enviada/Vista por cliente/En
+// seguimiento/Negociacion" del brief en un solo estado `SENT` — por eso el
+// vencimiento automatico (§6.1: "se dispara cuando now() > valid_until y el
+// estado sigue en Enviada/...") en este esquema es simplemente
+// `status = SENT`. `weighted_amount` es "calculado" (§5.2): no se guarda,
+// se deriva de `quotation.total * close_probability_pct / 100` al leerlo.
+// ---------------------------------------------------------------------------
+
+enum ContactMethod {
+  EMAIL
+  PHONE
+  WHATSAPP
+  IN_PERSON
+  OTHER
+}
+
+model QuotationFollowup {
+  id                  String        @id @default(uuid()) @db.Uuid
+  quotationId         String        @map("quotation_id") @db.Uuid
+  ownerId             String        @map("owner_id") @db.Uuid
+  contactMethod       ContactMethod @map("contact_method")
+  sentAt              DateTime      @default(now()) @map("sent_at")
+  nextFollowupAt      DateTime?     @map("next_followup_at")
+  closeProbabilityPct Decimal?      @map("close_probability_pct") @db.Decimal(5, 2)
+  competitor          String?
+  objection           String?
+  comments            String?
+  createdAt           DateTime      @default(now()) @map("created_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  owner     User      @relation(fields: [ownerId], references: [id])
+
+  @@map("quotation_followups")
 }

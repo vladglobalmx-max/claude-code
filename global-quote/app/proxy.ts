@@ -31,5 +31,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // api/cron queda fuera: lo protege su propio secreto compartido
+  // (CRON_SECRET), no una sesión de usuario — un cron real no manda cookies.
+  matcher: ["/((?!api/auth|api/cron|_next/static|_next/image|favicon.ico).*)"],
 };

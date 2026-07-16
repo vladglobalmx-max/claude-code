@@ -118,6 +118,7 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, PermissionCode> = {
   "/admin/business-units": PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
   "/admin/taxes": PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
   "/admin/audit": PERMISSIONS.VIEW_AUDIT,
+  "/admin/followups": PERMISSIONS.CONFIGURE_SEQUENCES,
 };
 
 export function findRequiredPermissionForPath(pathname: string): PermissionCode | undefined {

@@ -8,16 +8,26 @@ import { quotationScopeWhere } from "@/lib/quotations/scope";
 
 import { AddQuotationItemForm } from "./add-quotation-item-form";
 import { SubmitQuotationForm } from "./submit-quotation-form";
+import { AddFollowupForm } from "./add-followup-form";
 import { removeQuotationItemAction } from "../actions";
 import { APPROVAL_RULE_LABELS } from "@/lib/quotations/approval-rules";
 import { QUOTATION_STATUS_LABELS } from "@/lib/quotations/status-labels";
 import { canGenerateQuotationPdf } from "@/lib/quotations/pdf-gate";
 import { displayFolio } from "@/lib/folio/format";
+import { computeWeightedAmount } from "@/lib/followups/rules";
 
 const DECISION_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
   APPROVED: "Aprobada",
   REJECTED: "Rechazada",
+};
+
+const CONTACT_METHOD_LABELS: Record<string, string> = {
+  EMAIL: "Correo",
+  PHONE: "Teléfono",
+  WHATSAPP: "WhatsApp",
+  IN_PERSON: "En persona",
+  OTHER: "Otro",
 };
 
 /** Forma del snapshot congelado en `quotation_versions.snapshot` (Módulo 8) — la escribe únicamente `freezeQuotationVersionSnapshot` en `lib/quotations/mutations.ts`. */
@@ -71,12 +81,17 @@ export default async function QuotationDetailPage({
         include: { createdBy: { select: { fullName: true } } },
         orderBy: { versionNumber: "desc" },
       },
+      followups: {
+        include: { owner: { select: { fullName: true } } },
+        orderBy: { sentAt: "desc" },
+      },
     },
   });
   if (!quotation) {
     notFound();
   }
 
+  const canAddFollowup = quotation.status === "SENT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION);
   const canEditAfterSend =
     (quotation.status === "SENT" || quotation.status === "ACCEPTED") &&
     hasPermission(role, PERMISSIONS.EDIT_APPROVED_QUOTATION);
@@ -293,6 +308,61 @@ export default async function QuotationDetailPage({
               );
             })}
           </ul>
+        </section>
+      ) : null}
+
+      {canAddFollowup || quotation.followups.length > 0 ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Seguimiento</h2>
+
+          {canAddFollowup ? (
+            <div className="mt-3">
+              <AddFollowupForm quotationId={quotation.id} />
+            </div>
+          ) : null}
+
+          {quotation.followups.length > 0 ? (
+            <ul className="mt-4 flex flex-col gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+              {quotation.followups.map((followup) => {
+                const weighted = computeWeightedAmount(quotation.total, followup.closeProbabilityPct);
+                return (
+                  <li
+                    key={followup.id}
+                    className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                  >
+                    <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                      {CONTACT_METHOD_LABELS[followup.contactMethod]} — {followup.owner.fullName} el{" "}
+                      {followup.sentAt.toLocaleString("es-MX")}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {followup.nextFollowupAt
+                        ? `Próximo seguimiento: ${followup.nextFollowupAt.toLocaleDateString("es-MX")}`
+                        : "Sin próximo seguimiento programado"}
+                      {followup.closeProbabilityPct != null
+                        ? ` · Probabilidad de cierre: ${followup.closeProbabilityPct.toString()}%`
+                        : ""}
+                      {weighted != null
+                        ? ` · Ponderado: ${currency(weighted.toNumber(), quotation.currency)}`
+                        : ""}
+                    </p>
+                    {followup.competitor ? (
+                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                        Competidor mencionado: {followup.competitor}
+                      </p>
+                    ) : null}
+                    {followup.objection ? (
+                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                        Objeción: {followup.objection}
+                      </p>
+                    ) : null}
+                    {followup.comments ? (
+                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{followup.comments}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </section>
       ) : null}
     </div>

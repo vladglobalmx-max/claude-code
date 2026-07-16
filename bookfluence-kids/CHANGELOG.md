@@ -27,3 +27,15 @@ Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documenta
 - Configuración de apariencia (tema claro/oscuro/automático, tamaño de texto, animaciones reducidas), preferencias (semana, formato de hora, límite de estrellas, duraciones de estudio) y gestión de PIN.
 - Diseño responsivo desde 360 px hasta 2560 px, con navegación lateral en escritorio y navegación inferior + menú "Más" en móvil.
 - Accesibilidad: navegación por teclado, foco visible, `aria-label`, modales accesibles con cierre por Escape y devolución de foco, soporte de `prefers-reduced-motion`.
+
+## [1.0.1] - 2026-07-16
+
+### Cambiado
+
+- Identidad visual más colorida y "kid-friendly" manteniendo la paleta de marca: fondo con acentos radiales sutiles, degradados de marca en el logotipo, navegación activa, botones primarios y franja superior fija.
+- Insignias de icono con color por módulo en cada encabezado de vista (mapa `MODULE_ACCENTS`), y círculos de icono destacados en los estados vacíos.
+- Banner de saludo del dashboard con degradado y destellos decorativos (SVG originales, sin personajes ni arcoíris).
+- Tarjetas de estadística (dashboard, biblioteca, panel de padres) con colores variados por indicador en lugar de un solo tono neutro.
+- Tarjeta de onboarding con franja superior en degradado y puntos de progreso de colores distintos por paso.
+- Corrección: las tarjetas de hábitos usaban una cuadrícula de dos columnas que recortaba la fila de 7 días en pantallas angostas; ahora se listan a ancho completo con desplazamiento horizontal solo si hace falta, sin romper el objetivo táctil mínimo de 44 px.
+- Corrección: `contenedor.focus()` provocaba que el navegador desplazara la página lo suficiente para tapar el encabezado de la vista (más notorio con el nuevo banner de degradado); ahora usa `preventScroll` y el scroll al inicio de página solo ocurre en una navegación real de ruta.

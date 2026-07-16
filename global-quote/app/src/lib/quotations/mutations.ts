@@ -306,3 +306,58 @@ export async function submitQuotation(input: {
     return tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
   });
 }
+
+/**
+ * Registra la decisión real del cliente sobre una cotización enviada
+ * (docs/ARCHITECTURE.md §6.1: `Enviada -> ... -> Aceptada` o `Rechazada por
+ * cliente`). Esta app no tiene portal de cliente, así que quien la
+ * atiende (vendedor/Administración) captura lo que el cliente decidió por
+ * el canal que haya sido (llamada, correo, WhatsApp) — no es una firma
+ * electrónica ni una confirmación automática (eso es Fase 3).
+ */
+export async function markQuotationAccepted(input: { quotationId: string; actorId: string }) {
+  return prisma.$transaction(async (tx) => {
+    const quotation = await tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
+    if (quotation.status !== "SENT") {
+      throw new QuotationMutationError("Solo se puede aceptar una cotización enviada.");
+    }
+
+    await tx.quotation.update({ where: { id: input.quotationId }, data: { status: "ACCEPTED" } });
+    await tx.quotationStatusHistory.create({
+      data: {
+        quotationId: input.quotationId,
+        fromStatus: "SENT",
+        toStatus: "ACCEPTED",
+        changedById: input.actorId,
+      },
+    });
+
+    return tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
+  });
+}
+
+export async function markQuotationRejectedByClient(input: {
+  quotationId: string;
+  actorId: string;
+  reason: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const quotation = await tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
+    if (quotation.status !== "SENT") {
+      throw new QuotationMutationError("Solo se puede rechazar una cotización enviada.");
+    }
+
+    await tx.quotation.update({ where: { id: input.quotationId }, data: { status: "REJECTED" } });
+    await tx.quotationStatusHistory.create({
+      data: {
+        quotationId: input.quotationId,
+        fromStatus: "SENT",
+        toStatus: "REJECTED",
+        changedById: input.actorId,
+        note: input.reason,
+      },
+    });
+
+    return tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
+  });
+}

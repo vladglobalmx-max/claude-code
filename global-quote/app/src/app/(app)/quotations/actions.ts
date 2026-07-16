@@ -8,6 +8,8 @@ import { PERMISSIONS, hasPermission } from "@/lib/auth/permissions";
 import {
   addQuotationItem,
   createQuotationDraft,
+  markQuotationAccepted,
+  markQuotationRejectedByClient,
   QuotationMutationError,
   removeQuotationItem,
   submitQuotation,
@@ -15,6 +17,7 @@ import {
 import { quotationHeaderSchema, quotationItemSchema } from "@/lib/quotations/validation";
 import { addFollowup, FollowupMutationError } from "@/lib/followups/mutations";
 import { followupSchema } from "@/lib/followups/validation";
+import { convertQuotationToOrder, OrderMutationError } from "@/lib/orders/mutations";
 
 function formatZodError(error: unknown): string {
   if (error && typeof error === "object" && "issues" in error) {
@@ -184,4 +187,74 @@ export async function addFollowupAction(
   }
 
   redirect(`/quotations/${quotationId}`);
+}
+
+/**
+ * No hay portal de cliente (eso es Fase 3): quien atiende la cotización
+ * enviada — vendedor o Administración — captura aquí lo que el cliente
+ * decidió por el canal que haya usado (llamada, correo, WhatsApp). Se
+ * gatea con el mismo permiso que registrar seguimiento (`CREATE_QUOTATION`),
+ * no con uno nuevo, porque es la misma persona haciendo el mismo trabajo de
+ * atender al cliente.
+ */
+export async function markQuotationAcceptedAction(quotationId: string): Promise<void> {
+  const session = await requireSession();
+  if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
+    redirect("/dashboard?error=forbidden");
+  }
+
+  try {
+    await markQuotationAccepted({ quotationId, actorId: session.user.id });
+  } catch (error) {
+    if (!(error instanceof QuotationMutationError)) throw error;
+  }
+
+  redirect(`/quotations/${quotationId}`);
+}
+
+export async function markQuotationRejectedAction(
+  quotationId: string,
+  _prevState: string | undefined,
+  formData: FormData,
+): Promise<string | undefined> {
+  const session = await requireSession();
+  if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
+    redirect("/dashboard?error=forbidden");
+  }
+
+  const reason = formData.get("reason");
+  if (typeof reason !== "string" || reason.trim().length === 0) {
+    return "Captura el motivo del rechazo.";
+  }
+
+  try {
+    await markQuotationRejectedByClient({ quotationId, actorId: session.user.id, reason: reason.trim() });
+  } catch (error) {
+    if (error instanceof QuotationMutationError) return error.message;
+    throw error;
+  }
+
+  redirect(`/quotations/${quotationId}`);
+}
+
+/**
+ * Convertir a pedido requiere `CONVERT_TO_ORDER` (Super Admin/Administración
+ * únicamente, ver docs/ARCHITECTURE.md §4.1) — a diferencia de registrar la
+ * decisión del cliente, que puede hacer el vendedor.
+ */
+export async function convertQuotationToOrderAction(quotationId: string): Promise<void> {
+  const session = await requireSession();
+  if (!hasPermission(session.user.role, PERMISSIONS.CONVERT_TO_ORDER)) {
+    redirect("/dashboard?error=forbidden");
+  }
+
+  let orderId: string | undefined;
+  try {
+    const order = await convertQuotationToOrder({ quotationId, actorId: session.user.id });
+    orderId = order.id;
+  } catch (error) {
+    if (!(error instanceof OrderMutationError)) throw error;
+  }
+
+  redirect(orderId ? `/orders/${orderId}` : `/quotations/${quotationId}`);
 }

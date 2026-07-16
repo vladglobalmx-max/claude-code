@@ -76,6 +76,7 @@ model BusinessUnit {
   quotations         Quotation[]
   bankAccounts       BankAccount[]
   termsAndConditions TermsAndConditions[]
+  orders             Order[]
 
   @@map("business_units")
 }
@@ -121,6 +122,7 @@ model User {
   auditLogs                   AuditLog[]
   termsAndConditionsCreated   TermsAndConditions[]
   quotationFollowups          QuotationFollowup[]
+  ordersAsSeller              Order[]
 
   @@map("users")
 }
@@ -190,6 +192,7 @@ model Product {
   costs           ProductCost[]
   priceListItems  PriceListItem[]
   quotationItems  QuotationItem[]
+  orderItems      OrderItem[]
 
   @@map("products")
 }
@@ -319,6 +322,7 @@ model Customer {
   addresses     CustomerAddress[]
   contacts      Contact[]
   quotations    Quotation[]
+  orders        Order[]
 
   @@map("customers")
 }
@@ -451,6 +455,7 @@ model Quotation {
   approvals     QuotationApproval[]
   versions      QuotationVersion[]
   followups     QuotationFollowup[]
+  order         Order?
 
   @@map("quotations")
 }
@@ -686,4 +691,61 @@ model QuotationFollowup {
   owner     User      @relation(fields: [ownerId], references: [id])
 
   @@map("quotation_followups")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 12 (Pedidos). Ver docs/ARCHITECTURE.md §5.2/§6.1/§10. Un pedido solo
+// nace de una cotizacion `ACCEPTED` (§6.1: "Aceptada -> Convertida a
+// pedido") — `quotationId` es unique, asi que una cotizacion nunca puede
+// convertirse dos veces. `order_items` es un espejo de `quotation_items`
+// al momento de la conversion (copia inmutable, no una referencia viva:
+// si la cotizacion pudiera versionarse despues -no puede, CONVERTED_TO_ORDER
+// es terminal- el pedido no se veria afectado).
+// ---------------------------------------------------------------------------
+
+enum OrderStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model Order {
+  id             String      @id @default(uuid()) @db.Uuid
+  folio          String      @unique
+  quotationId    String      @unique @map("quotation_id") @db.Uuid
+  businessUnitId String      @map("business_unit_id") @db.Uuid
+  customerId     String      @map("customer_id") @db.Uuid
+  sellerId       String      @map("seller_id") @db.Uuid
+  currency       Currency    @default(MXN)
+  subtotal       Decimal     @db.Decimal(14, 2)
+  discountTotal  Decimal     @map("discount_total") @db.Decimal(14, 2)
+  total          Decimal     @db.Decimal(14, 2)
+  status         OrderStatus @default(CONFIRMED)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  quotation    Quotation   @relation(fields: [quotationId], references: [id])
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  seller       User        @relation(fields: [sellerId], references: [id])
+  items        OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  orderId      String   @map("order_id") @db.Uuid
+  productId    String   @map("product_id") @db.Uuid
+  description  String
+  qty          Int
+  unitPrice    Decimal  @map("unit_price") @db.Decimal(12, 2)
+  discountPct  Decimal  @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  lineTotal    Decimal  @map("line_total") @db.Decimal(14, 2)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
 }

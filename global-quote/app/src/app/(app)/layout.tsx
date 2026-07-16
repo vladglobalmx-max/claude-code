@@ -29,7 +29,7 @@ const NAV_ITEMS: {
     enabled: true,
     permission: PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
   },
-  { label: "Pedidos", enabled: false },
+  { label: "Pedidos", href: "/orders", enabled: true },
   { label: "Reportes", enabled: false },
   {
     label: "Administración",

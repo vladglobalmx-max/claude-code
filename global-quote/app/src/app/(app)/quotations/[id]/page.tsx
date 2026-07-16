@@ -9,7 +9,8 @@ import { quotationScopeWhere } from "@/lib/quotations/scope";
 import { AddQuotationItemForm } from "./add-quotation-item-form";
 import { SubmitQuotationForm } from "./submit-quotation-form";
 import { AddFollowupForm } from "./add-followup-form";
-import { removeQuotationItemAction } from "../actions";
+import { QuotationDecisionForm } from "./quotation-decision-form";
+import { removeQuotationItemAction, convertQuotationToOrderAction } from "../actions";
 import { APPROVAL_RULE_LABELS } from "@/lib/quotations/approval-rules";
 import { QUOTATION_STATUS_LABELS } from "@/lib/quotations/status-labels";
 import { canGenerateQuotationPdf } from "@/lib/quotations/pdf-gate";
@@ -66,6 +67,7 @@ export default async function QuotationDetailPage({
       businessUnit: { select: { code: true, name: true } },
       customer: { select: { legalName: true, tradeName: true } },
       seller: { select: { fullName: true } },
+      order: { select: { id: true, folio: true } },
       items: {
         include: { product: { select: { internalSku: true, name: true } } },
         orderBy: { createdAt: "asc" },
@@ -92,6 +94,10 @@ export default async function QuotationDetailPage({
   }
 
   const canAddFollowup = quotation.status === "SENT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION);
+  const canRecordDecision =
+    quotation.status === "SENT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION);
+  const canConvertToOrder =
+    quotation.status === "ACCEPTED" && hasPermission(role, PERMISSIONS.CONVERT_TO_ORDER);
   const canEditAfterSend =
     (quotation.status === "SENT" || quotation.status === "ACCEPTED") &&
     hasPermission(role, PERMISSIONS.EDIT_APPROVED_QUOTATION);
@@ -242,6 +248,51 @@ export default async function QuotationDetailPage({
 
       {quotation.status === "DRAFT" && quotation.items.length > 0 ? (
         <SubmitQuotationForm quotationId={quotation.id} requiresApproval={quotation.requiresApproval} />
+      ) : null}
+
+      {canRecordDecision ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Decisión del cliente
+          </h2>
+          <div className="mt-3">
+            <QuotationDecisionForm quotationId={quotation.id} />
+          </div>
+        </section>
+      ) : null}
+
+      {quotation.status === "ACCEPTED" ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Pedido</h2>
+          {canConvertToOrder ? (
+            <form action={convertQuotationToOrderAction.bind(null, quotation.id)} className="mt-3">
+              <button
+                type="submit"
+                className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
+              >
+                Convertir a pedido
+              </button>
+            </form>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-500">
+              Cotización aceptada, lista para convertirse en pedido. Tu rol no tiene permiso para
+              convertirla.
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {quotation.order ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Pedido</h2>
+          <p className="mt-2 text-sm">
+            Esta cotización se convirtió en el pedido{" "}
+            <Link href={`/orders/${quotation.order.id}`} className="font-mono text-sky-600 hover:underline dark:text-sky-400">
+              {quotation.order.folio}
+            </Link>
+            .
+          </p>
+        </section>
       ) : null}
 
       {quotation.approvals.length > 0 ? (

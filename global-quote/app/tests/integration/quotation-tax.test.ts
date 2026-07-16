@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { prisma } from "@/lib/prisma/client";
 import {
@@ -28,6 +28,17 @@ afterEach(async () => {
   while (createdTaxIds.length > 0) {
     await prisma.tax.deleteMany({ where: { id: createdTaxIds.pop()! } });
   }
+});
+
+// Este archivo también convierte una cotización a pedido, emitiendo un
+// folio ORDER real (año calendario actual) para GFB — mismo motivo de
+// reset que orders.test.ts: sin esto, folio-sequence.test.ts asume que
+// ese consecutivo arranca en 0 y falla si este archivo corrió antes.
+afterAll(async () => {
+  const businessUnit = await prisma.businessUnit.findUniqueOrThrow({ where: { code: "GFB" } });
+  await prisma.sequenceSettings.deleteMany({
+    where: { businessUnitId: businessUnit.id, documentType: "ORDER", year: new Date().getFullYear() },
+  });
 });
 
 async function fixtures() {

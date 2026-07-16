@@ -52,9 +52,34 @@ export type IssuedFolio = {
   month: number;
 };
 
+/** Máximo de consecutivos que se descartan por colisión antes de rendirse (ver comentario abajo). */
+const MAX_FOLIO_COLLISION_ATTEMPTS = 20;
+
+async function folioAlreadyExists(
+  executor: Executor,
+  documentType: DocumentType,
+  folio: string,
+): Promise<boolean> {
+  const count =
+    documentType === "ORDER"
+      ? await executor.order.count({ where: { folio } })
+      : await executor.quotation.count({ where: { folio } });
+  return count > 0;
+}
+
 /**
  * Logica compartida de emision, sin decidir la frontera de transaccion —
  * la decide quien llama (ver `issueFolio` vs `issueFolioInTransaction`).
+ *
+ * `reserveNextConsecutive` es atómico y sin colisiones bajo concurrencia
+ * normal (docs/ARCHITECTURE.md §7.2), pero no puede protegerse solo de un
+ * `sequence_settings` que quedó desfasado de la realidad (p. ej. una
+ * restauración manual de datos que no lo resincronizó): en ese caso
+ * reservaría un consecutivo que ya se usó en un folio existente. Revisar
+ * eso aquí y, si choca, descartar el consecutivo y reservar el siguiente
+ * — todavía dentro de la MISMA transacción, sin necesidad de abortarla ni
+ * reintentarla desde fuera — hace que ese desfase se autocorrija solo, en
+ * vez de bloquear la emisión de folios hasta que alguien lo repare a mano.
  */
 async function issueFolioCore(
   executor: Executor,
@@ -65,35 +90,43 @@ async function issueFolioCore(
   });
 
   const year = resolveSequenceYear(businessUnit.folioNumberingMode);
-  const consecutive = await reserveNextConsecutive(executor, {
-    businessUnitId: input.businessUnitId,
-    documentType: input.documentType,
-    year,
-  });
-
   const now = new Date();
   const month = now.getMonth() + 1;
   const calendarYear = now.getFullYear();
 
-  const folio =
-    input.documentType === "ORDER"
-      ? formatOrderFolio({ lineCode: businessUnit.code, year: calendarYear, consecutive })
-      : formatLongFolio({
-          lineCode: businessUnit.code,
-          year: calendarYear,
-          month,
-          consecutive,
-          sellerCode: input.sellerCode,
-        });
+  for (let attempt = 1; attempt <= MAX_FOLIO_COLLISION_ATTEMPTS; attempt++) {
+    const consecutive = await reserveNextConsecutive(executor, {
+      businessUnitId: input.businessUnitId,
+      documentType: input.documentType,
+      year,
+    });
 
-  const shortFolio = formatShortFolio({
-    lineCode: businessUnit.code,
-    year: calendarYear,
-    month,
-    consecutive,
-  });
+    const folio =
+      input.documentType === "ORDER"
+        ? formatOrderFolio({ lineCode: businessUnit.code, year: calendarYear, consecutive })
+        : formatLongFolio({
+            lineCode: businessUnit.code,
+            year: calendarYear,
+            month,
+            consecutive,
+            sellerCode: input.sellerCode,
+          });
 
-  return { folio, shortFolio, consecutive, year: calendarYear, month };
+    if (await folioAlreadyExists(executor, input.documentType, folio)) continue;
+
+    const shortFolio = formatShortFolio({
+      lineCode: businessUnit.code,
+      year: calendarYear,
+      month,
+      consecutive,
+    });
+
+    return { folio, shortFolio, consecutive, year: calendarYear, month };
+  }
+
+  throw new Error(
+    `No se pudo emitir un folio libre para ${input.documentType} tras ${MAX_FOLIO_COLLISION_ATTEMPTS} intentos — revisa sequence_settings.`,
+  );
 }
 
 /**

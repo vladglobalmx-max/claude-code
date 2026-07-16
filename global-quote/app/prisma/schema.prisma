@@ -77,6 +77,7 @@ model BusinessUnit {
   bankAccounts       BankAccount[]
   termsAndConditions TermsAndConditions[]
   orders             Order[]
+  importLogs         ImportLog[]
 
   @@map("business_units")
 }
@@ -123,6 +124,7 @@ model User {
   termsAndConditionsCreated   TermsAndConditions[]
   quotationFollowups          QuotationFollowup[]
   ordersAsSeller              Order[]
+  importLogs                  ImportLog[]
 
   @@map("users")
 }
@@ -748,4 +750,37 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 14 (Importaciones masivas). Ver docs/ARCHITECTURE.md §10: "Importador
+// de productos/clientes/precios via Excel/CSV con vista previa, deteccion de
+// duplicados, bitacora y respaldo previo". Solo CSV en este alcance (ver
+// README) — import_logs ES la bitacora: una fila por corrida, con conteos y
+// quien/cuando, nunca se edita ni se borra (mismo espiritu append-only que
+// audit_logs del Modulo 10, aunque sin trigger de Postgres: aqui nadie tiene
+// motivo de negocio para intentar un UPDATE/DELETE, a diferencia de
+// audit_logs que es evidencia de cumplimiento).
+// ---------------------------------------------------------------------------
+
+enum ImportEntityType {
+  PRODUCT
+  CUSTOMER
+}
+
+model ImportLog {
+  id                    String           @id @default(uuid()) @db.Uuid
+  entityType            ImportEntityType @map("entity_type")
+  businessUnitId        String           @map("business_unit_id") @db.Uuid
+  fileName              String           @map("file_name")
+  totalRows             Int              @map("total_rows")
+  createdCount          Int              @map("created_count")
+  skippedDuplicateCount Int              @map("skipped_duplicate_count")
+  actorId               String           @map("actor_id") @db.Uuid
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  actor        User         @relation(fields: [actorId], references: [id])
+
+  @@map("import_logs")
 }

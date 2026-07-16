@@ -32,6 +32,7 @@ export const PERMISSIONS = {
   CONFIGURE_BUSINESS_UNITS: "admin.configure_business_units",
   VIEW_AUDIT: "admin.view_audit",
   MANAGE_USERS: "admin.manage_users",
+  IMPORT_DATA: "admin.import_data",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -71,6 +72,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     PERMISSIONS.CANCEL_QUOTATION,
     PERMISSIONS.CONVERT_TO_ORDER,
     PERMISSIONS.VIEW_AUDIT,
+    PERMISSIONS.IMPORT_DATA,
   ],
   GERENTE_VENTAS: [
     PERMISSIONS.VIEW_MARGIN_PCT,
@@ -119,6 +121,7 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, PermissionCode> = {
   "/admin/taxes": PERMISSIONS.CONFIGURE_BUSINESS_UNITS,
   "/admin/audit": PERMISSIONS.VIEW_AUDIT,
   "/admin/followups": PERMISSIONS.CONFIGURE_SEQUENCES,
+  "/admin/imports": PERMISSIONS.IMPORT_DATA,
 };
 
 export function findRequiredPermissionForPath(pathname: string): PermissionCode | undefined {

@@ -69,6 +69,16 @@ export default async function AdminIndexPage() {
         </p>
       </Link>
 
+      <Link
+        href="/admin/imports"
+        className="rounded-lg border border-zinc-200 bg-white p-5 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+      >
+        <p className="font-semibold text-zinc-900 dark:text-zinc-50">Importaciones</p>
+        <p className="text-sm text-zinc-500">
+          Alta masiva de productos o clientes desde un archivo CSV, con vista previa.
+        </p>
+      </Link>
+
       <div className="rounded-lg border border-dashed border-zinc-300 p-5 text-sm text-zinc-400 dark:border-zinc-700">
         Usuarios, roles y plantillas de PDF llegan en módulos posteriores (ver
         docs/ARCHITECTURE.md §10).

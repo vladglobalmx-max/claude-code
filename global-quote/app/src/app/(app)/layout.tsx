@@ -31,6 +31,12 @@ const NAV_ITEMS: {
     enabled: true,
     permission: PERMISSIONS.CONFIGURE_SEQUENCES,
   },
+  {
+    label: "Auditoría",
+    href: "/admin/audit",
+    enabled: true,
+    permission: PERMISSIONS.VIEW_AUDIT,
+  },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

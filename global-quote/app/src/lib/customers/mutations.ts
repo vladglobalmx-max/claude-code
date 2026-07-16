@@ -2,6 +2,9 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma/client";
 import type { CustomerStatus, DecisionPower } from "@/generated/prisma/enums";
+import { diffSensitiveFields, recordAuditLog } from "@/lib/audit/log";
+
+const CUSTOMER_SENSITIVE_FIELDS = ["creditLimit", "authorizedDiscountPct", "assignedSellerId"] as const;
 
 export type ProspectInput = {
   businessUnitId: string;
@@ -56,13 +59,34 @@ export async function createCustomerFull(input: {
   });
 }
 
+/**
+ * Cambios a crédito, descuento autorizado o vendedor asignado son "campos
+ * sensibles" (docs/ARCHITECTURE.md §5.2/§10) y quedan en `audit_logs`, con
+ * el antes/después de cada uno que de verdad cambió.
+ */
 export async function updateCustomerCommercialInfo(
   customerId: string,
   data: ProspectInput & Partial<CustomerManagementInput>,
+  actorId: string,
 ) {
-  return prisma.customer.update({
-    where: { id: customerId },
-    data,
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.customer.findUniqueOrThrow({ where: { id: customerId } });
+    const updated = await tx.customer.update({ where: { id: customerId }, data });
+
+    const changes = diffSensitiveFields(before, updated, CUSTOMER_SENSITIVE_FIELDS);
+    for (const change of changes) {
+      await recordAuditLog(tx, {
+        entityType: "Customer",
+        entityId: customerId,
+        userId: actorId,
+        action: "UPDATE",
+        fieldChanged: change.field,
+        oldValue: change.oldValue,
+        newValue: change.newValue,
+      });
+    }
+
+    return updated;
   });
 }
 

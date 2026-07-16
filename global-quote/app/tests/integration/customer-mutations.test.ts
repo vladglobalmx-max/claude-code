@@ -102,16 +102,20 @@ describe("updateCustomerCommercialInfo + addContact", () => {
     });
     createdCustomerIds.push(customer.id);
 
-    await updateCustomerCommercialInfo(customer.id, {
-      businessUnitId: businessUnit.id,
-      legalName: "Cliente actualizado",
-      tradeName: "Nombre comercial nuevo",
-      taxId: null,
-      industry: null,
-      segment: null,
-      notes: null,
-      status: "ACTIVE",
-    });
+    await updateCustomerCommercialInfo(
+      customer.id,
+      {
+        businessUnitId: businessUnit.id,
+        legalName: "Cliente actualizado",
+        tradeName: "Nombre comercial nuevo",
+        taxId: null,
+        industry: null,
+        segment: null,
+        notes: null,
+        status: "ACTIVE",
+      },
+      seller.id,
+    );
 
     const contact = await addContact(customer.id, {
       name: "Contacto de prueba",

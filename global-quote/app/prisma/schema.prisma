@@ -116,6 +116,7 @@ model User {
   quotationApprovalsRequested QuotationApproval[] @relation("QuotationApprovalRequestedBy")
   quotationApprovalsDecided   QuotationApproval[] @relation("QuotationApprovalApprover")
   quotationVersionsCreated    QuotationVersion[]
+  auditLogs                   AuditLog[]
 
   @@map("users")
 }
@@ -549,4 +550,39 @@ model QuotationVersion {
 
   @@unique([quotationId, versionNumber])
   @@map("quotation_versions")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 10 (Auditoria). Ver docs/ARCHITECTURE.md §5.2/§10. Registro
+// generico de cambios a campos sensibles (a diferencia de
+// `quotation_approvals`/`quotation_versions`/`product_costs`, que ya son
+// append-only por su propio diseno de dominio). Append-only reforzado con
+// triggers de Postgres en la migracion (no con GRANT/REVOKE: el rol de la
+// app es owner de la tabla y Postgres nunca restringe al owner via ACL).
+// ---------------------------------------------------------------------------
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id           String      @id @default(uuid()) @db.Uuid
+  entityType   String      @map("entity_type")
+  entityId     String      @map("entity_id") @db.Uuid
+  userId       String      @map("user_id") @db.Uuid
+  action       AuditAction
+  fieldChanged String?     @map("field_changed")
+  oldValue     String?     @map("old_value")
+  newValue     String?     @map("new_value")
+  ipAddress    String?     @map("ip_address")
+  reason       String?
+  occurredAt   DateTime    @default(now()) @map("occurred_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([occurredAt])
+  @@map("audit_logs")
 }

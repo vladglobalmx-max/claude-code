@@ -102,10 +102,14 @@ export async function updateCustomerAction(
   if (!prospectResult.success) return formatZodError(prospectResult.error);
   if (!managementResult.success) return formatZodError(managementResult.error);
 
-  await updateCustomerCommercialInfo(customerId, {
-    ...prospectResult.data,
-    ...managementResult.data,
-  });
+  await updateCustomerCommercialInfo(
+    customerId,
+    {
+      ...prospectResult.data,
+      ...managementResult.data,
+    },
+    session.user.id,
+  );
 
   redirect(`/customers/${customerId}`);
 }

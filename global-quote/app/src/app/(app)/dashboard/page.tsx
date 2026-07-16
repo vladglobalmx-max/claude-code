@@ -63,9 +63,17 @@ export default async function DashboardPage() {
       <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Auditoría</h2>
         <p className="mt-2 text-sm text-zinc-500">
-          {canViewAudit
-            ? "Tu rol podrá consultar el registro de auditoría cuando se construya el Módulo 10."
-            : "Tu rol no tiene acceso al registro de auditoría."}
+          {canViewAudit ? (
+            <>
+              Tu rol puede consultar el registro de auditoría real en{" "}
+              <a href="/admin/audit" className="underline">
+                /admin/audit
+              </a>{" "}
+              (Módulo 10).
+            </>
+          ) : (
+            "Tu rol no tiene acceso al registro de auditoría."
+          )}
         </p>
       </section>
     </div>

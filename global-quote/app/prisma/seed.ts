@@ -60,51 +60,63 @@ const ROLES: { code: RoleCode; name: string; description: string }[] = [
   },
 ];
 
-const DEMO_USERS: { email: string; fullName: string; role: RoleCode; businessUnits: string[] }[] =
-  [
-    {
-      email: "ana.torres@globalsuppliermty.com",
-      fullName: "Ana Torres",
-      role: "SUPER_ADMIN",
-      businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
-    },
-    {
-      email: "direccion.general.demo@globalsuppliermty.com",
-      fullName: "Dirección General (demo)",
-      role: "DIRECCION_GENERAL",
-      businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
-    },
-    {
-      email: "laura.gonzalez@globalsuppliermty.com",
-      fullName: "Laura González",
-      role: "ADMINISTRACION",
-      businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
-    },
-    {
-      email: "carlos.medina@globalsuppliermty.com",
-      fullName: "Carlos Medina",
-      role: "GERENTE_VENTAS",
-      businessUnits: ["TSS", "TLL", "GFB"],
-    },
-    {
-      email: "diego.ramirez@globalsuppliermty.com",
-      fullName: "Diego Ramírez",
-      role: "VENDEDOR",
-      businessUnits: ["TSS", "GFB"],
-    },
-    {
-      email: "sofia.hernandez@globalsuppliermty.com",
-      fullName: "Sofía Hernández",
-      role: "MARKETING",
-      businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
-    },
-    {
-      email: "consulta.demo@globalsuppliermty.com",
-      fullName: "Usuario de Consulta",
-      role: "CONSULTA",
-      businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
-    },
-  ];
+const DEMO_USERS: {
+  email: string;
+  fullName: string;
+  role: RoleCode;
+  businessUnits: string[];
+  folioCode: string;
+}[] = [
+  {
+    email: "ana.torres@globalsuppliermty.com",
+    fullName: "Ana Torres",
+    role: "SUPER_ADMIN",
+    businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
+    folioCode: "AT",
+  },
+  {
+    email: "direccion.general.demo@globalsuppliermty.com",
+    fullName: "Dirección General (demo)",
+    role: "DIRECCION_GENERAL",
+    businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
+    folioCode: "DG",
+  },
+  {
+    email: "laura.gonzalez@globalsuppliermty.com",
+    fullName: "Laura González",
+    role: "ADMINISTRACION",
+    businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
+    folioCode: "LG",
+  },
+  {
+    email: "carlos.medina@globalsuppliermty.com",
+    fullName: "Carlos Medina",
+    role: "GERENTE_VENTAS",
+    businessUnits: ["TSS", "TLL", "GFB"],
+    folioCode: "CM",
+  },
+  {
+    email: "diego.ramirez@globalsuppliermty.com",
+    fullName: "Diego Ramírez",
+    role: "VENDEDOR",
+    businessUnits: ["TSS", "GFB"],
+    folioCode: "DR",
+  },
+  {
+    email: "sofia.hernandez@globalsuppliermty.com",
+    fullName: "Sofía Hernández",
+    role: "MARKETING",
+    businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
+    folioCode: "SH",
+  },
+  {
+    email: "consulta.demo@globalsuppliermty.com",
+    fullName: "Usuario de Consulta",
+    role: "CONSULTA",
+    businessUnits: BUSINESS_UNITS.map((bu) => bu.code),
+    folioCode: "UC",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Catalogo demo Modulo 3 (alcance basico), linea GFB — Got Fresh Breath Mexico.
@@ -587,12 +599,13 @@ async function main() {
 
     const user = await prisma.user.upsert({
       where: { email: demoUser.email },
-      update: { fullName: demoUser.fullName, roleId: role.id },
+      update: { fullName: demoUser.fullName, roleId: role.id, folioCode: demoUser.folioCode },
       create: {
         email: demoUser.email,
         fullName: demoUser.fullName,
         passwordHash,
         roleId: role.id,
+        folioCode: demoUser.folioCode,
       },
     });
 

@@ -4,7 +4,7 @@
 
 Sistema empresarial de cotizaciones multilínea de negocio (TSS, TLL, GFB, TFS, JUN, GTX, GSM) que controla productos, costos, precios, márgenes, clientes, vendedores, autorizaciones, seguimiento comercial, conversión a pedido, historial, evidencias e indicadores — no es un generador de PDFs.
 
-**Estado actual: Módulo 1 (Cimientos), Módulo 3 (Catálogo, alcance básico) y Módulo 4 (Clientes y contactos, alcance básico) construidos.** `docs/ARCHITECTURE.md` es el entregable pre-código (resumen ejecutivo, arquitecturas, roles y permisos, modelo de datos, flujo de cotización, folios, márgenes/autorización, mapa de pantallas y plan de MVP). El código vive en [`app/`](app/README.md): login (Auth.js), RBAC de 7 roles y líneas de negocio, catálogo de productos con costos/márgenes/precios, y clientes/contactos con alcance de visibilidad por vendedor — todo para la línea GFB, con motor de margen, proyección de datos por rol y alcance de clientes probados de extremo a extremo. Falta Módulo 2 (folios/config por línea), cotizaciones, autorizaciones y PDF, según `docs/ARCHITECTURE.md §10`.
+**Estado actual: Módulos 1 (Cimientos), 3 (Catálogo, alcance básico), 4 (Clientes y contactos, alcance básico) y 5 (Motor de folios) construidos.** `docs/ARCHITECTURE.md` es el entregable pre-código (resumen ejecutivo, arquitecturas, roles y permisos, modelo de datos, flujo de cotización, folios, márgenes/autorización, mapa de pantallas y plan de MVP). El código vive en [`app/`](app/README.md): login (Auth.js), RBAC de 7 roles y líneas de negocio, catálogo de productos con costos/márgenes/precios, clientes/contactos con alcance de visibilidad por vendedor, y un motor de folios atómico y sin colisiones (probado con 50 emisiones concurrentes) — todo para la línea GFB (folios: multilínea desde el día uno), con motor de margen, proyección de datos por rol y alcance de clientes probados de extremo a extremo. Falta Módulo 2 (config por línea: bancos, términos y condiciones, plantillas), cotizaciones, autorizaciones y PDF, según `docs/ARCHITECTURE.md §10`.
 
 Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · Código: [`app/`](app/README.md).
 
@@ -17,4 +17,4 @@ Documento maestro: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · Código: [`
 
 ## Próximo paso
 
-Construir el motor de folios (Módulo 5) o el Módulo 2 (configuración por línea: folios, bancos, términos y condiciones) antes de arrancar cotizaciones, según el plan de `docs/ARCHITECTURE.md §10`.
+Con catálogo, clientes y folios listos, el Módulo 6 (Cotizaciones — el núcleo del sistema: crear, versionar, calcular margen contra el motor ya construido y emitir folio real al guardar) es el siguiente bloque natural, según el plan de `docs/ARCHITECTURE.md §10`.

@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/auth";
-import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { PERMISSIONS, ROLE_LABELS, hasPermission, type PermissionCode } from "@/lib/auth/permissions";
 
 import { logout } from "./actions";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  label: string;
+  href?: string;
+  enabled: boolean;
+  /** Si se define, el item solo se muestra a roles con este permiso. */
+  permission?: PermissionCode;
+}[] = [
   { label: "Inicio · Dashboard", href: "/dashboard", enabled: true },
   { label: "Cotizaciones", enabled: false },
   { label: "Autorizaciones", enabled: false },
@@ -14,7 +20,12 @@ const NAV_ITEMS = [
   { label: "Líneas de negocio", enabled: false },
   { label: "Pedidos", enabled: false },
   { label: "Reportes", enabled: false },
-  { label: "Administración", enabled: false },
+  {
+    label: "Administración",
+    href: "/admin",
+    enabled: true,
+    permission: PERMISSIONS.CONFIGURE_SEQUENCES,
+  },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +35,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) {
     redirect("/login");
   }
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.permission || hasPermission(session.user.role, item.permission),
+  );
 
   return (
     <div className="flex min-h-screen w-full">
@@ -35,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="mt-1 text-lg font-bold text-zinc-900 dark:text-zinc-50">GLOBAL QUOTE</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 text-sm">
-          {NAV_ITEMS.map((item) =>
+          {visibleNavItems.map((item) =>
             item.enabled && item.href ? (
               <a
                 key={item.label}

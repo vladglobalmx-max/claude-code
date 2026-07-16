@@ -72,6 +72,7 @@ model BusinessUnit {
   products          Product[]
   priceLists        PriceList[]
   customers         Customer[]
+  sequenceSettings  SequenceSettings[]
 
   @@map("business_units")
 }
@@ -94,6 +95,7 @@ model User {
   email               String    @unique
   passwordHash        String    @map("password_hash")
   fullName            String    @map("full_name")
+  folioCode           String?   @map("folio_code")
   roleId              String    @map("role_id") @db.Uuid
   active              Boolean   @default(true)
   twoFactorEnabled    Boolean   @default(false) @map("two_factor_enabled")
@@ -346,4 +348,37 @@ model Contact {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@map("contacts")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 5 (Motor de folios). Ver docs/ARCHITECTURE.md §7. Cotizaciones y
+// pedidos (modulos futuros) llaman a issueFolio() en la misma transaccion en
+// la que crean el documento — el consecutivo nunca se incrementa "en falso"
+// fuera de esa transaccion (docs/ARCHITECTURE.md §7.2).
+// ---------------------------------------------------------------------------
+
+enum DocumentType {
+  QUOTATION
+  ORDER
+  CREDIT_NOTE
+  DELIVERY_NOTE
+}
+
+/// Un renglon por (linea, tipo de documento, año). `year = 0` es el bucket
+/// "continuo" usado cuando business_units.folio_numbering_mode = CONTINUOUS,
+/// para no depender de NULL en la unique key (Postgres trata cada NULL como
+/// distinto y permitiria filas duplicadas).
+model SequenceSettings {
+  id               String       @id @default(uuid()) @db.Uuid
+  businessUnitId   String       @map("business_unit_id") @db.Uuid
+  documentType     DocumentType @map("document_type")
+  year             Int
+  lastConsecutive  Int          @default(0) @map("last_consecutive")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+
+  @@unique([businessUnitId, documentType, year])
+  @@map("sequence_settings")
 }

@@ -4,11 +4,77 @@ import { Decimal } from "decimal.js";
 
 import { prisma } from "@/lib/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
+import type { QuotationStatus } from "@/generated/prisma/enums";
 import { issueFolioInTransaction } from "@/lib/folio/sequence";
 import { resolveUnitPrice } from "@/lib/quotations/pricing";
 import { computeApprovalTriggers } from "@/lib/quotations/approval-rules";
 
 export class QuotationMutationError extends Error {}
+
+/**
+ * Estados en los que una cotización ya enviada se puede seguir editando
+ * (docs/ARCHITECTURE.md §4.1, "Editar cotización ya aprobada" — Super
+ * Admin/Administración, siempre con versión). `PENDING_APPROVAL` queda
+ * fuera a propósito: no tiene sentido cambiar el contenido mientras una
+ * excepción está a medio decidir. Los estados terminales (rechazada,
+ * cancelada, vencida, convertida) tampoco son editables.
+ */
+const EDITABLE_AFTER_SEND_STATUSES: QuotationStatus[] = ["SENT", "ACCEPTED"];
+
+/**
+ * Congela el estado *anterior* al cambio en `quotation_versions` (Módulo 8,
+ * docs/ARCHITECTURE.md §7.3) y sube `currentVersion`. Los montos se
+ * convierten a string porque `Json` no serializa instancias de Decimal.
+ */
+async function freezeQuotationVersionSnapshot(
+  tx: Prisma.TransactionClient,
+  quotationId: string,
+  actorId: string,
+) {
+  const quotation = await tx.quotation.findUniqueOrThrow({
+    where: { id: quotationId },
+    include: {
+      items: {
+        include: { product: { select: { internalSku: true } } },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  await tx.quotationVersion.create({
+    data: {
+      quotationId,
+      versionNumber: quotation.currentVersion,
+      createdById: actorId,
+      snapshot: {
+        status: quotation.status,
+        currency: quotation.currency,
+        validUntil: quotation.validUntil ? quotation.validUntil.toISOString() : null,
+        notes: quotation.notes,
+        subtotal: quotation.subtotal.toFixed(2),
+        discountTotal: quotation.discountTotal.toFixed(2),
+        total: quotation.total.toFixed(2),
+        marginPct: quotation.marginPct ? quotation.marginPct.toFixed(2) : null,
+        requiresApproval: quotation.requiresApproval,
+        approvalReason: quotation.approvalReason,
+        items: quotation.items.map((item) => ({
+          productId: item.productId,
+          productSku: item.product.internalSku,
+          description: item.description,
+          qty: item.qty,
+          unitPrice: item.unitPrice.toFixed(2),
+          discountPct: item.discountPct.toFixed(2),
+          lineTotal: item.lineTotal.toFixed(2),
+        })),
+      },
+    },
+  });
+
+  await tx.quotation.update({
+    where: { id: quotationId },
+    data: { currentVersion: { increment: 1 } },
+  });
+}
 
 export async function createQuotationDraft(input: {
   businessUnitId: string;
@@ -101,13 +167,18 @@ export async function addQuotationItem(input: {
   productId: string;
   qty: number;
   discountPct: number;
+  actorId: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const quotation = await tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
-    if (quotation.status !== "DRAFT") {
+    const isEditableAfterSend = EDITABLE_AFTER_SEND_STATUSES.includes(quotation.status);
+    if (quotation.status !== "DRAFT" && !isEditableAfterSend) {
       throw new QuotationMutationError(
-        "Solo se pueden agregar productos a una cotización en borrador.",
+        "No se pueden agregar productos a una cotización en este estado.",
       );
+    }
+    if (isEditableAfterSend) {
+      await freezeQuotationVersionSnapshot(tx, input.quotationId, input.actorId);
     }
 
     const unitPrice = await resolveUnitPrice({
@@ -150,13 +221,21 @@ export async function addQuotationItem(input: {
   });
 }
 
-export async function removeQuotationItem(input: { quotationId: string; itemId: string }) {
+export async function removeQuotationItem(input: {
+  quotationId: string;
+  itemId: string;
+  actorId: string;
+}) {
   return prisma.$transaction(async (tx) => {
     const quotation = await tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
-    if (quotation.status !== "DRAFT") {
+    const isEditableAfterSend = EDITABLE_AFTER_SEND_STATUSES.includes(quotation.status);
+    if (quotation.status !== "DRAFT" && !isEditableAfterSend) {
       throw new QuotationMutationError(
-        "Solo se pueden quitar productos de una cotización en borrador.",
+        "No se pueden quitar productos de una cotización en este estado.",
       );
+    }
+    if (isEditableAfterSend) {
+      await freezeQuotationVersionSnapshot(tx, input.quotationId, input.actorId);
     }
 
     await tx.quotationItem.delete({ where: { id: input.itemId } });

@@ -45,3 +45,14 @@ export function formatOrderFolio(input: { lineCode: string; year: number; consec
 export function appendVersion(folio: string, versionNumber: number): string {
   return `${folio}-V${versionNumber}`;
 }
+
+/**
+ * Folio tal como debe mostrarse (docs/ARCHITECTURE.md §7.3, Módulo 8): la
+ * versión 1 (la original, nunca editada tras enviarse) se muestra sin
+ * sufijo — es el mismo folio que ya se probó/mostró en los Módulos 6 y 9,
+ * sin romper esas pantallas. El sufijo `-V{n}` solo aparece a partir de la
+ * primera edición posterior al envío (versión 2 en adelante).
+ */
+export function displayFolio(folio: string, currentVersion: number): string {
+  return currentVersion > 1 ? appendVersion(folio, currentVersion) : folio;
+}

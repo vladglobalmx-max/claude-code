@@ -12,11 +12,20 @@ import { removeQuotationItemAction } from "../actions";
 import { APPROVAL_RULE_LABELS } from "@/lib/quotations/approval-rules";
 import { QUOTATION_STATUS_LABELS } from "@/lib/quotations/status-labels";
 import { canGenerateQuotationPdf } from "@/lib/quotations/pdf-gate";
+import { displayFolio } from "@/lib/folio/format";
 
 const DECISION_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
   APPROVED: "Aprobada",
   REJECTED: "Rechazada",
+};
+
+/** Forma del snapshot congelado en `quotation_versions.snapshot` (Módulo 8) — la escribe únicamente `freezeQuotationVersionSnapshot` en `lib/quotations/mutations.ts`. */
+type QuotationVersionSnapshot = {
+  status: string;
+  total: string;
+  requiresApproval: boolean;
+  items: { description: string; qty: number }[];
 };
 
 const currency = (value: number, code: string) =>
@@ -58,14 +67,22 @@ export default async function QuotationDetailPage({
         },
         orderBy: { requestedAt: "desc" },
       },
+      versions: {
+        include: { createdBy: { select: { fullName: true } } },
+        orderBy: { versionNumber: "desc" },
+      },
     },
   });
   if (!quotation) {
     notFound();
   }
 
+  const canEditAfterSend =
+    (quotation.status === "SENT" || quotation.status === "ACCEPTED") &&
+    hasPermission(role, PERMISSIONS.EDIT_APPROVED_QUOTATION);
   const canManageItems =
-    quotation.status === "DRAFT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION);
+    (quotation.status === "DRAFT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION)) ||
+    canEditAfterSend;
   const canViewMarginPct =
     hasPermission(role, PERMISSIONS.VIEW_COSTS) || hasPermission(role, PERMISSIONS.VIEW_MARGIN_PCT);
   const canDownloadPdf =
@@ -88,7 +105,7 @@ export default async function QuotationDetailPage({
             ← Cotizaciones
           </Link>
           <h1 className="mt-1 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            {quotation.folio}
+            {displayFolio(quotation.folio, quotation.currentVersion)}
           </h1>
           <p className="text-sm text-zinc-500">
             {quotation.businessUnit.code} · {quotation.customer.legalName} · Vendedor:{" "}
@@ -111,6 +128,14 @@ export default async function QuotationDetailPage({
         <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           <p className="font-semibold">Requiere autorización</p>
           <p>{quotation.approvalReason}</p>
+        </div>
+      ) : null}
+
+      {canEditAfterSend ? (
+        <div className="rounded-md border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400">
+          Esta cotización ya fue enviada. Agregar o quitar productos aquí congela el estado actual
+          como Versión {quotation.currentVersion} y crea la Versión {quotation.currentVersion + 1}{" "}
+          (docs/ARCHITECTURE.md §7.3) — el folio raíz nunca cambia.
         </div>
       ) : null}
 
@@ -236,6 +261,37 @@ export default async function QuotationDetailPage({
                 ) : null}
               </li>
             ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {quotation.versions.length > 0 ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Historial de versiones
+          </h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Versión actual (viva, editable): {quotation.currentVersion}.
+          </p>
+          <ul className="mt-3 flex flex-col gap-3">
+            {quotation.versions.map((version) => {
+              const snapshot = version.snapshot as unknown as QuotationVersionSnapshot;
+              return (
+                <li
+                  key={version.id}
+                  className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                >
+                  <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                    Versión {version.versionNumber} (congelada) —{" "}
+                    {currency(Number(snapshot.total), quotation.currency)}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {snapshot.items.length} producto(s) · Editada por {version.createdBy.fullName}{" "}
+                    el {version.createdAt.toLocaleString("es-MX")}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

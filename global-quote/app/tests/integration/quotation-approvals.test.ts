@@ -68,6 +68,7 @@ async function createPendingApprovalQuotation() {
     productId: staleMarginProduct.id,
     qty: 1,
     discountPct: 0,
+    actorId: seller.id,
   });
   await submitQuotation({
     quotationId: draft.id,

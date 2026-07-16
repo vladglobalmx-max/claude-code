@@ -51,6 +51,7 @@ describe("renderQuotationPdf (docs/ARCHITECTURE.md §10, Módulo 9)", () => {
       productId: healthyProduct.id,
       qty: 2,
       discountPct: 0,
+      actorId: seller.id,
     });
     await submitQuotation({ quotationId: draft.id, actorId: seller.id });
 
@@ -79,6 +80,7 @@ describe("renderQuotationPdf (docs/ARCHITECTURE.md §10, Módulo 9)", () => {
         productId: healthyProduct.id,
         qty: 1,
         discountPct: 0,
+        actorId: seller.id,
       });
     }
     await submitQuotation({ quotationId: draft.id, actorId: seller.id });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   appendVersion,
+  displayFolio,
   formatLongFolio,
   formatOrderFolio,
   formatShortFolio,
@@ -53,5 +54,12 @@ describe("folio format (docs/ARCHITECTURE.md §7.1)", () => {
     expect(padConsecutive(1)).toBe("0001");
     expect(padConsecutive(42)).toBe("0042");
     expect(padConsecutive(12345)).toBe("12345");
+  });
+
+  it("displayFolio shows the bare folio for version 1 and the -V{n} suffix from version 2 onward (docs/ARCHITECTURE.md §7.3, Módulo 8)", () => {
+    const base = "TSS-2026-07-0001-KS";
+    expect(displayFolio(base, 1)).toBe("TSS-2026-07-0001-KS");
+    expect(displayFolio(base, 2)).toBe("TSS-2026-07-0001-KS-V2");
+    expect(displayFolio(base, 3)).toBe("TSS-2026-07-0001-KS-V3");
   });
 });

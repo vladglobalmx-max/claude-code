@@ -111,6 +111,7 @@ describe("addQuotationItem / removeQuotationItem", () => {
       productId: healthyProduct.id,
       qty: 2,
       discountPct: 0,
+      actorId: seller.id,
     });
 
     expect(updated.total.toNumber()).toBe(92.3); // 2 * 46.15
@@ -135,6 +136,7 @@ describe("addQuotationItem / removeQuotationItem", () => {
       productId: staleMarginProduct.id, // GFB-ENJ-004: precio ya por debajo del margen minimo
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
 
     expect(updated.requiresApproval).toBe(true);
@@ -159,6 +161,7 @@ describe("addQuotationItem / removeQuotationItem", () => {
       productId: healthyProduct.id,
       qty: 1,
       discountPct: 15,
+      actorId: seller.id,
     });
 
     expect(updated.requiresApproval).toBe(true);
@@ -182,17 +185,22 @@ describe("addQuotationItem / removeQuotationItem", () => {
       productId: healthyProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
     const item = await prisma.quotationItem.findFirstOrThrow({ where: { quotationId: draft.id } });
 
-    const afterRemove = await removeQuotationItem({ quotationId: draft.id, itemId: item.id });
+    const afterRemove = await removeQuotationItem({
+      quotationId: draft.id,
+      itemId: item.id,
+      actorId: seller.id,
+    });
 
     expect(afterAdd.total.toNumber()).toBeGreaterThan(0);
     expect(afterRemove.total.toNumber()).toBe(0);
     expect(afterRemove.marginPct).toBeNull();
   });
 
-  it("rejects adding items to a quotation that is not a draft", async () => {
+  it("allows a Super Admin/Administración-style edit of a SENT quotation, versioning it (Módulo 8)", async () => {
     const { businessUnit, seller, customerWithPriceList, healthyProduct } = await fixtures();
     const draft = await createQuotationDraft({
       businessUnitId: businessUnit.id,
@@ -209,11 +217,59 @@ describe("addQuotationItem / removeQuotationItem", () => {
       productId: healthyProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
     await submitQuotation({ quotationId: draft.id, actorId: seller.id });
 
+    const updated = await addQuotationItem({
+      quotationId: draft.id,
+      productId: healthyProduct.id,
+      qty: 1,
+      discountPct: 0,
+      actorId: seller.id,
+    });
+
+    expect(updated.status).toBe("SENT");
+    expect(updated.currentVersion).toBe(2);
+    const version1 = await prisma.quotationVersion.findUniqueOrThrow({
+      where: { quotationId_versionNumber: { quotationId: draft.id, versionNumber: 1 } },
+    });
+    expect(version1.snapshot).toMatchObject({ status: "SENT" });
+  });
+
+  it("rejects adding items to a quotation that is pending authorization", async () => {
+    const { businessUnit, seller, customerWithPriceList, staleMarginProduct } = await fixtures();
+    const draft = await createQuotationDraft({
+      businessUnitId: businessUnit.id,
+      customerId: customerWithPriceList.id,
+      sellerId: seller.id,
+      sellerCode: seller.folioCode!,
+      validUntil: null,
+      notes: null,
+    });
+    createdQuotationIds.push(draft.id);
+
+    await addQuotationItem({
+      quotationId: draft.id,
+      productId: staleMarginProduct.id,
+      qty: 1,
+      discountPct: 0,
+      actorId: seller.id,
+    });
+    await submitQuotation({
+      quotationId: draft.id,
+      actorId: seller.id,
+      justification: "Cliente estratégico, autorizado verbalmente por Dirección General.",
+    });
+
     await expect(
-      addQuotationItem({ quotationId: draft.id, productId: healthyProduct.id, qty: 1, discountPct: 0 }),
+      addQuotationItem({
+        quotationId: draft.id,
+        productId: staleMarginProduct.id,
+        qty: 1,
+        discountPct: 0,
+        actorId: seller.id,
+      }),
     ).rejects.toThrow(QuotationMutationError);
   });
 });
@@ -236,6 +292,7 @@ describe("submitQuotation", () => {
       productId: healthyProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
     const sent = await submitQuotation({ quotationId: draft.id, actorId: seller.id });
 
@@ -264,6 +321,7 @@ describe("submitQuotation", () => {
       productId: staleMarginProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
     const result = await submitQuotation({
       quotationId: draft.id,
@@ -291,6 +349,7 @@ describe("submitQuotation", () => {
       productId: staleMarginProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
 
     await expect(submitQuotation({ quotationId: draft.id, actorId: seller.id })).rejects.toThrow(
@@ -315,6 +374,7 @@ describe("submitQuotation", () => {
       productId: staleMarginProduct.id,
       qty: 1,
       discountPct: 0,
+      actorId: seller.id,
     });
     await submitQuotation({
       quotationId: draft.id,

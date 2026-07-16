@@ -115,6 +115,7 @@ model User {
   quotationStatusChanges  QuotationStatusHistory[]
   quotationApprovalsRequested QuotationApproval[] @relation("QuotationApprovalRequestedBy")
   quotationApprovalsDecided   QuotationApproval[] @relation("QuotationApprovalApprover")
+  quotationVersionsCreated    QuotationVersion[]
 
   @@map("users")
 }
@@ -443,6 +444,7 @@ model Quotation {
   items         QuotationItem[]
   statusHistory QuotationStatusHistory[]
   approvals     QuotationApproval[]
+  versions      QuotationVersion[]
 
   @@map("quotations")
 }
@@ -523,4 +525,28 @@ model QuotationApproval {
   approver    User?     @relation("QuotationApprovalApprover", fields: [approverId], references: [id])
 
   @@map("quotation_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 8 (Versionado). Ver docs/ARCHITECTURE.md §7.3. Editar una
+// cotizacion ya enviada (Super Admin/Administracion, permiso
+// EDIT_APPROVED_QUOTATION) congela el estado *anterior* al cambio aqui
+// antes de aplicarlo, y sube `quotations.current_version` — el folio raiz y
+// el consecutivo nunca cambian, solo se le anexa el sufijo `-V{n}` (ver
+// `lib/folio/format.ts`). Las versiones nunca se borran ni se editan.
+// ---------------------------------------------------------------------------
+
+model QuotationVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  quotationId   String   @map("quotation_id") @db.Uuid
+  versionNumber Int      @map("version_number")
+  snapshot      Json
+  createdById   String   @map("created_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@unique([quotationId, versionNumber])
+  @@map("quotation_versions")
 }

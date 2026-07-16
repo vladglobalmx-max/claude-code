@@ -56,13 +56,31 @@ export async function createQuotationAction(
   redirect(`/quotations/${quotation.id}`);
 }
 
+/**
+ * Una cotización en `DRAFT` solo requiere el permiso general de crear
+ * cotizaciones; editarla después de enviada (Módulo 8) requiere
+ * `EDIT_APPROVED_QUOTATION` — Super Admin/Administración únicamente (ver
+ * docs/ARCHITECTURE.md §4.1). Se resuelve aquí, no en `mutations.ts`, para
+ * mantener la autorización por rol siempre en la capa de Server Action.
+ */
+async function requiredItemEditPermission(quotationId: string) {
+  const quotation = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    select: { status: true },
+  });
+  if (!quotation) return null;
+  return quotation.status === "DRAFT" ? PERMISSIONS.CREATE_QUOTATION : PERMISSIONS.EDIT_APPROVED_QUOTATION;
+}
+
 export async function addQuotationItemAction(
   quotationId: string,
   _prevState: string | undefined,
   formData: FormData,
 ): Promise<string | undefined> {
   const session = await requireSession();
-  if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
+
+  const requiredPermission = await requiredItemEditPermission(quotationId);
+  if (!requiredPermission || !hasPermission(session.user.role, requiredPermission)) {
     redirect("/dashboard?error=forbidden");
   }
 
@@ -81,7 +99,7 @@ export async function addQuotationItemAction(
   }
 
   try {
-    await addQuotationItem({ quotationId, ...parsed.data });
+    await addQuotationItem({ quotationId, actorId: session.user.id, ...parsed.data });
   } catch (error) {
     if (error instanceof QuotationMutationError) return error.message;
     throw error;
@@ -95,12 +113,14 @@ export async function removeQuotationItemAction(
   itemId: string,
 ): Promise<void> {
   const session = await requireSession();
-  if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
+
+  const requiredPermission = await requiredItemEditPermission(quotationId);
+  if (!requiredPermission || !hasPermission(session.user.role, requiredPermission)) {
     redirect("/dashboard?error=forbidden");
   }
 
   try {
-    await removeQuotationItem({ quotationId, itemId });
+    await removeQuotationItem({ quotationId, itemId, actorId: session.user.id });
   } catch (error) {
     if (!(error instanceof QuotationMutationError)) throw error;
   }

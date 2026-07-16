@@ -5,6 +5,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 
 import { prisma } from "@/lib/prisma/client";
 import { QUOTATION_STATUS_LABELS } from "@/lib/quotations/status-labels";
+import { displayFolio } from "@/lib/folio/format";
 
 import { QuotationDocument, type QuotationPdfData } from "./quotation-document";
 
@@ -40,7 +41,7 @@ export async function renderQuotationPdf(quotationId: string): Promise<Buffer> {
   );
 
   const data: QuotationPdfData = {
-    folio: quotation.folio,
+    folio: displayFolio(quotation.folio, quotation.currentVersion),
     version: quotation.currentVersion,
     status: quotation.status,
     statusLabel: QUOTATION_STATUS_LABELS[quotation.status],

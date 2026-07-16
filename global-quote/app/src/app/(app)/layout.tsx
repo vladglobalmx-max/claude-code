@@ -13,7 +13,7 @@ const NAV_ITEMS: {
   permission?: PermissionCode;
 }[] = [
   { label: "Inicio · Dashboard", href: "/dashboard", enabled: true },
-  { label: "Cotizaciones", enabled: false },
+  { label: "Cotizaciones", href: "/quotations", enabled: true },
   { label: "Autorizaciones", enabled: false },
   { label: "Clientes · Contactos", href: "/customers", enabled: true },
   { label: "Productos · Precios", href: "/products", enabled: true },

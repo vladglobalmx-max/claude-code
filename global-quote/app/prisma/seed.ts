@@ -66,6 +66,7 @@ const DEMO_USERS: {
   role: RoleCode;
   businessUnits: string[];
   folioCode: string;
+  discountLimitPct?: number;
 }[] = [
   {
     email: "ana.torres@globalsuppliermty.com",
@@ -94,6 +95,7 @@ const DEMO_USERS: {
     role: "GERENTE_VENTAS",
     businessUnits: ["TSS", "TLL", "GFB"],
     folioCode: "CM",
+    discountLimitPct: 10,
   },
   {
     email: "diego.ramirez@globalsuppliermty.com",
@@ -101,6 +103,7 @@ const DEMO_USERS: {
     role: "VENDEDOR",
     businessUnits: ["TSS", "GFB"],
     folioCode: "DR",
+    discountLimitPct: 5,
   },
   {
     email: "sofia.hernandez@globalsuppliermty.com",
@@ -599,13 +602,19 @@ async function main() {
 
     const user = await prisma.user.upsert({
       where: { email: demoUser.email },
-      update: { fullName: demoUser.fullName, roleId: role.id, folioCode: demoUser.folioCode },
+      update: {
+        fullName: demoUser.fullName,
+        roleId: role.id,
+        folioCode: demoUser.folioCode,
+        discountLimitPct: demoUser.discountLimitPct,
+      },
       create: {
         email: demoUser.email,
         fullName: demoUser.fullName,
         passwordHash,
         roleId: role.id,
         folioCode: demoUser.folioCode,
+        discountLimitPct: demoUser.discountLimitPct,
       },
     });
 

@@ -53,52 +53,72 @@ export type IssuedFolio = {
 };
 
 /**
- * Punto de entrada unico para emitir un folio. Pensado para llamarse dentro
- * de la transaccion que crea la cotizacion/pedido (Modulo 6+); aqui se usa
- * `prisma.$transaction` solo cuando se invoca de forma independiente (p. ej.
- * el diagnostico de /admin/sequences).
+ * Logica compartida de emision, sin decidir la frontera de transaccion —
+ * la decide quien llama (ver `issueFolio` vs `issueFolioInTransaction`).
+ */
+async function issueFolioCore(
+  executor: Executor,
+  input: { businessUnitId: string; documentType: DocumentType; sellerCode: string },
+): Promise<IssuedFolio> {
+  const businessUnit = await executor.businessUnit.findUniqueOrThrow({
+    where: { id: input.businessUnitId },
+  });
+
+  const year = resolveSequenceYear(businessUnit.folioNumberingMode);
+  const consecutive = await reserveNextConsecutive(executor, {
+    businessUnitId: input.businessUnitId,
+    documentType: input.documentType,
+    year,
+  });
+
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const calendarYear = now.getFullYear();
+
+  const folio =
+    input.documentType === "ORDER"
+      ? formatOrderFolio({ lineCode: businessUnit.code, year: calendarYear, consecutive })
+      : formatLongFolio({
+          lineCode: businessUnit.code,
+          year: calendarYear,
+          month,
+          consecutive,
+          sellerCode: input.sellerCode,
+        });
+
+  const shortFolio = formatShortFolio({
+    lineCode: businessUnit.code,
+    year: calendarYear,
+    month,
+    consecutive,
+  });
+
+  return { folio, shortFolio, consecutive, year: calendarYear, month };
+}
+
+/**
+ * Punto de entrada para emitir un folio de forma independiente (p. ej. el
+ * diagnostico de /admin/sequences): abre su propia transaccion.
  */
 export async function issueFolio(input: {
   businessUnitId: string;
   documentType: DocumentType;
   sellerCode: string;
 }): Promise<IssuedFolio> {
-  return prisma.$transaction(async (tx) => {
-    const businessUnit = await tx.businessUnit.findUniqueOrThrow({
-      where: { id: input.businessUnitId },
-    });
+  return prisma.$transaction((tx) => issueFolioCore(tx, input));
+}
 
-    const year = resolveSequenceYear(businessUnit.folioNumberingMode);
-    const consecutive = await reserveNextConsecutive(tx, {
-      businessUnitId: input.businessUnitId,
-      documentType: input.documentType,
-      year,
-    });
-
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const calendarYear = now.getFullYear();
-
-    const folio =
-      input.documentType === "ORDER"
-        ? formatOrderFolio({ lineCode: businessUnit.code, year: calendarYear, consecutive })
-        : formatLongFolio({
-            lineCode: businessUnit.code,
-            year: calendarYear,
-            month,
-            consecutive,
-            sellerCode: input.sellerCode,
-          });
-
-    const shortFolio = formatShortFolio({
-      lineCode: businessUnit.code,
-      year: calendarYear,
-      month,
-      consecutive,
-    });
-
-    return { folio, shortFolio, consecutive, year: calendarYear, month };
-  });
+/**
+ * Punto de entrada para emitir un folio como parte de una transaccion mas
+ * grande (crear la cotizacion junto con su folio, Modulo 6+): si el resto de
+ * la transaccion falla, este incremento se revierte con ella y el
+ * consecutivo no se "quema" en falso (docs/ARCHITECTURE.md §7.2).
+ */
+export async function issueFolioInTransaction(
+  tx: Prisma.TransactionClient,
+  input: { businessUnitId: string; documentType: DocumentType; sellerCode: string },
+): Promise<IssuedFolio> {
+  return issueFolioCore(tx, input);
 }
 
 export { appendVersion };

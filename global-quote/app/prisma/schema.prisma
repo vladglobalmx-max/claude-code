@@ -73,6 +73,7 @@ model BusinessUnit {
   priceLists        PriceList[]
   customers         Customer[]
   sequenceSettings  SequenceSettings[]
+  quotations        Quotation[]
 
   @@map("business_units")
 }
@@ -110,6 +111,8 @@ model User {
   role              Role               @relation(fields: [roleId], references: [id])
   userBusinessUnits UserBusinessUnit[]
   assignedCustomers Customer[]
+  quotationsAsSeller      Quotation[]
+  quotationStatusChanges  QuotationStatusHistory[]
 
   @@map("users")
 }
@@ -178,6 +181,7 @@ model Product {
   category        Category?        @relation(fields: [categoryId], references: [id])
   costs           ProductCost[]
   priceListItems  PriceListItem[]
+  quotationItems  QuotationItem[]
 
   @@map("products")
 }
@@ -306,6 +310,7 @@ model Customer {
   priceList     PriceList?        @relation(fields: [priceListId], references: [id])
   addresses     CustomerAddress[]
   contacts      Contact[]
+  quotations    Quotation[]
 
   @@map("customers")
 }
@@ -381,4 +386,95 @@ model SequenceSettings {
 
   @@unique([businessUnitId, documentType, year])
   @@map("sequence_settings")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 6 (Cotizaciones, alcance nucleo). Ver docs/ARCHITECTURE.md §6/§8.
+// El folio se emite dentro de la MISMA transaccion que crea la cotizacion
+// (issueFolioInTransaction), al primer guardado — no antes, no despues
+// (docs/ARCHITECTURE.md §7.4). Alcance de este modulo: crear, agregar
+// partidas con precio resuelto automaticamente, calcular margen contra el
+// motor ya construido (lib/catalog/margin.ts) y bloquear el envio si algun
+// item queda por debajo de su margen minimo o excede el limite de descuento
+// del vendedor. Fuera de este modulo: workflow de autorizacion con registro
+// propio (quotation_approvals, Modulo 7), versionado tras el envio (Modulo 8)
+// y PDF (Modulo 9) — hasta entonces, una cotizacion "Enviada" simplemente
+// deja de ser editable.
+// ---------------------------------------------------------------------------
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  SENT
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  CONVERTED_TO_ORDER
+}
+
+model Quotation {
+  id               String          @id @default(uuid()) @db.Uuid
+  folio            String          @unique
+  shortFolio       String          @map("short_folio")
+  businessUnitId   String          @map("business_unit_id") @db.Uuid
+  customerId       String          @map("customer_id") @db.Uuid
+  sellerId         String          @map("seller_id") @db.Uuid
+  currency         Currency        @default(MXN)
+  status           QuotationStatus @default(DRAFT)
+  validUntil       DateTime?       @map("valid_until")
+  notes            String?
+  subtotal         Decimal         @default(0) @db.Decimal(14, 2)
+  discountTotal    Decimal         @default(0) @map("discount_total") @db.Decimal(14, 2)
+  total            Decimal         @default(0) @db.Decimal(14, 2)
+  marginPct        Decimal?        @map("margin_pct") @db.Decimal(5, 2)
+  requiresApproval Boolean         @default(false) @map("requires_approval")
+  approvalReason   String?         @map("approval_reason")
+  currentVersion   Int             @default(1) @map("current_version")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  deletedAt        DateTime?       @map("deleted_at")
+
+  businessUnit  BusinessUnit             @relation(fields: [businessUnitId], references: [id])
+  customer      Customer                 @relation(fields: [customerId], references: [id])
+  seller        User                     @relation(fields: [sellerId], references: [id])
+  items         QuotationItem[]
+  statusHistory QuotationStatusHistory[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id                   String   @id @default(uuid()) @db.Uuid
+  quotationId          String   @map("quotation_id") @db.Uuid
+  productId            String   @map("product_id") @db.Uuid
+  description          String
+  qty                  Int      @default(1)
+  unitPrice            Decimal  @map("unit_price") @db.Decimal(12, 2)
+  discountPct          Decimal  @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  lineTotal            Decimal  @map("line_total") @db.Decimal(14, 2)
+  landedCostSnapshot   Decimal? @map("landed_cost_snapshot") @db.Decimal(12, 4)
+  minMarginPctSnapshot Decimal? @map("min_margin_pct_snapshot") @db.Decimal(5, 2)
+  sortOrder            Int      @default(0) @map("sort_order")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@map("quotation_items")
+}
+
+model QuotationStatusHistory {
+  id           String           @id @default(uuid()) @db.Uuid
+  quotationId  String           @map("quotation_id") @db.Uuid
+  fromStatus   QuotationStatus? @map("from_status")
+  toStatus     QuotationStatus  @map("to_status")
+  changedById  String           @map("changed_by_id") @db.Uuid
+  note         String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  changedBy User      @relation(fields: [changedById], references: [id])
+
+  @@map("quotation_status_history")
 }

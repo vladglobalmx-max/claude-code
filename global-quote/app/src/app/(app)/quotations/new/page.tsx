@@ -60,6 +60,12 @@ export default async function NewQuotationPage() {
 
   const defaultValidUntil = defaultQuotationValidUntil();
 
+  const taxes = await prisma.tax.findMany({
+    where: { active: true },
+    select: { id: true, code: true, name: true, ratePct: true },
+    orderBy: { code: "asc" },
+  });
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
@@ -76,6 +82,7 @@ export default async function NewQuotationPage() {
           businessUnitId={businessUnit.id}
           businessUnitLabel={`${businessUnit.code} — ${businessUnit.name}`}
           customers={customers}
+          taxes={taxes.map((tax) => ({ ...tax, ratePct: tax.ratePct.toString() }))}
           defaultValidUntil={defaultValidUntil}
         />
       </div>

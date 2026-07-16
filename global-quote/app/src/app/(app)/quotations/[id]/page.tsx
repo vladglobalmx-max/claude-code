@@ -68,6 +68,7 @@ export default async function QuotationDetailPage({
       customer: { select: { legalName: true, tradeName: true } },
       seller: { select: { fullName: true } },
       order: { select: { id: true, folio: true } },
+      tax: { select: { name: true, ratePct: true } },
       items: {
         include: { product: { select: { internalSku: true, name: true } } },
         orderBy: { createdAt: "asc" },
@@ -222,6 +223,18 @@ export default async function QuotationDetailPage({
           <div>
             <dt className="text-zinc-500">Total</dt>
             <dd className="font-semibold">{currency(quotation.total.toNumber(), quotation.currency)}</dd>
+          </div>
+          {quotation.tax ? (
+            <div>
+              <dt className="text-zinc-500">{quotation.tax.name} ({quotation.tax.ratePct.toString()}%)</dt>
+              <dd>{currency(quotation.taxTotal.toNumber(), quotation.currency)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="text-zinc-500">Total con IVA</dt>
+            <dd className="font-semibold">
+              {currency(quotation.total.plus(quotation.taxTotal).toNumber(), quotation.currency)}
+            </dd>
           </div>
           {canViewMarginPct ? (
             <div>

@@ -12,6 +12,12 @@ const prisma = new PrismaClient({ adapter });
 
 const DEMO_PASSWORD = "GlobalQuote2026!";
 
+/** Catálogo global de impuestos (Módulo 2), seleccionable al crear una cotización. */
+const TAXES = [
+  { code: "IVA16", name: "IVA", ratePct: 16 },
+  { code: "EXENTO", name: "Exento", ratePct: 0 },
+] as const;
+
 const BUSINESS_UNITS = [
   { code: "TSS", name: "Thunder Safety Solutions" },
   { code: "TLL", name: "Thunder LED Lights" },
@@ -646,6 +652,14 @@ async function main() {
         create: { userId: user.id, businessUnitId: businessUnit.id },
       });
     }
+  }
+
+  for (const tax of TAXES) {
+    await prisma.tax.upsert({
+      where: { code: tax.code },
+      update: { name: tax.name, ratePct: tax.ratePct },
+      create: tax,
+    });
   }
 
   console.log(`Listo. ${DEMO_USERS.length} usuarios demo con contraseña compartida: ${DEMO_PASSWORD}`);

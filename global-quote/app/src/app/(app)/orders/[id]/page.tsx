@@ -35,6 +35,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       customer: { select: { legalName: true, tradeName: true } },
       seller: { select: { fullName: true } },
       quotation: { select: { id: true, folio: true } },
+      tax: { select: { name: true, ratePct: true } },
       items: {
         include: { product: { select: { internalSku: true, name: true } } },
         orderBy: { sortOrder: "asc" },
@@ -110,6 +111,18 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <div>
             <dt className="text-zinc-500">Total</dt>
             <dd className="font-semibold">{currency(order.total.toNumber(), order.currency)}</dd>
+          </div>
+          {order.tax ? (
+            <div>
+              <dt className="text-zinc-500">{order.tax.name} ({order.tax.ratePct.toString()}%)</dt>
+              <dd>{currency(order.taxTotal.toNumber(), order.currency)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="text-zinc-500">Total con IVA</dt>
+            <dd className="font-semibold">
+              {currency(order.total.plus(order.taxTotal).toNumber(), order.currency)}
+            </dd>
           </div>
         </dl>
       </section>

@@ -427,6 +427,14 @@ enum QuotationStatus {
   CONVERTED_TO_ORDER
 }
 
+// `total` sigue siendo el neto después de descuento, sin impuesto — de eso
+// dependen el cálculo de margen, el dashboard (Módulo 13) y la conversión a
+// pedido, y no deben verse afectados por un impuesto que la empresa solo
+// retiene y entrega al SAT, no es utilidad. `taxTotal` es una tasa única
+// elegida al crear la cotización (catálogo `taxes` del Módulo 2), aditiva:
+// lo que el cliente paga es `total + taxTotal`, mostrado aparte en la UI y
+// el PDF. Se elige solo al crear (igual que `businessUnitId`/`customerId`),
+// no se edita después.
 model Quotation {
   id               String          @id @default(uuid()) @db.Uuid
   folio            String          @unique
@@ -441,6 +449,8 @@ model Quotation {
   subtotal         Decimal         @default(0) @db.Decimal(14, 2)
   discountTotal    Decimal         @default(0) @map("discount_total") @db.Decimal(14, 2)
   total            Decimal         @default(0) @db.Decimal(14, 2)
+  taxId            String?         @map("tax_id") @db.Uuid
+  taxTotal         Decimal         @default(0) @map("tax_total") @db.Decimal(14, 2)
   marginPct        Decimal?        @map("margin_pct") @db.Decimal(5, 2)
   requiresApproval Boolean         @default(false) @map("requires_approval")
   approvalReason   String?         @map("approval_reason")
@@ -452,6 +462,7 @@ model Quotation {
   businessUnit  BusinessUnit             @relation(fields: [businessUnitId], references: [id])
   customer      Customer                 @relation(fields: [customerId], references: [id])
   seller        User                     @relation(fields: [sellerId], references: [id])
+  tax           Tax?                     @relation(fields: [taxId], references: [id])
   items         QuotationItem[]
   statusHistory QuotationStatusHistory[]
   approvals     QuotationApproval[]
@@ -644,8 +655,8 @@ model TermsAndConditions {
 }
 
 /// Catalogo global (no por linea) — IVA 16%, exento, tasa 0%, etc.
-/// (docs/ARCHITECTURE.md §5.2). Aplicarlos a una cotizacion es fuera de
-/// este alcance: hoy es solo el catalogo de configuracion.
+/// (docs/ARCHITECTURE.md §5.2). Una cotizacion elige una sola tasa de este
+/// catalogo al crearse (ver comentario en `Quotation`), no por producto.
 model Tax {
   id        String   @id @default(uuid()) @db.Uuid
   code      String   @unique
@@ -654,6 +665,9 @@ model Tax {
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  quotations Quotation[]
+  orders     Order[]
 
   @@map("taxes")
 }
@@ -721,6 +735,8 @@ model Order {
   subtotal       Decimal     @db.Decimal(14, 2)
   discountTotal  Decimal     @map("discount_total") @db.Decimal(14, 2)
   total          Decimal     @db.Decimal(14, 2)
+  taxId          String?     @map("tax_id") @db.Uuid
+  taxTotal       Decimal     @default(0) @map("tax_total") @db.Decimal(14, 2)
   status         OrderStatus @default(CONFIRMED)
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
@@ -729,6 +745,7 @@ model Order {
   businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
   customer     Customer    @relation(fields: [customerId], references: [id])
   seller       User        @relation(fields: [sellerId], references: [id])
+  tax          Tax?         @relation(fields: [taxId], references: [id])
   items        OrderItem[]
 
   @@map("orders")

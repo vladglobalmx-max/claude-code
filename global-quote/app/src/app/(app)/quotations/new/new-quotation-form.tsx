@@ -8,11 +8,13 @@ export function NewQuotationForm({
   businessUnitId,
   businessUnitLabel,
   customers,
+  taxes,
   defaultValidUntil,
 }: {
   businessUnitId: string;
   businessUnitLabel: string;
   customers: { id: string; legalName: string; tradeName: string | null }[];
+  taxes: { id: string; code: string; name: string; ratePct: string }[];
   defaultValidUntil: string;
 }) {
   const [errorMessage, formAction, isPending] = useActionState(createQuotationAction, undefined);
@@ -43,6 +45,27 @@ export function NewQuotationForm({
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        Impuesto
+        <select
+          name="taxId"
+          defaultValue=""
+          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          <option value="">Sin impuesto</option>
+          {taxes.map((tax) => (
+            <option key={tax.id} value={tax.id}>
+              {tax.name} ({tax.ratePct}%)
+            </option>
+          ))}
+        </select>
+        {taxes.length === 0 ? (
+          <span className="text-xs text-zinc-500">
+            No hay impuestos activos — puedes crear uno en Administración → Impuestos.
+          </span>
+        ) : null}
       </label>
 
       <label className="flex flex-col gap-1 text-sm">

@@ -3,6 +3,11 @@ import { z } from "zod";
 export const quotationHeaderSchema = z.object({
   businessUnitId: z.string().uuid(),
   customerId: z.string().uuid("Selecciona un cliente"),
+  taxId: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .pipe(z.string().uuid().nullable()),
   validUntil: z
     .string()
     .trim()

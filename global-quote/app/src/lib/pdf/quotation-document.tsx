@@ -222,6 +222,9 @@ export type QuotationPdfData = {
   subtotal: string;
   discountTotal: string;
   total: string;
+  taxLabel: string | null;
+  taxTotal: string;
+  grandTotal: string;
   qrDataUrl: string;
 };
 
@@ -311,9 +314,19 @@ export function QuotationDocument({ data }: { data: QuotationPdfData }) {
             <Text style={styles.totalsLabel}>Descuento</Text>
             <Text>{currency(data.discountTotal, data.currency)}</Text>
           </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Total</Text>
+            <Text>{currency(data.total, data.currency)}</Text>
+          </View>
+          {data.taxLabel ? (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>{data.taxLabel}</Text>
+              <Text>{currency(data.taxTotal, data.currency)}</Text>
+            </View>
+          ) : null}
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Total ({data.currency})</Text>
-            <Text style={styles.grandTotalValue}>{currency(data.total, data.currency)}</Text>
+            <Text style={styles.grandTotalLabel}>Total con IVA ({data.currency})</Text>
+            <Text style={styles.grandTotalValue}>{currency(data.grandTotal, data.currency)}</Text>
           </View>
         </View>
 

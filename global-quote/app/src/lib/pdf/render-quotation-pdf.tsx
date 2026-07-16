@@ -20,6 +20,7 @@ export async function renderQuotationPdf(quotationId: string): Promise<Buffer> {
       },
       customer: { select: { legalName: true, tradeName: true, taxId: true } },
       seller: { select: { fullName: true, email: true } },
+      tax: { select: { name: true, ratePct: true } },
       items: {
         include: { product: { select: { internalSku: true } } },
         orderBy: { sortOrder: "asc" },
@@ -30,13 +31,17 @@ export async function renderQuotationPdf(quotationId: string): Promise<Buffer> {
     throw new QuotationNotFoundForPdfError(`Cotización ${quotationId} no encontrada.`);
   }
 
+  const grandTotal = quotation.total.plus(quotation.taxTotal);
+
   // El QR no apunta a una URL pública (todavía no existe un dominio de
   // verificación desplegado) — codifica los datos clave de la cotización
   // para que se pueda cotejar manualmente el folio/versión/total impresos
   // contra lo que dice el sistema, hasta que exista un endpoint público de
-  // verificación (fuera de este alcance, ver README).
+  // verificación (fuera de este alcance, ver README). El total codificado
+  // es el que el cliente paga (con impuesto), igual que el que se destaca
+  // en el pie del PDF.
   const qrDataUrl = await QRCode.toDataURL(
-    `GLOBAL QUOTE\nFolio: ${quotation.folio}\nVersión: ${quotation.currentVersion}\nTotal: ${quotation.total.toFixed(2)} ${quotation.currency}`,
+    `GLOBAL QUOTE\nFolio: ${quotation.folio}\nVersión: ${quotation.currentVersion}\nTotal: ${grandTotal.toFixed(2)} ${quotation.currency}`,
     { margin: 1, width: 200 },
   );
 
@@ -63,6 +68,9 @@ export async function renderQuotationPdf(quotationId: string): Promise<Buffer> {
     subtotal: quotation.subtotal.toFixed(2),
     discountTotal: quotation.discountTotal.toFixed(2),
     total: quotation.total.toFixed(2),
+    taxLabel: quotation.tax ? `${quotation.tax.name} (${quotation.tax.ratePct.toString()}%)` : null,
+    taxTotal: quotation.taxTotal.toFixed(2),
+    grandTotal: grandTotal.toFixed(2),
     qrDataUrl,
   };
 

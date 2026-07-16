@@ -44,6 +44,7 @@ export async function createQuotationAction(
   const parsed = quotationHeaderSchema.safeParse({
     businessUnitId: formData.get("businessUnitId"),
     customerId: formData.get("customerId"),
+    taxId: formData.get("taxId"),
     validUntil: formData.get("validUntil"),
     notes: formData.get("notes"),
   });
@@ -54,6 +55,7 @@ export async function createQuotationAction(
     customerId: parsed.data.customerId,
     sellerId: session.user.id,
     sellerCode: currentUser.folioCode,
+    taxId: parsed.data.taxId,
     validUntil: parsed.data.validUntil,
     notes: parsed.data.notes,
   });

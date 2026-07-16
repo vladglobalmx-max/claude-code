@@ -48,6 +48,8 @@ export async function convertQuotationToOrder(input: { quotationId: string; acto
         subtotal: quotation.subtotal,
         discountTotal: quotation.discountTotal,
         total: quotation.total,
+        taxId: quotation.taxId,
+        taxTotal: quotation.taxTotal,
       },
     });
 

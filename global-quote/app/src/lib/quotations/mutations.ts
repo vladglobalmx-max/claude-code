@@ -8,6 +8,7 @@ import type { QuotationStatus } from "@/generated/prisma/enums";
 import { issueFolioInTransaction } from "@/lib/folio/sequence";
 import { resolveUnitPrice } from "@/lib/quotations/pricing";
 import { computeApprovalTriggers } from "@/lib/quotations/approval-rules";
+import { computeTaxTotal } from "@/lib/quotations/tax";
 
 export class QuotationMutationError extends Error {}
 
@@ -54,6 +55,7 @@ async function freezeQuotationVersionSnapshot(
         subtotal: quotation.subtotal.toFixed(2),
         discountTotal: quotation.discountTotal.toFixed(2),
         total: quotation.total.toFixed(2),
+        taxTotal: quotation.taxTotal.toFixed(2),
         marginPct: quotation.marginPct ? quotation.marginPct.toFixed(2) : null,
         requiresApproval: quotation.requiresApproval,
         approvalReason: quotation.approvalReason,
@@ -81,6 +83,8 @@ export async function createQuotationDraft(input: {
   customerId: string;
   sellerId: string;
   sellerCode: string;
+  /** Tasa única elegida del catálogo `taxes` al crear (ver comentario en el esquema). Opcional: `null`/omitido = sin impuesto. */
+  taxId?: string | null;
   validUntil: string | null;
   notes: string | null;
 }) {
@@ -98,6 +102,7 @@ export async function createQuotationDraft(input: {
         businessUnitId: input.businessUnitId,
         customerId: input.customerId,
         sellerId: input.sellerId,
+        taxId: input.taxId,
         validUntil: input.validUntil ? new Date(input.validUntil) : null,
         notes: input.notes,
         status: "DRAFT",
@@ -120,7 +125,11 @@ export async function createQuotationDraft(input: {
 async function recomputeQuotationTotals(tx: Prisma.TransactionClient, quotationId: string) {
   const quotation = await tx.quotation.findUniqueOrThrow({
     where: { id: quotationId },
-    include: { items: true, seller: { select: { discountLimitPct: true } } },
+    include: {
+      items: true,
+      seller: { select: { discountLimitPct: true } },
+      tax: { select: { ratePct: true } },
+    },
   });
 
   const subtotal = quotation.items.reduce(
@@ -140,6 +149,7 @@ async function recomputeQuotationTotals(tx: Prisma.TransactionClient, quotationI
   const marginPct = total.greaterThan(0)
     ? total.minus(totalLandedCost).dividedBy(total).times(100)
     : null;
+  const taxTotal = computeTaxTotal(total, quotation.tax?.ratePct ?? null);
 
   const triggers = computeApprovalTriggers({
     items: quotation.items,
@@ -155,6 +165,7 @@ async function recomputeQuotationTotals(tx: Prisma.TransactionClient, quotationI
       subtotal: subtotal.toFixed(2),
       discountTotal: discountTotal.toFixed(2),
       total: total.toFixed(2),
+      taxTotal: taxTotal.toFixed(2),
       marginPct: marginPct != null ? marginPct.toFixed(2) : null,
       requiresApproval: triggers.length > 0,
       approvalReason: triggers.length > 0 ? triggers.map((t) => t.message).join(" ") : null,

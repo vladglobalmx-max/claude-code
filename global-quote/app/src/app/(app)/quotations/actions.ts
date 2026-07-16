@@ -108,16 +108,27 @@ export async function removeQuotationItemAction(
   redirect(`/quotations/${quotationId}`);
 }
 
-export async function submitQuotationAction(quotationId: string): Promise<void> {
+export async function submitQuotationAction(
+  quotationId: string,
+  _prevState: string | undefined,
+  formData: FormData,
+): Promise<string | undefined> {
   const session = await requireSession();
   if (!hasPermission(session.user.role, PERMISSIONS.CREATE_QUOTATION)) {
     redirect("/dashboard?error=forbidden");
   }
 
+  const justification = formData.get("justification");
+
   try {
-    await submitQuotation({ quotationId, actorId: session.user.id });
+    await submitQuotation({
+      quotationId,
+      actorId: session.user.id,
+      justification: typeof justification === "string" ? justification : null,
+    });
   } catch (error) {
-    if (!(error instanceof QuotationMutationError)) throw error;
+    if (error instanceof QuotationMutationError) return error.message;
+    throw error;
   }
 
   redirect(`/quotations/${quotationId}`);

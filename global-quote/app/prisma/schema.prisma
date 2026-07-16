@@ -113,6 +113,8 @@ model User {
   assignedCustomers Customer[]
   quotationsAsSeller      Quotation[]
   quotationStatusChanges  QuotationStatusHistory[]
+  quotationApprovalsRequested QuotationApproval[] @relation("QuotationApprovalRequestedBy")
+  quotationApprovalsDecided   QuotationApproval[] @relation("QuotationApprovalApprover")
 
   @@map("users")
 }
@@ -440,6 +442,7 @@ model Quotation {
   seller        User                     @relation(fields: [sellerId], references: [id])
   items         QuotationItem[]
   statusHistory QuotationStatusHistory[]
+  approvals     QuotationApproval[]
 
   @@map("quotations")
 }
@@ -477,4 +480,47 @@ model QuotationStatusHistory {
   changedBy User      @relation(fields: [changedById], references: [id])
 
   @@map("quotation_status_history")
+}
+
+// ---------------------------------------------------------------------------
+// Modulo 7 (Autorizaciones). Ver docs/ARCHITECTURE.md §12. Cada envio de una
+// cotizacion marcada `requiresApproval` crea un renglon aqui — es el
+// registro de auditoria de la excepcion (quien la solicito, quien la
+// decidio, cuando, con que margen). La autoridad requerida por regla vive en
+// codigo (lib/quotations/approval-rules.ts), no en esta tabla, para poder
+// probarla sin base de datos.
+// ---------------------------------------------------------------------------
+
+enum ApprovalRuleType {
+  MARGIN_BELOW_MIN
+  AMOUNT_OVER_THRESHOLD
+  VALIDITY_OVER_30_DAYS
+  DISCOUNT_OVER_LIMIT
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model QuotationApproval {
+  id               String           @id @default(uuid()) @db.Uuid
+  quotationId      String           @map("quotation_id") @db.Uuid
+  ruleType         ApprovalRuleType @map("rule_type")
+  reason           String
+  requestedById    String           @map("requested_by_id") @db.Uuid
+  requestedAt      DateTime         @default(now()) @map("requested_at")
+  justification    String?
+  approverId       String?          @map("approver_id") @db.Uuid
+  decision         ApprovalDecision @default(PENDING)
+  decidedAt        DateTime?        @map("decided_at")
+  decisionNote     String?          @map("decision_note")
+  marginPctBefore  Decimal?         @map("margin_pct_before") @db.Decimal(5, 2)
+
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  requestedBy User      @relation("QuotationApprovalRequestedBy", fields: [requestedById], references: [id])
+  approver    User?     @relation("QuotationApprovalApprover", fields: [approverId], references: [id])
+
+  @@map("quotation_approvals")
 }

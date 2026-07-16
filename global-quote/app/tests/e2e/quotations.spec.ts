@@ -89,6 +89,10 @@ test.describe("quotations core flow (Módulo 6)", () => {
     await expect(page.getByText("Requiere autorización", { exact: true })).toBeVisible();
     await expect(page.getByText("Margen por debajo del mínimo")).toBeVisible();
 
+    await page.fill(
+      'textarea[name="justification"]',
+      "Cliente estratégico, autorizado verbalmente por Dirección General.",
+    );
     await page.click('button:has-text("Enviar a autorización")');
     await expect(page.getByText("· Pendiente de autorización")).toBeVisible();
   });

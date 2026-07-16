@@ -5,8 +5,8 @@ import { Decimal } from "decimal.js";
 import { prisma } from "@/lib/prisma/client";
 import type { Prisma } from "@/generated/prisma/client";
 import { issueFolioInTransaction } from "@/lib/folio/sequence";
-import { computeMarginPctFromSalePrice } from "@/lib/catalog/margin";
 import { resolveUnitPrice } from "@/lib/quotations/pricing";
+import { computeApprovalTriggers } from "@/lib/quotations/approval-rules";
 
 export class QuotationMutationError extends Error {}
 
@@ -75,34 +75,13 @@ async function recomputeQuotationTotals(tx: Prisma.TransactionClient, quotationI
     ? total.minus(totalLandedCost).dividedBy(total).times(100)
     : null;
 
-  const reasons: string[] = [];
-
-  const belowMinMarginItems = quotation.items.filter((item) => {
-    if (item.minMarginPctSnapshot == null || item.landedCostSnapshot == null) return false;
-    const salePrice = item.unitPrice.toNumber() * (1 - item.discountPct.toNumber() / 100);
-    if (salePrice <= 0) return true;
-    const itemMarginPct = computeMarginPctFromSalePrice({
-      landedCost: item.landedCostSnapshot.toNumber(),
-      salePrice,
-    });
-    return itemMarginPct.lessThan(item.minMarginPctSnapshot.toNumber());
+  const triggers = computeApprovalTriggers({
+    items: quotation.items,
+    discountLimitPct: quotation.seller.discountLimitPct,
+    total,
+    validUntil: quotation.validUntil,
+    createdAt: quotation.createdAt,
   });
-  if (belowMinMarginItems.length > 0) {
-    reasons.push(
-      `Margen por debajo del mínimo en ${belowMinMarginItems.length} producto(s) — requiere autorización de Dirección General.`,
-    );
-  }
-
-  const discountLimit = quotation.seller.discountLimitPct?.toNumber();
-  const overLimitItems =
-    discountLimit != null
-      ? quotation.items.filter((item) => item.discountPct.toNumber() > discountLimit)
-      : [];
-  if (overLimitItems.length > 0) {
-    reasons.push(
-      `Descuento aplicado excede tu límite autorizado de ${discountLimit}% en ${overLimitItems.length} producto(s).`,
-    );
-  }
 
   await tx.quotation.update({
     where: { id: quotationId },
@@ -111,8 +90,8 @@ async function recomputeQuotationTotals(tx: Prisma.TransactionClient, quotationI
       discountTotal: discountTotal.toFixed(2),
       total: total.toFixed(2),
       marginPct: marginPct != null ? marginPct.toFixed(2) : null,
-      requiresApproval: reasons.length > 0,
-      approvalReason: reasons.length > 0 ? reasons.join(" ") : null,
+      requiresApproval: triggers.length > 0,
+      approvalReason: triggers.length > 0 ? triggers.map((t) => t.message).join(" ") : null,
     },
   });
 }
@@ -187,11 +166,15 @@ export async function removeQuotationItem(input: { quotationId: string; itemId: 
   });
 }
 
-export async function submitQuotation(input: { quotationId: string; actorId: string }) {
+export async function submitQuotation(input: {
+  quotationId: string;
+  actorId: string;
+  justification?: string | null;
+}) {
   return prisma.$transaction(async (tx) => {
     const quotation = await tx.quotation.findUniqueOrThrow({
       where: { id: input.quotationId },
-      include: { items: true },
+      include: { items: true, seller: { select: { discountLimitPct: true } } },
     });
 
     if (quotation.status !== "DRAFT") {
@@ -199,6 +182,12 @@ export async function submitQuotation(input: { quotationId: string; actorId: str
     }
     if (quotation.items.length === 0) {
       throw new QuotationMutationError("Agrega al menos un producto antes de enviar.");
+    }
+
+    if (quotation.requiresApproval && !input.justification?.trim()) {
+      throw new QuotationMutationError(
+        "Esta cotización requiere autorización — explica el motivo antes de enviarla.",
+      );
     }
 
     const nextStatus = quotation.requiresApproval ? "PENDING_APPROVAL" : "SENT";
@@ -213,6 +202,27 @@ export async function submitQuotation(input: { quotationId: string; actorId: str
         note: quotation.requiresApproval ? quotation.approvalReason : null,
       },
     });
+
+    if (quotation.requiresApproval) {
+      const triggers = computeApprovalTriggers({
+        items: quotation.items,
+        discountLimitPct: quotation.seller.discountLimitPct,
+        total: quotation.total,
+        validUntil: quotation.validUntil,
+        createdAt: quotation.createdAt,
+      });
+      const primary = triggers[0];
+      await tx.quotationApproval.create({
+        data: {
+          quotationId: input.quotationId,
+          ruleType: primary.ruleType,
+          reason: quotation.approvalReason ?? primary.message,
+          requestedById: input.actorId,
+          justification: input.justification!.trim(),
+          marginPctBefore: quotation.marginPct,
+        },
+      });
+    }
 
     return tx.quotation.findUniqueOrThrow({ where: { id: input.quotationId } });
   });

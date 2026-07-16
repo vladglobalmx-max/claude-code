@@ -14,7 +14,12 @@ const NAV_ITEMS: {
 }[] = [
   { label: "Inicio · Dashboard", href: "/dashboard", enabled: true },
   { label: "Cotizaciones", href: "/quotations", enabled: true },
-  { label: "Autorizaciones", enabled: false },
+  {
+    label: "Autorizaciones",
+    href: "/approvals",
+    enabled: true,
+    permission: PERMISSIONS.APPROVE_EXCEPTION,
+  },
   { label: "Clientes · Contactos", href: "/customers", enabled: true },
   { label: "Productos · Precios", href: "/products", enabled: true },
   { label: "Líneas de negocio", enabled: false },

@@ -265,9 +265,73 @@ describe("submitQuotation", () => {
       qty: 1,
       discountPct: 0,
     });
-    const result = await submitQuotation({ quotationId: draft.id, actorId: seller.id });
+    const result = await submitQuotation({
+      quotationId: draft.id,
+      actorId: seller.id,
+      justification: "Cliente estratégico, autorizado verbalmente por Dirección General.",
+    });
 
     expect(result.status).toBe("PENDING_APPROVAL");
+  });
+
+  it("rejects submitting a flagged quotation without a justification", async () => {
+    const { businessUnit, seller, customerWithPriceList, staleMarginProduct } = await fixtures();
+    const draft = await createQuotationDraft({
+      businessUnitId: businessUnit.id,
+      customerId: customerWithPriceList.id,
+      sellerId: seller.id,
+      sellerCode: seller.folioCode!,
+      validUntil: null,
+      notes: null,
+    });
+    createdQuotationIds.push(draft.id);
+
+    await addQuotationItem({
+      quotationId: draft.id,
+      productId: staleMarginProduct.id,
+      qty: 1,
+      discountPct: 0,
+    });
+
+    await expect(submitQuotation({ quotationId: draft.id, actorId: seller.id })).rejects.toThrow(
+      QuotationMutationError,
+    );
+  });
+
+  it("creates a pending QuotationApproval row with the justification and margin snapshot", async () => {
+    const { businessUnit, seller, customerWithPriceList, staleMarginProduct } = await fixtures();
+    const draft = await createQuotationDraft({
+      businessUnitId: businessUnit.id,
+      customerId: customerWithPriceList.id,
+      sellerId: seller.id,
+      sellerCode: seller.folioCode!,
+      validUntil: null,
+      notes: null,
+    });
+    createdQuotationIds.push(draft.id);
+
+    await addQuotationItem({
+      quotationId: draft.id,
+      productId: staleMarginProduct.id,
+      qty: 1,
+      discountPct: 0,
+    });
+    await submitQuotation({
+      quotationId: draft.id,
+      actorId: seller.id,
+      justification: "Cliente estratégico, autorizado verbalmente por Dirección General.",
+    });
+
+    const approval = await prisma.quotationApproval.findFirstOrThrow({
+      where: { quotationId: draft.id },
+    });
+    expect(approval.ruleType).toBe("MARGIN_BELOW_MIN");
+    expect(approval.decision).toBe("PENDING");
+    expect(approval.requestedById).toBe(seller.id);
+    expect(approval.justification).toBe(
+      "Cliente estratégico, autorizado verbalmente por Dirección General.",
+    );
+    expect(approval.marginPctBefore).not.toBeNull();
   });
 
   it("rejects submitting a quotation with no items", async () => {

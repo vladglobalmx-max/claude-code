@@ -7,7 +7,9 @@ import { PERMISSIONS, hasPermission } from "@/lib/auth/permissions";
 import { quotationScopeWhere } from "@/lib/quotations/scope";
 
 import { AddQuotationItemForm } from "./add-quotation-item-form";
-import { removeQuotationItemAction, submitQuotationAction } from "../actions";
+import { SubmitQuotationForm } from "./submit-quotation-form";
+import { removeQuotationItemAction } from "../actions";
+import { APPROVAL_RULE_LABELS } from "@/lib/quotations/approval-rules";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Borrador",
@@ -18,6 +20,12 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelada",
   EXPIRED: "Vencida",
   CONVERTED_TO_ORDER: "Convertida a pedido",
+};
+
+const DECISION_LABELS: Record<string, string> = {
+  PENDING: "Pendiente",
+  APPROVED: "Aprobada",
+  REJECTED: "Rechazada",
 };
 
 const currency = (value: number, code: string) =>
@@ -52,6 +60,13 @@ export default async function QuotationDetailPage({
         include: { product: { select: { internalSku: true, name: true } } },
         orderBy: { createdAt: "asc" },
       },
+      approvals: {
+        include: {
+          requestedBy: { select: { fullName: true } },
+          approver: { select: { fullName: true } },
+        },
+        orderBy: { requestedAt: "desc" },
+      },
     },
   });
   if (!quotation) {
@@ -71,8 +86,6 @@ export default async function QuotationDetailPage({
       orderBy: { internalSku: "asc" },
     });
   }
-
-  const submitAction = submitQuotationAction.bind(null, quotation.id);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -182,18 +195,44 @@ export default async function QuotationDetailPage({
         ) : null}
       </section>
 
-      {quotation.status === "DRAFT" ? (
-        <form action={submitAction}>
-          <button
-            type="submit"
-            disabled={quotation.items.length === 0}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            {quotation.requiresApproval
-              ? "Enviar a autorización de Dirección General"
-              : "Enviar cotización"}
-          </button>
-        </form>
+      {quotation.status === "DRAFT" && quotation.items.length > 0 ? (
+        <SubmitQuotationForm quotationId={quotation.id} requiresApproval={quotation.requiresApproval} />
+      ) : null}
+
+      {quotation.approvals.length > 0 ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Historial de autorizaciones
+          </h2>
+          <ul className="mt-3 flex flex-col gap-3">
+            {quotation.approvals.map((approval) => (
+              <li
+                key={approval.id}
+                className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+              >
+                <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                  {APPROVAL_RULE_LABELS[approval.ruleType]} — {DECISION_LABELS[approval.decision]}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Solicitada por {approval.requestedBy.fullName} el{" "}
+                  {approval.requestedAt.toLocaleString("es-MX")}
+                </p>
+                {approval.justification ? (
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    Justificación: {approval.justification}
+                  </p>
+                ) : null}
+                {approval.decision !== "PENDING" ? (
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    {DECISION_LABELS[approval.decision]} por {approval.approver?.fullName} el{" "}
+                    {approval.decidedAt?.toLocaleString("es-MX")}
+                    {approval.decisionNote ? ` — ${approval.decisionNote}` : ""}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
     </div>
   );

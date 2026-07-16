@@ -15,7 +15,18 @@ const DEMO_PASSWORD = "GlobalQuote2026!";
 const BUSINESS_UNITS = [
   { code: "TSS", name: "Thunder Safety Solutions" },
   { code: "TLL", name: "Thunder LED Lights" },
-  { code: "GFB", name: "Got Fresh Breath México" },
+  {
+    code: "GFB",
+    name: "Got Fresh Breath México",
+    // Datos fiscales/marca para la plantilla de PDF (Módulo 9) — única línea
+    // piloto con esta información capturada; el resto queda en null hasta
+    // que se den de alta como líneas reales (docs/ARCHITECTURE.md §10, Módulo 2).
+    legalName: "Got Fresh Breath México S.A. de C.V.",
+    taxId: "GFB050815AB3",
+    address: "Av. Lázaro Cárdenas 2400, Col. Valle Oriente, Monterrey, N.L., México, C.P. 66269",
+    colorPrimary: "#0f766e",
+    colorSecondary: "#f0fdfa",
+  },
   { code: "TFS", name: "The Fire Spot" },
   { code: "JUN", name: "Juno Promotional" },
   { code: "GTX", name: "GTX Systems" },
@@ -580,10 +591,17 @@ async function main() {
   console.log("Seeding GLOBAL QUOTE — Módulo 1 (business units, roles, usuarios demo)");
 
   for (const bu of BUSINESS_UNITS) {
+    const fiscalData = {
+      legalName: "legalName" in bu ? bu.legalName : null,
+      taxId: "taxId" in bu ? bu.taxId : null,
+      address: "address" in bu ? bu.address : null,
+      colorPrimary: "colorPrimary" in bu ? bu.colorPrimary : null,
+      colorSecondary: "colorSecondary" in bu ? bu.colorSecondary : null,
+    };
     await prisma.businessUnit.upsert({
       where: { code: bu.code },
-      update: { name: bu.name },
-      create: { code: bu.code, name: bu.name },
+      update: { name: bu.name, ...fiscalData },
+      create: { code: bu.code, name: bu.name, ...fiscalData },
     });
   }
 

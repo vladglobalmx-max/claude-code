@@ -10,17 +10,8 @@ import { AddQuotationItemForm } from "./add-quotation-item-form";
 import { SubmitQuotationForm } from "./submit-quotation-form";
 import { removeQuotationItemAction } from "../actions";
 import { APPROVAL_RULE_LABELS } from "@/lib/quotations/approval-rules";
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Borrador",
-  PENDING_APPROVAL: "Pendiente de autorización",
-  SENT: "Enviada",
-  ACCEPTED: "Aceptada",
-  REJECTED: "Rechazada",
-  CANCELLED: "Cancelada",
-  EXPIRED: "Vencida",
-  CONVERTED_TO_ORDER: "Convertida a pedido",
-};
+import { QUOTATION_STATUS_LABELS } from "@/lib/quotations/status-labels";
+import { canGenerateQuotationPdf } from "@/lib/quotations/pdf-gate";
 
 const DECISION_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
@@ -77,6 +68,8 @@ export default async function QuotationDetailPage({
     quotation.status === "DRAFT" && hasPermission(role, PERMISSIONS.CREATE_QUOTATION);
   const canViewMarginPct =
     hasPermission(role, PERMISSIONS.VIEW_COSTS) || hasPermission(role, PERMISSIONS.VIEW_MARGIN_PCT);
+  const canDownloadPdf =
+    hasPermission(role, PERMISSIONS.GENERATE_PDF) && canGenerateQuotationPdf(quotation.status);
 
   let availableProducts: { id: string; internalSku: string; name: string }[] = [];
   if (canManageItems) {
@@ -89,17 +82,29 @@ export default async function QuotationDetailPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <Link href="/quotations" className="text-sm text-zinc-500 hover:underline">
-          ← Cotizaciones
-        </Link>
-        <h1 className="mt-1 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          {quotation.folio}
-        </h1>
-        <p className="text-sm text-zinc-500">
-          {quotation.businessUnit.code} · {quotation.customer.legalName} · Vendedor:{" "}
-          {quotation.seller.fullName} · {STATUS_LABELS[quotation.status]}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Link href="/quotations" className="text-sm text-zinc-500 hover:underline">
+            ← Cotizaciones
+          </Link>
+          <h1 className="mt-1 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            {quotation.folio}
+          </h1>
+          <p className="text-sm text-zinc-500">
+            {quotation.businessUnit.code} · {quotation.customer.legalName} · Vendedor:{" "}
+            {quotation.seller.fullName} · {QUOTATION_STATUS_LABELS[quotation.status]}
+          </p>
+        </div>
+        {canDownloadPdf ? (
+          <a
+            href={`/quotations/${quotation.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            Descargar PDF
+          </a>
+        ) : null}
       </div>
 
       {quotation.requiresApproval ? (

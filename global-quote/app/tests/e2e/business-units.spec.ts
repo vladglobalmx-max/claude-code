@@ -130,8 +130,12 @@ test.describe("business units and configuration (Módulo 2)", () => {
     await page.waitForURL(/\/admin\/taxes/);
 
     await expect(page.getByText(E2E_TAX_CODE)).toBeVisible();
-    await page.click('button:has-text("Desactivar")');
+    // Escopado a la fila de este impuesto — /admin/taxes también lista los
+    // impuestos ya sembrados (p. ej. IVA), y un click genérico a "Desactivar"
+    // tomaría el primero de la tabla, no necesariamente el que creó esta prueba.
+    const row = page.locator("tr", { hasText: E2E_TAX_CODE });
+    await row.getByRole("button", { name: "Desactivar" }).click();
     await page.waitForURL(/\/admin\/taxes/);
-    await expect(page.getByText("Inactivo")).toBeVisible();
+    await expect(page.locator("tr", { hasText: E2E_TAX_CODE })).toContainText("Inactivo");
   });
 });

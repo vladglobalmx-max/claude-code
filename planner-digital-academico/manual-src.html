@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<title>Manual de uso — Planner Digital Académico 2026</title>
+<style>
+  @page { size: Letter; margin: 20mm 18mm 22mm 18mm; }
+  :root{
+    --azul-profundo:#1F365C; --azul:#3976D9; --turquesa:#2CB7A3; --coral:#F27D72;
+    --amarillo:#F2C14E; --fondo:#F5F7FA; --texto:#263244; --texto-sec:#667085;
+    --exito:#2E9D69; --borde:#E3E8EF;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:var(--texto);font-size:10.5pt;line-height:1.55;margin:0}
+  .cover{page-break-after:always;height:250mm;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;background:linear-gradient(160deg,var(--azul-profundo),#264a80);color:#fff;padding:30mm 18mm;margin:-20mm -18mm 0 -18mm;}
+  .cover .brandmark{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+  .cover .logo{width:44px;height:44px;border-radius:12px;background:var(--azul);display:flex;align-items:center;justify-content:center}
+  .cover .brandtext{font-size:11pt;letter-spacing:.08em;text-transform:uppercase;color:#B9C6E0;font-weight:700}
+  .cover h1{font-size:34pt;margin:0 0 6px;line-height:1.15;font-weight:800}
+  .cover h2{font-size:15pt;font-weight:400;color:#D7E1F5;margin:0 0 30px}
+  .cover .tag{font-size:11pt;color:#AFC6ED;max-width:120mm;line-height:1.6}
+  .cover .footer-note{position:absolute;bottom:20mm;font-size:9pt;color:#8FA6D0}
+  h1.section{font-size:18pt;color:var(--azul-profundo);border-bottom:3px solid var(--azul);padding-bottom:6px;margin:0 0 14px;page-break-before:always}
+  h1.section:first-of-type{page-break-before:avoid}
+  h2{font-size:12.5pt;color:var(--azul-profundo);margin:20px 0 8px}
+  h3{font-size:11pt;color:var(--azul);margin:14px 0 6px}
+  p{margin:0 0 10px}
+  ul,ol{margin:0 0 12px;padding-left:20px}
+  li{margin-bottom:5px}
+  code{background:var(--fondo);border:1px solid var(--borde);border-radius:4px;padding:1px 5px;font-size:9.5pt;color:var(--azul-profundo)}
+  .callout{background:var(--fondo);border-left:4px solid var(--turquesa);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:9.8pt}
+  .callout.warn{border-left-color:var(--amarillo)}
+  .callout.privacy{border-left-color:var(--azul)}
+  .steps{counter-reset:step}
+  .step{position:relative;padding-left:34px;margin-bottom:12px}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-weight:700;font-size:10pt;display:flex;align-items:center;justify-content:center}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:9.5pt}
+  th{background:var(--fondo);text-align:left;padding:6px 8px;border-bottom:2px solid var(--borde);color:var(--azul-profundo)}
+  td{padding:6px 8px;border-bottom:1px solid var(--borde)}
+  .pillrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .pill{background:var(--fondo);border:1px solid var(--borde);border-radius:12px;padding:3px 10px;font-size:8.8pt;color:var(--texto-sec)}
+  .formula{background:var(--azul-profundo);color:#fff;border-radius:8px;padding:12px 16px;font-family:'Courier New',monospace;font-size:9.5pt;margin:10px 0;line-height:1.7}
+  .grid2{display:flex;gap:14px}
+  .grid2 > div{flex:1}
+  .toc{margin-top:10px}
+  .toc a{color:var(--texto);text-decoration:none}
+  .toc-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dotted var(--borde);font-size:10pt}
+  .toc-item .n{color:var(--azul);font-weight:700;margin-right:10px}
+  .footer-brand{font-size:8.5pt;color:var(--texto-sec);text-align:center;margin-top:30px}
+  .badge-palette{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brandmark">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 40 40" fill="none"><path d="M11 27V13l9-4 9 4v14l-9-4-9 4z" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" fill="none"/><path d="M20 9v18" stroke="#fff" stroke-width="2.4"/></svg>
+    </div>
+    <div class="brandtext">Bookfluence Teachers</div>
+  </div>
+  <h1>Planner Digital<br>Académico 2026</h1>
+  <h2>Manual de uso</h2>
+  <p class="tag">Sistema digital de planificación, clases y seguimiento docente. Funciona completamente en tu dispositivo: sin internet, sin cuentas, sin anuncios.</p>
+  <div class="footer-note">Versión 1.0.0 · Julio 2026</div>
+</div>
+
+<h1 class="section">Contenido</h1>
+<div class="toc">
+  <div class="toc-item"><span><span class="n">1.</span>¿Qué es Planner Digital Académico 2026?</span></div>
+  <div class="toc-item"><span><span class="n">2.</span>Cómo abrir la aplicación</span></div>
+  <div class="toc-item"><span><span class="n">3.</span>Primer uso y configuración inicial</span></div>
+  <div class="toc-item"><span><span class="n">4.</span>Navegación general</span></div>
+  <div class="toc-item"><span><span class="n">5.</span>Ciclos escolares, materias y grupos</span></div>
+  <div class="toc-item"><span><span class="n">6.</span>Cómo importar estudiantes</span></div>
+  <div class="toc-item"><span><span class="n">7.</span>Calendario y horario</span></div>
+  <div class="toc-item"><span><span class="n">8.</span>Unidades, planeaciones y actividades</span></div>
+  <div class="toc-item"><span><span class="n">9.</span>Asistencia</span></div>
+  <div class="toc-item"><span><span class="n">10.</span>Evaluaciones y calificaciones</span></div>
+  <div class="toc-item"><span><span class="n">11.</span>Seguimiento, familias y reuniones</span></div>
+  <div class="toc-item"><span><span class="n">12.</span>Reportes y cómo guardarlos como PDF</span></div>
+  <div class="toc-item"><span><span class="n">13.</span>Respaldos: exportar y restaurar</span></div>
+  <div class="toc-item"><span><span class="n">14.</span>Privacidad y protección con PIN</span></div>
+  <div class="toc-item"><span><span class="n">15.</span>Preguntas frecuentes</span></div>
+</div>
+
+<h1 class="section">1. ¿Qué es Planner Digital Académico 2026?</h1>
+<p>Planner Digital Académico 2026 es una aplicación web de <strong>Bookfluence Teachers</strong> creada para docentes de primaria, secundaria, preparatoria, profesores independientes, tutores y educadores homeschool. Reúne en un solo lugar la planeación de clases, el calendario, el horario, la asistencia, las calificaciones, el seguimiento estudiantil, la comunicación con familias y los reportes imprimibles.</p>
+<p>La aplicación es un único archivo (<code>index.html</code>) que se ejecuta enteramente en tu navegador. No requiere instalación, cuentas, servidores ni conexión a internet.</p>
+<div class="callout privacy">
+  <strong>Privacidad ante todo:</strong> toda tu información se guarda únicamente en este dispositivo. La aplicación no envía datos a internet, no usa analítica ni rastreadores, y no debe utilizarse como expediente institucional oficial.
+</div>
+
+<h1 class="section">2. Cómo abrir la aplicación</h1>
+<div class="steps">
+  <div class="step">Copia el archivo <code>index.html</code> a tu computadora o a una memoria USB.</div>
+  <div class="step">Haz doble clic sobre el archivo. Se abrirá con tu navegador predeterminado (Chrome, Edge, Firefox o Safari actualizados).</div>
+  <div class="step">Si prefieres, ábrelo manualmente desde el navegador con <strong>Archivo → Abrir…</strong></div>
+</div>
+<p>No necesitas escribir ninguna dirección web: el archivo se abre directamente desde tu equipo (dirección tipo <code>file://</code>).</p>
+
+<h1 class="section">3. Primer uso y configuración inicial</h1>
+<p>La primera vez que abras la aplicación pasarás por un asistente de configuración de 9 pasos:</p>
+<table>
+  <tr><th>Paso</th><th>Qué configura</th></tr>
+  <tr><td>1. Bienvenida</td><td>Elige entre configurar tu espacio desde cero o probar con datos de ejemplo.</td></tr>
+  <tr><td>2. Privacidad</td><td>Confirmas que entiendes que la información se guarda localmente.</td></tr>
+  <tr><td>3. Perfil docente</td><td>Nombre, nivel educativo, país, primer día de semana, formato de hora y PIN opcional.</td></tr>
+  <tr><td>4. Ciclo escolar</td><td>Nombre, fechas, días laborables y número/nombre de periodos (bimestres, trimestres, semestres...).</td></tr>
+  <tr><td>5. Materias</td><td>Nombre, código, color y descripción.</td></tr>
+  <tr><td>6. Grupos</td><td>Nombre, grado, aula, color y número estimado de estudiantes.</td></tr>
+  <tr><td>7. Evaluación</td><td>Escala, calificación mínima, decimales, redondeo, categorías y ponderaciones.</td></tr>
+  <tr><td>8. Estudiantes</td><td>Capturar después, manualmente, pegando una lista o importando un CSV.</td></tr>
+  <tr><td>9. Resumen</td><td>Confirmación final y acceso al panel principal.</td></tr>
+</table>
+<div class="callout">Si solo quieres explorar la aplicación, elige <strong>"Probar con datos de ejemplo"</strong> en la primera pantalla: se cargará un ciclo, dos grupos, diez estudiantes y planeaciones de muestra que puedes eliminar después desde Configuración.</div>
+
+<h1 class="section">4. Navegación general</h1>
+<p>En pantallas de escritorio, el menú principal está en la barra lateral izquierda. En teléfonos y tabletas, se muestra una barra de navegación inferior con los accesos más usados y un botón <strong>"Más"</strong> para el resto de los módulos.</p>
+<p>En la parte superior siempre puedes ver y cambiar el <strong>ciclo escolar</strong> y el <strong>periodo</strong> activos; la mayoría de los módulos filtran su información según esta selección.</p>
+<div class="pillrow">
+  <span class="pill">Inicio</span><span class="pill">Calendario</span><span class="pill">Horario</span><span class="pill">Grupos</span>
+  <span class="pill">Estudiantes</span><span class="pill">Unidades</span><span class="pill">Planeaciones</span><span class="pill">Actividades</span>
+  <span class="pill">Asistencia</span><span class="pill">Evaluaciones</span><span class="pill">Seguimiento</span><span class="pill">Familias</span>
+  <span class="pill">Reuniones</span><span class="pill">Sustituciones</span><span class="pill">Recursos</span><span class="pill">Inventario</span>
+  <span class="pill">Metas</span><span class="pill">Desarrollo</span><span class="pill">Revisión semanal</span><span class="pill">Reportes</span>
+  <span class="pill">Configuración</span><span class="pill">Ayuda</span>
+</div>
+
+<h1 class="section">5. Ciclos escolares, materias y grupos</h1>
+<h2>Ciclos escolares</h2>
+<p>Desde <strong>Configuración → Ciclo y periodos</strong> puedes crear varios ciclos escolares, cada uno con su propio estado: <em>Próximo, Activo, Cerrado</em> o <em>Archivado</em>. Solo puede haber un ciclo activo a la vez; al activar uno nuevo, el anterior pasa automáticamente a "Próximo" y se te avisa. Puedes duplicar la configuración de un ciclo para reutilizarla, y eliminar un ciclo requiere confirmación escrita y PIN si lo tienes activado.</p>
+<h2>Materias y grupos</h2>
+<p>Crea tus materias con nombre, código y color desde <strong>Configuración</strong> o el asistente inicial. Los grupos se administran desde <strong>Grupos</strong>: cada uno tiene grado, nivel, materias asociadas, aula, color y estado (activo/archivado). Al abrir un grupo verás su propio panel con estudiantes, próxima clase, planeaciones, asistencia, promedio y seguimientos.</p>
+
+<h1 class="section">6. Cómo importar estudiantes</h1>
+<p>Desde <strong>Grupos → abre un grupo</strong> tienes tres formas de capturar tu lista:</p>
+<div class="grid2">
+  <div>
+    <h3>Pegar lista</h3>
+    <p>Copia desde tu hoja de cálculo una línea por estudiante, en formato <code>Nombre, número de lista</code>, y pégala directamente.</p>
+  </div>
+  <div>
+    <h3>Importar CSV</h3>
+    <p>Sube un archivo <code>.csv</code> con columnas <code>name, listNumber, email, guardianName, guardianContact</code>. Verás una vista previa con filas válidas, duplicados y errores <strong>antes</strong> de importar nada.</p>
+  </div>
+</div>
+<p>También puedes añadir estudiantes uno por uno con el botón "Nuevo" dentro del grupo.</p>
+
+<h1 class="section">7. Calendario y horario</h1>
+<p>El <strong>Calendario</strong> ofrece vistas de día, semana, mes, agenda y ciclo escolar completo, con distintos tipos de evento (clase, examen, entrega, reunión, consejo técnico, capacitación, día inhábil, vacaciones, evento escolar, personal u otro) y repetición diaria o semanal básica.</p>
+<p>El <strong>Horario</strong> te permite crear bloques semanales por grupo y materia. Si dos bloques se traslapan, la aplicación te advertirá y solo permitirá guardar con confirmación explícita. Puedes suspender una clase en una fecha puntual sin eliminar el bloque recurrente, y filtrar el horario por grupo, materia o un solo día.</p>
+
+<h1 class="section">8. Unidades, planeaciones y actividades</h1>
+<p>Las <strong>unidades didácticas</strong> agrupan propósito, objetivos, temas, evidencias y evaluaciones previstas. Su avance se calcula automáticamente a partir de las planeaciones ligadas marcadas como "impartidas"; si no hay planeaciones ligadas, puedes indicar un avance manual.</p>
+<p>Las <strong>planeaciones</strong> incluyen inicio, desarrollo y cierre, aprendizajes esperados, evaluación y tarea. Puedes duplicarlas, reasignarlas a otro grupo o guardarlas como plantilla. Al marcar una planeación como <strong>impartida</strong>, la aplicación te guía con cuatro preguntas de reflexión: ¿se cumplió el propósito?, ¿qué funcionó?, ¿qué debe ajustarse? y ¿qué quedó pendiente?</p>
+<p>Las <strong>actividades y tareas</strong> se documentan con tipo, fecha de entrega, valor e instrucciones; este módulo no envía nada a los estudiantes, solo lleva tu registro.</p>
+
+<h1 class="section">9. Asistencia</h1>
+<p>Selecciona un grupo y una fecha para registrar el estado de cada estudiante: presente, ausente, retardo, justificado, salida anticipada o sin clase. El botón "Marcar todos presentes" agiliza la captura diaria.</p>
+<p>La pestaña <strong>Resumen</strong> calcula automáticamente el porcentaje de asistencia, ausencias, retardos y ausencias consecutivas por estudiante, con un aviso neutral de <em>"Revisar asistencia"</em> — nunca etiquetas disciplinarias — cuando hay tres o más ausencias seguidas.</p>
+
+<h1 class="section">10. Evaluaciones y calificaciones</h1>
+<p>Cada grupo administra sus propias <strong>categorías de evaluación</strong> (por ejemplo, Tareas, Participación, Proyectos, Exámenes) con un peso porcentual. La suma de los pesos debe ser 100%; si no lo es, la aplicación bloquea el cálculo final y te lo indica claramente.</p>
+<div class="formula">
+resultado&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = puntosObtenidos / puntosMáximos<br>
+promedioCategoría  = Σ(resultado × pesoInterno) / Σ(pesoInterno)<br>
+calificaciónFinal  = Σ(promedioCategoría × ponderaciónCategoría)
+</div>
+<p>Al capturar una calificación, cada estudiante puede quedar en uno de cuatro estados, y la aplicación <strong>nunca</strong> convierte uno en otro automáticamente:</p>
+<table>
+  <tr><th>Estado</th><th>Cómo se calcula</th></tr>
+  <tr><td><strong>Calificado</strong> (incluye 0)</td><td>Se usa el punto capturado tal cual, incluyendo un cero explícito, que sí afecta el promedio.</td></tr>
+  <tr><td><strong>Sin calificar (pendiente)</strong></td><td>Se excluye del promedio y bloquea el resultado final del periodo hasta que se resuelva.</td></tr>
+  <tr><td><strong>Ausente</strong></td><td>Se excluye del promedio de esa evaluación y bloquea el resultado final hasta que decidas cómo resolverlo (calificar, exentar, etc.).</td></tr>
+  <tr><td><strong>Exento</strong></td><td>Si un estudiante está exento de todas las evaluaciones de una categoría, esa categoría se excluye del cálculo y el resto de las ponderaciones se redistribuyen proporcionalmente — sin bloquear el resultado.</td></tr>
+</table>
+<p>El resultado final se convierte automáticamente a tu escala configurada (0–10, 0–100, letras, niveles de desempeño, o acreditado/no acreditado), con el redondeo y los decimales que definas en Configuración.</p>
+
+<h1 class="section">11. Seguimiento, familias y reuniones</h1>
+<p>El módulo <strong>Seguimiento</strong> documenta hechos observables y acciones acordadas por categoría (académico, asistencia, participación, organización, convivencia, fortaleza, reconocimiento, comunicación familiar). Se te recuerda siempre usar lenguaje neutral, evitando etiquetas o interpretaciones personales.</p>
+<p><strong>Familias</strong> reúne los contactos de cada tutor y el historial de comunicaciones (reunión, llamada, correo, mensaje, videollamada), con resumen imprimible. <strong>Reuniones</strong> permite documentar agenda y acuerdos, y convertir un acuerdo directamente en un evento, un seguimiento, una meta o una actividad pendiente.</p>
+
+<h1 class="section">12. Reportes y cómo guardarlos como PDF</h1>
+<p>El módulo <strong>Reportes</strong> concentra vistas imprimibles para prácticamente todos los módulos: dashboard semanal, calendario, horario, lista de grupo, planeación, unidad, actividades, asistencia, calificaciones, seguimiento, comunicación familiar, reunión, informe por periodo, plan para sustituto, inventario, metas y desarrollo profesional.</p>
+<div class="steps">
+  <div class="step">Elige el reporte que necesitas y, si aplica, selecciona el grupo.</div>
+  <div class="step">Haz clic en <strong>"Generar"</strong> o en el botón de impresión disponible dentro de cada módulo.</div>
+  <div class="step">Se abrirá una ventana de vista de impresión, ya formateada (sin menús ni botones, con fecha de generación y la marca Bookfluence Teachers).</div>
+  <div class="step">En el cuadro de diálogo de impresión de tu navegador, elige <strong>"Guardar como PDF"</strong> como destino.</div>
+</div>
+<div class="callout warn">Si tu navegador bloquea la ventana emergente, permite las ventanas emergentes para este archivo y vuelve a intentarlo.</div>
+
+<h1 class="section">13. Respaldos: exportar y restaurar</h1>
+<p>Toda tu información vive en el almacenamiento local de tu navegador. <strong>Si no exportas un respaldo, podrías perder tu información</strong> al cambiar de equipo, borrar el historial del navegador o quedarte sin espacio.</p>
+<h2>Exportar</h2>
+<p>Ve a <strong>Configuración → Respaldos → Exportar respaldo</strong>. Se descargará un archivo <code>planner-digital-academico-respaldo-AAAA-MM-DD.json</code>. Guárdalo en un lugar seguro (USB, nube personal, correo). Se recomienda hacerlo cada semana.</p>
+<h2>Restaurar</h2>
+<p>Ve a <strong>Configuración → Respaldos → Restaurar respaldo</strong>, selecciona tu archivo <code>.json</code>. Verás un resumen (cuántos ciclos, grupos, estudiantes, planeaciones y calificaciones contiene) antes de reemplazar tu información actual. Se te pedirá confirmación explícita y tu PIN si lo tienes activo, y se crea automáticamente un respaldo de seguridad de tu información actual antes de sobrescribirla.</p>
+<h2>Exportaciones específicas en CSV</h2>
+<p>También puedes exportar por separado estudiantes, asistencia, calificaciones e inventario en formato CSV (compatible con Excel, con codificación UTF-8), útil para compartir o analizar en una hoja de cálculo.</p>
+
+<h1 class="section">14. Privacidad y protección con PIN</h1>
+<div class="callout privacy">Esta aplicación guarda la información en este dispositivo. No debe utilizarse como expediente institucional oficial. Evita registrar datos personales o sensibles que no sean necesarios y crea respaldos periódicos.</div>
+<p>Puedes proteger con un <strong>PIN de 4 a 8 dígitos</strong> el acceso a estudiantes, contactos, calificaciones, exportación, importación, borrado de información y cambio de PIN. Actívalo desde <strong>Configuración → Privacidad y PIN</strong>.</p>
+<p>El PIN se guarda como un hash local generado con la API criptográfica del navegador (SHA-256 con sal aleatoria); nunca se guarda en texto plano y nunca sale de tu dispositivo. Es una barrera local, <strong>no una garantía absoluta de seguridad</strong>. Si lo olvidas, no hay forma de recuperarlo: solo podrás continuar restaurando un respaldo <code>.json</code> exportado previamente.</p>
+<p>Puedes configurar un tiempo de bloqueo automático por inactividad, y bloquear la aplicación manualmente en cualquier momento desde el candado en la parte superior.</p>
+
+<h1 class="section">15. Preguntas frecuentes</h1>
+<h3>¿Necesito internet para usar la aplicación?</h3>
+<p>No. Funciona completamente sin conexión, incluso abierta directamente desde tu computadora.</p>
+<h3>¿Mis datos se sincronizan entre dispositivos?</h3>
+<p>No automáticamente. Si usas la aplicación en más de un equipo, exporta un respaldo en uno e impórtalo en el otro para mantenerlos iguales.</p>
+<h3>¿Qué pasa si borro el historial de mi navegador?</h3>
+<p>Podrías perder tu información si no tienes un respaldo exportado. Por eso se recomienda respaldar periódicamente.</p>
+<h3>¿Puedo usar distintas escalas de calificación por grupo?</h3>
+<p>Sí. Cada grupo configura sus propias categorías y ponderaciones; la escala general de conversión (0–10, 0–100, letras, niveles o acreditado) se define en Configuración.</p>
+<h3>¿La aplicación envía tareas o avisos a mis estudiantes o a las familias?</h3>
+<p>No. Este MVP es una herramienta de planeación y documentación personal: no envía mensajes ni notificaciones a terceros.</p>
+<h3>¿Puedo eliminar los datos de ejemplo?</h3>
+<p>Sí, desde <strong>Configuración → Datos de demostración → Eliminar datos de demostración</strong>.</p>
+
+<div class="footer-brand">Bookfluence Teachers · Planner Digital Académico 2026 · Manual de uso · Versión 1.0.0</div>
+
+</body>
+</html>

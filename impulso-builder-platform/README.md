@@ -12,10 +12,10 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 |---|---|---|
 | FOUNDATION 1 — Document Schema | [`packages/document-schema`](packages/document-schema) | ✅ Completo — ver su [README](packages/document-schema/README.md) |
 | FOUNDATION 2 — Engine Core | [`packages/engine`](packages/engine) | ✅ Completo — ver su [README](packages/engine/README.md) |
-| Renderer adapter (Konva) | `packages/renderer-konva` | ⏳ No iniciado |
+| FOUNDATION 3 — Renderer Adapter (Konva) | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver su [README](packages/renderer-konva/README.md) |
 | Sticker Builder (app) | `apps/sticker-builder` | ⏳ No iniciado |
 
-Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir.
+Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 
 ## Desarrollo
 

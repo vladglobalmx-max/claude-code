@@ -1,0 +1,37 @@
+{
+  "name": "@impulso/renderer-konva",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Primer Renderer Adapter de Impulso: traduce Document Schema <-> Konva. El único paquete de la plataforma que importa Konva.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@impulso/document-schema": "workspace:*",
+    "@impulso/engine": "workspace:*",
+    "konva": "^9.3.14"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.0.5",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

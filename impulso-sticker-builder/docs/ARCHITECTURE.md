@@ -1,224 +1,252 @@
-# Impulso Sticker Builder — Arquitectura (Fase 0)
+# Impulso Sticker Builder — Arquitectura (Fase 0, v2)
 
-> Estado: **diseño únicamente**. Ningún código de producto ha sido escrito todavía. Este documento es el entregable de la Fase 0 y la base de referencia para todas las fases posteriores.
+> Estado: **diseño únicamente**. Ningún código de producto ha sido escrito todavía. Este documento reemplaza la v1 tras la ronda de ajustes de modularidad: introduce **Impulso Engine** como núcleo reutilizable, recorta la stack a lo estrictamente necesario para un editor local, y resuelve Canvas: Fabric.js vs Konva.js.
 
-## 0. Alcance y decisiones ya tomadas
+## 0. Alcance y decisiones tomadas hasta ahora
 
 | Pregunta | Decisión |
 |---|---|
-| Propósito del producto | **Solo herramienta de diseño**: editor visual que exporta el sticker listo para imprenta (PNG/SVG/PDF con línea de corte). No incluye checkout, pagos ni fulfillment de impresión — eso ocurre fuera del sistema. |
-| Usuarios | **B2C y B2B** desde el día uno: personas individuales diseñando para sí mismas, y organizaciones/equipos con marca propia (brand kit) diseñando en conjunto. |
-| Stack tecnológico | **Independiente**, definido desde cero para este producto (no hereda la stack de `platform/` en este repo). |
-| Repositorio | **Nuevo, separado** de este monorepo. Este documento vive aquí temporalmente solo como registro de la Fase 0. |
-| Explícitamente fuera de alcance (por ahora) | Checkout/pagos, integración con proveedores de impresión, white-label embebido para terceros, la "Impulso Builder Platform" completa (multi-módulo). |
+| Propósito del producto | Solo herramienta de diseño: editor visual que exporta el sticker listo para imprenta (PNG/SVG/PDF con línea de corte). Sin checkout, pagos ni fulfillment. |
+| Usuarios (visión de producto, no de Fase 1) | B2C y B2B — pero la Fase 1 **no implementa cuentas ni organizaciones todavía** (ver §2). |
+| Repositorio | Nuevo, separado de este monorepo. Este documento vive aquí solo como registro de la fase de diseño. |
+| **Concepto arquitectónico central (nuevo)** | **Impulso Engine**: un núcleo reutilizable (Canvas, Layers, Assets, Fonts, Export, History, Plugins) del que Sticker Builder es el **primer módulo**, no el todo. Módulos futuros (Planner Builder, Coloring Book Builder) se construyen sobre el mismo Engine sin duplicar lógica. |
+| Motor de canvas | **Konva.js + react-konva** (ver §1 — comparación completa). |
+| Alcance técnico de Fase 1 | **Editor 100% local**, sin backend, sin auth, sin infraestructura distribuida. Persistencia en el navegador (IndexedDB / File System Access API). |
+| Explícitamente diferido (no eliminado) | Auth/organizaciones (Clerk o similar), backend HTTP (NestJS o similar), base de datos relacional (Postgres), cola de jobs distribuida (Redis/BullMQ), object storage remoto (S3/R2). Se incorporan **cuando exista una necesidad real** (ver §9). |
 
 ---
 
-## 1. Visión técnica en una frase
+## 1. Motor de canvas: Fabric.js vs Konva.js
 
-Un editor 2D **vector-first** (no solo raster) porque el entregable final de un sticker no es una imagen bonita en pantalla, sino un **archivo imprimible con una línea de corte (die-line) geométricamente precisa** — eso condiciona casi todas las decisiones de este documento.
+| Criterio | Fabric.js | Konva.js (+ react-konva) |
+|---|---|---|
+| Modelo de render | Canvas único y plano; cada objeto es un `fabric.Object` con caching interno | Grafo de escena real: `Stage > Layer > Group > Shape`, varios canvases compositados |
+| Soporte vectorial/SVG | Nativo (`toSVG()`, import/export SVG de primera clase) | No nativo; las formas guardan su propia geometría (radio, puntos, `Konva.Path` con `data` SVG), pero exportar a SVG requiere serialización propia |
+| Integración con React | Imperativa/mutación directa; wrappers existen pero no son idiomáticos | `react-konva` declarativo y maduro — los nodos son componentes React reales |
+| Edición de texto in-canvas | `IText`/`Textbox` editable de fábrica | `Konva.Text` no es editable in-canvas; se resuelve con un `<textarea>` HTML superpuesto (patrón conocido, no trivial) |
+| Rendimiento en escenas complejas | Un solo canvas — más redibujo del necesario con capas estáticas grandes | Layers independientes permiten aislar contenido estático de interactivo — mejor techo a futuro |
+| Precedente del mismo tipo de producto | Editores de imagen genéricos | **Polotno SDK** (motor comercial para "construir productos tipo Canva", el mismo género que Impulso Engine) está construido sobre Konva |
+| Encaje como núcleo multi-módulo | Orientado a "una app vectorial autocontenida" | Su modelo de nodos/capas generaliza mejor entre tipos de documento distintos (sticker, planner, coloring book) |
+
+**Decisión: Konva.js + react-konva.**
+
+La ventaja nativa de Fabric (export SVG) pesa menos de lo que parece porque el Engine posee su **propio esquema canónico de documento** (posiciones, geometría, estilos por capa), independiente del runtime de la librería de render — el exportador SVG/PDF siempre se construyó para leer ese esquema, no `canvas.toSVG()`. Elegir Konva no cambia el pipeline de exportación; solo confirma que el Engine no debe depender del formato nativo de ninguna librería.
+
+Lo que sí inclina la balanza: Konva generaliza mejor como *scene graph* reutilizable entre módulos futuros, `react-konva` combina mejor con una arquitectura de componentes/plugins, y Polotno es un precedente comercial directo del mismo tipo de producto. El costo aceptado (texto in-canvas y export SVG requieren capa propia) es trabajo que el Engine ya iba a construir de todas formas.
 
 ---
 
-## 2. Tecnologías
+## 2. Impulso Engine — el concepto central
+
+**Sticker Builder no es "el producto"; es el primer módulo construido sobre Impulso Engine.** Esta distinción es la que más condiciona la carpeta, el empaquetado y casi todas las decisiones de abajo.
+
+El Engine contiene **toda la lógica de editor que no es específica de un tipo de documento**:
+
+| Subsistema del Engine | Responsabilidad | Ejemplo de lo que NO va aquí |
+|---|---|---|
+| **Canvas** | Wrapper sobre Konva: Stage, viewport (zoom/pan), selección, transformador (resize/rotate) | La forma "die-cut" en sí — eso es específico de Sticker Builder |
+| **Layers** | Esquema canónico del documento (árbol de capas/grupos), independiente del runtime de Konva; operaciones de mover/agrupar/ordenar | Reglas de negocio de un módulo (ej. tamaños de sticker estándar) |
+| **Assets** | Import, almacenamiento local y miniaturas de imágenes/íconos subidos por el usuario | Biblioteca de clipart curada de un módulo específico |
+| **Fonts** | Carga y gestión de tipografías (web fonts + fuentes subidas vía `FontFace` API) | — |
+| **History** | Undo/redo genérico (patrón comando sobre el documento de `Layers`) | — |
+| **Export** | Pipeline de exportación pluggable (PNG/SVG por defecto); cada módulo registra sus propios exportadores especializados | El exportador de PDF con línea de corte (die-line) — eso lo registra el **módulo** Sticker Builder, no el Engine |
+| **Persistence** | Interfaz `StorageProvider` (guardar/cargar/listar proyectos) con implementación local (IndexedDB) hoy; una futura `RemoteApiProvider` implementará la misma interfaz sin tocar el resto del Engine | Concepto de "organización" o "usuario" — eso vendrá con el provider remoto, no antes |
+| **Plugins** | Mecanismo de registro para que cada módulo extienda el Engine sin modificarlo: tipos de forma, exportadores, paneles de herramientas, proveedores de assets | — |
+
+### Contrato de plugin (boceto conceptual, no código final)
+
+```
+ImpulsoPlugin {
+  id: string
+  registerShapeTypes?(registry)      // ej. Sticker Builder registra "die-cut-shape"
+  registerExporters?(registry)       // ej. Sticker Builder registra "print-ready-pdf"
+  registerToolPanels?(registry)      // ej. panel de "tamaños de sticker"
+  registerAssetProviders?(registry)  // ej. biblioteca de plantillas de sticker
+}
+```
+
+Sticker Builder se implementa como **un plugin que consume el Engine**, no como código mezclado con él. Un futuro Planner Builder o Coloring Book Builder sería otro plugin distinto, reutilizando Canvas/Layers/Assets/Fonts/History/Export/Persistence tal cual.
+
+### Por qué esta separación importa desde ya (y no "cuando haga falta")
+
+Retrasar la separación Engine/módulo sería más caro que adelantarla: la línea entre "qué es genérico" y "qué es de sticker" hay que trazarla *mientras se escribe* cada subsistema (Canvas, Layers, Export...), no después por refactor. Construir directamente sobre `packages/engine` desde la Fase 1, aunque hoy solo exista un módulo, evita reescribir el 80% del editor cuando llegue el segundo.
+
+---
+
+## 3. Tecnologías — Fase 1 (editor local, sin infraestructura de servidor)
 
 ### Frontend
 - **React 18 + TypeScript**
-- **Next.js (App Router)** como shell de la app: SSR/SEO para marketing, login y dashboard; el editor en sí se monta como un árbol cliente pesado dentro de una ruta (`/editor/[projectId]`).
-- **Fabric.js** como motor de canvas. Se prefiere sobre Konva.js porque sus objetos son ciudadanos de primera clase tanto en canvas como en **SVG** (import/export nativo), lo cual encaja mejor con la necesidad de producir vectores limpios para impresión, en vez de tener que "reconstruir" vectores a partir de un canvas raster.
-- **Zustand + Immer** para estado del editor (capas, historial undo/redo, selección) — más liviano que Redux para un árbol de estado que muta con cada arrastre del mouse.
-- **Tailwind CSS** para la UI de paneles/toolbars (no para el canvas en sí).
-- **Radix UI** (o similar headless) para primitivos accesibles: menús, popovers, sliders de color.
+- **Vite** (no Next.js todavía): sin backend, sin auth, sin páginas de marketing que necesiten SSR/SEO en esta fase, un SPA con Vite da un loop de desarrollo más simple y rápido para un editor de canvas. Next.js puede reintroducirse más adelante *solo* para el sitio de marketing, sin forzarlo hoy sobre el editor.
+- **Konva.js + react-konva** (ver §1).
+- **Zustand + Immer** para el estado del documento y el historial undo/redo.
+- **Tailwind CSS** para la UI de paneles/toolbars (no para el canvas).
+- **Radix UI** (headless) para primitivos accesibles: menús, popovers, sliders de color.
 
-### Backend
-- **NestJS (Node.js + TypeScript)** como API principal. Se elige sobre meter todo en API routes de Next.js porque la lógica de organizaciones/roles, versionado de proyectos y export jobs es sustancial y se beneficia de módulos, guards e inyección de dependencias — y porque mantiene el backend reutilizable si en el futuro otro módulo de Impulso Builder Platform necesita el mismo servicio de proyectos/exportación.
-- **Prisma ORM** sobre **PostgreSQL**.
-- **BullMQ + Redis** para la cola de trabajos de exportación (ver §4.4).
-- **Worker de exportación** (proceso Node separado) que consume la cola y genera los archivos finales de alta resolución.
+### Persistencia (100% local, sin backend)
+- **IndexedDB** (via `idb`) detrás de la interfaz `StorageProvider` del Engine — guarda proyectos, assets (como blobs) y fuentes subidas, todo en el navegador.
+- **File System Access API** (donde el navegador lo soporte, con fallback a descarga de archivo): permite "Guardar como..." / "Abrir..." un archivo `.impulso.json` en disco, dando sensación de app de escritorio sin dejar de ser una web app.
 
-### Datos y almacenamiento
-- **PostgreSQL** (relacional, con columnas JSONB para el documento de diseño — ver §6).
-- **S3-compatible object storage** (Cloudflare R2 o AWS S3) para assets subidos por usuarios y archivos exportados.
-- **Redis** para cola de jobs y cache de sesiones/rate limiting.
+### Procesamiento gráfico (100% cliente, sin servidor)
+- **Web Worker nativo del navegador** (no cola distribuida) para no bloquear el hilo de UI durante cómputos pesados: tracing de imágenes y ensamblado de PDF.
+- **imagetracerjs**: tracing raster → vector en el navegador (alternativa a potrace, que es Node-oriented).
+- **js-angusj-clipper** (Clipper compilado a WASM): offsetting de polígonos para generar la línea de corte — vive dentro del **plugin de Sticker Builder**, no en el Engine (solo stickers necesitan die-cut).
+- **pdf-lib**: ensamblado del PDF final en el navegador (capas de arte + línea de corte, fuentes embebidas).
 
-### Autenticación
-- **Clerk** (o **Auth.js** como alternativa open-source si se prefiere no depender de un servicio de terceros). Se recomienda Clerk porque trae soporte nativo de **organizaciones/equipos** (necesario para B2B) sin tener que construirlo a mano.
-
-### Procesamiento gráfico (server-side)
-- **potrace** (o equivalente): tracing de raster → vector, para cuando un usuario sube una imagen bitmap y se necesita generar automáticamente una línea de corte.
-- **Clipper (offsetting de polígonos)**: para generar el die-line como un offset geométrico del contorno del artwork (con margen de sangrado configurable).
-- **sharp**: procesamiento raster (miniaturas, PNG de alta resolución).
-- **pdf-lib / svg2pdf.js**: ensamblado del PDF final (con capas separadas: arte + línea de corte).
-
-### Calidad, CI/CD y observabilidad
-- **Vitest + Testing Library** (frontend), **Jest** (NestJS, es el default del framework).
+### Calidad y CI
+- **Vitest + Testing Library**.
 - **Playwright** para e2e del editor (arrastrar, redimensionar, exportar).
-- **GitHub Actions** para CI. Deploy: frontend en Vercel; API/worker en un proveedor con contenedores de larga duración (Railway/Fly.io/ECS) — Vercel no es apto para el worker de export por sus límites de tiempo de ejecución.
-- **Sentry** (errores) + **PostHog** (analítica de producto, clave para iterar UX de un editor).
+- **GitHub Actions** para CI. Deploy: sitio estático (Vercel/Netlify/Cloudflare Pages) — no hay nada que corra en servidor todavía.
+
+### Explícitamente diferido (no se instala en Fase 1)
+Clerk/Auth.js, NestJS, Prisma, PostgreSQL, Redis, BullMQ, S3/R2, Sentry/PostHog server-side. Se incorporan cuando exista una necesidad real de sincronizar entre dispositivos, colaborar en equipo o vender — no antes (ver §9).
 
 ---
 
-## 3. Estructura de carpetas
-
-Monorepo con **pnpm workspaces + Turborepo**, aunque hoy solo exista un módulo — así `packages/editor-core` queda aislado y reusable si más adelante se embebe en otro contexto, sin una extracción dolorosa después.
+## 4. Estructura de carpetas
 
 ```
-impulso-sticker-builder/
+impulso-engine/                       # nombre tentativo del repo real (a definir)
 ├── apps/
-│   ├── web/                      # Next.js: marketing, auth, dashboard, editor
-│   │   └── src/
-│   │       ├── app/
-│   │       │   ├── (marketing)/
-│   │       │   ├── (auth)/
-│   │       │   ├── (dashboard)/
-│   │       │   │   ├── projects/
-│   │       │   │   └── organization/
-│   │       │   └── editor/[projectId]/
-│   │       ├── components/       # UI específica de la app (no del design system)
-│   │       └── lib/
-│   ├── api/                      # NestJS
-│   │   └── src/
-│   │       └── modules/
-│   │           ├── auth/
-│   │           ├── organizations/
-│   │           ├── projects/
-│   │           ├── assets/
-│   │           ├── templates/
-│   │           └── exports/
-│   └── export-worker/            # Consumidor BullMQ: render final PNG/SVG/PDF
+│   └── sticker-builder/              # primer módulo — consume packages/engine
 │       └── src/
+│           ├── main.tsx              # entrypoint Vite
+│           ├── app/                  # shell de la app (toolbar, paneles, layout)
+│           └── plugin/               # el plugin "sticker-builder" en sí
+│               ├── shapes/           # die-cut shape type
+│               ├── exporters/        # print-ready-pdf exporter (usa clipper + pdf-lib)
+│               └── panels/           # panel de tamaños/materiales de sticker
 ├── packages/
-│   ├── editor-core/              # Motor de canvas, capas, historial, die-cut — desacoplado de React donde es posible
-│   ├── ui/                       # Design system compartido (botones, paneles, color picker)
-│   ├── types/                    # Tipos TS + esquemas Zod compartidos (Project, Layer, Asset, Organization...)
-│   └── config/                   # eslint/tsconfig/tailwind compartidos
-├── infra/
-│   └── docker-compose.yml        # Postgres + Redis + MinIO (S3 local) para desarrollo
+│   ├── engine/                       # ← Impulso Engine
+│   │   └── src/
+│   │       ├── canvas/               # wrapper sobre Konva: Stage, viewport, selección
+│   │       ├── layers/               # esquema canónico del documento + operaciones
+│   │       ├── assets/               # import/gestión de assets (IndexedDB-backed)
+│   │       ├── fonts/                # carga/gestión de tipografías
+│   │       ├── history/              # undo/redo (patrón comando)
+│   │       ├── export/               # pipeline de exportación, extensible por plugin
+│   │       ├── persistence/          # StorageProvider (interfaz) + IndexedDBProvider
+│   │       ├── plugins/              # sistema de registro de plugins
+│   │       └── types/                # tipos/esquemas compartidos del documento
+│   ├── ui/                           # design system compartido entre módulos futuros
+│   └── config/                       # eslint/tsconfig/tailwind compartidos
 ├── docs/
-│   └── ARCHITECTURE.md           # este documento
+│   └── ARCHITECTURE.md
 ├── turbo.json
 └── pnpm-workspace.yaml
 ```
 
----
-
-## 4. Componentes principales
-
-### 4.1 Editor Canvas (`packages/editor-core` + `apps/web/editor`)
-Superficie de edición interactiva: formas, texto, imágenes, paneles de capas, alineación/snapping, zoom/pan, historial undo/redo persistido.
-
-### 4.2 Motor de contorno / die-cut
-El diferenciador real del producto frente a un editor gráfico genérico:
-- Contorno automático por offset geométrico alrededor del artwork (Clipper), con margen configurable (sangrado).
-- Edición manual del contorno cuando el automático no es suficiente.
-- Formas preestablecidas (círculo, rectángulo, rectángulo redondeado, forma libre/custom shape).
-
-### 4.3 Biblioteca de assets
-Uploads del usuario (raster/vector), clipart/plantillas curadas, gestión de fuentes tipográficas. Incluye tracing automático (potrace) al subir una imagen raster que necesite convertirse en contorno vectorial.
-
-### 4.4 Pipeline de exportación
-El render final de alta resolución (300+ DPI, PDF en CMYK con capa de línea de corte separada) es costoso en CPU/tiempo — se ejecuta **asíncronamente** vía cola (BullMQ) y un worker dedicado, nunca en el hilo de la petición HTTP. El cliente recibe un `ExportJob` con estado (`queued → processing → done/failed`) y hace polling o recibe un webhook/socket cuando termina.
-
-### 4.5 Gestión de proyectos y workspaces
-Guardar/cargar proyectos, carpetas, versiones/revisiones, organizaciones y miembros con roles (B2B: owner/admin/editor/viewer).
-
-### 4.6 Autenticación y organizaciones
-Cuentas individuales (B2C) + organizaciones con equipos (B2B), vía Clerk.
-
-### 4.7 Brand Kit (B2B)
-Logo, paleta de colores y fuentes de la organización, reutilizables en cualquier diseño del equipo para mantener consistencia de marca.
-
-### 4.8 Admin/backoffice (ligero)
-Moderación de assets públicos y gestión del catálogo de plantillas por parte del equipo de Impulso — no es un panel de administración de negocio (sin facturación, sin pedidos).
+Se conserva el monorepo con **pnpm workspaces + Turborepo** ya decidido en v1 — sigue siendo la pieza correcta para que `packages/engine` quede aislado desde el día uno, incluso con un único módulo (`apps/sticker-builder`) consumiéndolo.
 
 ---
 
-## 5. Flujo del usuario
+## 5. Componentes principales
 
-**B2C:**
-Landing → registro (o modo invitado) → elegir plantilla o lienzo en blanco → diseñar (formas/texto/imágenes, tamaño y forma del sticker) → previsualizar con guías de sangrado y línea de corte → exportar (PNG/SVG/PDF) → opcionalmente guardar el proyecto en su cuenta.
+Reorganizados por dónde viven (Engine vs módulo Sticker Builder):
 
-**B2B:**
-Registro → crear organización → invitar miembros del equipo → biblioteca de plantillas y brand kit compartidos (logo, colores, fuentes) → diseñar usando el brand kit → exportar en lote / archivos listos para imprenta → descargar (el envío a un proveedor de impresión es manual, fuera del sistema por ahora).
+### Del Engine (reutilizable, sin conocimiento de "sticker")
+- **Canvas** — superficie interactiva: selección, transformar, zoom/pan.
+- **Layers** — árbol de capas/grupos y sus operaciones (mover, agrupar, ordenar, alinear).
+- **Assets** — biblioteca de imágenes/íconos subidos, con miniaturas.
+- **Fonts** — catálogo de tipografías disponibles y subidas por el usuario.
+- **History** — undo/redo persistido en memoria durante la sesión.
+- **Export (core)** — exportadores genéricos: PNG, SVG plano.
+- **Persistence** — guardar/cargar proyectos localmente (IndexedDB + archivo local opcional).
+- **Plugins** — registro de extensiones de módulo.
 
-**Usuario recurrente:**
-Login → dashboard (proyectos propios y de organización) → abrir proyecto existente → seguir editando → duplicar/versionar → exportar de nuevo.
+### Del módulo Sticker Builder (plugin sobre el Engine)
+- **Die-cut shape type** — forma con contorno de corte (auto por offset, o editable a mano).
+- **Print-ready PDF exporter** — combina el documento del Engine + la línea de corte del plugin en un PDF listo para imprenta.
+- **Panel de especificación de sticker** — tamaño físico, forma, sangrado, material (metadatos que no le importan al Engine).
 
 ---
 
-## 6. Modelo de datos
+## 6. Flujo del usuario (Fase 1 — sin cuentas)
 
-Postgres relacional, con JSONB para el documento de diseño (el árbol de capas del canvas es intrínsecamente de forma libre y versionado, no encaja bien en tablas normalizadas).
+Sin login ni organizaciones todavía: el "workspace" es implícito y local al navegador/dispositivo.
+
+**Flujo único (Fase 1):**
+Abrir la app → elegir plantilla o lienzo en blanco → definir tamaño/forma del sticker → diseñar (formas/texto/imágenes) → previsualizar con guías de sangrado y línea de corte → exportar (PNG/SVG/PDF) → el proyecto queda guardado automáticamente en el navegador (IndexedDB); opcionalmente "Guardar como..." a un archivo local.
+
+**Usuario recurrente (mismo dispositivo/navegador):**
+Abrir la app → lista de proyectos guardados localmente → continuar editando → exportar de nuevo.
+
+Los flujos B2C/B2B "con cuenta" descritos en v1 siguen siendo la visión de producto, pero **no se implementan hasta que exista un `RemoteApiProvider`** para `Persistence` (ver §9) — hasta entonces no hay nada que distinga a un usuario B2C de uno B2B a nivel de sistema.
+
+---
+
+## 7. Modelo de datos (Fase 1 — local, sin servidor)
+
+Todo vive en **IndexedDB del navegador**, detrás de la interfaz `StorageProvider` del Engine. Sin `User`, sin `Organization`, sin tablas relacionales — son conceptos que llegan con el futuro `RemoteApiProvider`, no antes.
 
 ```
-User
-  id, email, name, auth_provider_id, created_at
-
-Organization
-  id, name, slug, plan, created_at
-
-OrganizationMember
-  organization_id, user_id, role  # owner | admin | editor | viewer
-
-Folder
-  id, owner_type (user|organization), owner_id, name, parent_folder_id
-
 Project
-  id, owner_type (user|organization), owner_id, folder_id,
-  name, current_version_id, created_at, updated_at
+  id, name, moduleId ('sticker-builder'), createdAt, updatedAt,
+  document (LayersDocument), thumbnailDataUrl
 
-ProjectVersion
-  id, project_id, design_json (JSONB: capas/formas/texto/tamaño de canvas),
-  thumbnail_url, created_by, created_at
+LayersDocument
+  canvasSize { width, height, unit },
+  layers: Layer[]
 
-StickerSpec
-  id, project_id, shape (circle|rect|custom), width_mm, height_mm,
-  material, die_line_svg, bleed_mm
+Layer
+  id, type ('shape' | 'text' | 'image' | 'group' | 'sticker-die-cut'),
+  geometry, style, children?  # children solo si type === 'group'
 
 Asset
-  id, owner_type, owner_id, type (image|vector|font),
-  url, thumbnail_url, metadata (JSONB: dimensiones, mime), created_at
+  id, name, blob, mimeType, width, height
 
-Template
-  id, category, name, thumbnail_url, design_json, is_public, created_by
+FontAsset
+  id, family, source ('system' | 'uploaded'), blob?
 
-BrandKit
-  id, organization_id, logo_asset_id, colors (JSONB), fonts (JSONB)
-
-ExportJob
-  id, project_version_id, format (png|svg|pdf), status (queued|processing|done|failed),
-  output_url, requested_by, created_at
+StickerSpec                    # metadatos del plugin, no del Engine
+  projectId, shape ('circle'|'rect'|'custom'),
+  widthMm, heightMm, bleedMm, dieLineSvg, material
 ```
 
-**Por qué `ProjectVersion` como tabla separada:** permite historial de revisiones persistido entre sesiones (no solo undo/redo en memoria del cliente), autosave seguro sin corromper el estado "actual", y es la base para features futuras como comparar versiones o restaurar una anterior.
+**Por qué la interfaz `StorageProvider` en vez de código de IndexedDB disperso:** el día que se necesite sincronizar entre dispositivos o colaborar en equipo, se implementa un `RemoteApiProvider` que cumple la misma interfaz — el Engine y el módulo Sticker Builder no se enteran de dónde vive el dato. Esto evita que "no tener backend hoy" se convierta en una migración dolorosa mañana.
 
 ---
 
-## 7. Explicación técnica — decisiones clave y su porqué
+## 8. Explicación técnica — decisiones clave y su porqué
 
-1. **Vector-first, no raster-first.** Un sticker físico necesita una línea de corte geométricamente exacta. Tratar el canvas como "solo píxeles" y reconstruir el vector al final es frágil; por eso Fabric.js (objetos con representación SVG nativa) y el motor de contorno (§4.2) son de primera clase desde el diseño, no un parche al exportar.
+1. **Impulso Engine como núcleo, Sticker Builder como plugin.** Es la decisión que más impacta el resto: obliga a que Canvas/Layers/Assets/Fonts/History/Export/Persistence se diseñen sin conocimiento de "qué es un sticker", y que todo lo específico (die-cut, tamaños físicos, exportador PDF de impresión) viva detrás de un contrato de plugin. El costo es algo más de disciplina arquitectónica desde ya; el beneficio es que Planner Builder o Coloring Book Builder no requieren reescribir el editor.
 
-2. **NestJS separado de las API routes de Next.js.** La lógica de organizaciones/roles multi-tenant, versionado de proyectos y orquestación de exports es suficientemente compleja como para beneficiarse de una estructura modular con DI y guards, en vez de acumularse como route handlers sueltos. Adicionalmente, deja el backend listo para ser consumido por otro módulo si la futura Impulso Builder Platform lo necesita, sin acoplarlo al frontend de este módulo.
+2. **Konva.js sobre Fabric.js** — ver razonamiento completo en §1. Resumen: mejor generalización como *scene graph* reutilizable entre módulos, mejores bindings de React, precedente comercial directo (Polotno) en el mismo género de producto.
 
-3. **Cola + worker para exportación, no síncrono.** Renderizar un PDF en CMYK a 300+ DPI con capas separadas puede tardar varios segundos — inaceptable dentro del timeout de una petición HTTP normal, y particularmente incompatible con los límites de ejecución de funciones serverless (Vercel). De ahí que el worker corra en un proceso de larga duración aparte.
+3. **Vite en vez de Next.js para Fase 1.** Next.js se justificaba en v1 por SSR de marketing/auth — ninguno de los dos existe todavía. Un SPA con Vite es más simple y rápido de iterar para un editor de canvas puro. No es una decisión permanente: Next.js puede volver para el sitio de marketing cuando exista, sin tocar el editor.
 
-4. **Monorepo con `packages/editor-core` aislado**, aunque hoy solo haya un módulo: evita que el motor de canvas quede enterrado dentro de la app de Next.js, de forma que si en el futuro se necesita reutilizar (otro módulo de la plataforma, un modo embebido) no haya que extraerlo bajo presión.
+4. **Todo el pipeline de exportación corre en el navegador (Web Worker), no en un servidor.** Al eliminar backend/cola/worker distribuido de esta fase, el cómputo pesado (tracing, offset, ensamblado de PDF) se mueve a un Web Worker nativo del navegador — suficiente para mantener la UI responsiva sin necesitar infraestructura alguna. Esto es una app 100% estática desplegable en cualquier CDN.
 
-5. **Postgres + JSONB en vez de un documento NoSQL puro:** se necesita integridad relacional fuerte para ownership, organizaciones y permisos (multi-tenant B2B), pero el documento de diseño en sí (capas del canvas) cambia de forma constantemente — JSONB da lo mejor de ambos sin forzar un esquema rígido sobre datos inherentemente flexibles.
+5. **`StorageProvider` como abstracción desde ya, aunque hoy solo tenga una implementación local.** Es la única pieza de "preparación para el futuro" que se justifica mantener en Fase 1: no añade infraestructura hoy, pero evita que auth/organizaciones/sync (diferidos en §9) obliguen a reescribir cómo el Engine guarda y lee proyectos.
 
-6. **Clerk para auth/organizaciones:** dado que B2B requiere equipos con roles desde el día uno, construir eso a mano (invitaciones, roles, sesiones por organización) es trabajo no diferenciador; se prefiere un servicio que ya lo resuelve.
+6. **Vector-first se mantiene sin cambios respecto a v1.** Un sticker físico necesita una línea de corte geométricamente exacta; por eso el Engine trabaja sobre un esquema canónico de capas (no píxeles) y el plugin de Sticker Builder construye el die-line sobre ese esquema, no sobre una reconstrucción posterior de un canvas raster.
 
 ---
 
-## 8. Explícitamente fuera de alcance de este módulo (por ahora)
+## 9. Diferido (no eliminado) — se incorpora cuando haya una necesidad real
+
+| Tecnología/capacidad | Se incorpora cuando... |
+|---|---|
+| Auth (Clerk/Auth.js) | Se necesite identificar usuarios entre sesiones/dispositivos — ej. para sincronizar proyectos. |
+| Organizaciones/equipos | Exista un caso de uso B2B real de colaboración (no solo "lo pidió el roadmap"). |
+| Backend HTTP (NestJS o similar) | El `RemoteApiProvider` de `Persistence` necesite un servidor real detrás. |
+| PostgreSQL | Exista almacenamiento server-side (viene junto con el backend HTTP). |
+| Redis + BullMQ | El export deje de poder resolverse en un Web Worker del navegador (ej. renders batch server-side para cuentas de equipo). |
+| S3/R2 | Los assets/exports necesiten vivir fuera del navegador del usuario. |
+| Checkout, fulfillment, white-label | Sin cambios respecto a v1 — fuera de alcance de este módulo. |
+
+---
+
+## 10. Explícitamente fuera de alcance de este módulo
 
 - Checkout, pagos, carritos de compra.
 - Integración con proveedores de impresión / fulfillment.
-- Modo embebido / white-label para que terceros lo integren en su propia marca.
-- Cualquier otro módulo de "Impulso Builder Platform" — este documento cubre **solo** Sticker Builder.
+- Modo embebido / white-label para terceros.
+- Cualquier módulo de "Impulso Builder Platform" distinto a Sticker Builder.
+- Todo lo listado en §9, hasta que exista necesidad real.
 
 ---
 
-## 9. Siguiente paso
+## 11. Siguiente paso
 
-Este documento cierra la **Fase 0 (arquitectura)**. La **Fase 1** no comienza automáticamente — se espera confirmación explícita antes de escribir la primera línea de código.
+Este documento (v2) cierra la ronda de ajustes de Fase 0. La **Fase 1** — construir el Engine mínimo (`packages/engine`: Canvas + Layers + History) y el primer recorrido funcional de Sticker Builder sobre él — no comienza automáticamente; se espera confirmación explícita antes de escribir la primera línea de código.

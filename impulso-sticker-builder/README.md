@@ -1,0 +1,9 @@
+# Impulso Sticker Builder
+
+Herramienta profesional de diseño de stickers listos para imprenta (vector-first, con línea de corte/die-cut). Primer módulo de la futura **Impulso Builder Platform**.
+
+**Estado actual:** Fase 0 — diseño de arquitectura. Sin código todavía.
+
+**Nota sobre ubicación:** este documento vive temporalmente en este monorepo (rama `claude/impulso-sticker-builder-arch-cef7ff`) solo como registro de la fase de diseño. El código del producto se desarrollará en un **repositorio nuevo y separado** (decisión tomada en la Fase 0), no aquí junto a `gaios/` y `platform/`.
+
+Ver el diseño completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

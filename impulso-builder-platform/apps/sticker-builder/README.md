@@ -2,7 +2,7 @@
 
 > EDITOR 1 de Impulso Builder Platform. Primera integración end-to-end del pipeline completo: `Document Schema → Engine → Renderer → Canvas`. Ver [ADR-0005](../../docs/adr/0005-canvas-runtime.md) para el razonamiento completo.
 
-**Estado:** runtime mínimo completo. Desde Editor 2, hereda selección por click automáticamente (click selecciona/cambia, Shift-click selecciona múltiple, click en vacío deselecciona — ver [`@impulso/renderer-konva`](../../packages/renderer-konva/README.md#5-ux-editor-2--regla-permanente-ux-first)), sin ningún código adicional en esta app: es una capacidad del Renderer, no de este runtime. Sigue sin implementar Toolbar, Sidebar, Zoom, Pan, Resize, Rotación, Handles, atajos de teclado, Exportaciones ni Biblioteca de Assets.
+**Estado:** runtime mínimo completo. Desde Editor 2 hereda selección por click (click selecciona/cambia, Shift-click selecciona múltiple, click en vacío deselecciona) y desde Editor 3 hereda movimiento por arrastre integrado con la selección (arrastrar sin click previo selecciona y mueve a la vez) — ver [`@impulso/renderer-konva`](../../packages/renderer-konva/README.md#5-ux-regla-permanente-ux-first-desde-editor-2), sin ningún código adicional en esta app: son capacidades del Renderer, no de este runtime. Sigue sin implementar Toolbar, Sidebar, Zoom, Pan, Resize, Rotación, Handles, guías, snapping, atajos de teclado, Exportaciones ni Biblioteca de Assets.
 
 ---
 

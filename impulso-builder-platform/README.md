@@ -19,6 +19,7 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 | FOUNDATION 3 — Renderer Adapter (Konva) | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver su [README](packages/renderer-konva/README.md) |
 | EDITOR 1 — Canvas Runtime | [`apps/sticker-builder`](apps/sticker-builder) | ✅ Completo — ver su [README](apps/sticker-builder/README.md) |
 | EDITOR 2 — Selection System | [`packages/engine`](packages/engine) + [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0006](docs/adr/0006-selection-system.md) |
+| EDITOR 3 — Transform System | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0007](docs/adr/0007-transform-system.md) |
 
 Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 

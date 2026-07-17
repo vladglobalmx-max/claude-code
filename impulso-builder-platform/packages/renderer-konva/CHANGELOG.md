@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.3.0] — Editor 3 (Transform System)
+
+### Agregado
+- `dragstart` ahora asegura que el object arrastrado esté en la selección (`setSelection`) si no lo estaba ya, sin colapsar una selección múltiple existente — el resaltado visual acompaña el arrastre desde el primer frame, no solo al soltar.
+- `NodeContext.getSelection` (opcional, aditivo): permite a `transformInteractions` consultar la selección actual.
+
+### Cambiado (refactor interno, sin cambios de la API pública)
+- La lógica de traducción de eventos se reorganizó de `baseAttrs.ts` a dos módulos nuevos en `interactions/`: `selectionInteractions.ts` (click) y `transformInteractions.ts` (arrastrar) — preparando el mismo patrón para futuros `resizeInteractions.ts`/`rotateInteractions.ts`. `baseAttrs.ts` queda reducido a fijar atributos estáticos.
+
+### Sin cambios en otros paquetes
+`@impulso/document-schema` y `@impulso/engine` no requirieron ninguna modificación — `updateObjectTransform` ya estaba diseñado desde Foundation 2 para aceptar transformaciones parciales.
+
 ## [0.2.0] — Editor 2 (Selection System)
 
 ### Agregado

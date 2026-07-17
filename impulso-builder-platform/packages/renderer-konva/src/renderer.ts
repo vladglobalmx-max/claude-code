@@ -97,6 +97,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
       dispatch: engine.dispatch,
       resolveAssetSource: options.resolveAssetSource,
       onRejectedTransform: renderContent,
+      getSelection: engine.getSelection,
     };
 
     for (const layer of page.layers) {

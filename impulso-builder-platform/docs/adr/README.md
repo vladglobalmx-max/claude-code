@@ -26,3 +26,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0004](0004-renderer-adapter.md) | 3 | Renderer Adapter: primer adaptador Konva |
 | [0005](0005-canvas-runtime.md) | Editor 1 | Canvas Runtime: primera integración end-to-end |
 | [0006](0006-selection-system.md) | Editor 2 | Selection System: click, Shift-click, deselección |
+| [0007](0007-transform-system.md) | Editor 3 | Transform System: mover objetos con el puntero |

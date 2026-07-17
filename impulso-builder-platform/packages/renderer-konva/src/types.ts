@@ -1,5 +1,5 @@
 import type Konva from "konva";
-import type { AssetId, PageId } from "@impulso/document-schema";
+import type { AssetId, ObjectId, PageId } from "@impulso/document-schema";
 import type { Engine } from "@impulso/engine";
 
 /** Lo que cada nodo Konva necesita del mundo exterior: cómo avisarle al Engine de un cambio. */
@@ -10,6 +10,13 @@ export interface NodeContext {
    * drag) fue rechazado por el Engine — para que quien orquesta el render
    * pueda revertir la vista al estado canónico. */
   onRejectedTransform?: () => void;
+  /** Lectura de la selección actual — usada por `transformInteractions` para
+   * decidir si arrastrar un object debe además seleccionarlo (ver
+   * ADR-0007). Opcional y aditivo: `createSceneNode` es parte de la API
+   * pública (ver index.ts) y un caller externo que construya su propio
+   * `NodeContext` a mano no está obligado a proveerla — sin ella, arrastrar
+   * simplemente siempre reemplaza la selección por el object arrastrado. */
+  getSelection?: () => readonly ObjectId[];
 }
 
 export interface KonvaRendererOptions {

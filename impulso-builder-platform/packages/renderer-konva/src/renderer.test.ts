@@ -156,6 +156,44 @@ describe("createKonvaRenderer — eventos de Konva -> Engine (drag)", () => {
     layerGroup = (renderer.getStage()!.getChildren()[0] as Konva.Layer).getChildren()[0] as Konva.Group;
     expect(layerGroup.getChildren()).toHaveLength(0);
   });
+
+  it("arrastrar un object no seleccionado lo selecciona (el resaltado aparece desde dragstart)", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const stage = renderer.getStage()!;
+    const mainLayer = stage.getChildren()[0] as Konva.Layer;
+    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    const rectNode = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
+
+    expect(engine.getSelection()).toEqual([]);
+
+    rectNode.fire("dragstart");
+
+    expect(engine.getSelection()).toEqual(["rect_1"]);
+    expect(selectionLayer.getChildren()).toHaveLength(1);
+  });
+
+  it("arrastrar un object que ya es parte de una selección múltiple no la colapsa", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b")])]),
+        ]),
+      }),
+    );
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+
+    const mainLayer = renderer.getStage()!.getChildren()[0] as Konva.Layer;
+    const nodeA = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
+    nodeA.fire("dragstart");
+
+    expect(engine.getSelection()).toEqual(["a", "b"]);
+  });
 });
 
 describe("createKonvaRenderer — selección de página", () => {

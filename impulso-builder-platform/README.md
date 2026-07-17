@@ -11,9 +11,11 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 | Micro-sprint | Paquete | Estado |
 |---|---|---|
 | FOUNDATION 1 — Document Schema | [`packages/document-schema`](packages/document-schema) | ✅ Completo — ver su [README](packages/document-schema/README.md) |
-| Engine | `packages/engine` | ⏳ No iniciado |
+| FOUNDATION 2 — Engine Core | [`packages/engine`](packages/engine) | ✅ Completo — ver su [README](packages/engine/README.md) |
 | Renderer adapter (Konva) | `packages/renderer-konva` | ⏳ No iniciado |
 | Sticker Builder (app) | `apps/sticker-builder` | ⏳ No iniciado |
+
+Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir.
 
 ## Desarrollo
 

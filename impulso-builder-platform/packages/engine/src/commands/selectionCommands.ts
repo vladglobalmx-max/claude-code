@@ -6,7 +6,7 @@ import type { SelectionCommand } from "./command.js";
  * en command.ts. Estas funciones no tocan Project/Document en absoluto.
  */
 export function applySelectionCommand(
-  _currentSelection: readonly ObjectId[],
+  currentSelection: readonly ObjectId[],
   command: SelectionCommand,
 ): readonly ObjectId[] {
   switch (command.type) {
@@ -14,6 +14,10 @@ export function applySelectionCommand(
       return command.objectIds;
     case "clearSelection":
       return [];
+    case "toggleObjectSelection":
+      return currentSelection.includes(command.objectId)
+        ? currentSelection.filter((id) => id !== command.objectId)
+        : [...currentSelection, command.objectId];
   }
 }
 

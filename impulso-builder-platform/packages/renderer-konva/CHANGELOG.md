@@ -2,6 +2,15 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.2.0] — Editor 2 (Selection System)
+
+### Agregado
+- Selección por click: click reemplaza la selección, Shift-click alterna (agrega/quita) un object de la selección múltiple, click en área vacía del Stage limpia la selección. La semántica vive en `@impulso/engine` (`toggleObjectSelection`); este paquete solo traduce el gesto crudo.
+- Indicador visual de selección: un `Konva.Layer` separado (`selectionLayer`, no interactivo) dibuja un contorno punteado sobre cada object seleccionado, redibujado solo en `selectionChanged` — sin reconstruir el contenido.
+
+### Cambiado (comportamiento interno, no de la API pública)
+- Un object con `metadata.locked: true` ahora sigue siendo `listening` (seleccionable por click); antes de este cambio dejaba de escuchar eventos por completo. `draggable` se mantiene en `false` para objects bloqueados. Ver ADR-0006.
+
 ## [0.1.0] — Foundation 3
 
 ### Agregado

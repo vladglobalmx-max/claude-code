@@ -35,7 +35,7 @@ packages/engine/
     │   ├── layerCommands.ts        # addLayer / removeLayer / reorderLayers
     │   ├── objectCommands.ts       # addObject / removeObject / updateObjectTransform|Style / reorderObjects
     │   ├── metadataCommand.ts      # updateMetadata — un comando, 5 niveles (project/document/page/layer/object)
-    │   ├── selectionCommands.ts    # setSelection / clearSelection / pruneSelection
+    │   ├── selectionCommands.ts    # setSelection / clearSelection / toggleObjectSelection / pruneSelection
     │   └── applyCommand.ts         # orquesta: reducer -> versión -> historial -> validación final
     │
     ├── tree/
@@ -100,7 +100,7 @@ Un `Engine` no expone `engine.project.pages.push(...)`. Todo pasa por `dispatch(
 
 ### 3.3 Comandos: un catálogo simétrico, no ad-hoc
 
-Los 13 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
+Los 14 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
 
 | Nivel | Comandos |
 |---|---|
@@ -108,7 +108,7 @@ Los 13 comandos son 1:1 con las operaciones estructurales que el Document Schema
 | Layer | `addLayer`, `removeLayer`, `reorderLayers` |
 | Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `reorderObjects` |
 | Metadata (genérico, 5 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`) |
-| Selección (efímera, no versionada) | `setSelection`, `clearSelection` |
+| Selección (efímera, no versionada) | `setSelection`, `clearSelection`, `toggleObjectSelection` (selección múltiple, ver Editor 2 / ADR-0006) |
 
 `updateMetadata` es un único comando para los cinco niveles en vez de `updateProjectMetadata`/`updateDocumentMetadata`/... — mismo principio de "sistema genérico" que el Document Schema aplicó a sus tipos de Object.
 

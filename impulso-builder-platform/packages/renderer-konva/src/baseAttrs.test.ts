@@ -45,7 +45,7 @@ describe("applyBaseAttrs", () => {
     expect(node.y()).toBe(20);
   });
 
-  it("un object bloqueado (metadata.locked) no es draggable ni listening", () => {
+  it("un object bloqueado (metadata.locked) no es draggable, pero SÍ sigue siendo seleccionable (listening=true)", () => {
     const object = buildRectangle("rect_1", {
       metadata: { tags: [], visible: true, locked: true, createdAt: "x", updatedAt: "x" },
     });
@@ -55,10 +55,10 @@ describe("applyBaseAttrs", () => {
     applyBaseAttrs(node, object, context);
 
     expect(node.draggable()).toBe(false);
-    expect(node.listening()).toBe(false);
+    expect(node.listening()).toBe(true);
   });
 
-  it("un object oculto (metadata.visible=false) se crea con visible=false", () => {
+  it("un object oculto (metadata.visible=false) se crea con visible=false y deja de escuchar eventos", () => {
     const object = buildRectangle("rect_1", {
       metadata: { tags: [], visible: false, locked: false, createdAt: "x", updatedAt: "x" },
     });
@@ -68,6 +68,31 @@ describe("applyBaseAttrs", () => {
     applyBaseAttrs(node, object, context);
 
     expect(node.visible()).toBe(false);
+    expect(node.listening()).toBe(false);
+  });
+
+  it("click sin Shift reemplaza la selección (setSelection) y detiene la propagación", () => {
+    const object = buildRectangle("rect_1");
+    const node = new Konva.Rect();
+    const { context, dispatch } = contextWithDispatch({ ok: true, value: {} });
+    applyBaseAttrs(node, object, context);
+
+    const evt = { evt: { shiftKey: false }, cancelBubble: false };
+    node.fire("click", evt);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "setSelection", objectIds: ["rect_1"] });
+    expect(evt.cancelBubble).toBe(true);
+  });
+
+  it("click con Shift alterna la selección (toggleObjectSelection) en vez de reemplazarla", () => {
+    const object = buildRectangle("rect_1");
+    const node = new Konva.Rect();
+    const { context, dispatch } = contextWithDispatch({ ok: true, value: {} });
+    applyBaseAttrs(node, object, context);
+
+    node.fire("click", { evt: { shiftKey: true }, cancelBubble: false });
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "toggleObjectSelection", objectId: "rect_1" });
   });
 
   it("dragend exitoso despacha updateObjectTransform con la nueva posición y NO llama onRejectedTransform", () => {

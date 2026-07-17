@@ -75,10 +75,18 @@ export type ContentCommand = z.infer<typeof ContentCommandSchema>;
  * contenido persistido. No pasan por el pipeline de versionado/historial
  * de Document (ver applyCommand.ts) y no son deshacibles con undo/redo:
  * deshacer no debería "reseleccionar" algo por el usuario.
+ *
+ * `toggleObjectSelection` es lo que habilita selección múltiple (ej. vía
+ * Shift-click): agrega el id a la selección si no estaba, lo quita si ya
+ * estaba. Vive aquí (Engine) y no en el Renderer a propósito — el
+ * Renderer solo sabe "hubo un click, y la tecla Shift estaba o no
+ * presionada"; decidir qué le pasa a la selección como resultado es
+ * lógica de dominio, no traducción de eventos (ver ADR-0006).
  */
 export const SelectionCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setSelection"), objectIds: z.array(ObjectIdSchema) }),
   z.object({ type: z.literal("clearSelection") }),
+  z.object({ type: z.literal("toggleObjectSelection"), objectId: ObjectIdSchema }),
 ]);
 export type SelectionCommand = z.infer<typeof SelectionCommandSchema>;
 
@@ -86,5 +94,9 @@ export const EngineCommandSchema = z.union([ContentCommandSchema, SelectionComma
 export type EngineCommand = ContentCommand | SelectionCommand;
 
 export function isSelectionCommand(command: EngineCommand): command is SelectionCommand {
-  return command.type === "setSelection" || command.type === "clearSelection";
+  return (
+    command.type === "setSelection" ||
+    command.type === "clearSelection" ||
+    command.type === "toggleObjectSelection"
+  );
 }

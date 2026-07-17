@@ -2,6 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.2.0] — Editor 2 (Selection System)
+
+### Agregado
+- Comando `toggleObjectSelection { objectId }`: agrega/quita un id de la selección actual (selección múltiple). Adición pura a la API pública existente — `setSelection`/`clearSelection` no cambian de comportamiento, por eso no requiere un ADR de cambio de API (ver `docs/adr/0006-selection-system.md` y la regla de Stable Public API).
+
 ## [0.1.0] — Foundation 2
 
 ### Agregado

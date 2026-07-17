@@ -195,6 +195,119 @@ describe("createKonvaRenderer — selección de página", () => {
   });
 });
 
+describe("createKonvaRenderer — selección (Editor 2)", () => {
+  it("click en un object lo selecciona: aparece un rectángulo de highlight en selectionLayer", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const stage = renderer.getStage()!;
+    const mainLayer = stage.getChildren()[0] as Konva.Layer;
+    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    const rectNode = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
+
+    expect(selectionLayer.getChildren()).toHaveLength(0);
+
+    rectNode.fire("click", { evt: { shiftKey: false }, cancelBubble: false }, true);
+
+    expect(engine.getSelection()).toEqual(["rect_1"]);
+    expect(selectionLayer.getChildren()).toHaveLength(1);
+    expect(selectionLayer.getChildren()[0]).toBeInstanceOf(Konva.Rect);
+  });
+
+  it("click en el Stage fuera de cualquier object limpia la selección", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("rect_1")] });
+
+    const stage = renderer.getStage()!;
+    stage.fire("click", { target: stage });
+
+    expect(engine.getSelection()).toEqual([]);
+    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    expect(selectionLayer.getChildren()).toHaveLength(0);
+  });
+
+  it("un click sobre un object NO limpia la selección (la propagación al Stage se detiene)", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const stage = renderer.getStage()!;
+    const mainLayer = stage.getChildren()[0] as Konva.Layer;
+    const rectNode = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
+
+    // bubble=true: simula que el evento se propaga hacia arriba (Group ->
+    // Layer -> Stage) tal como ocurriría con un click real del usuario.
+    rectNode.fire("click", { evt: { shiftKey: false }, cancelBubble: false }, true);
+
+    expect(engine.getSelection()).toEqual(["rect_1"]);
+  });
+
+  it("selectionChanged NO reconstruye mainLayer (los nodos de contenido conservan su referencia)", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const mainLayer = renderer.getStage()!.getChildren()[0] as Konva.Layer;
+    const rectNodeBefore = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0];
+
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("rect_1")] });
+
+    const rectNodeAfter = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0];
+    expect(rectNodeAfter).toBe(rectNodeBefore); // misma instancia: no hubo rebuild de contenido
+  });
+
+  it("toggleObjectSelection (Shift-click) agrega un segundo object sin quitar el primero", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b")])]),
+        ]),
+      }),
+    );
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const mainLayer = renderer.getStage()!.getChildren()[0] as Konva.Layer;
+    const [nodeA, nodeB] = (mainLayer.getChildren()[0] as Konva.Group).getChildren();
+
+    nodeA!.fire("click", { evt: { shiftKey: false }, cancelBubble: false }, true);
+    expect(engine.getSelection()).toEqual(["a"]);
+
+    nodeB!.fire("click", { evt: { shiftKey: true }, cancelBubble: false }, true);
+    expect(engine.getSelection()).toEqual(["a", "b"]);
+
+    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    expect(selectionLayer.getChildren()).toHaveLength(2);
+  });
+
+  it("un id seleccionado que no corresponde a ningún nodo actual se ignora sin lanzar", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    // setSelection no valida existencia (ver Foundation 2) — un id colgante
+    // es posible en teoría; el overlay debe simplemente omitirlo.
+    expect(() =>
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("no_existe")] }),
+    ).not.toThrow();
+
+    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    expect(selectionLayer.getChildren()).toHaveLength(0);
+  });
+
+  it("la selección inicial (antes de cualquier click) no dibuja ningún highlight", () => {
+    const engine = testEngine();
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    expect(selectionLayer.getChildren()).toHaveLength(0);
+  });
+});
+
 describe("createKonvaRenderer — destroy", () => {
   it("limpia el contenedor del DOM y libera la referencia al Stage", () => {
     const engine = testEngine();

@@ -15,6 +15,30 @@ describe("applySelectionCommand", () => {
     const next = applySelectionCommand([ObjectIdSchema.parse("a")], { type: "clearSelection" });
     expect(next).toEqual([]);
   });
+
+  it("toggleObjectSelection agrega el id si no estaba seleccionado", () => {
+    const next = applySelectionCommand([ObjectIdSchema.parse("a")], {
+      type: "toggleObjectSelection",
+      objectId: ObjectIdSchema.parse("b"),
+    });
+    expect(next).toEqual(["a", "b"]);
+  });
+
+  it("toggleObjectSelection quita el id si ya estaba seleccionado", () => {
+    const next = applySelectionCommand([ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")], {
+      type: "toggleObjectSelection",
+      objectId: ObjectIdSchema.parse("a"),
+    });
+    expect(next).toEqual(["b"]);
+  });
+
+  it("toggleObjectSelection sobre una selección vacía agrega el primer id", () => {
+    const next = applySelectionCommand([], {
+      type: "toggleObjectSelection",
+      objectId: ObjectIdSchema.parse("a"),
+    });
+    expect(next).toEqual(["a"]);
+  });
 });
 
 describe("pruneSelection", () => {

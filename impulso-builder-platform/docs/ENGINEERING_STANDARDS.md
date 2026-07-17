@@ -24,3 +24,7 @@ Impulso debe poder manejar documentos grandes (miles de objetos) sin degradar la
 ## Stable Public API (desde la etapa Editor)
 
 Toda API pública (lo exportado desde el `src/index.ts` de cada paquete) se mantiene estable siempre que sea posible. Si un cambio a una API pública es inevitable, se documenta con un ADR que responda: Motivo del cambio, Impacto (qué consumidores/paquetes se ven afectados), Compatibilidad (qué sigue funcionando, qué no), y Estrategia de migración (cuando aplique). Agregar una exportación nueva sin tocar el comportamiento de las existentes no es un "cambio" en este sentido — no requiere ADR, aunque sí conviene anotarlo en el CHANGELOG del paquete.
+
+## UX First (desde Editor 2)
+
+En cada micro-sprint de la etapa Editor se documenta, junto con la implementación técnica, la experiencia de uso: **Flujo del usuario** (los pasos concretos que sigue), **Consistencia de interacción** (por qué el comportamiento elegido no sorprende a quien ya usa herramientas similares), **Accesibilidad** (qué funciona y qué NO funciona todavía para teclado/lectores de pantalla — con honestidad, no optimismo), y **Mejoras futuras** (qué queda pendiente y por qué no se resolvió ahora). Vive en el README del paquete/app correspondiente, junto a la explicación técnica — no en un documento aparte.

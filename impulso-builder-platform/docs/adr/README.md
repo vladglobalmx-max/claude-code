@@ -25,3 +25,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0003](0003-engine-core.md) | 2 | Engine Core: estado, comandos y eventos |
 | [0004](0004-renderer-adapter.md) | 3 | Renderer Adapter: primer adaptador Konva |
 | [0005](0005-canvas-runtime.md) | Editor 1 | Canvas Runtime: primera integración end-to-end |
+| [0006](0006-selection-system.md) | Editor 2 | Selection System: click, Shift-click, deselección |

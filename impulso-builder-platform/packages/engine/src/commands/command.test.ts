@@ -25,6 +25,7 @@ describe("EngineCommandSchema", () => {
   it("valida los comandos de selección", () => {
     expect(EngineCommandSchema.safeParse({ type: "setSelection", objectIds: ["a", "b"] }).success).toBe(true);
     expect(EngineCommandSchema.safeParse({ type: "clearSelection" }).success).toBe(true);
+    expect(EngineCommandSchema.safeParse({ type: "toggleObjectSelection", objectId: "a" }).success).toBe(true);
   });
 
   it("rechaza un type desconocido", () => {
@@ -40,6 +41,7 @@ describe("isSelectionCommand", () => {
   it("identifica correctamente comandos de selección vs de contenido", () => {
     expect(isSelectionCommand({ type: "setSelection", objectIds: [] })).toBe(true);
     expect(isSelectionCommand({ type: "clearSelection" })).toBe(true);
+    expect(isSelectionCommand({ type: "toggleObjectSelection", objectId: "a" as never })).toBe(true);
     expect(isSelectionCommand({ type: "removePage", pageId: "p" } as never)).toBe(false);
   });
 });

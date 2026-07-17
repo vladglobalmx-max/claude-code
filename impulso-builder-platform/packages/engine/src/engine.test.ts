@@ -97,6 +97,16 @@ describe("createEngine — selección", () => {
     engine.dispatch({ type: "removeObject", objectId: ObjectIdSchema.parse("rect_1") });
     expect(engine.getSelection()).toEqual([]);
   });
+
+  it("toggleObjectSelection permite selección múltiple sin pasar por historial", () => {
+    const engine = testEngine();
+    engine.dispatch({ type: "toggleObjectSelection", objectId: ObjectIdSchema.parse("rect_1") });
+    expect(engine.getSelection()).toEqual(["rect_1"]);
+    expect(engine.canUndo()).toBe(false);
+
+    engine.dispatch({ type: "toggleObjectSelection", objectId: ObjectIdSchema.parse("rect_1") });
+    expect(engine.getSelection()).toEqual([]);
+  });
 });
 
 describe("createEngine — undo/redo", () => {

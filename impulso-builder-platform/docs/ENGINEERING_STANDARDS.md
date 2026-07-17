@@ -20,3 +20,7 @@ Cada Foundation incluye un ADR en [`docs/adr/`](adr) respondiendo: Problema, Con
 ## Performance Budget (desde Foundation 3)
 
 Impulso debe poder manejar documentos grandes (miles de objetos) sin degradar la experiencia de edición. Toda decisión con impacto de rendimiento se documenta — en el ADR del Foundation correspondiente, y como fila nueva en [`docs/PERFORMANCE_BUDGET.md`](PERFORMANCE_BUDGET.md) — con: complejidad aproximada, cuellos de botella posibles, y estrategia de optimización futura. No se optimiza prematuramente; se documenta el camino para cuando haga falta.
+
+## Stable Public API (desde la etapa Editor)
+
+Toda API pública (lo exportado desde el `src/index.ts` de cada paquete) se mantiene estable siempre que sea posible. Si un cambio a una API pública es inevitable, se documenta con un ADR que responda: Motivo del cambio, Impacto (qué consumidores/paquetes se ven afectados), Compatibilidad (qué sigue funcionando, qué no), y Estrategia de migración (cuando aplique). Agregar una exportación nueva sin tocar el comportamiento de las existentes no es un "cambio" en este sentido — no requiere ADR, aunque sí conviene anotarlo en el CHANGELOG del paquete.

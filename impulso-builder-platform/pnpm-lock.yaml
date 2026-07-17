@@ -15,6 +15,37 @@ importers:
         specifier: ^5.5.4
         version: 5.9.3
 
+  apps/sticker-builder:
+    dependencies:
+      '@impulso/document-schema':
+        specifier: workspace:*
+        version: link:../../packages/document-schema
+      '@impulso/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@impulso/renderer-konva':
+        specifier: workspace:*
+        version: link:../../packages/renderer-konva
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^2.0.5
+        version: 2.1.9(vitest@2.1.9(jsdom@25.0.1))
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      konva:
+        specifier: ^9.3.14
+        version: 9.3.22
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.10
+        version: 5.4.21
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(jsdom@25.0.1)
+
   packages/document-schema:
     dependencies:
       zod:

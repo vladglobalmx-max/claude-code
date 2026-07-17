@@ -8,12 +8,16 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 
 ## Estado
 
+**Etapa Foundations — completa.** Document Schema, Engine y Renderer Adapter, cada uno cerrado y aprobado.
+
+**Etapa Editor — en curso.** Construye la experiencia de edición real de Sticker Builder sobre las tres piezas de Foundations, sin volver a tocar su API pública salvo que un ADR documente el cambio (regla de Stable Public API).
+
 | Micro-sprint | Paquete | Estado |
 |---|---|---|
 | FOUNDATION 1 — Document Schema | [`packages/document-schema`](packages/document-schema) | ✅ Completo — ver su [README](packages/document-schema/README.md) |
 | FOUNDATION 2 — Engine Core | [`packages/engine`](packages/engine) | ✅ Completo — ver su [README](packages/engine/README.md) |
 | FOUNDATION 3 — Renderer Adapter (Konva) | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver su [README](packages/renderer-konva/README.md) |
-| Sticker Builder (app) | `apps/sticker-builder` | ⏳ No iniciado |
+| EDITOR 1 — Canvas Runtime | [`apps/sticker-builder`](apps/sticker-builder) | ✅ Completo — ver su [README](apps/sticker-builder/README.md) |
 
 Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 

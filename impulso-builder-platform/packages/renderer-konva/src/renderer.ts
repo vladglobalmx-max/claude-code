@@ -4,6 +4,7 @@ import type { Engine } from "@impulso/engine";
 import type { Unsubscribe } from "@impulso/engine";
 import { toPixels } from "./unit.js";
 import { createSceneNode } from "./nodes/sceneNode.js";
+import { renderManipulationHandles } from "./manipulation/handles.js";
 import type { KonvaRendererOptions, NodeContext, RendererAdapter } from "./types.js";
 
 /** Color fijo del indicador de selección — Editor 2 no incluye todavía un
@@ -48,10 +49,35 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     // mount/destroy — no hay un camino conocido para ejercitar esta rama
     // hoy. Se mantiene por seguridad ante un futuro refactor, no por un
     // caso real observado.
-    if (!mainLayer || !selectionLayer) return;
+    if (!stage || !mainLayer || !selectionLayer) return;
     selectionLayer.destroyChildren();
 
-    for (const objectId of engine.getSelection()) {
+    const selection = engine.getSelection();
+
+    // Exactamente UN object seleccionado: caja de manipulación completa
+    // (bounding box + 8 handles de resize + handle de rotación, ver
+    // ADR-0008 / EDITOR EPIC 1). Multi-selección conserva el resaltado
+    // simple de Editor 2 — mover/redimensionar varios objects a la vez
+    // queda fuera de alcance de este épico.
+    if (selection.length === 1) {
+      const node = mainLayer.findOne(`#${selection[0]}`);
+      if (
+        node &&
+        renderManipulationHandles({
+          objectId: selection[0]!,
+          node,
+          selectionLayer,
+          stage,
+          engine,
+          onRejected: renderContent,
+        })
+      ) {
+        selectionLayer.batchDraw();
+        return;
+      }
+    }
+
+    for (const objectId of selection) {
       const node = mainLayer.findOne(`#${objectId}`);
       if (!node) continue; // ver ADR-0006, Riesgos: no debería pasar tras pruneSelection, pero no se asume.
       const box = node.getClientRect({ relativeTo: mainLayer });
@@ -122,7 +148,13 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     mount(container: HTMLDivElement): void {
       stage = new Konva.Stage({ container, width: 1, height: 1 });
       mainLayer = new Konva.Layer();
-      selectionLayer = new Konva.Layer({ listening: false });
+      // A partir de EDITOR EPIC 1, `selectionLayer` SÍ escucha eventos: los
+      // handles de resize/rotación (`manipulation/handles.ts`) viven aquí y
+      // necesitan recibir drag/mouseenter/mouseleave. El resaltado simple de
+      // Editor 2 (multi-selección) y el contorno de la caja de manipulación
+      // siguen sin ser interactivos porque cada uno fija `listening: false`
+      // en el propio node, no porque la Layer entera lo bloquee.
+      selectionLayer = new Konva.Layer();
       stage.add(mainLayer);
       stage.add(selectionLayer);
 

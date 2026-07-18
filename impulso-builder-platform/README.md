@@ -10,9 +10,9 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 
 **Etapa Foundations — completa.** Document Schema, Engine y Renderer Adapter, cada uno cerrado y aprobado.
 
-**Etapa Editor — en curso.** Construye la experiencia de edición real de Sticker Builder sobre las tres piezas de Foundations, sin volver a tocar su API pública salvo que un ADR documente el cambio (regla de Stable Public API).
+**Etapa Editor — en curso.** Construye la experiencia de edición real de Sticker Builder sobre las tres piezas de Foundations, sin volver a tocar su API pública salvo que un ADR documente el cambio (regla de Stable Public API). Desde Editor Epic 1, el trabajo se organiza por sistemas completos ("Editor Epics"), no por micro-funcionalidades aisladas.
 
-| Micro-sprint | Paquete | Estado |
+| Micro-sprint / Épica | Paquete | Estado |
 |---|---|---|
 | FOUNDATION 1 — Document Schema | [`packages/document-schema`](packages/document-schema) | ✅ Completo — ver su [README](packages/document-schema/README.md) |
 | FOUNDATION 2 — Engine Core | [`packages/engine`](packages/engine) | ✅ Completo — ver su [README](packages/engine/README.md) |
@@ -20,6 +20,7 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 | EDITOR 1 — Canvas Runtime | [`apps/sticker-builder`](apps/sticker-builder) | ✅ Completo — ver su [README](apps/sticker-builder/README.md) |
 | EDITOR 2 — Selection System | [`packages/engine`](packages/engine) + [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0006](docs/adr/0006-selection-system.md) |
 | EDITOR 3 — Transform System | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0007](docs/adr/0007-transform-system.md) |
+| EDITOR EPIC 1 — Manipulation System (resize, rotación, bounding box, handles) | [`packages/engine`](packages/engine) + [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0008](docs/adr/0008-manipulation-system.md) |
 
 Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 

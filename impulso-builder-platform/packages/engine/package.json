@@ -1,6 +1,6 @@
 {
   "name": "@impulso/engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Núcleo del motor de edición de Impulso Builder Platform: estado, comandos y eventos sobre el Document Schema. Sin renderer, sin UI.",
   "type": "module",

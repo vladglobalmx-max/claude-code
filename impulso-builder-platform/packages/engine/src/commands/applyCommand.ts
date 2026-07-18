@@ -11,6 +11,8 @@ import {
   reorderObjects,
 } from "./objectCommands.js";
 import { updateMetadata } from "./metadataCommand.js";
+import { resizeObject } from "./resizeObjectCommand.js";
+import { rotateObject } from "./rotateObjectCommand.js";
 
 function describeCommand(command: ContentCommand): string {
   switch (command.type) {
@@ -38,6 +40,10 @@ function describeCommand(command: ContentCommand): string {
       return "Reordenar objects";
     case "updateMetadata":
       return `Actualizar metadata (${command.target.level})`;
+    case "resizeObject":
+      return `Redimensionar object "${command.objectId}" (handle: ${command.handle})`;
+    case "rotateObject":
+      return `Rotar object "${command.objectId}"`;
   }
 }
 
@@ -67,6 +73,10 @@ function runReducer(project: Project, command: ContentCommand): EngineResult<Pro
       return reorderObjects(project, command);
     case "updateMetadata":
       return updateMetadata(project, command);
+    case "resizeObject":
+      return resizeObject(project, command);
+    case "rotateObject":
+      return rotateObject(project, command);
   }
 }
 

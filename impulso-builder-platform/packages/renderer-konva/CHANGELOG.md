@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.4.0] — Editor Epic 1 (Manipulation System)
+
+### Agregado
+- Sistema completo de manipulación de un único object seleccionado: bounding box real (sigue la rotación, no una caja alineada a ejes), 8 handles de resize (esquinas + bordes) y 1 handle de rotación, todos nodos Konva interactivos reales.
+- `manipulation/boundingBox.ts`: geometría pura (pivote, tamaño intrínseco vía `getSelfRect()`/`getClientRect({skipTransform:true})`, puntos locales de cada handle, rotación local -> espacio del padre).
+- `manipulation/handles.ts`: cablea `dragmove` (previsualización en vivo llamando a `computeResizedTransform`/`computeRotatedTransform` del Engine, sin `dispatch`) y `dragend` (`engine.dispatch({type:"resizeObject"|"rotateObject", ...})`) — mismo patrón preview/commit que `transformInteractions.ts` desde Editor 3. `maintainAspectRatio`/`snapToIncrement` se activan con Shift. Los handles de borde restringen su arrastre al eje local correcto (`dragBoundFunc`); los de esquina se arrastran libres.
+- `manipulation/cursors.ts`: cursor CSS por handle (`nwse-resize`/`nesw-resize`/`ns-resize`/`ew-resize`/`grab`) vía `mouseenter`/`mouseleave` sobre `stage.container()`.
+- `renderSelectionOverlay()` ahora dibuja la caja de manipulación completa cuando hay EXACTAMENTE un object seleccionado; con 0 o 2+ ids conserva el resaltado simple de Editor 2.
+- Hit testing: ninguno propio — se apoya en el sistema de eventos nativo de Konva sobre los handles, igual que el resto de las interacciones desde Foundation 3.
+- 44 tests nuevos (122 en total), 100% de cobertura en `manipulation/`. Sin dependencias circulares (madge).
+
+### Corregido
+- `selectionLayer` ya no se crea con `listening: false` a nivel de Layer completa — bloqueaba silenciosamente TODOS los eventos de puntero de cualquier node interactivo agregado a esa capa (incluidos los nuevos handles). Los overlays puramente decorativos (resaltado de multi-selección, contorno del bounding box) siguen sin ser interactivos, pero ahora porque cada node individual fija su propio `listening: false`, no la Layer entera. Detectado con Playwright contra un navegador real — los tests jsdom existentes (`.fire(...)`) no ejercitan el hit-graph real de Konva y no lo habrían detectado.
+
 ## [0.3.0] — Editor 3 (Transform System)
 
 ### Agregado

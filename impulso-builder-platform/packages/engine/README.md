@@ -1,6 +1,6 @@
 # @impulso/engine
 
-> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado.
+> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado. Desde EDITOR EPIC 1 (Manipulation System) también expone la geometría pura de resize/rotate — ver [ADR-0008](../../docs/adr/0008-manipulation-system.md).
 
 **Estado:** completo. No implementa Renderer, Konva, React, Canvas, UI, Assets/Fonts (gestión de binarios), Export ni Persistence — eso es alcance de micro-sprints futuros.
 
@@ -34,9 +34,15 @@ packages/engine/
     │   ├── pageCommands.ts         # addPage / removePage / reorderPages
     │   ├── layerCommands.ts        # addLayer / removeLayer / reorderLayers
     │   ├── objectCommands.ts       # addObject / removeObject / updateObjectTransform|Style / reorderObjects
+    │   ├── resizeObjectCommand.ts  # resizeObject — delega en geometry/resizeMath.ts + updateObjectTransform
+    │   ├── rotateObjectCommand.ts  # rotateObject — delega en geometry/rotateMath.ts + updateObjectTransform
     │   ├── metadataCommand.ts      # updateMetadata — un comando, 5 niveles (project/document/page/layer/object)
     │   ├── selectionCommands.ts    # setSelection / clearSelection / toggleObjectSelection / pruneSelection
     │   └── applyCommand.ts         # orquesta: reducer -> versión -> historial -> validación final
+    │
+    ├── geometry/
+    │   ├── resizeMath.ts           # computeResizedTransform — función pura, sin Project ni dispatch
+    │   └── rotateMath.ts           # computeRotatedTransform — función pura, sin Project ni dispatch
     │
     ├── tree/
     │   └── objectTree.ts           # find/update/remove un Object por id, a cualquier profundidad de Group
@@ -54,7 +60,7 @@ packages/engine/
     └── testUtils/
         └── fixtures.ts             # builders de Project/Document/Page/Layer/Object para tests
 
-    (113 tests, 100% de cobertura)
+    (167 tests, 100% de cobertura)
 ```
 
 ## 3. Arquitectura
@@ -100,19 +106,27 @@ Un `Engine` no expone `engine.project.pages.push(...)`. Todo pasa por `dispatch(
 
 ### 3.3 Comandos: un catálogo simétrico, no ad-hoc
 
-Los 14 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
+Los 16 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
 
 | Nivel | Comandos |
 |---|---|
 | Page | `addPage`, `removePage`, `reorderPages` |
 | Layer | `addLayer`, `removeLayer`, `reorderLayers` |
-| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `reorderObjects` |
+| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `reorderObjects`, `resizeObject`, `rotateObject` |
 | Metadata (genérico, 5 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`) |
 | Selección (efímera, no versionada) | `setSelection`, `clearSelection`, `toggleObjectSelection` (selección múltiple, ver Editor 2 / ADR-0006) |
 
 `updateMetadata` es un único comando para los cinco niveles en vez de `updateProjectMetadata`/`updateDocumentMetadata`/... — mismo principio de "sistema genérico" que el Document Schema aplicó a sus tipos de Object.
 
 Los comandos de **objeto** se dirigen solo por `objectId` (no `pageId`+`layerId`): un Object puede estar anidado a cualquier profundidad dentro de un `group`, así que el Engine lo busca en todo el árbol (`tree/objectTree.ts`) en vez de exigirle a quien llama que sepa la ruta exacta.
+
+`resizeObject` y `rotateObject` no duplican la lógica de fusión/validación de `Transform`: cada uno calcula un `Partial<Transform>` (vía `geometry/resizeMath.ts` / `geometry/rotateMath.ts`) y se lo delega tal cual al reducer ya probado de `updateObjectTransform` — ver §3.8.
+
+### 3.8 Geometría de manipulación: funciones puras, exportadas en la API pública
+
+`computeResizedTransform` y `computeRotatedTransform` (`src/geometry/`) son las únicas piezas de este paquete pensadas explícitamente para ser llamadas **fuera** de `dispatch`. Un Renderer las usa para computar una previsualización visual en cada `dragmove` (sin tocar el `Project`, sin disparar un rebuild) y, al soltar el puntero, el comando `resizeObject`/`rotateObject` llama **exactamente a la misma función** para calcular el `Transform` final — preview y estado commiteado nunca pueden divergir, porque es el mismo cálculo. Ver ADR-0008 para el razonamiento completo (por qué el resize opera sobre `scaleX`/`scaleY` y no sobre `size`, y por qué `intrinsicSize` lo mide el Renderer y no el Engine).
+
+Estas dos funciones son deliberadamente las únicas en el Engine que no requieren un `Project` para ejecutarse — reciben un `Transform` (o un ángulo) y devuelven un `Partial<Transform>`. Son las candidatas naturales si en el futuro se decide extraer un sub-paquete `@impulso/geometry` puro, pero eso no se hizo aquí porque no hay todavía una segunda necesidad de consumirlas fuera de `@impulso/engine`.
 
 ### 3.4 Versionado e historial
 
@@ -196,10 +210,11 @@ const engine = createEngine(myProject, {
 2. **Las actualizaciones por `objectId` reconstruyen el árbol completo del documento.** `tree/objectTree.ts` es O(n) en el total de objetos por cada `update`/`remove`/`find`. Para los tamaños de Sticker Builder es irrelevante; un documento con miles de objetos se beneficiaría de un índice `objectId -> ruta` mantenido incrementalmente.
 3. **`reorderObjects` solo reordena los hijos directos de una Layer**, no los hijos de un `group` anidado — es una limitación deliberada (no se pidió), documentada en el propio código de `objectCommands.ts`.
 4. **El emisor de eventos entrega de forma síncrona y en orden de suscripción**, sin manejo especial si un listener lanza una excepción (esa excepción se propagaría hacia quien llamó a `dispatch`). No se agregó un try/catch por listener porque no hay evidencia de que haga falta todavía.
+5. **`resizeObject` confía en que `intrinsicSize` (medido por el Renderer) es correcto** — el Engine no tiene forma de verificar independientemente esa medición, porque calcular la geometría real de un `Path` con curvas bezier o de un `Group` anidado requiere conocimiento de renderizado que el Engine deliberadamente no tiene (ver ADR-0008). Un `intrinsicSize` incorrecto produce un resize matemáticamente consistente pero visualmente erróneo — no hay forma de detectarlo desde este paquete.
 
 ## 6. Posibles mejoras futuras
 
-*(No implementadas — fuera de alcance de Foundation 2.)*
+*(No implementadas — fuera de alcance de Foundation 2 / Editor Epic 1.)*
 
 - Comandos para reordenar/mover hijos dentro de un `group` anidado.
 - Un modo de undo/redo basado en patches en vez de snapshots completos (ver Riesgo 1).

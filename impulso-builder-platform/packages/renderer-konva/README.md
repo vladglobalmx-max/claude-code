@@ -1,8 +1,8 @@
 # @impulso/renderer-konva
 
-> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección) y [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
+> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) + EDITOR EPIC 1 (manipulación) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección), [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento) y [ADR-0008](../../docs/adr/0008-manipulation-system.md) (resize/rotate/handles) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
 
-**Estado:** completo, incluyendo selección visual (Editor 2) y movimiento por arrastre integrado con la selección (Editor 3). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Resize, Rotación, Handles, guías, snapping ni Exportaciones — eso es alcance de sprints futuros.
+**Estado:** completo, incluyendo selección visual (Editor 2), movimiento por arrastre (Editor 3) y el sistema completo de manipulación — resize, rotación, bounding box, handles, anclajes, restricciones y cursor feedback (Editor Epic 1). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Inspector, Layers Panel ni Exportaciones — eso es alcance de sprints futuros.
 
 ---
 
@@ -34,6 +34,11 @@ packages/renderer-konva/
     │   ├── selectionInteractions.ts   # click/Shift-click -> setSelection/toggleObjectSelection
     │   └── transformInteractions.ts   # dragstart (asegura selección) / dragend -> updateObjectTransform
     │
+    ├── manipulation/
+    │   ├── boundingBox.ts      # geometría pura: pivote, tamaño intrínseco, puntos locales de cada handle
+    │   ├── cursors.ts          # handle -> cursor CSS
+    │   └── handles.ts          # crea/posiciona los 8 handles de resize + 1 de rotación, cablea sus gestos
+    │
     ├── nodes/
     │   ├── rectangle.ts | ellipse.ts | path.ts | image.ts | text.ts | group.ts
     │   └── sceneNode.ts        # dispatcher: SceneObject -> el creador correcto (recursivo para group)
@@ -44,7 +49,7 @@ packages/renderer-konva/
     └── testUtils/
         └── fixtures.ts          # builders de Project/Page/Layer/SceneObject para tests
 
-    (78 tests, 100% de statements/functions/lines, 99% de branches — ver "Riesgos")
+    (122 tests, 100% de statements/functions/lines, 99% de branches — ver "Riesgos")
 ```
 
 ## 3. Arquitectura
@@ -71,8 +76,10 @@ renderContent()
 
 renderSelectionOverlay()
   → selectionLayer.destroyChildren()
-  → por cada id en engine.getSelection(): busca el nodo por id en mainLayer,
-    dibuja un Konva.Rect punteado sobre su bounding box (getClientRect)
+  → si getSelection() tiene EXACTAMENTE 1 id: renderManipulationHandles()
+    (bounding box real + 8 handles de resize + 1 de rotación, ver 3.8)
+  → si no (0 o 2+ ids): por cada id, un Konva.Rect punteado sobre su
+    bounding box (getClientRect) — el resaltado simple de Editor 2
   → selectionLayer.batchDraw()
 
 destroy()
@@ -98,7 +105,9 @@ Cada `Layer` del Document Schema se mapea a un `Konva.Group` (agrupación lógic
 
 ### 3.3b Un segundo `Konva.Layer` para la selección — a propósito, no una excepción a lo anterior
 
-El overlay de selección (Editor 2) vive en su **propio** `Konva.Layer` (`selectionLayer`, `listening: false`), separado de `mainLayer`. No contradice 3.3: son dos layers *fijos* (contenido + UI de selección), no uno por cada Layer del documento. Es, de hecho, el patrón que la propia documentación de Konva recomienda para UI que cambia con más frecuencia que el contenido (selección, indicadores de arrastre) — así un click no dispara un rebuild completo de la escena, solo redibuja un puñado de rectángulos en una capa aparte. Ver ADR-0006, sección "Rendimiento".
+El overlay de selección (Editor 2) vive en su **propio** `Konva.Layer` (`selectionLayer`), separado de `mainLayer`. No contradice 3.3: son dos layers *fijos* (contenido + UI de selección), no uno por cada Layer del documento. Es, de hecho, el patrón que la propia documentación de Konva recomienda para UI que cambia con más frecuencia que el contenido (selección, indicadores de arrastre) — así un click no dispara un rebuild completo de la escena, solo redibuja un puñado de rectángulos en una capa aparte. Ver ADR-0006, sección "Rendimiento".
+
+Hasta Editor 3, `selectionLayer` se creaba con `listening: false` (nada dentro de ella necesitaba recibir eventos — el resaltado punteado es puramente visual). **Desde Editor Epic 1 la Layer entera escucha eventos** (`new Konva.Layer()`, sin la opción): los handles de resize/rotación viven ahí y necesitan recibir `dragstart`/`dragmove`/`dragend`/`mouseenter`/`mouseleave`. El contorno punteado de multi-selección y las líneas del bounding box de manipulación siguen sin ser interactivos, pero ahora por una razón distinta — cada uno fija `listening: false` en su propio node, no porque la Layer los bloquee a todos. Ver "Riesgos": este cambio se detectó tarde porque los tests con jsdom (`.fire(...)`) no lo habrían revelado nunca.
 
 ### 3.4 Reconciliación: rebuild completo del contenido (a propósito, con su costo documentado)
 
@@ -117,6 +126,28 @@ El Document Schema trata `transform.x/y` como la esquina superior izquierda — 
 jsdom no implementa un contexto 2D real (requiere el paquete nativo `canvas`, que no compiló en este entorno por faltar `pangocairo` del sistema — ver ADR-0004). `src/testing/fakeCanvasContext.ts` es un stub propio (~70 líneas, cero dependencias) que reemplaza `HTMLCanvasElement.prototype.getContext('2d')` con no-ops suficientes para que Konva construya su árbol, dibuje sin lanzar, y dispare eventos sintéticos (`.fire('dragend')`). No produce píxeles reales — no es su propósito; prueba la ESTRUCTURA del árbol Konva y la traducción de eventos, no el resultado visual.
 
 `vitest.config.ts` fuerza `resolve.mainFields: ["browser", ...]` porque Konva usa el campo clásico `package.json` `"main"` (build de Node, requiere `canvas`) vs `"browser"` (usa el DOM real) — Vite/Vitest por defecto resuelven `"main"` incluso con `environment: "jsdom"`.
+
+### 3.8 Manipulación (Editor Epic 1): bounding box, handles, resize, rotación
+
+Ver [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el razonamiento de diseño completo. Resumen de cómo encaja en este paquete:
+
+**Geometría (`manipulation/boundingBox.ts`), pura y sin Konva-específico salvo el tipo de entrada:**
+- `computeManipulationBox(node, object)`: mide el `intrinsicSize` real del node (`node.getSelfRect()` para cualquier `Konva.Shape`; `node.getClientRect({ skipTransform: true })` para `Konva.Group`, que no implementa `getSelfRect`), y devuelve el pivote (la posición Konva real del node — esquina superior izquierda o centro para `ellipse`, la misma asimetría de `coordinates.ts`), la rotación actual, y el tamaño ya escalado.
+- `localHandlePoint`/`localRotateHandlePoint`: las 8 posiciones de handle + la del handle de rotación, en espacio LOCAL (sin rotar) relativo al pivote.
+- `localToParent`: rota un punto local al espacio de `mainLayer`/`selectionLayer`, con la MISMA convención de giro que `computeResizedTransform` (Engine) usa para reubicar el anclaje — así el bounding box dibujado sigue exactamente la orientación real del object, incluso rotado (no es una caja alineada a ejes tipo `getClientRect`).
+
+**Handles (`manipulation/handles.ts`) — mismo patrón preview/commit que `transformInteractions.ts` desde Editor 3:**
+- `dragmove` de un handle de resize llama `computeResizedTransform` (Engine, función pura) y aplica el resultado directamente al node de contenido vía `setAttrs` — previsualización instantánea, sin `dispatch`, sin rebuild.
+- `dragend` llama `engine.dispatch({ type: "resizeObject", ... })` con el `pointerDelta` acumulado desde el inicio del gesto — el reducer del Engine recalcula con la MISMA función pura, así que preview y estado final commiteado son matemáticamente idénticos.
+- El handle de rotación sigue el mismo patrón con `computeRotatedTransform`, calculando el ángulo con `atan2` desde el pivote del object hasta la posición actual del handle.
+- **Restricciones (Shift):** `maintainAspectRatio` (resize) y `snapToIncrement` (rotación, a 15°) se activan leyendo `evt.evt.shiftKey` del propio evento de Konva — ninguna lógica de "qué hace Shift" vive aquí, solo se reenvía la tecla al Engine.
+- **Anclaje del eje de arrastre:** los handles de BORDE (`top`/`bottom`/`left`/`right`) tienen un `dragBoundFunc` que proyecta el arrastre sobre el eje local correspondiente (rotado si el object lo está) — así el handle se desliza visualmente sobre el borde real, en vez de despegarse en diagonal. Los handles de ESQUINA se arrastran libres en 2D (convención estándar de cualquier editor de diseño).
+
+**Hit testing:** no hay ningún algoritmo propio. Los 8 handles + el de rotación son nodos Konva reales, interactivos (`draggable`, `mouseenter`/`mouseleave`) — Konva ya resuelve qué handle está bajo el puntero con su propio sistema de eventos, el mismo que ya usan `selectionInteractions`/`transformInteractions` desde Foundation 3. No se reinventó nada aquí a propósito.
+
+**Cursor feedback (`manipulation/cursors.ts`):** `mouseenter`/`mouseleave` sobre cada handle fijan/limpian `stage.container().style.cursor` (`nwse-resize`, `nesw-resize`, `ns-resize`, `ew-resize` según el handle; `grab` para el de rotación). Es CSS puro sobre el contenedor del Stage, sin ninguna dependencia nueva.
+
+**Single- vs multi-selección:** `renderSelectionOverlay()` solo dibuja la caja de manipulación completa cuando `engine.getSelection()` tiene EXACTAMENTE un id. Con 0 o 2+ ids seleccionados, se conserva el resaltado simple de Editor 2 (un `Konva.Rect` punteado por object) — mover/redimensionar varios objects a la vez queda fuera de alcance de este épico.
 
 ---
 
@@ -189,26 +220,39 @@ engine.subscribe((event) => {
 6. Al soltar, el object queda en la nueva posición — el resaltado de selección permanece.
 7. Si el usuario ya tenía varios objects seleccionados y arrastra uno de ellos, la selección múltiple no se pierde (aunque, por ahora, solo se mueve el object arrastrado — ver "Mejoras futuras").
 
+**Manipulación — resize y rotación (Editor Epic 1):**
+8. Al seleccionar UN solo object, aparece su caja de manipulación: el contorno real del object (siguiendo su rotación actual, no una caja alineada a pantalla), 8 handles cuadrados en las esquinas/bordes, y un handle circular de rotación conectado por una línea sobre el borde superior.
+9. Arrastrar cualquier handle de esquina redimensiona libremente en ambos ejes; arrastrar un handle de borde (arriba/abajo/izquierda/derecha) redimensiona solo ese eje, deslizándose visualmente sobre el borde real del object (incluso si está rotado).
+10. Mantener Shift mientras se arrastra un handle de resize preserva la proporción ancho/alto original.
+11. Arrastrar el handle circular rota el object en tiempo real, siguiendo el ángulo del puntero respecto al pivote del object.
+12. Mantener Shift mientras se rota ajusta ("snap") a incrementos de 15°.
+13. Pasar el cursor sobre cada handle cambia el puntero del mouse al ícono de resize/rotación correspondiente, antes de empezar a arrastrar.
+14. Con 0 objects o 2+ objects seleccionados, se mantiene el resaltado simple de Editor 2 (sin handles) — redimensionar/rotar una selección múltiple a la vez no está soportado.
+
 ### Consistencia de interacción
-El modelo de selección (click reemplaza, Shift-click alterna, click-vacío limpia) sigue la convención de herramientas de diseño de referencia (Figma, Illustrator, Sketch). El arrastre extiende esa misma consistencia: en esas mismas herramientas, arrastrar un object no seleccionado lo selecciona automáticamente — es exactamente el comportamiento que Editor 3 agrega (antes, Foundation 3 permitía mover sin seleccionar, una inconsistencia menor que este sprint corrige). Arrastre y click conviven sin conflicto porque Konva distingue nativamente ambos gestos por la distancia de movimiento del puntero.
+El modelo de selección (click reemplaza, Shift-click alterna, click-vacío limpia) sigue la convención de herramientas de diseño de referencia (Figma, Illustrator, Sketch). El arrastre extiende esa misma consistencia: en esas mismas herramientas, arrastrar un object no seleccionado lo selecciona automáticamente — es exactamente el comportamiento que Editor 3 agrega (antes, Foundation 3 permitía mover sin seleccionar, una inconsistencia menor que este sprint corrige). Arrastre y click conviven sin conflicto porque Konva distingue nativamente ambos gestos por la distancia de movimiento del puntero. La manipulación (Editor Epic 1) sigue el mismo vocabulario visual y de teclas modificadoras (Shift) que Figma/Illustrator/Sketch: handles de esquina vs. borde, Shift para proporción/snap.
 
 ### Accesibilidad
-**Limitación real, no resuelta en este sprint:** igual que la selección, el movimiento hoy es exclusivamente por puntero (arrastrar con mouse/touch) sobre un `<canvas>` opaco para lectores de pantalla. No hay forma de mover un object por teclado (flechas, por ejemplo) ni de que un lector de pantalla anuncie que un object se movió o a qué posición. Reconocido honestamente, no maquillado: requeriría una superficie de interacción paralela al canvas (ver "Mejoras futuras").
+**Limitación real, no resuelta en este sprint:** igual que la selección y el movimiento, resize y rotación son exclusivamente por puntero sobre un `<canvas>` opaco para lectores de pantalla. No hay forma de redimensionar/rotar por teclado, ni de que un lector de pantalla anuncie el nuevo tamaño/ángulo. El cursor CSS tampoco rota junto con el object (ver "Riesgos") — para un object muy rotado, el ícono de cursor mostrado ya no representa visualmente la dirección real del handle bajo el puntero. Reconocido honestamente, no maquillado: ambas requerirían trabajo adicional fuera de este épico (ver "Mejoras futuras").
 
 ### Mejoras futuras
-- Navegación de selección por teclado y **mover con flechas del teclado** una vez seleccionado — el Engine ya soporta esto sin cambios (`updateObjectTransform` no le importa si el llamador fue un arrastre o una tecla).
-- Mover una selección múltiple completa arrastrando cualquiera de sus miembros (hoy solo se mueve el object arrastrado, aunque el resto de la selección se preserva visualmente).
+- Navegación de selección por teclado y **mover/redimensionar/rotar con teclado** una vez seleccionado — el Engine ya soporta esto sin cambios (`updateObjectTransform`/`resizeObject`/`rotateObject` no les importa si el llamador fue un gesto de puntero o una tecla).
+- Mover o redimensionar una selección múltiple completa a la vez (hoy solo aplica al único object seleccionado).
 - Límites de arrastre / guías / snapping a otros objects o a los bordes de la página — explícitamente fuera de alcance de este sprint.
-- Una lista accesible fuera de pantalla (ARIA) que permita mover objects sin depender del canvas, despachando los mismos comandos del Engine.
+- Una lista accesible fuera de pantalla (ARIA) que permita mover/redimensionar/rotar objects sin depender del canvas, despachando los mismos comandos del Engine.
+- Cursor CSS que rote junto con el object (hoy es siempre la orientación nominal del handle) — requeriría generar un cursor SVG a medida por ángulo.
 
 ---
 
 ## 6. Riesgos y mejoras futuras (técnico)
 
-Ver la sección "Riesgos" y "Compatibilidad futura" de [ADR-0004](../../docs/adr/0004-renderer-adapter.md), [ADR-0006](../../docs/adr/0006-selection-system.md) y [ADR-0007](../../docs/adr/0007-transform-system.md) para el detalle completo. En resumen:
+Ver la sección "Riesgos" y "Compatibilidad futura" de [ADR-0004](../../docs/adr/0004-renderer-adapter.md), [ADR-0006](../../docs/adr/0006-selection-system.md), [ADR-0007](../../docs/adr/0007-transform-system.md) y [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el detalle completo. En resumen:
 
-- Rebuild completo del contenido por cambio — el cuello de botella principal para documentos grandes, con su estrategia de reconciliación incremental ya documentada (no implementada). El overlay de selección ya NO comparte este costo (capa separada, ver 3.3b). El arrastre tampoco lo agrava: se confirma solo en `dragend`, nunca en cada `dragmove`.
+- Rebuild completo del contenido por cambio — el cuello de botella principal para documentos grandes, con su estrategia de reconciliación incremental ya documentada (no implementada). El overlay de selección ya NO comparte este costo (capa separada, ver 3.3b). El arrastre tampoco lo agrava: se confirma solo en `dragend`, nunca en cada `dragmove`; lo mismo aplica a resize/rotación (Editor Epic 1).
 - El stub de canvas de testing no dibuja píxeles reales — prueba estructura y eventos, no resultado visual.
 - `fontStyle` de Konva.Text solo distingue "bold"/"normal" — el `fontWeight` numérico (100-900) del Document Schema se aproxima con un umbral.
 - No hay API todavía para cambiar la página activa dinámicamente (`options.pageId` es fijo por instancia de renderer).
 - No hay selección por marquee/rubber-band, movimiento por teclado, ni límites/guías/snapping de arrastre (ver "Accesibilidad"/"Mejoras futuras" arriba).
+- **El handle de rotación puede renderizarse fuera del área visible del Stage** si el object seleccionado está muy cerca del borde superior de la página (el handle se dibuja `ROTATE_HANDLE_OFFSET` píxeles arriba de la caja) — en ese caso queda inalcanzable con el puntero en un navegador real, aunque la lógica de rotación en sí (verificada con tests que disparan los eventos directamente) es correcta. Detectado durante la verificación manual de este épico; no se resolvió por requerir que `handles.ts` conociera los límites del Stage (acoplamiento nuevo, fuera del alcance ya construido) para clampar o reposicionar el handle — documentado como limitación conocida, no arreglado.
+- **`intrinsicSize` para un `Konva.Group` se aproxima con `getClientRect({ skipTransform: true })`**, no con `getSelfRect()` (que `Group` no implementa) — funciona para los casos probados, pero no se verificó exhaustivamente contra un Group con hijos rotados/anidados a varios niveles.
+- **Los tests con jsdom (`node.fire(...)`) no habrían detectado el bug real encontrado durante la verificación en navegador**: hasta antes de esta corrección, `selectionLayer` se creaba con `listening: false` a nivel de Layer completa (heredado de Editor 2, cuando solo contenía overlays decorativos) — esto bloqueaba SILENCIOSAMENTE todos los eventos reales de puntero sobre los handles nuevos, sin que ningún test (que dispara eventos directamente sobre el node, sin pasar por el hit-graph de Konva ni por el árbol DOM real) lo hiciera fallar. Se detectó solo con Playwright contra un Chromium real. Lección para futuros sprints: un test que solo llama `.fire(evento)` prueba la RESPUESTA a un evento, no si ese evento llegaría a ese node en un navegador real — ambas verificaciones siguen siendo necesarias.

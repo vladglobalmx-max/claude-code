@@ -9,10 +9,15 @@ import {
   TransformSchema,
   StyleSchema,
   MetadataSchema,
+  PointSchema,
 } from "@impulso/document-schema";
 import { EntityRefSchema } from "./entityRef.js";
+import { RESIZE_HANDLES } from "../geometry/resizeMath.js";
 
 export { EntityRefSchema, type EntityRef } from "./entityRef.js";
+
+/** Los 8 handles de resize válidos como comando — mismo set que `RESIZE_HANDLES`. */
+export const ResizeHandleSchema = z.enum(RESIZE_HANDLES);
 
 /**
  * Comandos que cambian contenido persistido (pages/layers/objects/
@@ -66,6 +71,21 @@ export const ContentCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("updateMetadata"),
     target: EntityRefSchema,
     metadata: MetadataSchema.partial(),
+  }),
+
+  z.object({
+    type: z.literal("resizeObject"),
+    objectId: ObjectIdSchema,
+    handle: ResizeHandleSchema,
+    pointerDelta: PointSchema,
+    intrinsicSize: z.object({ width: z.number().positive(), height: z.number().positive() }),
+    maintainAspectRatio: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal("rotateObject"),
+    objectId: ObjectIdSchema,
+    pointerAngleDegrees: z.number(),
+    snapToIncrement: z.boolean().optional(),
   }),
 ]);
 export type ContentCommand = z.infer<typeof ContentCommandSchema>;

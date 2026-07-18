@@ -172,7 +172,10 @@ describe("createKonvaRenderer — eventos de Konva -> Engine (drag)", () => {
     rectNode.fire("dragstart");
 
     expect(engine.getSelection()).toEqual(["rect_1"]);
-    expect(selectionLayer.getChildren()).toHaveLength(1);
+    // Un único object seleccionado dibuja la caja de manipulación completa
+    // (ver ADR-0008): 2 Line (contorno + "vara" del handle de rotación) + 8
+    // Rect (handles de resize) + 1 Circle (handle de rotación).
+    expect(selectionLayer.getChildren()).toHaveLength(11);
   });
 
   it("arrastrar un object que ya es parte de una selección múltiple no la colapsa", () => {
@@ -249,8 +252,13 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
     rectNode.fire("click", { evt: { shiftKey: false }, cancelBubble: false }, true);
 
     expect(engine.getSelection()).toEqual(["rect_1"]);
-    expect(selectionLayer.getChildren()).toHaveLength(1);
-    expect(selectionLayer.getChildren()[0]).toBeInstanceOf(Konva.Rect);
+    // Un único object seleccionado dibuja la caja de manipulación completa
+    // (ver ADR-0008), no el simple rectángulo punteado de Editor 2.
+    const children = selectionLayer.getChildren();
+    expect(children).toHaveLength(11);
+    expect(children.filter((n) => n instanceof Konva.Rect)).toHaveLength(8);
+    expect(children.filter((n) => n instanceof Konva.Circle)).toHaveLength(1);
+    expect(children.filter((n) => n instanceof Konva.Line)).toHaveLength(2);
   });
 
   it("click en el Stage fuera de cualquier object limpia la selección", () => {

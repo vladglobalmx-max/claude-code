@@ -215,4 +215,44 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
       expect(result.value.document.history.entries[0]?.description).toBe("Reordenar objects");
     }
   });
+
+  it("resizeObject", () => {
+    const result = applyContentCommand(
+      richProject(),
+      {
+        type: "resizeObject",
+        objectId: ObjectIdSchema.parse("rect_1"),
+        handle: "bottom-right",
+        pointerDelta: { x: 5, y: 5 },
+        intrinsicSize: { width: 10, height: 10 },
+      },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.transform).toEqual({ x: 0, y: 0, rotation: 0, scaleX: 1.5, scaleY: 1.5 });
+      expect(result.value.document.history.entries[0]?.description).toBe(
+        'Redimensionar object "rect_1" (handle: bottom-right)',
+      );
+    }
+  });
+
+  it("rotateObject", () => {
+    const result = applyContentCommand(
+      richProject(),
+      {
+        type: "rotateObject",
+        objectId: ObjectIdSchema.parse("rect_1"),
+        pointerAngleDegrees: 45,
+      },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.transform.rotation).toBe(45);
+      expect(result.value.document.history.entries[0]?.description).toBe('Rotar object "rect_1"');
+    }
+  });
 });

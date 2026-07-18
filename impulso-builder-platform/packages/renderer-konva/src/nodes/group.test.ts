@@ -29,4 +29,24 @@ describe("createGroupNode", () => {
     expect(createChildNode).toHaveBeenCalledTimes(2);
     expect(node.getChildren().map((n) => n.id())).toEqual(["c1", "c2"]);
   });
+
+  it("crea a sus hijos con interactive:false, sin importar el valor de interactive del propio Group", () => {
+    const child = buildRectangle("c1");
+    const object = buildGroup("g1", [child]);
+    const createChildNode = vi.fn(() => new Konva.Rect());
+
+    createGroupNode(object, { ...context, interactive: true }, createChildNode);
+
+    expect(createChildNode).toHaveBeenCalledWith(child, expect.objectContaining({ interactive: false }));
+  });
+
+  it("propaga interactive:false a los hijos incluso si el context recibido ya lo tenía en false (group anidado)", () => {
+    const child = buildRectangle("c1");
+    const object = buildGroup("g1", [child]);
+    const createChildNode = vi.fn(() => new Konva.Rect());
+
+    createGroupNode(object, { ...context, interactive: false }, createChildNode);
+
+    expect(createChildNode).toHaveBeenCalledWith(child, expect.objectContaining({ interactive: false }));
+  });
 });

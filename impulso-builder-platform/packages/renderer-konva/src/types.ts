@@ -17,6 +17,18 @@ export interface NodeContext {
    * `NodeContext` a mano no está obligado a proveerla — sin ella, arrastrar
    * simplemente siempre reemplaza la selección por el object arrastrado. */
   getSelection?: () => readonly ObjectId[];
+  /**
+   * `false` cuando el node se está creando como hijo de un `group` (a
+   * cualquier profundidad) — un Group debe comportarse como una única
+   * unidad seleccionable/arrastrable (convención estándar de cualquier
+   * editor de diseño: Figma, Illustrator), no dejar que cada hijo se
+   * seleccione/arrastre por separado. `createGroupNode` es quien pone este
+   * flag en `false` para sus hijos; el propio Group conserva
+   * `interactive` sin cambios (por defecto `true`). Opcional y aditivo:
+   * ausente equivale a `true`, el comportamiento de siempre. Ver
+   * ADR-0010.
+   */
+  interactive?: boolean;
 }
 
 export interface KonvaRendererOptions {

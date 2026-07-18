@@ -32,6 +32,10 @@ export {
   ROTATION_SNAP_INCREMENT_DEGREES,
   type RotateGestureInput,
 } from "./geometry/rotateMath.js";
+// Composición de transforms (Group -> hijo) — usada internamente por
+// `ungroupObject`; se expone porque un Renderer podría necesitar la misma
+// matemática para previsualizar un ungroup antes de despachar el comando.
+export { composeChildTransformIntoParent } from "./geometry/composeTransform.js";
 
 // Errores (Result pattern — ver errors/engineError.ts)
 export { engineError, ok, err, type EngineError, type EngineErrorCode, type EngineResult } from "./errors/engineError.js";
@@ -42,3 +46,9 @@ export type { Unsubscribe } from "./events/eventEmitter.js";
 
 // Utilidades de árbol de Object (útiles para un futuro Renderer/UI de solo lectura)
 export { findObjectInDocument } from "./tree/objectTree.js";
+
+// Clonado con identidad fresca (Sticker Creation Experience: "Duplicar").
+// Función pura, no un comando — el Engine nunca inventa ids; quien llama
+// provee el generador. El resultado se despacha con el `addObject` ya
+// existente, sin necesitar un comando nuevo.
+export { cloneSceneObjectWithNewIds, type CloneSceneObjectOptions } from "./cloning/cloneSceneObject.js";

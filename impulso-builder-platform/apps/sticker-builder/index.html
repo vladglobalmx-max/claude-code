@@ -3,31 +3,261 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Impulso Sticker Builder — Alpha</title>
+    <title>Impulso Sticker Builder</title>
+    <link rel="icon" href="data:," />
     <style>
-      html, body { margin: 0; height: 100%; background: #e5e5e5; font-family: system-ui, sans-serif; }
-      #toolbar { display: flex; align-items: center; gap: 8px; padding: 8px; background: #1c1917; }
-      #toolbar button { font: inherit; padding: 4px 10px; cursor: pointer; }
-      #toolbar button:disabled { cursor: not-allowed; opacity: 0.5; }
-      #toolbar-status { color: #e5e5e5; font-size: 0.85em; margin-left: auto; }
-      #canvas-runtime { display: inline-block; background: #ffffff; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #e5e5e5;
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        color: #1c1917;
+      }
+      #app {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        grid-template-columns: 1fr;
+        height: 100vh;
+      }
+
+      /* Barra superior: proyecto / deshacer-rehacer / guardar-abrir / acciones */
+      #top-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #1c1917;
+        color: #e5e5e5;
+        flex-wrap: wrap;
+      }
+      #top-bar button {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border: 1px solid #44403c;
+        background: #292524;
+        color: inherit;
+        border-radius: 4px;
+      }
+      #top-bar button:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+      }
+      #top-bar .divider {
+        width: 1px;
+        align-self: stretch;
+        background: #44403c;
+        margin: 0 4px;
+      }
+      #toolbar-status {
+        margin-left: auto;
+        font-size: 0.85em;
+        color: #a8a29e;
+      }
+
+      /* Barra de herramientas: Texto/Imagen + Zoom */
+      #tools-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: #f5f5f4;
+        border-bottom: 1px solid #d6d3d1;
+      }
+      #tools-container,
+      #zoom-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #zoom-container {
+        margin-left: auto;
+      }
+      #tools-bar button {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+        border-radius: 4px;
+      }
+      .zoom-percentage {
+        min-width: 3.5em;
+        text-align: right;
+        color: #57534e;
+      }
+
+      /* Cuerpo: capas | canvas | inspector */
+      #body {
+        display: grid;
+        grid-template-columns: 240px 1fr 280px;
+        min-height: 0;
+      }
+
+      #layers-panel {
+        overflow-y: auto;
+        background: #fafaf9;
+        border-right: 1px solid #d6d3d1;
+        padding: 8px;
+      }
+      .layer-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .layer-row:hover {
+        background: #e7e5e4;
+      }
+      .layer-row.selected {
+        background: #dbeafe;
+      }
+      .layer-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .layer-expand {
+        border: none;
+        background: none;
+        cursor: pointer;
+        width: 1.2em;
+      }
+      .layer-visibility,
+      .layer-lock {
+        border: none;
+        background: none;
+        cursor: pointer;
+      }
+
+      #canvas-viewport {
+        overflow: auto;
+        background: #d6d3d1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 32px;
+      }
+      #canvas-runtime {
+        display: inline-block;
+        background: #ffffff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      #inspector-panel {
+        overflow-y: auto;
+        background: #fafaf9;
+        border-left: 1px solid #d6d3d1;
+        padding: 8px;
+      }
+      .inspector-section {
+        border: 1px solid #d6d3d1;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        padding: 8px;
+      }
+      .inspector-field {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .inspector-field input,
+      .inspector-field select,
+      .inspector-field textarea {
+        font: inherit;
+        max-width: 60%;
+      }
+      .inspector-empty {
+        color: #78716c;
+        padding: 8px;
+      }
+
+      /* Diálogo de proyecto nuevo */
+      .new-project-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .new-project-dialog {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 320px;
+      }
+      .new-project-dialog-options {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+      .new-project-dialog-custom-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .new-project-dialog-error {
+        color: #b91c1c;
+      }
+      .new-project-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .new-project-dialog-actions button {
+        font: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+      }
+      .new-project-dialog-create {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
     </style>
   </head>
   <body>
-    <!--
-      Milestone 1 (Impulso Alpha): UI mínima, sin estilo final, solo para
-      validar el flujo completo de principio a fin. No es Toolbar/Sidebar
-      "real" (explícitamente fuera de alcance) — ver docs/MILESTONE_1_ALPHA.md.
-    -->
-    <div id="toolbar">
-      <button id="new-btn" type="button">Nuevo</button>
-      <button id="undo-btn" type="button">Deshacer</button>
-      <button id="redo-btn" type="button">Rehacer</button>
-      <button id="save-btn" type="button">Guardar</button>
-      <button id="open-btn" type="button">Abrir</button>
-      <span id="toolbar-status"></span>
+    <div id="app">
+      <div id="top-bar">
+        <button id="new-btn" type="button">Nuevo</button>
+        <span class="divider"></span>
+        <button id="undo-btn" type="button">Deshacer</button>
+        <button id="redo-btn" type="button">Rehacer</button>
+        <span class="divider"></span>
+        <button id="save-btn" type="button">Guardar</button>
+        <button id="open-btn" type="button">Abrir</button>
+        <span class="divider"></span>
+        <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
+        <button id="delete-btn" type="button" title="Eliminar (Supr)">Eliminar</button>
+        <button id="group-btn" type="button" title="Agrupar (Ctrl/Cmd+G)">Agrupar</button>
+        <button id="ungroup-btn" type="button" title="Desagrupar (Ctrl/Cmd+Shift+G)">Desagrupar</button>
+        <span id="toolbar-status"></span>
+      </div>
+      <div id="tools-bar">
+        <div id="tools-container"></div>
+        <div id="zoom-container"></div>
+      </div>
+      <div id="body">
+        <div id="layers-panel"></div>
+        <div id="canvas-viewport">
+          <div id="canvas-runtime"></div>
+        </div>
+        <div id="inspector-panel"></div>
+      </div>
     </div>
-    <div id="canvas-runtime"></div>
+    <div id="new-project-dialog-root"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

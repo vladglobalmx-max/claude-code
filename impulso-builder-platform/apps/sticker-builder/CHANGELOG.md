@@ -2,6 +2,29 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.3.0] — Epic 1: Sticker Creation Experience
+
+### Agregado
+- `app.ts`: orquestador central que reemplaza a `toolbar.ts` — cablea `bootstrap.ts` (Canvas Runtime), el panel de capas, el Inspector, el zoom, las herramientas Texto/Imagen, el diálogo de proyecto nuevo, y los atajos de teclado, junto con las acciones de Duplicar/Eliminar/Agrupar/Desagrupar/Reordenar/Nudge. Mantiene el patrón de Nuevo/Abrir de ADR-0009 (destruir y remontar el runtime completo), extendido con precarga asíncrona de imágenes embebidas.
+- `projectPresets.ts`: 3 presets curados de tamaño de sticker (cuadrado, circular, rectangular) + `createProjectFromSize()`.
+- `newProjectDialog.ts`: diálogo modal de "Nuevo proyecto" (presets + tamaño personalizado).
+- `imageAssets.ts`: cargar un `File` (PNG/SVG) como imagen, cache en memoria (`ImageAssetCache`), y precarga (`preloadProjectImages`) al abrir un proyecto guardado — sin una Asset Library real (ver ADR-0010).
+- `tools.ts`: acciones "Agregar texto"/"Agregar imagen" (insertan centrado en la página, sin modo de colocación) + botones de la barra de herramientas.
+- `zoom.ts`: zoom vía `transform: scale(...)` CSS — presets 25/50/100/200%, "Ajustar a pantalla", rueda del mouse + Ctrl/Cmd.
+- `layersPanel.ts`: panel de capas completo — reordenar por drag-and-drop, expandir/colapsar Groups (hijos solo informativos, ver ADR-0010), renombrar inline, ocultar, bloquear.
+- `inspector.ts`: Sidebar derecha — Transformar/Apariencia/Texto/Metadata, adaptado a la selección (0/1/2+ objects).
+- `keyboardShortcuts.ts`: mapa de atajos de teclado (V/T/I, Supr, Ctrl/Cmd+D/G/Shift+G/Z/Shift+Z/S/O/A, Escape, flechas, Ctrl/Cmd+[/]) desacoplado del Engine.
+- `index.html`/`main.ts` reescritos con el layout completo (barra superior, tools-bar, capas | canvas | inspector, diálogo de proyecto nuevo).
+- 3 comandos nuevos en `@impulso/engine` (`updateObjectContent`, `groupObjects`, `ungroupObject`) y edición de texto in-canvas en `@impulso/renderer-konva` (ver sus propios CHANGELOGs) usados por esta épica.
+- Flujo completo (crear → diseñar → guardar → abrir → editar sin pérdida de información) verificado en Chromium real, sin errores de consola. Durante esa verificación se encontró y corrigió un bug real: el panel de capas reconstruía todo su DOM en cada cambio de selección, rompiendo la detección nativa de doble-click del navegador para el renombrado inline (ver ADR-0010, §"Reconstrucción del panel de capas").
+- 131 tests nuevos (161 en total), ~99.8% de cobertura.
+
+### Eliminado
+- `toolbar.ts`/`toolbar.test.ts` (Milestone 1) — reemplazados por `app.ts`.
+
+### Fuera de alcance (deliberado)
+IA, Exportación, Marketplace, Usuarios, Cloud, Plantillas, Mockups, una Librería de Assets real, Plugins, múltiples Pages/Layers expuestas en la UI, "entrar" a un Group, modo de herramienta persistente para Texto/Imagen.
+
 ## [0.2.0] — Milestone 1: Impulso Alpha
 
 ### Agregado

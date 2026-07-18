@@ -97,4 +97,51 @@ describe("applyBaseAttrs — atributos estáticos", () => {
       transform: { x: 42, y: 99 },
     });
   });
+
+  describe("interactive: false (hijo anidado en un group, ver ADR-0010)", () => {
+    it("nunca es draggable, incluso si el object NO está bloqueado", () => {
+      const object = buildRectangle("rect_1", {
+        metadata: { tags: [], visible: true, locked: false, createdAt: "x", updatedAt: "x" },
+      });
+      const node = new Konva.Rect();
+      const { context } = contextWithDispatch({ ok: true, value: {} });
+
+      applyBaseAttrs(node, object, { ...context, interactive: false });
+
+      expect(node.draggable()).toBe(false);
+    });
+
+    it("sigue siendo listening (para que el click/drag burbujee hasta el Group)", () => {
+      const object = buildRectangle("rect_1");
+      const node = new Konva.Rect();
+      const { context } = contextWithDispatch({ ok: true, value: {} });
+
+      applyBaseAttrs(node, object, { ...context, interactive: false });
+
+      expect(node.listening()).toBe(true);
+    });
+
+    it("NO dispatcha al hacer click (no tiene su propia interacción de selección)", () => {
+      const object = buildRectangle("rect_1");
+      const node = new Konva.Rect();
+      const { context, dispatch } = contextWithDispatch({ ok: true, value: {} });
+
+      applyBaseAttrs(node, object, { ...context, interactive: false });
+      node.fire("click", { evt: { shiftKey: false }, cancelBubble: false });
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it("NO dispatcha al soltar un drag (no tiene su propia interacción de transform)", () => {
+      const object = buildRectangle("rect_1");
+      const node = new Konva.Rect();
+      const { context, dispatch } = contextWithDispatch({ ok: true, value: {} });
+
+      applyBaseAttrs(node, object, { ...context, interactive: false });
+      node.x(42);
+      node.fire("dragend");
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+  });
 });

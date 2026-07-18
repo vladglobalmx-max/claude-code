@@ -16,8 +16,14 @@ export function createGroupNode(
 ): Konva.Group {
   const node = new Konva.Group();
   applyBaseAttrs(node, object, context);
+  // Los hijos NUNCA son individualmente interactivos, sin importar si el
+  // propio Group lo es — el Group actúa como una única unidad
+  // seleccionable/arrastrable (ver baseAttrs.ts, types.ts, ADR-0010). Esto
+  // también cubre groups anidados a cualquier profundidad: una vez dentro
+  // de un group, `interactive: false` se sigue propagando hacia abajo.
+  const childContext: NodeContext = { ...context, interactive: false };
   for (const child of object.children) {
-    node.add(createChildNode(child, context));
+    node.add(createChildNode(child, childContext));
   }
   return node;
 }

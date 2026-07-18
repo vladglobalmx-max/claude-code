@@ -1,8 +1,8 @@
 # @impulso/renderer-konva
 
-> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) + EDITOR EPIC 1 (manipulación) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección), [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento) y [ADR-0008](../../docs/adr/0008-manipulation-system.md) (resize/rotate/handles) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
+> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) + EDITOR EPIC 1 (manipulación) + Sticker Creation Experience (grupos, edición de texto) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección), [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento), [ADR-0008](../../docs/adr/0008-manipulation-system.md) (resize/rotate/handles) y [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md) (grupos, texto editable) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
 
-**Estado:** completo, incluyendo selección visual (Editor 2), movimiento por arrastre (Editor 3) y el sistema completo de manipulación — resize, rotación, bounding box, handles, anclajes, restricciones y cursor feedback (Editor Epic 1). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Inspector, Layers Panel ni Exportaciones — eso es alcance de sprints futuros.
+**Estado:** completo, incluyendo selección visual (Editor 2), movimiento por arrastre (Editor 3), el sistema completo de manipulación (Editor Epic 1), y grupos que actúan como una sola unidad seleccionable/arrastrable más edición de texto in-canvas (Sticker Creation Experience). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Inspector, Layers Panel ni Exportaciones — eso es alcance de la app (`apps/sticker-builder`), no de este paquete.
 
 ---
 
@@ -32,7 +32,8 @@ packages/renderer-konva/
     │
     ├── interactions/
     │   ├── selectionInteractions.ts   # click/Shift-click -> setSelection/toggleObjectSelection
-    │   └── transformInteractions.ts   # dragstart (asegura selección) / dragend -> updateObjectTransform
+    │   ├── transformInteractions.ts   # dragstart (asegura selección) / dragend -> updateObjectTransform
+    │   └── textEditingInteractions.ts # dblclick -> <textarea> superpuesto -> updateObjectContent
     │
     ├── manipulation/
     │   ├── boundingBox.ts      # geometría pura: pivote, tamaño intrínseco, puntos locales de cada handle
@@ -49,7 +50,7 @@ packages/renderer-konva/
     └── testUtils/
         └── fixtures.ts          # builders de Project/Page/Layer/SceneObject para tests
 
-    (122 tests, 100% de statements/functions/lines, 99% de branches — ver "Riesgos")
+    (140 tests, 100% de statements/functions/lines, 98% de branches — ver "Riesgos")
 ```
 
 ## 3. Arquitectura
@@ -149,6 +150,12 @@ Ver [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el razonamiento 
 
 **Single- vs multi-selección:** `renderSelectionOverlay()` solo dibuja la caja de manipulación completa cuando `engine.getSelection()` tiene EXACTAMENTE un id. Con 0 o 2+ ids seleccionados, se conserva el resaltado simple de Editor 2 (un `Konva.Rect` punteado por object) — mover/redimensionar varios objects a la vez queda fuera de alcance de este épico.
 
+### 3.9 Grupos como una sola unidad, y edición de texto in-canvas (Sticker Creation Experience)
+
+**Un `group` se comporta como una única unidad**, no como una colección de objects independientemente seleccionables/arrastrables — la convención estándar de cualquier editor de diseño (Figma, Illustrator): seleccionar/mover cualquier parte de un grupo selecciona/mueve el grupo completo, no el hijo individual bajo el puntero. Se logra con `NodeContext.interactive` (opcional, `true` por defecto): `createGroupNode` construye a sus hijos con `interactive: false`, y `applyBaseAttrs` responde a eso de dos formas — nunca marca al node como `draggable` (sin importar `metadata.locked`), y nunca le adjunta sus propias interacciones de selección/transform/edición de texto. Un mousedown/click sobre un hijo así configurado sigue siendo un objetivo de hit-testing válido (`listening` no cambia), así que el evento burbujea hasta el Group — que sí tiene sus propias interacciones y `draggable` activo — sin que este paquete tenga que reimplementar ningún hit-testing propio: es el comportamiento nativo de Konva ante un hijo no-arrastrable dentro de un ancestro arrastrable. Editar un hijo individual (mover, redimensionar, cambiar texto) requiere desagrupar primero — no se construyó "entrar al grupo" con doble-click en esta versión (ver "Riesgos").
+
+**Edición de texto in-canvas** (`interactions/textEditingInteractions.ts`): doble-click sobre un `TextObject` oculta el node de Konva y superpone un `<textarea>` HTML real, posicionado/rotado/escalado exactamente sobre su bounding box. Escribir ahí es edición local del navegador (sin dispatch); al perder el foco o presionar Enter (sin Shift) se confirma con `engine.dispatch({type:"updateObjectContent", ...})` — Escape cancela sin despachar nada, restaurando el node tal como estaba. Un texto anidado dentro de un group (`interactive: false`) tampoco es editable individualmente, mismo criterio que selección/transform.
+
 ---
 
 ## 4. Ejemplos de uso
@@ -229,6 +236,11 @@ engine.subscribe((event) => {
 13. Pasar el cursor sobre cada handle cambia el puntero del mouse al ícono de resize/rotación correspondiente, antes de empezar a arrastrar.
 14. Con 0 objects o 2+ objects seleccionados, se mantiene el resaltado simple de Editor 2 (sin handles) — redimensionar/rotar una selección múltiple a la vez no está soportado.
 
+**Grupos y edición de texto (Sticker Creation Experience):**
+15. Click o arrastre sobre cualquier hijo de un group selecciona/mueve el GROUP completo, no el hijo individual — un grupo se comporta como una sola unidad, igual que en Figma/Illustrator.
+16. Doble-click sobre un texto activa edición in-canvas: un cursor de texto real aparece exactamente sobre el object, listo para escribir.
+17. Escribir y presionar Enter (o hacer click fuera) confirma el nuevo contenido; Escape descarta los cambios y restaura el texto anterior.
+
 ### Consistencia de interacción
 El modelo de selección (click reemplaza, Shift-click alterna, click-vacío limpia) sigue la convención de herramientas de diseño de referencia (Figma, Illustrator, Sketch). El arrastre extiende esa misma consistencia: en esas mismas herramientas, arrastrar un object no seleccionado lo selecciona automáticamente — es exactamente el comportamiento que Editor 3 agrega (antes, Foundation 3 permitía mover sin seleccionar, una inconsistencia menor que este sprint corrige). Arrastre y click conviven sin conflicto porque Konva distingue nativamente ambos gestos por la distancia de movimiento del puntero. La manipulación (Editor Epic 1) sigue el mismo vocabulario visual y de teclas modificadoras (Shift) que Figma/Illustrator/Sketch: handles de esquina vs. borde, Shift para proporción/snap.
 
@@ -256,3 +268,5 @@ Ver la sección "Riesgos" y "Compatibilidad futura" de [ADR-0004](../../docs/adr
 - **El handle de rotación puede renderizarse fuera del área visible del Stage** si el object seleccionado está muy cerca del borde superior de la página (el handle se dibuja `ROTATE_HANDLE_OFFSET` píxeles arriba de la caja) — en ese caso queda inalcanzable con el puntero en un navegador real, aunque la lógica de rotación en sí (verificada con tests que disparan los eventos directamente) es correcta. Detectado durante la verificación manual de este épico; no se resolvió por requerir que `handles.ts` conociera los límites del Stage (acoplamiento nuevo, fuera del alcance ya construido) para clampar o reposicionar el handle — documentado como limitación conocida, no arreglado.
 - **`intrinsicSize` para un `Konva.Group` se aproxima con `getClientRect({ skipTransform: true })`**, no con `getSelfRect()` (que `Group` no implementa) — funciona para los casos probados, pero no se verificó exhaustivamente contra un Group con hijos rotados/anidados a varios niveles.
 - **Los tests con jsdom (`node.fire(...)`) no habrían detectado el bug real encontrado durante la verificación en navegador**: hasta antes de esta corrección, `selectionLayer` se creaba con `listening: false` a nivel de Layer completa (heredado de Editor 2, cuando solo contenía overlays decorativos) — esto bloqueaba SILENCIOSAMENTE todos los eventos reales de puntero sobre los handles nuevos, sin que ningún test (que dispara eventos directamente sobre el node, sin pasar por el hit-graph de Konva ni por el árbol DOM real) lo hiciera fallar. Se detectó solo con Playwright contra un Chromium real. Lección para futuros sprints: un test que solo llama `.fire(evento)` prueba la RESPUESTA a un evento, no si ese evento llegaría a ese node en un navegador real — ambas verificaciones siguen siendo necesarias.
+- **No se construyó "entrar a un grupo" con doble-click** para seleccionar/editar un hijo individual sin desagrupar primero (ver 3.9) — documentado como mejora futura, no un descuido.
+- **El `<textarea>` de edición de texto no reproduce con exactitud absoluta el layout de `Konva.Text`** (kerning, wrapping de palabras largas, etc. pueden diferir ligeramente entre el motor de layout del navegador y el de Konva) — aceptable para edición de contenido, no para una previsualización pixel-perfect mientras se escribe.

@@ -19,6 +19,8 @@ export type EngineErrorCode =
   | "invalid_metadata"
   | "invalid_style"
   | "invalid_transform"
+  | "invalid_content"
+  | "invalid_group"
   | "invalid_reorder"
   | "cannot_remove_last_page"
   | "invariant_violation"

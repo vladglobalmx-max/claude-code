@@ -13,6 +13,7 @@ type AddObjectCommand = Extract<ContentCommand, { type: "addObject" }>;
 type RemoveObjectCommand = Extract<ContentCommand, { type: "removeObject" }>;
 type UpdateObjectTransformCommand = Extract<ContentCommand, { type: "updateObjectTransform" }>;
 type UpdateObjectStyleCommand = Extract<ContentCommand, { type: "updateObjectStyle" }>;
+type UpdateObjectContentCommand = Extract<ContentCommand, { type: "updateObjectContent" }>;
 type ReorderObjectsCommand = Extract<ContentCommand, { type: "reorderObjects" }>;
 
 function withDocument(project: Project, document: Document): Project {
@@ -86,6 +87,33 @@ export function updateObjectStyle(project: Project, command: UpdateObjectStyleCo
     ...object,
     style: merged.data,
   }));
+  return ok(withDocument(project, document));
+}
+
+/**
+ * Solo aplica a `TextObject.content` — cualquier otro tipo rechaza el
+ * comando en vez de ignorarlo silenciosamente (mismo criterio que
+ * `updateObjectStyle` rechaza un style resultante inválido, no lo descarta
+ * en silencio).
+ */
+export function updateObjectContent(project: Project, command: UpdateObjectContentCommand): EngineResult<Project> {
+  const existing = findObjectInDocument(project.document, command.objectId);
+  if (!existing) {
+    return err(engineError("object_not_found", `No existe un Object con id "${command.objectId}".`));
+  }
+  if (existing.type !== "text") {
+    return err(
+      engineError("invalid_content", `El Object "${command.objectId}" no es de tipo "text"; no tiene contenido de texto.`),
+    );
+  }
+  // La rama `: object` es defensiva: ya se confirmó arriba que `existing`
+  // (mismo id) es "text" antes de llegar aquí, así que no hay un camino
+  // conocido para ejercitarla — se mantiene por seguridad ante un futuro
+  // refactor, no por un caso real observado (mismo criterio que la guarda
+  // de tipos en `renderer.ts`, ver su README).
+  const document = updateObjectInDocument(project.document, command.objectId, (object) =>
+    object.type === "text" ? { ...object, content: command.content } : object,
+  );
   return ok(withDocument(project, document));
 }
 

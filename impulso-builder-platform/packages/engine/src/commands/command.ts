@@ -6,6 +6,7 @@ import {
   PageSchema,
   LayerSchema,
   SceneObjectSchema,
+  SceneObjectBaseSchema,
   TransformSchema,
   StyleSchema,
   MetadataSchema,
@@ -86,6 +87,29 @@ export const ContentCommandSchema = z.discriminatedUnion("type", [
     objectId: ObjectIdSchema,
     pointerAngleDegrees: z.number(),
     snapToIncrement: z.boolean().optional(),
+  }),
+
+  z.object({
+    type: z.literal("updateObjectContent"),
+    objectId: ObjectIdSchema,
+    content: z.string(),
+  }),
+
+  z.object({
+    type: z.literal("groupObjects"),
+    objectIds: z.array(ObjectIdSchema).min(2),
+    /**
+     * El Engine nunca inventa identidad ni timestamps para contenido nuevo
+     * (mismo principio que `addObject`): quien despacha el comando ya trae
+     * el id, transform, style, metadata, etc. del Group a crear. `children`
+     * no se incluye aquí — el reducer lo completa con los objects que
+     * `objectIds` referencia, en su orden real dentro de la layer.
+     */
+    group: SceneObjectBaseSchema,
+  }),
+  z.object({
+    type: z.literal("ungroupObject"),
+    objectId: ObjectIdSchema,
   }),
 ]);
 export type ContentCommand = z.infer<typeof ContentCommandSchema>;

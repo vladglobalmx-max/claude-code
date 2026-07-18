@@ -12,6 +12,7 @@ import {
   type SceneObject,
   type RectangleObject,
   type GroupObject,
+  type TextObject,
 } from "@impulso/document-schema";
 
 /** Fixtures compartidos entre tests del Engine — no forman parte de la API pública. */
@@ -42,6 +43,25 @@ export function buildGroup(id: string, children: SceneObject[], overrides: Parti
     pluginData: {},
     customProperties: {},
     children,
+    ...overrides,
+  };
+}
+
+export function buildText(id: string, overrides: Partial<TextObject> = {}): TextObject {
+  return {
+    id: ObjectIdSchema.parse(id),
+    type: "text",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    content: "Texto",
+    fontFamily: "sans-serif",
+    fontSize: 16,
+    fontWeight: 400,
+    textAlign: "left",
+    lineHeight: 1.2,
+    style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
+    metadata: { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW },
+    pluginData: {},
+    customProperties: {},
     ...overrides,
   };
 }

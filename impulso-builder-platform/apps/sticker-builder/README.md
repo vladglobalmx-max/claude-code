@@ -1,113 +1,122 @@
-# @impulso/sticker-builder — Impulso Alpha
+# @impulso/sticker-builder
 
-> EDITOR 1 (Canvas Runtime) + MILESTONE 1 (Impulso Alpha) de Impulso Builder Platform. Primera versión funcional de principio a fin: crear un documento, verlo en el canvas, seleccionar/mover/redimensionar/rotar sus objects, deshacer/rehacer, guardar localmente y volver a abrirlo. Ver [ADR-0005](../../docs/adr/0005-canvas-runtime.md) (integración original del pipeline) y [ADR-0009](../../docs/adr/0009-local-persistence-alpha.md) (persistencia local) para el razonamiento completo.
+> EPIC 1 — Sticker Creation Experience de Impulso Platform. Primera experiencia de creación completa: crear un proyecto (eligiendo tamaño de canvas por preset), agregar texto e imágenes, mover/escalar/rotar/duplicar/eliminar objects, reordenar capas, agrupar/desagrupar, bloquear/ocultar, deshacer/rehacer, y guardar/abrir — todo dentro del navegador, verificado en Chromium real sin errores de consola. Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md) para el razonamiento completo de cada decisión de esta épica, y [ADR-0005](../../docs/adr/0005-canvas-runtime.md)/[ADR-0009](../../docs/adr/0009-local-persistence-alpha.md) para las bases (Canvas Runtime, Local Persistence) sobre las que se construyó.
 
-**Estado:** primera versión ejecutable de punta a punta para pruebas manuales. Toda la edición (selección, movimiento, resize, rotación) ya existía como capacidad de `@impulso/renderer-konva` desde Editor 2/3/Epic 1 y se hereda sin código adicional aquí; lo nuevo de este milestone es una UI mínima de 5 botones (Nuevo/Deshacer/Rehacer/Guardar/Abrir) y persistencia en `localStorage`. **No es una interfaz final** — sin Toolbar/Sidebar/Inspector/Layers Panel con diseño real, sin Zoom/Pan, sin Exportaciones, sin gestión de Assets. Ver §6 "Riesgos y limitaciones conocidas" y [`docs/MILESTONE_1_ALPHA.md`](../../docs/MILESTONE_1_ALPHA.md) para el detalle completo y el script de pruebas manuales.
+**Estado:** primera experiencia de creación de stickers de punta a punta, lista para pruebas manuales reales. Todo lo construido en esta épica vive en la capa de aplicación (`apps/sticker-builder`) — cero cambios que rompan la API pública de `@impulso/document-schema`; `@impulso/engine` y `@impulso/renderer-konva` ganaron extensiones aditivas documentadas en sus propios READMEs/CHANGELOGs. Explícitamente fuera de alcance de esta épica: IA, Exportación, Marketplace, Usuarios, Cloud, Plantillas, Mockups, una Librería de Assets real, Plugins.
 
 ---
 
 ## 1. Qué es y qué no es
 
-- **Sí hace:** monta un `<canvas>` visible con una barra de 5 botones sobre él; un `Project` (Document Schema) fluye, sin atajos, a través de `@impulso/engine` y `@impulso/renderer-konva` hasta convertirse en píxeles reales en el navegador; el usuario puede crear un documento nuevo, editarlo (seleccionar/mover/redimensionar/rotar sus objects), deshacer/rehacer esos cambios, guardarlo en `localStorage` y volver a abrirlo — incluso después de recargar la página o cerrar el navegador.
-- **No hace:** no tiene una interfaz de edición "real" — los 5 botones son HTML plano, sin diseño; no hay forma de agregar/eliminar objects desde la UI (el único contenido posible es el `Project` de demostración, tanto al cargar como al pulsar "Nuevo"); no hay Zoom/Pan/Toolbar/Sidebar/Inspector/Layers Panel/Exportaciones; solo guarda UN documento a la vez (sin lista, sin nombre, sin "guardar como").
+- **Sí hace:** Barra superior (Nuevo/Deshacer/Rehacer/Guardar/Abrir/Duplicar/Eliminar/Agrupar/Desagrupar), barra de herramientas (Texto/Imagen + Zoom), Sidebar izquierda (panel de capas: reordenar por drag-and-drop, expandir/colapsar groups, renombrar, ocultar, bloquear), Canvas central (con zoom CSS 25-200% + "Ajustar a pantalla" + rueda del mouse con Ctrl/Cmd), Sidebar derecha (Inspector: Transformar/Apariencia/Texto/Metadata, adaptado a la selección actual), diálogo de "Nuevo proyecto" (3 presets de sticker + tamaño personalizado), y un mapa completo de atajos de teclado. Todo el flujo (crear → diseñar → guardar → abrir → editar sin pérdida de información) funciona sin recargar ni perder estado salvo cuando el usuario lo pide explícitamente (Guardar/Abrir).
+- **No hace:** no genera ningún archivo de salida (Exportación es una épica futura); no tiene una Asset Library real (las imágenes se embeben como data URL, ver §3.5); no soporta múltiples Pages/Layers del Document Schema desde la UI (el panel de capas asume una sola Page/Layer); no tiene un modo de herramienta persistente tipo "lápiz armado" (Texto/Imagen insertan directamente, ver §3.4); no permite "entrar" a un Group para seleccionar un hijo individualmente (siempre se selecciona/edita como una unidad).
 
 ## 2. Árbol
 
 ```
 apps/sticker-builder/
 ├── package.json / tsconfig.json / vite.config.ts / vitest.config.ts
-├── index.html                 # canvas + barra de 5 botones (Nuevo/Deshacer/Rehacer/Guardar/Abrir)
+├── index.html                    # layout completo: barra superior, tools-bar, capas | canvas | inspector
 ├── README.md / CHANGELOG.md
 └── src/
-    ├── main.ts                 # entry point real: DOM -> mountToolbar (sin lógica propia)
-    ├── toolbar.ts               # cablea los 5 botones sobre un CanvasRuntime; Nuevo/Abrir remontan el runtime
-    ├── persistence.ts           # guardar/cargar un Project en localStorage (serializeProject/deserializeProject)
-    ├── bootstrap.ts             # mountCanvasRuntime(container, project?) — testable, el cableado del pipeline
-    ├── demoProject.ts           # Project de demostración (rectangle + ellipse + text)
+    ├── main.ts                    # entry point real: DOM -> mountApp (sin lógica propia)
+    ├── app.ts                     # orquestador central: cablea todos los módulos de abajo entre sí
+    ├── bootstrap.ts                # mountCanvasRuntime(container, project?, options?) — pipeline Document Schema -> Engine -> Renderer -> Canvas
+    ├── demoProject.ts              # Project de demostración (rectangle + ellipse + text)
+    ├── persistence.ts              # guardar/cargar un Project en localStorage
+    ├── projectPresets.ts           # 3 presets de tamaño de sticker + createProjectFromSize()
+    ├── newProjectDialog.ts         # modal "Nuevo proyecto": presets + tamaño personalizado
+    ├── imageAssets.ts              # cargar un File como imagen, cache en memoria, precarga al abrir (sin Asset Library real)
+    ├── tools.ts                    # acciones "Agregar texto"/"Agregar imagen" + botones de la tools-bar
+    ├── zoom.ts                     # zoom vía CSS transform: presets, Ajustar a pantalla, rueda + Ctrl/Cmd
+    ├── layersPanel.ts              # Sidebar izquierda: reordenar, expandir/colapsar, renombrar, ocultar, bloquear
+    ├── inspector.ts                # Sidebar derecha: Transformar/Apariencia/Texto/Metadata según la selección
+    ├── keyboardShortcuts.ts        # mapa de atajos -> acciones, desacoplado del Engine
     └── testing/
-        └── fakeCanvasContext.ts # stub de canvas 2D para tests (jsdom no implementa uno real)
+        └── fakeCanvasContext.ts    # stub de canvas 2D para tests (jsdom no implementa uno real)
 
-    (30 tests, 100% de cobertura — y verificado además en un navegador real, ver §4)
+    (161 tests, ~99.8% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
 ```
 
-## 3. El flujo unidireccional
+## 3. Decisiones clave (ver ADR-0010 para el detalle completo)
 
-```
-demoProject (o un Project cargado de localStorage)
-     │
-     ▼
-createEngine(project)              -- @impulso/engine
-     │
-     ▼
-createKonvaRenderer(engine)        -- @impulso/renderer-konva
-     │
-     ▼
-renderer.mount(container)          -- Canvas real en el DOM
-```
+### 3.1 Orquestación: `app.ts` reemplaza a `toolbar.ts`
+`app.ts` es el único módulo que conoce a todos los demás — cada módulo individual (`layersPanel.ts`, `inspector.ts`, `zoom.ts`, `tools.ts`, `keyboardShortcuts.ts`, `newProjectDialog.ts`) no conoce a ningún otro, solo al `Engine`. "Nuevo"/"Abrir" mantienen el patrón ya establecido en Milestone 1 (ADR-0009): destruir el `CanvasRuntime` completo y montar uno nuevo, extendido ahora con precarga asíncrona de imágenes embebidas antes del primer render.
 
-`bootstrap.ts` es el único lugar que conecta Engine + Renderer, exclusivamente a través de sus APIs públicas ya existentes. `toolbar.ts` es la nueva capa de orquestación de Milestone 1: cablea los 5 botones sobre el `CanvasRuntime` que `bootstrap.ts` produce, sin tocar la API pública de `@impulso/engine` ni de `@impulso/renderer-konva`. `main.ts` sigue siendo la única pieza con efectos de módulo (contra el DOM real de `index.html`); todo lo demás es testable sin un navegador.
+### 3.2 Agrupar/desagrupar: solo hijos directos de una Layer
+Igual que `reorderObjects` desde Foundation 2 — agrupar objects de Layers distintas o ya anidados en otro Group se rechaza explícitamente. Al desagrupar, el transform del Group se "hornea" en cada hijo (`composeChildTransformIntoParent`, en `@impulso/engine`) para que nada se mueva visualmente.
 
-### 3.1 Los 5 botones
+### 3.3 Un Group siempre se selecciona como una unidad
+Ni el canvas (`NodeContext.interactive`, ver README de `@impulso/renderer-konva`) ni el panel de capas permiten seleccionar un hijo de un Group individualmente — las filas de hijos (mostradas solo al expandir) son informativas, sin click-to-select ni renombrado.
 
-| Botón | Qué hace | Cómo |
-|---|---|---|
-| **Nuevo** | Crea un documento nuevo | Destruye el `RendererAdapter` actual y monta uno nuevo (`mountCanvasRuntime`) con un `createDemoProject()` fresco — el Engine no tiene (ni necesita) una API de "vaciar" su Project actual |
-| **Deshacer** | Revierte el último cambio de contenido | `engine.undo()` (ya existe desde Foundation 2) — deshabilitado cuando `!engine.canUndo()` |
-| **Rehacer** | Vuelve a aplicar un cambio deshecho | `engine.redo()` — deshabilitado cuando `!engine.canRedo()` |
-| **Guardar** | Persiste el Project actual | `saveProjectLocally(engine.getProject())` → `localStorage`, un único slot (ver ADR-0009) |
-| **Abrir** | Carga el último Project guardado | `loadProjectLocally()` + remonta el runtime, igual que "Nuevo" pero con el Project cargado |
+### 3.4 Insertar texto/imágenes centrado, no "colocar con un click"
+"Texto"/"Imagen" insertan el object nuevo ya centrado en la página (con un pequeño desplazamiento en cascada entre inserciones consecutivas) en vez de armar un modo de herramienta que espere un click de colocación — evita traducir coordenadas de pantalla a través del zoom CSS hasta el espacio del Stage de Konva. El usuario arrastra el object a su posición final con la interacción de mover ya existente.
 
-Selección, movimiento, resize y rotación NO tienen botón — se activan directamente sobre el canvas (click, arrastre, handles), heredados sin cambios de `@impulso/renderer-konva`.
+### 3.5 Imágenes sin una Asset Library real
+El binario de la imagen se embebe como data URL en `customProperties[IMAGE_DATA_URL_PROPERTY]` del propio `ImageObject`, con un `assetId` sintético (`asset_${crypto.randomUUID()}`) no respaldado por ningún registro. `imageAssets.ts` resuelve ese data URL hacia un `HTMLImageElement` en memoria (`ImageAssetCache`), conectado al `resolveAssetSource` que `@impulso/renderer-konva` ya exponía desde Foundation 3 sin usar. Al abrir un proyecto guardado, `preloadProjectImages` repuebla el cache antes del primer render. Deuda técnica documentada: sin deduplicación, el documento crece con cada imagen embebida (ver `docs/PERFORMANCE_BUDGET.md`, fila 11).
+
+### 3.6 Zoom vía CSS, no vía `stage.scale()`
+El zoom es un `transform: scale(...)` CSS sobre el contenedor que envuelve el Stage — Document Schema, Engine y Konva no saben que el zoom existe. Verificado en un navegador real que arrastrar/redimensionar/rotar un object sigue funcionando correctamente con el canvas escaleado.
+
+### 3.7 Duplicar sin un comando nuevo en el Engine
+`cloneSceneObjectWithNewIds` (función pura, no un comando — el Engine nunca inventa identidad) clona recursivamente con ids frescos; la app combina esa clonación con el comando `addObject` ya existente.
+
+### 3.8 Bug encontrado y corregido durante la verificación en navegador: el panel de capas rompía el renombrado por doble-click
+La primera implementación reconstruía el DOM completo del panel en cada cambio de selección — esto (verificado en Chromium real, no detectado por jsdom) impedía que el navegador reconociera dos clicks consecutivos como un doble-click, porque el primer click ya había reemplazado el elemento antes de que llegara el segundo. Corregido separando reconstrucción completa (`projectChanged`) de una actualización liviana que solo alterna la clase `.selected` sobre las filas existentes (`selectionChanged`), preservando la identidad de los nodos DOM. Ver ADR-0010 para el detalle.
 
 ## 4. Cómo se verificó (no solo tests unitarios)
 
-Además de los tests (jsdom + stub de canvas), se hizo el build de producción (`vite build`) y se ejecutó el flujo COMPLETO en un **Chromium real** (Playwright), incluyendo una recarga real de página (no solo en memoria) entre "Guardar" y "Abrir":
+Además de los 161 tests (jsdom + stub de canvas), se hizo el build de producción (`vite build`) y se ejecutó el flujo COMPLETO en un **Chromium real** (Playwright) contra ese build:
 
-- Seleccionar, mover, redimensionar y rotar objects distintos del documento de demostración — confirmado leyendo `transform` resultante en cada paso.
-- Deshacer/Rehacer reflejados correctamente en el estado del Engine y en los botones (`disabled`).
-- Guardar → recargar la página completa (`localStorage` persiste across reload, a diferencia del estado en memoria) → Abrir → el `Project` restaurado es exactamente el guardado (mismas transformaciones de resize/rotación/movimiento).
-- Nuevo → runtime fresco, sin selección ni historial de undo/redo previos.
-
-Ver [`docs/MILESTONE_1_ALPHA.md`](../../docs/MILESTONE_1_ALPHA.md) para el script de verificación completo (reproducible manualmente) y el detalle de cada paso.
+- Crear un proyecto nuevo desde el diálogo (preset y personalizado), agregar texto e imagen (PNG), moverlos/escalarlos/rotarlos sobre el canvas real (confirmado en el Inspector), duplicar, eliminar, reordenar por drag-and-drop, agrupar/desagrupar, ocultar/bloquear desde el panel de capas, deshacer/rehacer, hacer zoom (presets y "Ajustar a pantalla").
+- Guardar → recargar la página completa (no solo en memoria) → Abrir → el `Project` restaurado, incluidas las imágenes embebidas, es exactamente el guardado.
+- Renombrado inline por doble-click en el panel de capas (el bug de §3.8, reproducido y luego confirmado corregido).
+- **Cero errores de consola** en todo el flujo.
 
 ## 5. Desarrollo
 
 ```bash
-pnpm --filter @impulso/sticker-builder dev      # servidor de desarrollo
-pnpm --filter @impulso/sticker-builder build     # build de producción
-pnpm --filter @impulso/sticker-builder preview   # sirve el build de producción (para probar el Alpha)
-pnpm --filter @impulso/sticker-builder test       # tests
+pnpm --filter @impulso/sticker-builder dev       # servidor de desarrollo
+pnpm --filter @impulso/sticker-builder build      # build de producción
+pnpm --filter @impulso/sticker-builder preview    # sirve el build de producción
+pnpm --filter @impulso/sticker-builder test        # tests
+pnpm --filter @impulso/sticker-builder typecheck   # tsc --noEmit
 ```
 
 ## 6. UX (regla permanente "UX First")
 
 ### Flujo del usuario
-1. Al abrir la app, se ve el documento de demostración ya renderizado, con la barra de 5 botones arriba.
-2. Seleccionar/mover/redimensionar/rotar cualquier object funciona exactamente como en Editor 2/3/Epic 1 (click, arrastre, handles) — sin ningún paso adicional.
-3. "Deshacer"/"Rehacer" están deshabilitados (grises, sin cursor de mano) cuando no hay nada que deshacer/rehacer respectivamente — se habilitan/deshabilitan automáticamente según el estado real del Engine.
-4. "Guardar" persiste el documento actual; un mensaje de estado junto a los botones confirma qué pasó ("Documento guardado localmente.", "Documento cargado.", etc.).
-5. "Abrir" reemplaza lo que se ve por el último documento guardado — incluso después de cerrar y volver a abrir el navegador.
-6. "Nuevo" reemplaza lo que se ve por un documento de demostración fresco, con su propio historial de undo/redo vacío.
+1. Al abrir la app, se ve un documento de demostración ya renderizado.
+2. "Nuevo" abre un diálogo con 3 tamaños de sticker curados (cuadrado, circular, rectangular) + una opción "Personalizado" (ancho/alto en mm).
+3. "Texto"/"Imagen" en la barra de herramientas insertan un object nuevo centrado en la página, listo para arrastrar a su posición final.
+4. Cualquier object se selecciona con click (Shift-click para selección múltiple) tanto en el canvas como en el panel de capas; el Inspector se adapta automáticamente a la selección (0/1/2+ objects).
+5. Duplicar/Eliminar/Agrupar/Desagrupar están disponibles como botones (deshabilitados cuando no aplican a la selección actual) y como atajos de teclado.
+6. El panel de capas permite reordenar arrastrando filas, expandir un Group para ver (no seleccionar) sus hijos, renombrar con doble-click, y ocultar/bloquear con un ícono por fila.
+7. El zoom (25/50/100/200%, "Ajustar a pantalla", rueda + Ctrl/Cmd) es puramente visual — nunca afecta las medidas reales del documento.
+8. "Guardar"/"Abrir" persisten y restauran el proyecto completo, incluidas imágenes; "Deshacer"/"Rehacer" reflejan el estado real del Engine en los botones.
 
 ### Consistencia de interacción
-Los 5 botones siguen el vocabulario estándar de cualquier editor de documentos (Nuevo/Deshacer/Rehacer/Guardar/Abrir) — sin sorpresas de nomenclatura ni de ubicación (una barra fija arriba del canvas).
+Vocabulario y atajos estándar de cualquier editor de diseño (Ctrl/Cmd+D duplicar, Ctrl/Cmd+G agrupar, Ctrl/Cmd+Z/Shift+Z deshacer/rehacer, flechas para mover 1px/10px con Shift, etc.) — sin inventar convenciones propias donde ya existe una esperada.
 
 ### Accesibilidad
-**Limitación real, no resuelta en este milestone:** los 5 botones SÍ son elementos `<button>` HTML reales (navegables por teclado, con estado `disabled` nativo), a diferencia de la edición dentro del canvas (que sigue siendo exclusivamente por puntero, ver el README de `@impulso/renderer-konva`). El mensaje de estado (`#toolbar-status`) es texto plano sin `aria-live`, así que un lector de pantalla no lo anuncia automáticamente al cambiar — solo lo vería si navega explícitamente hasta ese elemento.
+Todos los controles de la barra superior/herramientas son elementos `<button>`/`<input>` HTML reales, navegables por teclado, con estado `disabled` nativo reflejando cuándo una acción no aplica. **Limitación conocida:** el mensaje de estado (`#toolbar-status`) no tiene `aria-live`, y la edición dentro del canvas (mover/escalar/rotar/agregar) sigue siendo exclusivamente por puntero.
 
 ### Mejoras futuras
-- `aria-live="polite"` en el mensaje de estado, para que lectores de pantalla anuncien confirmaciones/errores sin que el usuario tenga que buscarlas.
-- Confirmación antes de "Nuevo"/"Abrir" si hay cambios sin guardar (hoy se pierden silenciosamente).
+- `aria-live="polite"` en el mensaje de estado.
+- Confirmación antes de "Nuevo"/"Abrir" si hay cambios sin guardar.
 - Guardar/abrir múltiples documentos con nombre, no un único slot fijo.
-- Atajos de teclado (Ctrl+Z/Ctrl+Y/Ctrl+S) además de los botones.
+- Un modo de "entrar" a un Group para seleccionar un hijo individualmente.
+- Menú contextual (click derecho) como alternativa descubrible a los atajos de teclado.
 
 ## 7. Riesgos y limitaciones conocidas
 
-Ver [ADR-0005](../../docs/adr/0005-canvas-runtime.md) y [ADR-0009](../../docs/adr/0009-local-persistence-alpha.md) para el detalle completo. En resumen:
+Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md) para el detalle completo. En resumen:
 
-- El único contenido posible (al cargar, o al pulsar "Nuevo") es el `Project` de demostración — no hay UI para crear objects desde cero ni para importar contenido externo.
-- Un solo slot de guardado en `localStorage`: cada "Guardar" sobrescribe el anterior sin aviso ni confirmación; no hay lista de documentos.
-- El historial de undo/redo NO sobrevive a "Guardar" + recargar + "Abrir", ni a "Nuevo" — cada `Engine` empieza con su historial vacío; es el comportamiento esperado (el historial en memoria siempre fue efímero, desde Foundation 2), pero vale la pena saberlo antes de probar el Alpha para no reportarlo como bug.
-- Sin manejo de cuota de `localStorage` — un documento que excediera el límite del navegador haría fallar "Guardar" sin un mensaje amigable específico para ese caso.
-- Sin Zoom/Pan: un documento más grande que el Stage se corta.
-- El handle de rotación puede quedar fuera del área visible del Stage para un object muy cerca del borde superior de la página (ver ADR-0008) — es una limitación ya conocida del sistema de manipulación, no nueva de este milestone.
+- **Imágenes embebidas sin Asset Library real**: sin deduplicación ni compresión — el documento crece proporcionalmente con cada imagen agregada.
+- **Agrupar/desagrupar de un solo nivel**: solo opera sobre hijos directos de una Layer, igual que `reorderObjects`.
+- **Sin "entrar" a un Group**: siempre se selecciona/edita como una unidad completa.
+- **El `<textarea>` de edición de texto in-canvas** no garantiza pixel-match exacto con el `Konva.Text` renderizado (diferencias de fuente/kerning entre el navegador y Konva).
+- **Sin modo de herramienta persistente**: Texto/Imagen insertan de inmediato, no "arman" un modo de colocación.
+- **Un solo slot de guardado en `localStorage`** (heredado de Milestone 1/ADR-0009): cada "Guardar" sobrescribe el anterior sin aviso.
+- **El historial de undo/redo no sobrevive a Guardar/Abrir/recargar** (heredado de ADR-0009).
+- **La UI asume una sola Page/Layer**: el Document Schema soporta múltiples, pero el panel de capas y el Inspector no las exponen todavía.

@@ -16,10 +16,15 @@ import type { NodeContext } from "./types.js";
  */
 export function applyBaseAttrs(node: Konva.Node, object: SceneObject, context: NodeContext): void {
   const { x, y } = toKonvaXY(object);
-  const draggable = !object.metadata.locked;
-  // `listening` ya no depende solo de `draggable`: un object bloqueado
-  // sigue siendo seleccionable por click (no se puede arrastrar, pero sí
-  // inspeccionar) — sí deja de escuchar si está oculto.
+  // Un hijo anidado dentro de un group (context.interactive === false) nunca
+  // es individualmente arrastrable, sin importar `locked` — así un
+  // mousedown sobre él burbujea hasta encontrar un ancestro `draggable`
+  // (el propio Group), que Konva arrastra como unidad. `listening` SÍ se
+  // mantiene según `visible`: el hijo debe seguir siendo un objetivo válido
+  // de hit-testing para que el evento burbujee, solo no debe iniciar su
+  // propio arrastre ni su propia selección (ver types.ts, ADR-0010).
+  const interactive = context.interactive ?? true;
+  const draggable = interactive && !object.metadata.locked;
   const listening = object.metadata.visible;
 
   node.setAttrs({
@@ -36,6 +41,8 @@ export function applyBaseAttrs(node: Konva.Node, object: SceneObject, context: N
     globalCompositeOperation: toCanvasBlendMode(object.style.blendMode),
   });
 
-  attachSelectionInteractions(node, object, context);
-  attachTransformInteractions(node, object, context);
+  if (interactive) {
+    attachSelectionInteractions(node, object, context);
+    attachTransformInteractions(node, object, context);
+  }
 }

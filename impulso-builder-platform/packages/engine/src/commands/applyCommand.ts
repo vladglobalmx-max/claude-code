@@ -8,11 +8,13 @@ import {
   removeObject,
   updateObjectTransform,
   updateObjectStyle,
+  updateObjectContent,
   reorderObjects,
 } from "./objectCommands.js";
 import { updateMetadata } from "./metadataCommand.js";
 import { resizeObject } from "./resizeObjectCommand.js";
 import { rotateObject } from "./rotateObjectCommand.js";
+import { groupObjects, ungroupObject } from "./groupCommands.js";
 
 function describeCommand(command: ContentCommand): string {
   switch (command.type) {
@@ -44,6 +46,12 @@ function describeCommand(command: ContentCommand): string {
       return `Redimensionar object "${command.objectId}" (handle: ${command.handle})`;
     case "rotateObject":
       return `Rotar object "${command.objectId}"`;
+    case "updateObjectContent":
+      return `Cambiar contenido de object "${command.objectId}"`;
+    case "groupObjects":
+      return `Agrupar ${command.objectIds.length} objects en "${command.group.id}"`;
+    case "ungroupObject":
+      return `Desagrupar "${command.objectId}"`;
   }
 }
 
@@ -77,6 +85,12 @@ function runReducer(project: Project, command: ContentCommand): EngineResult<Pro
       return resizeObject(project, command);
     case "rotateObject":
       return rotateObject(project, command);
+    case "updateObjectContent":
+      return updateObjectContent(project, command);
+    case "groupObjects":
+      return groupObjects(project, command);
+    case "ungroupObject":
+      return ungroupObject(project, command);
   }
 }
 

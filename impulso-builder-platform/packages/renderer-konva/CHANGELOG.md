@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.5.0] — Sticker Creation Experience
+
+### Agregado
+- `NodeContext.interactive` (opcional, aditivo): cuando es `false`, un node no recibe sus propias interacciones de selección/transform/edición de texto — usado para que los hijos de un `group` actúen como una única unidad seleccionable/arrastrable, en vez de responder cada uno por separado. `createGroupNode` lo pone en `false` para todos sus hijos, a cualquier profundidad.
+- `interactions/textEditingInteractions.ts`: doble-click sobre un `TextObject` superpone un `<textarea>` HTML real (posicionado/rotado/escalado exactamente sobre el node) para editar su contenido in-canvas — capacidad anticipada desde ADR-0004 ("Konva.Text no es editable in-canvas"), implementada aquí por primera vez. Confirma con blur/Enter (`engine.dispatch({type:"updateObjectContent", ...})`), cancela con Escape sin despachar nada.
+- 40 tests nuevos (140 en total), 100% de cobertura en statements/functions/lines.
+
+### Corregido (comportamiento, no de la API pública)
+- Antes de esta versión, hacer click o arrastrar un hijo dentro de un `group` lo seleccionaba/movía INDIVIDUALMENTE (cada hijo tenía sus propias interacciones activas) — contrario a la convención de cualquier editor de diseño profesional, donde un group se comporta como una sola unidad hasta desagruparlo. Corregido desactivando `draggable` y las interacciones propias de cualquier node anidado dentro de un group; Konva ya resuelve correctamente que un mousedown sobre un hijo no-draggable inicie el arrastre del ancestro draggable más cercano (el propio Group), sin código adicional de hit-testing.
+
 ## [0.4.0] — Editor Epic 1 (Manipulation System)
 
 ### Agregado

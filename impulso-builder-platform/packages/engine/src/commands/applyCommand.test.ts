@@ -7,6 +7,8 @@ import {
   buildPage,
   buildLayer,
   buildRectangle,
+  buildText,
+  buildGroup,
   NOW,
 } from "../testUtils/fixtures.js";
 
@@ -253,6 +255,65 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
       const object = result.value.document.pages[0]?.layers[0]?.objects[0];
       expect(object?.transform.rotation).toBe(45);
       expect(result.value.document.history.entries[0]?.description).toBe('Rotar object "rect_1"');
+    }
+  });
+
+  it("updateObjectContent", () => {
+    const project = buildProject({
+      document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildText("text_1")])])]),
+    });
+    const result = applyContentCommand(
+      project,
+      { type: "updateObjectContent", objectId: ObjectIdSchema.parse("text_1"), content: "Hola" },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.type === "text" && object.content).toBe("Hola");
+      expect(result.value.document.history.entries[0]?.description).toBe('Cambiar contenido de object "text_1"');
+    }
+  });
+
+  it("groupObjects", () => {
+    const result = applyContentCommand(
+      richProject(),
+      {
+        type: "groupObjects",
+        objectIds: [ObjectIdSchema.parse("rect_1"), ObjectIdSchema.parse("rect_2")],
+        group: {
+          id: ObjectIdSchema.parse("group_1"),
+          transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+          style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
+          metadata: { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW },
+          pluginData: {},
+          customProperties: {},
+        },
+      },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual(["group_1"]);
+      expect(result.value.document.history.entries[0]?.description).toBe('Agrupar 2 objects en "group_1"');
+    }
+  });
+
+  it("ungroupObject", () => {
+    const project = buildProject({
+      document: buildDocument([
+        buildPage("page_1", [buildLayer("layer_1", [buildGroup("group_1", [buildRectangle("rect_1")])])]),
+      ]),
+    });
+    const result = applyContentCommand(
+      project,
+      { type: "ungroupObject", objectId: ObjectIdSchema.parse("group_1") },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual(["rect_1"]);
+      expect(result.value.document.history.entries[0]?.description).toBe('Desagrupar "group_1"');
     }
   });
 });

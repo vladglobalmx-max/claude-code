@@ -1,6 +1,6 @@
 # @impulso/engine
 
-> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado. Desde EDITOR EPIC 1 (Manipulation System) también expone la geometría pura de resize/rotate — ver [ADR-0008](../../docs/adr/0008-manipulation-system.md).
+> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado. Desde EDITOR EPIC 1 (Manipulation System) también expone la geometría pura de resize/rotate — ver [ADR-0008](../../docs/adr/0008-manipulation-system.md). Desde el épico Sticker Creation Experience, agrupar/desagrupar, editar el contenido de un texto, y clonar un object con identidad fresca — ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md).
 
 **Estado:** completo. No implementa Renderer, Konva, React, Canvas, UI, Assets/Fonts (gestión de binarios), Export ni Persistence — eso es alcance de micro-sprints futuros.
 
@@ -33,16 +33,21 @@ packages/engine/
     │   ├── permutation.ts          # helper: validar que un "reorder" es una permutación válida
     │   ├── pageCommands.ts         # addPage / removePage / reorderPages
     │   ├── layerCommands.ts        # addLayer / removeLayer / reorderLayers
-    │   ├── objectCommands.ts       # addObject / removeObject / updateObjectTransform|Style / reorderObjects
+    │   ├── objectCommands.ts       # addObject / removeObject / updateObjectTransform|Style|Content / reorderObjects
     │   ├── resizeObjectCommand.ts  # resizeObject — delega en geometry/resizeMath.ts + updateObjectTransform
     │   ├── rotateObjectCommand.ts  # rotateObject — delega en geometry/rotateMath.ts + updateObjectTransform
+    │   ├── groupCommands.ts        # groupObjects / ungroupObject — solo hijos directos de una layer
     │   ├── metadataCommand.ts      # updateMetadata — un comando, 5 niveles (project/document/page/layer/object)
     │   ├── selectionCommands.ts    # setSelection / clearSelection / toggleObjectSelection / pruneSelection
     │   └── applyCommand.ts         # orquesta: reducer -> versión -> historial -> validación final
     │
     ├── geometry/
     │   ├── resizeMath.ts           # computeResizedTransform — función pura, sin Project ni dispatch
-    │   └── rotateMath.ts           # computeRotatedTransform — función pura, sin Project ni dispatch
+    │   ├── rotateMath.ts           # computeRotatedTransform — función pura, sin Project ni dispatch
+    │   └── composeTransform.ts     # composeChildTransformIntoParent — hornea el transform de un Group en su hijo
+    │
+    ├── cloning/
+    │   └── cloneSceneObject.ts     # cloneSceneObjectWithNewIds — clona con ids frescos (no un comando)
     │
     ├── tree/
     │   └── objectTree.ts           # find/update/remove un Object por id, a cualquier profundidad de Group
@@ -60,7 +65,7 @@ packages/engine/
     └── testUtils/
         └── fixtures.ts             # builders de Project/Document/Page/Layer/Object para tests
 
-    (167 tests, 100% de cobertura)
+    (202 tests, 100% de cobertura)
 ```
 
 ## 3. Arquitectura
@@ -106,13 +111,13 @@ Un `Engine` no expone `engine.project.pages.push(...)`. Todo pasa por `dispatch(
 
 ### 3.3 Comandos: un catálogo simétrico, no ad-hoc
 
-Los 16 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
+Los 19 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
 
 | Nivel | Comandos |
 |---|---|
 | Page | `addPage`, `removePage`, `reorderPages` |
 | Layer | `addLayer`, `removeLayer`, `reorderLayers` |
-| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `reorderObjects`, `resizeObject`, `rotateObject` |
+| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `updateObjectContent`, `reorderObjects`, `resizeObject`, `rotateObject`, `groupObjects`, `ungroupObject` |
 | Metadata (genérico, 5 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`) |
 | Selección (efímera, no versionada) | `setSelection`, `clearSelection`, `toggleObjectSelection` (selección múltiple, ver Editor 2 / ADR-0006) |
 
@@ -127,6 +132,18 @@ Los comandos de **objeto** se dirigen solo por `objectId` (no `pageId`+`layerId`
 `computeResizedTransform` y `computeRotatedTransform` (`src/geometry/`) son las únicas piezas de este paquete pensadas explícitamente para ser llamadas **fuera** de `dispatch`. Un Renderer las usa para computar una previsualización visual en cada `dragmove` (sin tocar el `Project`, sin disparar un rebuild) y, al soltar el puntero, el comando `resizeObject`/`rotateObject` llama **exactamente a la misma función** para calcular el `Transform` final — preview y estado commiteado nunca pueden divergir, porque es el mismo cálculo. Ver ADR-0008 para el razonamiento completo (por qué el resize opera sobre `scaleX`/`scaleY` y no sobre `size`, y por qué `intrinsicSize` lo mide el Renderer y no el Engine).
 
 Estas dos funciones son deliberadamente las únicas en el Engine que no requieren un `Project` para ejecutarse — reciben un `Transform` (o un ángulo) y devuelven un `Partial<Transform>`. Son las candidatas naturales si en el futuro se decide extraer un sub-paquete `@impulso/geometry` puro, pero eso no se hizo aquí porque no hay todavía una segunda necesidad de consumirlas fuera de `@impulso/engine`.
+
+### 3.9 Agrupar/desagrupar: una operación estructural, no una transformación
+
+`groupObjects`/`ungroupObject` (`commands/groupCommands.ts`) solo operan sobre hijos **directos** de una Layer — mismo alcance que ya tenía `reorderObjects` desde Foundation 2, por la misma razón (mantener acotada la primera versión, no una limitación del árbol recursivo del Document Schema en sí).
+
+- `groupObjects` construye el nuevo `GroupObject` con el `transform`/`style`/`metadata` que trae el comando (el Engine nunca inventa identidad ni timestamps, mismo principio que `addObject`) y sus `children` en el orden real que ya tenían en la layer. Con un `transform` identidad (el caso normal al agrupar desde una UI), ningún hijo se mueve — agrupar es puramente estructural.
+- `ungroupObject` hace lo inverso: reemplaza el Group por sus hijos en su misma posición, pero primero "hornea" el `transform` del Group en cada hijo con `composeChildTransformIntoParent` (`geometry/composeTransform.ts`) — así, si el Group fue movido/rotado/escalado después de creado, ningún hijo cambia de posición visual al desagrupar.
+- `composeChildTransformIntoParent` sigue el mismo estilo que `computeResizedTransform`/`computeRotatedTransform`: función pura, sin `Project`, exportada en la API pública para que un Renderer pueda reutilizar la misma matemática si algún día necesita previsualizar un ungroup antes de despachar el comando.
+
+### 3.10 Clonar con identidad fresca: una utilidad, no un comando
+
+"Duplicar" un object no tiene un comando propio — `cloneSceneObjectWithNewIds` (`cloning/cloneSceneObject.ts`) es una función pura que clona un `SceneObject` (recursivamente si es un `Group`, a cualquier profundidad) asignando un id nuevo a cada nodo, y el resultado se despacha con el `addObject` ya existente. Quien llama provee tanto el generador de ids como el timestamp — el Engine nunca inventa ninguno de los dos, exactamente como con cualquier otro object nuevo. Un `offset` opcional desplaza `x`/`y` solo del object de nivel superior; los hijos de un Group conservan su posición relativa intacta (ya es relativa al Group, no al documento).
 
 ### 3.4 Versionado e historial
 
@@ -211,12 +228,13 @@ const engine = createEngine(myProject, {
 3. **`reorderObjects` solo reordena los hijos directos de una Layer**, no los hijos de un `group` anidado — es una limitación deliberada (no se pidió), documentada en el propio código de `objectCommands.ts`.
 4. **El emisor de eventos entrega de forma síncrona y en orden de suscripción**, sin manejo especial si un listener lanza una excepción (esa excepción se propagaría hacia quien llamó a `dispatch`). No se agregó un try/catch por listener porque no hay evidencia de que haga falta todavía.
 5. **`resizeObject` confía en que `intrinsicSize` (medido por el Renderer) es correcto** — el Engine no tiene forma de verificar independientemente esa medición, porque calcular la geometría real de un `Path` con curvas bezier o de un `Group` anidado requiere conocimiento de renderizado que el Engine deliberadamente no tiene (ver ADR-0008). Un `intrinsicSize` incorrecto produce un resize matemáticamente consistente pero visualmente erróneo — no hay forma de detectarlo desde este paquete.
+6. **`groupObjects`/`ungroupObject` solo soportan un nivel de anidamiento** (hijos directos de una Layer) — agrupar objects ya anidados en otro group, o desagrupar un group anidado en otro group, se rechaza explícitamente con `invalid_group` en vez de intentarlo. Documentado, no un descuido (ver §3.9).
 
 ## 6. Posibles mejoras futuras
 
-*(No implementadas — fuera de alcance de Foundation 2 / Editor Epic 1.)*
+*(No implementadas — fuera de alcance de Foundation 2 / Editor Epic 1 / Sticker Creation Experience.)*
 
-- Comandos para reordenar/mover hijos dentro de un `group` anidado.
+- Comandos para reordenar/mover hijos dentro de un `group` anidado, y para agrupar/desagrupar más allá de un solo nivel (ver Riesgo 6).
 - Un modo de undo/redo basado en patches en vez de snapshots completos (ver Riesgo 1).
 - Índice `objectId -> ruta` para acelerar las operaciones sobre objetos en documentos grandes (ver Riesgo 2).
 - Middleware/interceptores de `dispatch` (por ejemplo, para que un plugin valide un comando antes de que llegue al reducer) — no se construyó porque Foundation 2 no incluye todavía el sistema de Plugins.

@@ -1,31 +1,41 @@
-import { mountToolbar } from "./toolbar.js";
+import { mountApp } from "./app.js";
 
-const canvasContainer = document.getElementById("canvas-runtime");
-if (!(canvasContainer instanceof HTMLDivElement)) {
-  throw new Error('No se encontró el contenedor "#canvas-runtime" en index.html.');
-}
-
-function requireButton(id: string): HTMLButtonElement {
+function requireElement<T extends Element>(id: string, check: (el: Element) => el is T): T {
   const el = document.getElementById(id);
-  if (!(el instanceof HTMLButtonElement)) {
-    throw new Error(`No se encontró el botón "#${id}" en index.html.`);
+  if (!el || !check(el)) {
+    throw new Error(`No se encontró "#${id}" (o no es del tipo esperado) en index.html.`);
   }
   return el;
 }
 
-const statusElement = document.getElementById("toolbar-status");
-if (!statusElement) {
-  throw new Error('No se encontró "#toolbar-status" en index.html.');
+function isDiv(el: Element): el is HTMLDivElement {
+  return el instanceof HTMLDivElement;
+}
+function isButton(el: Element): el is HTMLButtonElement {
+  return el instanceof HTMLButtonElement;
+}
+function isHTMLElement(el: Element): el is HTMLElement {
+  return el instanceof HTMLElement;
 }
 
-mountToolbar({
-  canvasContainer,
+mountApp({
   elements: {
-    newButton: requireButton("new-btn"),
-    undoButton: requireButton("undo-btn"),
-    redoButton: requireButton("redo-btn"),
-    saveButton: requireButton("save-btn"),
-    openButton: requireButton("open-btn"),
-    statusElement,
+    canvasViewport: requireElement("canvas-viewport", isHTMLElement),
+    canvasContainer: requireElement("canvas-runtime", isDiv),
+    layersContainer: requireElement("layers-panel", isHTMLElement),
+    inspectorContainer: requireElement("inspector-panel", isHTMLElement),
+    toolsContainer: requireElement("tools-container", isHTMLElement),
+    zoomContainer: requireElement("zoom-container", isHTMLElement),
+    newProjectDialogContainer: requireElement("new-project-dialog-root", isHTMLElement),
+    newButton: requireElement("new-btn", isButton),
+    undoButton: requireElement("undo-btn", isButton),
+    redoButton: requireElement("redo-btn", isButton),
+    saveButton: requireElement("save-btn", isButton),
+    openButton: requireElement("open-btn", isButton),
+    duplicateButton: requireElement("duplicate-btn", isButton),
+    deleteButton: requireElement("delete-btn", isButton),
+    groupButton: requireElement("group-btn", isButton),
+    ungroupButton: requireElement("ungroup-btn", isButton),
+    statusElement: requireElement("toolbar-status", isHTMLElement),
   },
 });

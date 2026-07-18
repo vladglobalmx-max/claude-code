@@ -5,9 +5,18 @@ import {
   removeObject,
   updateObjectTransform,
   updateObjectStyle,
+  updateObjectContent,
   reorderObjects,
 } from "./objectCommands.js";
-import { buildProject, buildDocument, buildPage, buildLayer, buildRectangle, buildGroup } from "../testUtils/fixtures.js";
+import {
+  buildProject,
+  buildDocument,
+  buildPage,
+  buildLayer,
+  buildRectangle,
+  buildGroup,
+  buildText,
+} from "../testUtils/fixtures.js";
 
 function projectWithRect() {
   return buildProject({
@@ -178,6 +187,61 @@ describe("updateObjectStyle", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("invalid_style");
+  });
+});
+
+describe("updateObjectContent", () => {
+  function projectWithText() {
+    return buildProject({
+      document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildText("text_1")])])]),
+    });
+  }
+
+  it("actualiza el content de un TextObject", () => {
+    const result = updateObjectContent(projectWithText(), {
+      type: "updateObjectContent",
+      objectId: ObjectIdSchema.parse("text_1"),
+      content: "Hola mundo",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.type).toBe("text");
+      if (object?.type === "text") expect(object.content).toBe("Hola mundo");
+    }
+  });
+
+  it("acepta un content vacío (borrar todo el texto es válido)", () => {
+    const result = updateObjectContent(projectWithText(), {
+      type: "updateObjectContent",
+      objectId: ObjectIdSchema.parse("text_1"),
+      content: "",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      if (object?.type === "text") expect(object.content).toBe("");
+    }
+  });
+
+  it("rechaza un objectId inexistente", () => {
+    const result = updateObjectContent(projectWithText(), {
+      type: "updateObjectContent",
+      objectId: ObjectIdSchema.parse("no_existe"),
+      content: "x",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("object_not_found");
+  });
+
+  it("rechaza un object que no es de tipo text", () => {
+    const result = updateObjectContent(projectWithRect(), {
+      type: "updateObjectContent",
+      objectId: ObjectIdSchema.parse("rect_1"),
+      content: "x",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_content");
   });
 });
 

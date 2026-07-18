@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import Konva from "konva";
-import { ObjectIdSchema } from "@impulso/document-schema";
+import {
+  ObjectIdSchema,
+  PageIdSchema,
+  DocumentIdSchema,
+  LayerIdSchema,
+  AssetIdSchema,
+  ProjectIdSchema,
+  CURRENT_SCHEMA_VERSION,
+  type Project,
+} from "@impulso/document-schema";
 import { mountCanvasRuntime } from "./bootstrap.js";
 import { createDemoProject } from "./demoProject.js";
 
@@ -52,6 +61,68 @@ describe("mountCanvasRuntime — pipeline completo Document Schema -> Engine -> 
     const customProject = createDemoProject();
     const { engine } = mountCanvasRuntime(container(), customProject);
     expect(engine.getProject()).toEqual(customProject);
+  });
+
+  it("acepta un resolveAssetSource y lo pasa al Renderer para resolver Images", () => {
+    const now = "2026-07-18T00:00:00.000Z";
+    const metadata = { tags: [], visible: true, locked: false, createdAt: now, updatedAt: now };
+    const project: Project = {
+      id: ProjectIdSchema.parse("project_1"),
+      moduleId: "sticker-builder",
+      document: {
+        id: DocumentIdSchema.parse("document_1"),
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        documentVersion: 1,
+        pages: [
+          {
+            id: PageIdSchema.parse("page_1"),
+            size: { width: 100, height: 100 },
+            unit: "px",
+            layers: [
+              {
+                id: LayerIdSchema.parse("layer_1"),
+                objects: [
+                  {
+                    id: ObjectIdSchema.parse("image_1"),
+                    type: "image",
+                    assetId: AssetIdSchema.parse("asset_1"),
+                    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+                    size: { width: 10, height: 10 },
+                    style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
+                    metadata,
+                    pluginData: {},
+                    customProperties: {},
+                  },
+                ],
+                metadata,
+                pluginData: {},
+                customProperties: {},
+              },
+            ],
+            metadata,
+            pluginData: {},
+            customProperties: {},
+          },
+        ],
+        metadata,
+        history: { entries: [] },
+        pluginData: {},
+        customProperties: {},
+      },
+      metadata: { ...metadata, name: "test" },
+      pluginData: {},
+      customProperties: {},
+    };
+
+    const fakeImage = {} as CanvasImageSource;
+    const resolveAssetSource = (assetId: string) => (assetId === "asset_1" ? fakeImage : undefined);
+
+    const { renderer } = mountCanvasRuntime(container(), project, { resolveAssetSource });
+
+    const mainLayer = renderer.getStage()?.getChildren()[0] as Konva.Layer;
+    const layerGroup = mainLayer.getChildren()[0] as Konva.Group;
+    const imageNode = layerGroup.getChildren()[0] as Konva.Image;
+    expect(imageNode.image()).toBe(fakeImage);
   });
 
   it("destroy() del renderer limpia el DOM montado", () => {

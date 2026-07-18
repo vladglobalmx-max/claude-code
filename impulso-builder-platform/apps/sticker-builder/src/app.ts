@@ -14,6 +14,7 @@ import { mountZoomControl, type ZoomController } from "./zoom.js";
 import { createToolsController, mountToolButtons, type ToolButtons } from "./tools.js";
 import { mountKeyboardShortcuts, type KeyboardShortcuts } from "./keyboardShortcuts.js";
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
+import { mountExportDialog, type ExportDialog } from "./exportDialog.js";
 
 const DUPLICATE_OFFSET = 20;
 
@@ -32,11 +33,13 @@ export interface AppElements {
   toolsContainer: HTMLElement;
   zoomContainer: HTMLElement;
   newProjectDialogContainer: HTMLElement;
+  exportDialogContainer: HTMLElement;
   newButton: HTMLButtonElement;
   undoButton: HTMLButtonElement;
   redoButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
   openButton: HTMLButtonElement;
+  exportButton: HTMLButtonElement;
   duplicateButton: HTMLButtonElement;
   deleteButton: HTMLButtonElement;
   groupButton: HTMLButtonElement;
@@ -324,7 +327,13 @@ export function mountApp(deps: AppDependencies): App {
     },
   });
 
+  const exportDialog: ExportDialog = mountExportDialog(elements.exportDialogContainer, {
+    getProject: () => runtime.engine.getProject(),
+    resolver: { resolve: (assetId) => binaryStore.get(assetId) },
+  });
+
   elements.newButton.addEventListener("click", () => newProjectDialog.open());
+  elements.exportButton.addEventListener("click", () => exportDialog.open());
   elements.undoButton.addEventListener("click", () => {
     const result = runtime.engine.undo();
     setStatus(result.ok ? "Deshecho." : "No hay nada para deshacer.");
@@ -377,6 +386,7 @@ export function mountApp(deps: AppDependencies): App {
       zoomController.destroy();
       toolButtons.destroy();
       newProjectDialog.destroy();
+      exportDialog.destroy();
       layersPanel.destroy();
       inspector.destroy();
       assetsPanel.destroy();

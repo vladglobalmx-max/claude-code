@@ -21,10 +21,12 @@ export * from "./object/path.js";
 export * from "./object/image.js";
 export * from "./object/text.js";
 export * from "./object/object.js";
+export * from "./object/pathData.js";
 
 // Layer, Page
 export * from "./layer/layer.js";
 export * from "./page/page.js";
+export * from "./page/unitConversion.js";
 
 // Historial (dato puro, sin lógica de undo/redo)
 export * from "./history/history.js";

@@ -11,7 +11,10 @@ import type { KonvaRendererOptions, NodeContext, RendererAdapter } from "./types
  * sistema de theming; ver README "Fuera de alcance". */
 const SELECTION_STROKE_COLOR = "#3b82f6";
 
-function resolveActivePage(project: Project, pageId?: Page["id"]): Page | undefined {
+/** Exportada (no solo local a este archivo) porque `offscreenRenderer.ts`
+ * (Export Engine, ver ADR-0012) necesita exactamente el mismo criterio de
+ * "qué Page es la activa" que el Canvas Runtime interactivo. */
+export function resolveActivePage(project: Project, pageId?: Page["id"]): Page | undefined {
   if (pageId) {
     return project.document.pages.find((page) => page.id === pageId);
   }

@@ -1,18 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { toPixels } from "./unit.js";
 
-describe("toPixels", () => {
-  it("px se devuelve sin cambios", () => {
-    expect(toPixels(100, "px")).toBe(100);
-  });
-
-  it("in se convierte a 96px por pulgada", () => {
+// La lógica de conversión ahora vive en `@impulso/document-schema`
+// (`page/unitConversion.test.ts`) — este test solo confirma que el
+// re-export desde este paquete sigue funcionando.
+describe("toPixels (re-export)", () => {
+  it("sigue funcionando desde @impulso/renderer-konva", () => {
     expect(toPixels(1, "in")).toBe(96);
-    expect(toPixels(2, "in")).toBe(192);
-  });
-
-  it("mm se convierte vía 96px/25.4mm por pulgada", () => {
-    expect(toPixels(25.4, "mm")).toBeCloseTo(96, 5);
-    expect(toPixels(10, "mm")).toBeCloseTo(37.7952755906, 5);
   });
 });

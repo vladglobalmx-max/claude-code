@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.5.0] — Epic 3: Export Engine Foundation
+
+### Agregado
+- Botón "Exportar" en la barra superior + `exportDialog.ts` (mismo patrón de overlay propio que `newProjectDialog.ts`, ver ADR-0010): formato PNG/SVG, fondo transparente/sólido+color y escala 1x-4x (PNG), dimensiones finales en vivo, nombre de archivo, estado de procesamiento, confirmación de descarga con tamaño del archivo, warnings de Assets no resueltos y errores claros sin descarga fallida silenciosa.
+- Se apoya en `@impulso/export-engine` (paquete nuevo, ver ADR-0012): `exportProject`/`sanitizeFilename`/`triggerBrowserDownload`, adaptando `AssetBinaryStore.get` a `ExportAssetResolver` con una línea.
+- 16 tests nuevos (202 en total), ~99.2%/93.7%/95%/~99.2% de cobertura.
+
+### Fuera de alcance (deliberado)
+PDF/línea de corte/sangrado, detección de fuente no disponible, exportación por lotes — ver README de `@impulso/export-engine`.
+
 ## [0.4.0] — Epic 2: Asset Library
 
 ### Agregado

@@ -1,15 +1,15 @@
 # @impulso/sticker-builder
 
-> EPIC 1 — Sticker Creation Experience + EPIC 2 — Asset Library de Impulso Platform. Primera experiencia de creación completa: crear un proyecto (eligiendo tamaño de canvas por preset), agregar texto e imágenes, mover/escalar/rotar/duplicar/eliminar objects, reordenar capas, agrupar/desagrupar, bloquear/ocultar, deshacer/rehacer, guardar/abrir, y administrar una biblioteca de assets real (subir, reutilizar sin re-subir, eliminar) — todo dentro del navegador, verificado en Chromium real sin errores de consola. Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md) para el razonamiento completo de cada decisión, y [ADR-0005](../../docs/adr/0005-canvas-runtime.md)/[ADR-0009](../../docs/adr/0009-local-persistence-alpha.md) para las bases (Canvas Runtime, Local Persistence) sobre las que se construyó.
+> EPIC 1 — Sticker Creation Experience + EPIC 2 — Asset Library + EPIC 3 — Export Engine Foundation de Impulso Platform. Experiencia de creación completa: crear un proyecto (eligiendo tamaño de canvas por preset), agregar texto e imágenes, mover/escalar/rotar/duplicar/eliminar objects, reordenar capas, agrupar/desagrupar, bloquear/ocultar, deshacer/rehacer, guardar/abrir, administrar una biblioteca de assets real (subir, reutilizar sin re-subir, eliminar), y **exportar a PNG/SVG** — todo dentro del navegador, verificado en Chromium real sin errores de consola. Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md) para el razonamiento completo de cada decisión, y [ADR-0005](../../docs/adr/0005-canvas-runtime.md)/[ADR-0009](../../docs/adr/0009-local-persistence-alpha.md) para las bases (Canvas Runtime, Local Persistence) sobre las que se construyó.
 
-**Estado:** experiencia de creación de stickers de punta a punta con Asset Library real, lista para pruebas manuales reales. Todo lo construido en Epic 1 vive en la capa de aplicación (`apps/sticker-builder`); Epic 2 agrega el paquete reutilizable `@impulso/asset-library` y rewira esta app sobre él. Cero cambios que rompan la API pública de `@impulso/document-schema`/`@impulso/engine`/`@impulso/renderer-konva` — ambas épicas ganaron extensiones aditivas documentadas en sus propios READMEs/CHANGELOGs. Explícitamente fuera de alcance todavía: IA, Exportación, Marketplace, Usuarios, Cloud, Plantillas, Mockups, Plugins, tipos de Asset más allá de `image`.
+**Estado:** el flujo completo crear → diseñar → guardar → abrir → **exportar** queda cerrado por primera vez, listo para pruebas manuales reales. Todo lo construido en Epic 1 vive en la capa de aplicación (`apps/sticker-builder`); Epic 2 agregó `@impulso/asset-library`; Epic 3 agrega `@impulso/export-engine` y el diálogo de exportación. Cero cambios que rompan la API pública de `@impulso/document-schema`/`@impulso/engine`/`@impulso/renderer-konva` — las tres épicas ganaron extensiones aditivas documentadas en sus propios READMEs/CHANGELOGs. Explícitamente fuera de alcance todavía: IA, PDF print-ready/línea de corte/sangrado, Marketplace, Usuarios, Cloud, Plantillas, Mockups, Plugins, tipos de Asset más allá de `image`.
 
 ---
 
 ## 1. Qué es y qué no es
 
-- **Sí hace:** Barra superior (Nuevo/Deshacer/Rehacer/Guardar/Abrir/Duplicar/Eliminar/Agrupar/Desagrupar), barra de herramientas (Texto/Imagen + Zoom), Sidebar izquierda con dos tabs — panel de Capas (reordenar por drag-and-drop, expandir/colapsar groups, renombrar, ocultar, bloquear) y panel de **Assets** (subir imágenes, verlas en una grilla con miniatura, insertarlas en el canvas sin volver a subirlas, eliminarlas de la biblioteca) —, Canvas central (con zoom CSS 25-200% + "Ajustar a pantalla" + rueda del mouse con Ctrl/Cmd), Sidebar derecha (Inspector: Transformar/Apariencia/Texto/Metadata, adaptado a la selección actual), diálogo de "Nuevo proyecto" (3 presets de sticker + tamaño personalizado), y un mapa completo de atajos de teclado. Todo el flujo (crear → diseñar → guardar → abrir → editar sin pérdida de información) funciona sin recargar ni perder estado salvo cuando el usuario lo pide explícitamente (Guardar/Abrir).
-- **No hace:** no genera ningún archivo de salida (Exportación es una épica futura); no soporta múltiples Pages/Layers del Document Schema desde la UI (el panel de capas asume una sola Page/Layer); no tiene un modo de herramienta persistente tipo "lápiz armado" (Texto/Imagen insertan directamente, ver §3.4); no permite "entrar" a un Group para seleccionar un hijo individualmente (siempre se selecciona/edita como una unidad); no implementa ningún tipo de Asset más allá de `image` (la Asset Library ya admite extenderse, ver §3.9).
+- **Sí hace:** Barra superior (Nuevo/Deshacer/Rehacer/Guardar/Abrir/**Exportar**/Duplicar/Eliminar/Agrupar/Desagrupar), barra de herramientas (Texto/Imagen + Zoom), Sidebar izquierda con dos tabs — panel de Capas (reordenar por drag-and-drop, expandir/colapsar groups, renombrar, ocultar, bloquear) y panel de **Assets** (subir imágenes, verlas en una grilla con miniatura, insertarlas en el canvas sin volver a subirlas, eliminarlas de la biblioteca) —, Canvas central (con zoom CSS 25-200% + "Ajustar a pantalla" + rueda del mouse con Ctrl/Cmd), Sidebar derecha (Inspector: Transformar/Apariencia/Texto/Metadata, adaptado a la selección actual), diálogo de "Nuevo proyecto" (3 presets de sticker + tamaño personalizado), diálogo de "Exportar" (PNG con fondo transparente/sólido y escala 1x-4x, o SVG, con dimensiones finales en vivo y confirmación de descarga), y un mapa completo de atajos de teclado. Todo el flujo (crear → diseñar → guardar → abrir → editar → exportar sin pérdida de información) funciona sin recargar ni perder estado salvo cuando el usuario lo pide explícitamente (Guardar/Abrir/Exportar).
+- **No hace:** no genera PDF print-ready ni línea de corte/sangrado (v1.0 futuro); no soporta múltiples Pages/Layers del Document Schema desde la UI (el panel de capas asume una sola Page/Layer); no tiene un modo de herramienta persistente tipo "lápiz armado" (Texto/Imagen insertan directamente, ver §3.4); no permite "entrar" a un Group para seleccionar un hijo individualmente (siempre se selecciona/edita como una unidad); no implementa ningún tipo de Asset más allá de `image` (la Asset Library ya admite extenderse, ver §3.9).
 
 ## 2. Árbol
 
@@ -29,6 +29,7 @@ apps/sticker-builder/
     ├── assetResolution.ts          # ResolvedAssetCache: puente síncrono AssetBinaryStore (async) <-> resolveAssetSource (sync)
     ├── legacyMigration.ts          # migración de imágenes embebidas (Epic 1) al modelo de Asset Library
     ├── assetsPanel.ts              # Sidebar izquierda (tab Assets): grilla, subir, insertar, eliminar
+    ├── exportDialog.ts             # Diálogo "Exportar": formato PNG/SVG, fondo/escala, dimensiones en vivo, descarga
     ├── tools.ts                    # acciones "Agregar texto"/"Agregar imagen"/subir e insertar Assets + botones de la tools-bar
     ├── zoom.ts                     # zoom vía CSS transform: presets, Ajustar a pantalla, rueda + Ctrl/Cmd
     ├── layersPanel.ts              # Sidebar izquierda (tab Capas): reordenar, expandir/colapsar, renombrar, ocultar, bloquear
@@ -37,10 +38,10 @@ apps/sticker-builder/
     └── testing/
         └── fakeCanvasContext.ts    # stub de canvas 2D para tests (jsdom no implementa uno real)
 
-    (186 tests, ~99.8%/94%/96%/~99.8% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
+    (202 tests, ~99.2%/94%/95%/~99.2% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
 ```
 
-## 3. Decisiones clave (ver ADR-0010/ADR-0011 para el detalle completo)
+## 3. Decisiones clave (ver ADR-0010/ADR-0011/ADR-0012 para el detalle completo)
 
 ### 3.1 Orquestación: `app.ts` reemplaza a `toolbar.ts`
 `app.ts` es el único módulo que conoce a todos los demás — cada módulo individual (`layersPanel.ts`, `inspector.ts`, `zoom.ts`, `tools.ts`, `keyboardShortcuts.ts`, `newProjectDialog.ts`) no conoce a ningún otro, solo al `Engine`. "Nuevo"/"Abrir" mantienen el patrón ya establecido en Milestone 1 (ADR-0009): destruir el `CanvasRuntime` completo y montar uno nuevo, extendido ahora con precarga asíncrona de imágenes embebidas antes del primer render.
@@ -72,9 +73,12 @@ Un proyecto guardado antes de esta épica tiene sus imágenes embebidas como dat
 ### 3.10 Bug de contaminación entre tests corregido con una dependencia inyectable, no con un workaround
 Instancias de `App` nunca destruidas entre tests quedaban suscritas a `window`'s `keydown`; un `dispatchEvent` en un test tardío disparaba `doOpen()` en instancias de tests ya completados, con sus stubs de `URL`/`Image` ya revertidos, causando un rechazo no manejado. Se corrigió agregando `keyboardTarget` como dependencia inyectable de `App` (default a `window` en producción vía el fallback ya existente en `keyboardShortcuts.ts`), permitiendo que cada test aísle sus atajos en un `EventTarget` propio.
 
+### 3.11 Exportar reutiliza `@impulso/export-engine` sin conocer PNG/SVG por dentro (Epic 3)
+`exportDialog.ts` solo arma `ExportOptions` (formato/escala/fondo/nombre) y llama a `exportProject`/`triggerBrowserDownload`/`sanitizeFilename` del paquete — no sabe que PNG rasteriza vía un Stage headless de Konva ni que SVG es un recorrido puro del Document Schema; ese límite completo vive documentado en ADR-0012, no aquí. El adaptador de Assets es una línea: `{ resolve: (id) => binaryStore.get(id) }`.
+
 ## 4. Cómo se verificó (no solo tests unitarios)
 
-Además de los 186 tests (jsdom + stub de canvas), se hizo el build de producción (`vite build`) y se ejecutó el flujo COMPLETO en un **Chromium real** (Playwright) contra ese build:
+Además de los 202 tests (jsdom + stub de canvas), se hizo el build de producción (`vite build`) y se ejecutó el flujo COMPLETO en un **Chromium real** (Playwright) contra ese build:
 
 - Crear un proyecto nuevo desde el diálogo (preset y personalizado), agregar texto e imagen (PNG), moverlos/escalarlos/rotarlos sobre el canvas real (confirmado en el Inspector), duplicar, eliminar, reordenar por drag-and-drop, agrupar/desagrupar, ocultar/bloquear desde el panel de capas, deshacer/rehacer, hacer zoom (presets y "Ajustar a pantalla").
 - Guardar → recargar la página completa (no solo en memoria) → Abrir → el `Project` restaurado, incluidas las imágenes embebidas, es exactamente el guardado.
@@ -103,6 +107,7 @@ pnpm --filter @impulso/sticker-builder typecheck   # tsc --noEmit
 7. El tab "Assets" del Sidebar izquierdo permite subir una imagen a la biblioteca sin insertarla, ver todas las imágenes subidas en una grilla con miniatura, insertar cualquiera de ellas en el canvas con un click (sin volver a subirla), y eliminarlas de la biblioteca.
 8. El zoom (25/50/100/200%, "Ajustar a pantalla", rueda + Ctrl/Cmd) es puramente visual — nunca afecta las medidas reales del documento.
 9. "Guardar"/"Abrir" persisten y restauran el proyecto completo, incluidos los Assets; "Abrir" migra automáticamente proyectos guardados en el formato anterior (imágenes embebidas) al nuevo modelo de Asset Library. "Deshacer"/"Rehacer" reflejan el estado real del Engine en los botones.
+10. "Exportar" abre un diálogo con formato (PNG/SVG), opciones contextuales por formato (fondo transparente/sólido+color y escala 1x-4x solo para PNG), dimensiones finales calculadas en vivo, nombre de archivo, y descarga automática al confirmar — con warnings visibles si algún Asset no pudo resolverse, y errores claros si la exportación falla.
 
 ### Consistencia de interacción
 Vocabulario y atajos estándar de cualquier editor de diseño (Ctrl/Cmd+D duplicar, Ctrl/Cmd+G agrupar, Ctrl/Cmd+Z/Shift+Z deshacer/rehacer, flechas para mover 1px/10px con Shift, etc.) — sin inventar convenciones propias donde ya existe una esperada.
@@ -119,9 +124,11 @@ Todos los controles de la barra superior/herramientas son elementos `<button>`/`
 
 ## 7. Riesgos y limitaciones conocidas
 
-Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md) para el detalle completo. En resumen:
+Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md) para el detalle completo. En resumen:
 
-- **Sin deduplicación ni compresión de Assets**: subir la misma imagen dos veces crea dos entradas independientes en la biblioteca.
+- **Sin PDF print-ready ni línea de corte/sangrado** al exportar — solo PNG/SVG en esta versión (v1.0 futuro).
+- **Exportar SVG no detecta fuentes no disponibles** en el visor que abra el archivo, ni reproduce el ajuste automático de línea de un `TextObject` con caja de wrap (solo saltos de línea explícitos).
+- **Sin deduplicación ni compresión de Assets**: subir la misma imagen dos veces crea dos entradas independientes en la biblioteca (y ambas se embeben completas al exportar).
 - **`preloadDocumentAssets` resuelve todos los Assets del documento al abrir/remontar**: no hay carga perezosa — documentos con muchas imágenes grandes pagan ese costo por adelantado (ver `docs/PERFORMANCE_BUDGET.md`).
 - **Sin validación de Assets huérfanos**: eliminar un Asset de la biblioteca no valida si algún `ImageObject` todavía lo referencia (el Renderer degrada a un placeholder ante un `assetId` sin resolver).
 - **Solo el tipo `image` implementado**: el modelo (`@impulso/document-schema`, `@impulso/asset-library`) ya admite extenderse a fuentes/plantillas/íconos/etc., pero ninguno tiene todavía un ingestion helper ni UI.

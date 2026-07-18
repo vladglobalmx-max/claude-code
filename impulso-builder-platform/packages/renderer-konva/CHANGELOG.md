@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.6.0] — Epic 3: Export Engine Foundation
+
+### Agregado
+- `renderPageToStage` (`offscreenRenderer.ts`): construye un `Konva.Stage` headless (desacoplado del editor, sin `selectionLayer`, sin interactividad) reutilizando `createSceneNode` 1:1 — usado por `@impulso/export-engine` para rasterizar PNG con fidelidad pixel a pixel al canvas interactivo.
+- `resolveActivePage` ahora es un export público (antes privado a `renderer.ts`) — mismo criterio de "qué Page es la activa" reutilizado por el Export Engine.
+- 11 tests nuevos (144 en total).
+
+### Cambiado
+- `segmentsToSvgPathData` y `toPixels` se relocalizaron a `@impulso/document-schema` (ambas puras, sin dependencia de Konva; ahora también las necesita `@impulso/export-engine`) — este paquete las re-exporta desde `nodes/path.ts`/`unit.ts` respectivamente, sin cambio de comportamiento ni de API pública. Ver ADR-0012.
+
 ## [0.5.0] — Sticker Creation Experience
 
 ### Agregado

@@ -1,8 +1,8 @@
 # @impulso/renderer-konva
 
-> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) + EDITOR EPIC 1 (manipulación) + Sticker Creation Experience (grupos, edición de texto) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección), [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento), [ADR-0008](../../docs/adr/0008-manipulation-system.md) (resize/rotate/handles) y [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md) (grupos, texto editable) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
+> FOUNDATION 3 (base) + EDITOR 2 (selección) + EDITOR 3 (movimiento) + EDITOR EPIC 1 (manipulación) + Sticker Creation Experience (grupos, edición de texto) + Export Engine Foundation (Stage headless para PNG, Epic 3) de Impulso Builder Platform. El primer `RendererAdapter` concreto: traduce Document Schema → Scene Graph → Konva, y eventos de Konva → llamadas al Engine. El único paquete de la plataforma que depende de Konva. Ver [ADR-0004](../../docs/adr/0004-renderer-adapter.md) (base), [ADR-0006](../../docs/adr/0006-selection-system.md) (selección), [ADR-0007](../../docs/adr/0007-transform-system.md) (movimiento), [ADR-0008](../../docs/adr/0008-manipulation-system.md) (resize/rotate/handles), [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md) (grupos, texto editable) y [ADR-0012](../../docs/adr/0012-export-engine.md) (Stage headless) para el razonamiento completo, y [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md) para el análisis de rendimiento.
 
-**Estado:** completo, incluyendo selección visual (Editor 2), movimiento por arrastre (Editor 3), el sistema completo de manipulación (Editor Epic 1), y grupos que actúan como una sola unidad seleccionable/arrastrable más edición de texto in-canvas (Sticker Creation Experience). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Inspector, Layers Panel ni Exportaciones — eso es alcance de la app (`apps/sticker-builder`), no de este paquete.
+**Estado:** completo, incluyendo selección visual (Editor 2), movimiento por arrastre (Editor 3), el sistema completo de manipulación (Editor Epic 1), grupos que actúan como una sola unidad seleccionable/arrastrable más edición de texto in-canvas (Sticker Creation Experience), y un Stage headless reutilizado por `@impulso/export-engine` para rasterizar PNG (Epic 3). No implementa Canvas UI, Toolbar, Sidebar, Zoom, Pan, Inspector, Layers Panel ni la exportación en sí (el string SVG/la orquestación de export viven en `@impulso/export-engine`) — eso es alcance de la app o de ese paquete, no de este.
 
 ---
 
@@ -24,11 +24,12 @@ packages/renderer-konva/
 └── src/
     ├── index.ts              # API pública
     ├── types.ts               # RendererAdapter, KonvaRendererOptions, NodeContext
-    ├── renderer.ts             # createKonvaRenderer() — mount/renderContent/renderSelectionOverlay/destroy
+    ├── renderer.ts             # createKonvaRenderer() — mount/renderContent/renderSelectionOverlay/destroy; exporta resolveActivePage
+    ├── offscreenRenderer.ts     # renderPageToStage() — Stage headless para @impulso/export-engine (PNG), Epic 3
     ├── baseAttrs.ts            # SOLO atributos estáticos — delega interacción a interactions/
     ├── coordinates.ts          # toKonvaXY/fromKonvaXY (la única asimetría: Ellipse se posiciona por el centro)
     ├── style.ts                # applyShapeStyle + blendMode -> globalCompositeOperation
-    ├── unit.ts                 # conversión mm/in/px -> píxeles de Stage
+    ├── unit.ts                 # re-exporta toPixels (relocalizado a @impulso/document-schema en Epic 3)
     │
     ├── interactions/
     │   ├── selectionInteractions.ts   # click/Shift-click -> setSelection/toggleObjectSelection
@@ -42,6 +43,7 @@ packages/renderer-konva/
     │
     ├── nodes/
     │   ├── rectangle.ts | ellipse.ts | path.ts | image.ts | text.ts | group.ts
+    │   │   (path.ts re-exporta segmentsToSvgPathData, relocalizado a @impulso/document-schema en Epic 3)
     │   └── sceneNode.ts        # dispatcher: SceneObject -> el creador correcto (recursivo para group)
     │
     ├── testing/
@@ -50,7 +52,7 @@ packages/renderer-konva/
     └── testUtils/
         └── fixtures.ts          # builders de Project/Page/Layer/SceneObject para tests
 
-    (140 tests, 100% de statements/functions/lines, 98% de branches — ver "Riesgos")
+    (144 tests, ~99.7% de statements/lines, ~98% de branches/functions — ver "Riesgos")
 ```
 
 ## 3. Arquitectura
@@ -149,6 +151,9 @@ Ver [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el razonamiento 
 **Cursor feedback (`manipulation/cursors.ts`):** `mouseenter`/`mouseleave` sobre cada handle fijan/limpian `stage.container().style.cursor` (`nwse-resize`, `nesw-resize`, `ns-resize`, `ew-resize` según el handle; `grab` para el de rotación). Es CSS puro sobre el contenedor del Stage, sin ninguna dependencia nueva.
 
 **Single- vs multi-selección:** `renderSelectionOverlay()` solo dibuja la caja de manipulación completa cuando `engine.getSelection()` tiene EXACTAMENTE un id. Con 0 o 2+ ids seleccionados, se conserva el resaltado simple de Editor 2 (un `Konva.Rect` punteado por object) — mover/redimensionar varios objects a la vez queda fuera de alcance de este épico.
+
+### 3.9b Stage headless para exportación PNG (`offscreenRenderer.ts`, Epic 3)
+`renderPageToStage(project, options)` construye un `Konva.Stage` DESACOPLADO del editor — su `container` es un `<div>` que nunca se agrega al DOM visible, sin `selectionLayer`, con `interactive: false` en cada node (nunca se adjuntan handlers de drag/selección/edición de texto). Reutiliza `createSceneNode` 1:1: el `@impulso/export-engine` que lo invoca (para rasterizar PNG vía `stage.toCanvas({ pixelRatio })`) obtiene exactamente el mismo dibujo que ya ve el usuario en el canvas interactivo, sin reimplementar layout de texto/curvas/sombras por separado. `dispatch` en su `NodeContext` lanza si se invoca — nunca debería pasar con `interactive: false`, es una guarda de desarrollo, no un camino real. Ver ADR-0012 para el límite completo entre este paquete y el Export Engine (SVG nunca pasa por aquí).
 
 ### 3.9 Grupos como una sola unidad, y edición de texto in-canvas (Sticker Creation Experience)
 

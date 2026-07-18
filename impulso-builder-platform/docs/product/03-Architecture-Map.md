@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy solo existe código para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine, Asset Library, Export Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -19,9 +19,9 @@ Impulso Platform
 │
 ├── AI Engine                (⏳ planeado — capacidades de IA, AI Provider Agnostic)
 │
-├── Asset Library             (⏳ planeado — biblioteca de imágenes/íconos/fuentes compartida)
+├── Asset Library             (✅ construido — Epic 2, ver ADR-0011; hoy solo imágenes, arquitectura lista para más tipos)
 │
-├── Export Engine              (⏳ planeado — exportación print-ready como capacidad de plataforma)
+├── Export Engine              (✅ construido — Epic 3, ver ADR-0012; PNG/SVG v1, PDF/print-ready planeado)
 │
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)
@@ -75,13 +75,13 @@ Componentes de UI (botones, paneles, inputs, iconografía, tokens de color/tipog
 
 Cualquier capacidad de inteligencia artificial de la plataforma (generación de imágenes, sugerencias de diseño, autocompletado, etc.), diseñada desde el principio para ser **AI Provider Agnostic** (ver [`02-Product-Principles.md`](02-Product-Principles.md)) — un contrato/adaptador propio, análogo a `RendererAdapter`, en vez de un acoplamiento directo a un proveedor específico. Hoy no existe ninguna funcionalidad de IA en la plataforma; este pilar documenta la intención de cómo se construiría cuando llegue el momento, no una implementación en curso.
 
-### Asset Library (⏳ planeado)
+### Asset Library (✅ construido — Epic 2)
 
-Biblioteca compartida de imágenes, íconos y fuentes, disponible para cualquier Module — hoy mencionada conceptualmente en `../ARCHITECTURE.md` (`Assets`/`Fonts` como subsistemas del Engine) pero sin implementación real: `renderer-konva` ya tiene el punto de extensión preparado (`resolveAssetSource`), y Sticker Builder hoy solo puede mostrar su Project de demostración hardcodeado — no hay todavía forma de subir/gestionar un asset propio desde la UI.
+`packages/asset-library`: almacenamiento de binarios (`AssetBinaryStore`, IndexedDB) + ingesta por tipo, genérico sobre cualquier tipo de Asset del Document Schema (`Document.assets`). V1 implementa solo `image` (PNG/SVG); el modelo/organización/API ya admiten fuentes, plantillas, íconos, patrones, fondos, texturas, marcos, mockups o assets de IA sin rediseño. Ver [ADR-0011](../adr/0011-asset-library.md).
 
-### Export Engine (⏳ planeado)
+### Export Engine (✅ construido — Epic 3)
 
-Capacidad de exportación print-ready (PNG/SVG/PDF con línea de corte y sangrado) como servicio de plataforma, reutilizable por cualquier módulo que necesite producir un archivo final — no solo Sticker Builder. `../ARCHITECTURE.md` §2.5 ya documenta por qué la exportación vectorial puede (y debe) leer el Document Schema directamente sin pasar por el Renderer. Hoy no existe ningún exportador implementado todavía — es la funcionalidad de mayor prioridad de la etapa Beta (ver [`04-Roadmap.md`](04-Roadmap.md)).
+`packages/export-engine`: produce archivos finales (PNG/SVG v1) a partir del Document Schema, reutilizable por cualquier módulo. SVG es independiente de Konva (lee el Document Schema directamente, tal como anticipaba `../ARCHITECTURE.md` §2.5); PNG reutiliza `@impulso/renderer-konva` vía un Stage headless, nunca el Stage interactivo del editor. PDF print-ready con línea de corte/sangrado queda para una épica futura — ver [ADR-0012](../adr/0012-export-engine.md).
 
 ### Modules — consumidores de la plataforma
 

@@ -24,7 +24,7 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 - ~~**Asset Library, primera versión**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración~~ — construida antes de lo previsto, en Epic 2 (`packages/asset-library`), ver [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md).
 - **Múltiples documentos**: reemplazar el slot único de `localStorage` (Alpha) por una gestión real de varios proyectos guardados localmente (IndexedDB), con lista, nombres y miniaturas.
 - **Especificación de producto para Sticker Builder**: tamaño físico, forma, sangrado y material del sticker — lo que hoy solo existe como concepto en `../ARCHITECTURE.md`.
-- **Export Engine, primera versión**: PNG y SVG como mínimo, con la línea de corte modelada correctamente (`metadata.role: "die-line"`) — el primer paso real del pilar hoy solo planeado.
+- ~~**Export Engine, primera versión**: PNG y SVG como mínimo~~ — construida antes de lo previsto, en Epic 3 (`packages/export-engine`), ver [`../adr/0012-export-engine.md`](../adr/0012-export-engine.md).
 - **Zoom y Pan** — hoy el canvas se corta si el documento excede el tamaño de la ventana; sin esto, un documento de tamaño real no es utilizable.
 - **Accesibilidad de primera pasada**: navegación por teclado para al menos mover un object seleccionado (el Engine ya soporta esto sin cambios — es un problema de UI, no de arquitectura).
 

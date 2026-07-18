@@ -31,3 +31,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0009](0009-local-persistence-alpha.md) | Milestone 1 | Local Persistence: guardar/abrir un documento (Impulso Alpha) |
 | [0010](0010-sticker-creation-experience.md) | Epic 1 | Sticker Creation Experience: agrupar, imágenes sin Asset Library, edición de texto in-canvas, zoom |
 | [0011](0011-asset-library.md) | Epic 2 | Asset Library: unión extensible de tipos de Asset, IndexedDB, migración desde el formato embebido de Epic 1 |
+| [0012](0012-export-engine.md) | Epic 3 | Export Engine Foundation: SVG independiente de Konva, PNG vía Stage headless de `@impulso/renderer-konva` |

@@ -1,6 +1,6 @@
 # @impulso/document-schema
 
-> FOUNDATION 1 de Impulso Builder Platform. El contrato oficial de datos de todo proyecto Impulso. TypeScript puro — cero dependencias de renderizado. Desde la épica Asset Library (Epic 2), `Asset` es una unión discriminada extensible (hoy `image`/`font`) y `Document` gana un registro real de Assets (`Document.assets`) — ver [ADR-0011](../../docs/adr/0011-asset-library.md).
+> FOUNDATION 1 de Impulso Builder Platform. El contrato oficial de datos de todo proyecto Impulso. TypeScript puro — cero dependencias de renderizado. Desde la épica Asset Library (Epic 2), `Asset` es una unión discriminada extensible (hoy `image`/`font`) y `Document` gana un registro real de Assets (`Document.assets`) — ver [ADR-0011](../../docs/adr/0011-asset-library.md). Desde Export Engine Foundation (Epic 3), este paquete también aloja `segmentsToSvgPathData`/`toPixels` — funciones puras compartidas entre `@impulso/renderer-konva` y `@impulso/export-engine`, para que ninguno de los dos dependa del otro — ver [ADR-0012](../../docs/adr/0012-export-engine.md).
 
 **Estado:** completo. No implementa Engine, Renderer, History Engine, Persistence ni Plugins — eso es explícitamente el alcance de micro-sprints futuros, no de este.
 
@@ -44,13 +44,15 @@ packages/document-schema/
     │   ├── image.ts
     │   ├── text.ts
     │   ├── group.ts                   # re-exporta GroupObject (ver object.ts)
-    │   └── object.ts                  # GroupObject + unión discriminada SceneObject
+    │   ├── object.ts                  # GroupObject + unión discriminada SceneObject
+    │   └── pathData.ts                # segmentsToSvgPathData — PathSegment[] -> sintaxis "d" de SVG (Epic 3)
     │
     ├── layer/
     │   └── layer.ts                   # Layer (contenedor ordenado de Objects)
     │
     ├── page/
-    │   └── page.ts                    # Page (lienzo con tamaño/unidad propios)
+    │   ├── page.ts                    # Page (lienzo con tamaño/unidad propios)
+    │   └── unitConversion.ts          # toPixels — Unit (mm/in/px) -> píxeles (Epic 3)
     │
     ├── history/
     │   └── history.ts                 # HistoryEntry / DocumentHistory (dato puro, sin lógica de undo/redo)
@@ -73,7 +75,7 @@ packages/document-schema/
     └── testUtils/
         └── fixtures.ts                 # Document/Project mínimos válidos, usados por varios tests
 
-    (cada *.ts de arriba tiene su *.test.ts junto a él — 17 archivos de test, 85 tests, 100% cobertura)
+    (cada *.ts de arriba tiene su *.test.ts junto a él — 19 archivos de test, 93 tests, 100% cobertura)
 ```
 
 ---

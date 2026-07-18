@@ -304,6 +304,89 @@
         color: #ffffff;
         border-color: #1c1917;
       }
+
+      /* Diálogo de exportación */
+      .export-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .export-dialog {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 320px;
+      }
+      .export-dialog-format,
+      .export-dialog-background {
+        display: flex;
+        gap: 12px;
+        margin: 10px 0;
+      }
+      .export-dialog-scale {
+        display: flex;
+        gap: 6px;
+        margin: 10px 0;
+      }
+      .export-dialog-scale-button {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+      }
+      .export-dialog-scale-button.active {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
+      .export-dialog-filename {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 10px 0;
+      }
+      .export-dialog-filename-input {
+        font: inherit;
+        padding: 4px 6px;
+      }
+      .export-dialog-dimensions {
+        color: #57534e;
+        font-size: 0.9em;
+      }
+      .export-dialog-status {
+        color: #1c1917;
+      }
+      .export-dialog-error {
+        color: #b91c1c;
+      }
+      .export-dialog-warnings {
+        color: #b45309;
+        font-size: 0.9em;
+        padding-left: 18px;
+      }
+      .export-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .export-dialog-actions button {
+        font: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+      }
+      .export-dialog-export {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
     </style>
   </head>
   <body>
@@ -316,6 +399,8 @@
         <span class="divider"></span>
         <button id="save-btn" type="button">Guardar</button>
         <button id="open-btn" type="button">Abrir</button>
+        <span class="divider"></span>
+        <button id="export-btn" type="button">Exportar</button>
         <span class="divider"></span>
         <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
         <button id="delete-btn" type="button" title="Eliminar (Supr)">Eliminar</button>
@@ -343,6 +428,7 @@
       </div>
     </div>
     <div id="new-project-dialog-root"></div>
+    <div id="export-dialog-root"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

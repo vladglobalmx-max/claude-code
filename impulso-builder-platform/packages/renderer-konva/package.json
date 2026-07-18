@@ -1,6 +1,6 @@
 {
   "name": "@impulso/renderer-konva",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Primer Renderer Adapter de Impulso: traduce Document Schema <-> Konva. El único paquete de la plataforma que importa Konva.",
   "type": "module",

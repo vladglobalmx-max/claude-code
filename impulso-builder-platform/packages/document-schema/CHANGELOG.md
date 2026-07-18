@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.2.1] — Epic 3: Export Engine Foundation
+
+### Agregado
+- `segmentsToSvgPathData` (`object/pathData.ts`) y `toPixels` (`page/unitConversion.ts`) — funciones puras relocalizadas desde `@impulso/renderer-konva`, que las necesitaba, y ahora también `@impulso/export-engine` — vivir aquí evita que uno de los dos paquetes dependa del otro solo para obtenerlas. `renderer-konva` re-exporta ambas para no romper a quien ya las importaba de ahí. Ver ADR-0012.
+- 8 tests nuevos (93 en total), 100% de cobertura mantenida.
+
 ## [0.2.0] — Epic 2: Asset Library
 
 ### Cambiado

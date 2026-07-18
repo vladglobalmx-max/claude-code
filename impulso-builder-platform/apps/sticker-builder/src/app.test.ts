@@ -86,6 +86,7 @@ function buildElements(): AppElements {
   const toolsContainer = document.createElement("div");
   const zoomContainer = document.createElement("div");
   const newProjectDialogContainer = document.createElement("div");
+  const exportDialogContainer = document.createElement("div");
 
   function button(): HTMLButtonElement {
     return document.createElement("button");
@@ -101,6 +102,7 @@ function buildElements(): AppElements {
     toolsContainer,
     zoomContainer,
     newProjectDialogContainer,
+    exportDialogContainer,
     statusElement,
   );
   canvasViewport.appendChild(canvasContainer);
@@ -117,11 +119,13 @@ function buildElements(): AppElements {
     toolsContainer,
     zoomContainer,
     newProjectDialogContainer,
+    exportDialogContainer,
     newButton: button(),
     undoButton: button(),
     redoButton: button(),
     saveButton: button(),
     openButton: button(),
+    exportButton: button(),
     duplicateButton: button(),
     deleteButton: button(),
     groupButton: button(),

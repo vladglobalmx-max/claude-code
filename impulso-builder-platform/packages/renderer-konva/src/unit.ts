@@ -1,22 +1,11 @@
-import type { Unit } from "@impulso/document-schema";
+import { toPixels } from "@impulso/document-schema";
 
 /**
- * Conversión de unidades físicas del Document Schema a píxeles de pantalla
- * para dimensionar el Konva.Stage. 96px/pulgada es el estándar de facto de
- * CSS/pantalla (no de impresión) — suficiente para edición en pantalla.
- * Una futura exportación de alta resolución necesitará su propio DPI
- * configurable (ver PERFORMANCE_BUDGET.md, fila 6); no se anticipa aquí.
+ * `toPixels` vive en `@impulso/document-schema` desde Epic 3 (antes vivía
+ * aquí) — el Export Engine necesita exactamente la misma conversión para
+ * calcular las dimensiones finales de un documento, y ambos consumidores
+ * deben compartir la misma constante de DPI en vez de arriesgarse a que
+ * diverjan (ver ADR-0012). Se reexporta desde aquí para no romper a quien
+ * ya la importaba de `@impulso/renderer-konva`.
  */
-const PIXELS_PER_INCH = 96;
-const MM_PER_INCH = 25.4;
-
-export function toPixels(value: number, unit: Unit): number {
-  switch (unit) {
-    case "px":
-      return value;
-    case "in":
-      return value * PIXELS_PER_INCH;
-    case "mm":
-      return value * (PIXELS_PER_INCH / MM_PER_INCH);
-  }
-}
+export { toPixels };

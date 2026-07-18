@@ -17,6 +17,9 @@ importers:
 
   apps/sticker-builder:
     dependencies:
+      '@impulso/asset-library':
+        specifier: workspace:*
+        version: link:../../packages/asset-library
       '@impulso/document-schema':
         specifier: workspace:*
         version: link:../../packages/document-schema
@@ -42,6 +45,31 @@ importers:
       vite:
         specifier: ^5.4.10
         version: 5.4.21
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(jsdom@25.0.1)
+
+  packages/asset-library:
+    dependencies:
+      '@impulso/document-schema':
+        specifier: workspace:*
+        version: link:../document-schema
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^2.0.5
+        version: 2.1.9(vitest@2.1.9(jsdom@25.0.1))
+      fake-indexeddb:
+        specifier: ^6.0.0
+        version: 6.2.5
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      tsup:
+        specifier: ^8.2.4
+        version: 8.5.1(postcss@8.5.19)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
       vitest:
         specifier: ^2.0.5
         version: 2.1.9(jsdom@25.0.1)
@@ -868,6 +896,10 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  fake-indexeddb@6.2.5:
+    resolution: {integrity: sha512-CGnyrvbhPlWYMngksqrSSUT1BAVP49dZocrHuK0SvtR0D5TMs5wP0o3j7jexDJW01KSadjBp1M/71o/KR3nD1w==}
+    engines: {node: '>=18'}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -1995,6 +2027,8 @@ snapshots:
       '@types/estree': 1.0.9
 
   expect-type@1.4.0: {}
+
+  fake-indexeddb@6.2.5: {}
 
   fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:

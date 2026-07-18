@@ -21,7 +21,7 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 **Objetivo:** convertir el Alpha (que valida el flujo) en una herramienta que alguien externo al equipo pueda usar sin acompañamiento — todavía sin ambición de "producto terminado", pero sin las asperezas que el Alpha aceptó a propósito.
 
 - **Interfaz de edición real**: Toolbar y Sidebar/Inspector con diseño (no botones HTML sin estilo) — panel de propiedades (color, opacidad, tipografía), lista de capas. Primer uso real que justificaría empezar el pilar **Design System** (ver [`03-Architecture-Map.md`](03-Architecture-Map.md)).
-- **Asset Library, primera versión**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración — hoy solo un pilar planeado, sin implementación.
+- ~~**Asset Library, primera versión**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración~~ — construida antes de lo previsto, en Epic 2 (`packages/asset-library`), ver [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md).
 - **Múltiples documentos**: reemplazar el slot único de `localStorage` (Alpha) por una gestión real de varios proyectos guardados localmente (IndexedDB), con lista, nombres y miniaturas.
 - **Especificación de producto para Sticker Builder**: tamaño físico, forma, sangrado y material del sticker — lo que hoy solo existe como concepto en `../ARCHITECTURE.md`.
 - **Export Engine, primera versión**: PNG y SVG como mínimo, con la línea de corte modelada correctamente (`metadata.role: "die-line"`) — el primer paso real del pilar hoy solo planeado.

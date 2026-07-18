@@ -81,6 +81,7 @@ function buildProject(objects: SceneObject[]): Project {
           customProperties: {},
         },
       ],
+      assets: [],
       metadata,
       history: { entries: [] },
       pluginData: {},

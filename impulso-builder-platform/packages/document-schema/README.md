@@ -1,6 +1,6 @@
 # @impulso/document-schema
 
-> FOUNDATION 1 de Impulso Builder Platform. El contrato oficial de datos de todo proyecto Impulso. TypeScript puro — cero dependencias de renderizado.
+> FOUNDATION 1 de Impulso Builder Platform. El contrato oficial de datos de todo proyecto Impulso. TypeScript puro — cero dependencias de renderizado. Desde la épica Asset Library (Epic 2), `Asset` es una unión discriminada extensible (hoy `image`/`font`) y `Document` gana un registro real de Assets (`Document.assets`) — ver [ADR-0011](../../docs/adr/0011-asset-library.md).
 
 **Estado:** completo. No implementa Engine, Renderer, History Engine, Persistence ni Plugins — eso es explícitamente el alcance de micro-sprints futuros, no de este.
 
@@ -30,8 +30,11 @@ packages/document-schema/
     ├── style/
     │   └── style.ts                   # Style (fill, stroke, opacity, blendMode, shadow)
     │
-    ├── asset/
-    │   └── asset.ts                   # Asset (referencia a imagen/fuente, no el binario)
+    ├── asset/                          # Asset Library (Epic 2): unión discriminada extensible
+    │   ├── base.ts                    # AssetBaseSchema (campos comunes a todo tipo de Asset)
+    │   ├── image.ts                   # ImageAssetSchema — el único tipo implementado en v1
+    │   ├── font.ts                    # FontAssetSchema — declarado, sin ningún flujo real todavía
+    │   └── asset.ts                   # AssetSchema (unión) + AssetTypeSchema
     │
     ├── object/                        # Los seis tipos universales de Object
     │   ├── base.ts                    # SceneObjectBase (campos comunes a todo Object)
@@ -70,7 +73,7 @@ packages/document-schema/
     └── testUtils/
         └── fixtures.ts                 # Document/Project mínimos válidos, usados por varios tests
 
-    (cada *.ts de arriba tiene su *.test.ts junto a él — 17 archivos de test, 80 tests, 100% cobertura)
+    (cada *.ts de arriba tiene su *.test.ts junto a él — 17 archivos de test, 85 tests, 100% cobertura)
 ```
 
 ---
@@ -82,13 +85,14 @@ packages/document-schema/
 ```
 Project
  └─ Document                  (versionado: schemaVersion, documentVersion)
-     └─ Page[]                (un lienzo con tamaño/unidad propios)
-         └─ Layer[]           (contenedor ordenado de Objects — como una capa de Photoshop)
-             └─ SceneObject[] (Rectangle | Ellipse | Path | Image | Text | Group)
-                                Group, a su vez, contiene SceneObject[] — es el único recursivo
+     ├─ Page[]                (un lienzo con tamaño/unidad propios)
+     │   └─ Layer[]           (contenedor ordenado de Objects — como una capa de Photoshop)
+     │       └─ SceneObject[] (Rectangle | Ellipse | Path | Image | Text | Group)
+     │                          Group, a su vez, contiene SceneObject[] — es el único recursivo
+     └─ Asset[]               (registro de descriptores de Asset Library — nunca el binario, ver asset/base.ts)
 ```
 
-`Style`, `Asset`, `Metadata`, `PluginData`, `CustomProperties` no son un nivel de esta jerarquía: son **bloques transversales** que Project/Document/Page/Layer/Object comparten (Metadata/PluginData/CustomProperties en los cinco niveles; Style y Asset solo donde aplican).
+`Style`, `Asset`, `Metadata`, `PluginData`, `CustomProperties` no son un nivel de la jerarquía Page/Layer/Object: son **bloques transversales** que Project/Document/Page/Layer/Object/Asset comparten (Metadata/PluginData/CustomProperties en todos ellos; Style solo en Object). `Document.assets` sí es su propio nivel (paralelo a `pages`) porque es contenido real, versionado y deshacible como cualquier otro — no un bloque transversal.
 
 `History` y `Version` tampoco son "un nivel" — son **el mecanismo de versionado** que envuelve a `Document`: `Document.history` guarda la bitácora, y `runMigrations` (en `version/migration.ts`) es lo que permite que un `Document` guardado con un `schemaVersion` viejo siga siendo válido hoy.
 
@@ -116,7 +120,7 @@ Esto es lo que hace posible que un futuro Planner Builder o Coloring Book Builde
 - **`tsconfig.json` → `lib: ["ES2022"]`** (sin `"DOM"`): si algún archivo intentara usar `window`, `document`, `HTMLElement` o `Blob`, el *type-check* falla — no depende de que nadie se acuerde de la regla.
 - **`vitest.config.ts` → `environment: "node"`** (no `"jsdom"`): los tests corren sin ningún global de navegador disponible.
 - **Los paths vectoriales son un formato propio** (`PathSegment`, un array de `{ type, point... }`), no la mini-gramática de strings "d" de SVG — aunque esa sintaxis es solo texto y no arrastraría un renderer real, el encargo fue explícito en no importar nada que pueda leerse como "SVG".
-- **Los Asset son referencias, no binarios**: `AssetSchema` guarda `id`/`mimeType`/`width`/`height`, nunca un `Blob` (que es un tipo del DOM) ni un `ArrayBuffer` de imagen.
+- **Los Asset son referencias, no binarios**: `AssetSchema` guarda `id`/`mimeType`/`width`/`height` (para `image`), nunca un `Blob` (que es un tipo del DOM) ni un `ArrayBuffer` — el binario real vive en `@impulso/asset-library` (IndexedDB), fuera de este paquete.
 
 ### 2.4 SOLID / cohesión / acoplamiento, aplicados concretamente
 
@@ -233,6 +237,7 @@ Si falta un eslabón de la cadena, o el documento es más viejo que `MINIMUM_SUP
 2. **`PluginData` es `Record<string, unknown>` sin validar su contenido.** Es intencional (cada plugin valida su propio payload), pero significa que el Document Schema por sí solo no puede detectar que un plugin guardó datos corruptos en su propia sección — ese chequeo tendrá que vivir en el Engine o en el plugin mismo.
 3. **No hay un límite de profundidad para `Group` anidado.** Un documento con miles de grupos anidados recursivamente es válido según el esquema, pero podría ser costoso de recorrer para el Engine/Renderer. No se agregó un límite artificial porque no hay evidencia todavía de que sea un problema real (ver "no agregar funcionalidad no solicitada").
 4. **`exactOptionalPropertyTypes` no está activado en `tsconfig.base.json`.** Se evaluó activarlo (mayor precisión de tipos para campos opcionales) pero es conocido por generar fricción con Zod en varias combinaciones de `.optional()`/`.default()`. Se dejó fuera para no introducir inestabilidad de tipos sin un beneficio claro todavía.
+5. **`Document.assets` no valida integridad referencial**: nada impide que un `ImageObject.assetId` no tenga ningún `Asset` correspondiente en `document.assets` (o viceversa) — ver la mejora futura ya listada en §7. Aceptado porque cruza dos partes distintas del árbol; el Engine (o `@impulso/asset-library`) es quien tiene contexto para decidir qué hacer ante esa inconsistencia.
 
 ## 7. Posibles mejoras futuras
 

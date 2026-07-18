@@ -15,6 +15,7 @@ import { updateMetadata } from "./metadataCommand.js";
 import { resizeObject } from "./resizeObjectCommand.js";
 import { rotateObject } from "./rotateObjectCommand.js";
 import { groupObjects, ungroupObject } from "./groupCommands.js";
+import { addAsset, removeAsset, renameAsset } from "./assetCommands.js";
 
 function describeCommand(command: ContentCommand): string {
   switch (command.type) {
@@ -52,6 +53,12 @@ function describeCommand(command: ContentCommand): string {
       return `Agrupar ${command.objectIds.length} objects en "${command.group.id}"`;
     case "ungroupObject":
       return `Desagrupar "${command.objectId}"`;
+    case "addAsset":
+      return `Agregar asset "${command.asset.id}" (${command.asset.type})`;
+    case "removeAsset":
+      return `Eliminar asset "${command.assetId}"`;
+    case "renameAsset":
+      return `Renombrar asset "${command.assetId}"`;
   }
 }
 
@@ -91,6 +98,12 @@ function runReducer(project: Project, command: ContentCommand): EngineResult<Pro
       return groupObjects(project, command);
     case "ungroupObject":
       return ungroupObject(project, command);
+    case "addAsset":
+      return addAsset(project, command);
+    case "removeAsset":
+      return removeAsset(project, command);
+    case "renameAsset":
+      return renameAsset(project, command);
   }
 }
 

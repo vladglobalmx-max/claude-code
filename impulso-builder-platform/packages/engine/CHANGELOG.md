@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.5.0] — Epic 2: Asset Library
+
+### Agregado
+- Comandos `addAsset { asset }` / `removeAsset { assetId }` / `renameAsset { assetId, name }` (`commands/assetCommands.ts`): operan sobre `document.assets` (registro de descriptores de Asset Library, ver ADR-0011), genéricos sobre la unión completa de `Asset` — el reducer nunca necesita saber de qué tipo concreto es un Asset. `renameAsset` es un comando separado (no un caso de `updateMetadata`) porque `Asset.name` es un campo de primer nivel, no parte de `metadata`.
+- `EntityRef` gana el nivel `"asset"` (`{ level: "asset", assetId }`): `updateMetadata` ahora cubre tags/description de un Asset igual que cubre los demás niveles.
+- Dos códigos de error nuevos: `asset_not_found`, `duplicate_asset_id`.
+- Adición pura a la API pública existente (tres comandos nuevos, un nivel nuevo de `EntityRef`) — ningún comando previo cambia de comportamiento; no requiere ADR de cambio de API (regla de Stable Public API). Ver ADR-0011 para el razonamiento de diseño de la épica completa.
+- 16 tests nuevos (218 en total), 100%/99.72%/100%/100% de cobertura. Sin dependencias circulares (verificado con `madge`).
+
+### Alcance (documentado, no un descuido)
+`removeAsset` no valida si el Asset sigue siendo referenciado por algún `ImageObject.assetId` — mismo criterio que el resto del Engine (no valida referencias cruzadas en otros casos tampoco). El binario real de un Asset vive fuera de este paquete (`@impulso/asset-library`); el Engine solo conoce el descriptor.
+
 ## [0.4.0] — Sticker Creation Experience
 
 ### Agregado

@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { PageIdSchema, LayerIdSchema, ObjectIdSchema } from "@impulso/document-schema";
+import { PageIdSchema, LayerIdSchema, ObjectIdSchema, AssetIdSchema } from "@impulso/document-schema";
 import { updateMetadata } from "./metadataCommand.js";
-import { buildProject, buildDocument, buildPage, buildLayer, buildRectangle } from "../testUtils/fixtures.js";
+import {
+  buildProject,
+  buildDocument,
+  buildPage,
+  buildLayer,
+  buildRectangle,
+  buildImageAsset,
+} from "../testUtils/fixtures.js";
 
 function fullProject() {
   return buildProject({
     document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildRectangle("rect_1")])])]),
   });
+}
+
+function projectWithAsset() {
+  const project = fullProject();
+  return { ...project, document: { ...project.document, assets: [buildImageAsset("asset_1")] } };
 }
 
 describe("updateMetadata — project", () => {
@@ -154,6 +166,40 @@ describe("updateMetadata — object", () => {
     const result = updateMetadata(fullProject(), {
       type: "updateMetadata",
       target: { level: "object", objectId: ObjectIdSchema.parse("rect_1") },
+      metadata: { tags: "no-es-un-array" as never },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_metadata");
+  });
+});
+
+describe("updateMetadata — asset", () => {
+  it("actualiza metadata de un asset existente", () => {
+    const result = updateMetadata(projectWithAsset(), {
+      type: "updateMetadata",
+      target: { level: "asset", assetId: AssetIdSchema.parse("asset_1") },
+      metadata: { tags: ["logo"] },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.assets[0]?.metadata.tags).toEqual(["logo"]);
+    }
+  });
+
+  it("rechaza un assetId inexistente", () => {
+    const result = updateMetadata(projectWithAsset(), {
+      type: "updateMetadata",
+      target: { level: "asset", assetId: AssetIdSchema.parse("no_existe") },
+      metadata: { tags: ["logo"] },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("asset_not_found");
+  });
+
+  it("rechaza un patch de metadata inválido", () => {
+    const result = updateMetadata(projectWithAsset(), {
+      type: "updateMetadata",
+      target: { level: "asset", assetId: AssetIdSchema.parse("asset_1") },
       metadata: { tags: "no-es-un-array" as never },
     });
     expect(result.ok).toBe(false);

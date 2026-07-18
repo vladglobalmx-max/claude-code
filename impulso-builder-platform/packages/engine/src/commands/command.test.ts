@@ -103,6 +103,47 @@ describe("EngineCommandSchema", () => {
   it("rotateObject rechaza un comando sin los campos requeridos", () => {
     expect(EngineCommandSchema.safeParse({ type: "rotateObject", objectId: "rect_1" }).success).toBe(false);
   });
+
+  it("valida un comando addAsset con un Asset completo", () => {
+    const result = EngineCommandSchema.safeParse({
+      type: "addAsset",
+      asset: {
+        id: "asset_1",
+        type: "image",
+        name: "logo.png",
+        mimeType: "image/png",
+        width: 10,
+        height: 10,
+        metadata: { createdAt: "2026-07-17T00:00:00.000Z", updatedAt: "2026-07-17T00:00:00.000Z" },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("addAsset rechaza un asset inválido (sin width/height para type image)", () => {
+    const result = EngineCommandSchema.safeParse({
+      type: "addAsset",
+      asset: {
+        id: "asset_1",
+        type: "image",
+        name: "logo.png",
+        mimeType: "image/png",
+        metadata: { createdAt: "2026-07-17T00:00:00.000Z", updatedAt: "2026-07-17T00:00:00.000Z" },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("valida removeAsset/renameAsset bien formados", () => {
+    expect(EngineCommandSchema.safeParse({ type: "removeAsset", assetId: "asset_1" }).success).toBe(true);
+    expect(
+      EngineCommandSchema.safeParse({ type: "renameAsset", assetId: "asset_1", name: "nuevo.png" }).success,
+    ).toBe(true);
+  });
+
+  it("renameAsset rechaza un name vacío", () => {
+    expect(EngineCommandSchema.safeParse({ type: "renameAsset", assetId: "asset_1", name: "" }).success).toBe(false);
+  });
 });
 
 describe("isSelectionCommand", () => {

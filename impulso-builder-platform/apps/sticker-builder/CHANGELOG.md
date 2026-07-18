@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.4.0] — Epic 2: Asset Library
+
+### Agregado
+- Panel "Assets" (`assetsPanel.ts`) en el Sidebar izquierdo, junto al panel de Capas (tabs) — grilla de miniaturas, botón "Subir imagen", click para insertar un Asset ya existente sin volver a subirlo, botón de eliminar por Asset.
+- `assetResolution.ts`: `ResolvedAssetCache`, el puente síncrono entre el `AssetBinaryStore` (asíncrono) y el contrato síncrono `resolveAssetSource` del Renderer (Foundation 3) — gestiona el ciclo de vida de `HTMLImageElement` + Object URL. `preloadDocumentAssets` recorre `document.assets` y resuelve cada uno antes de montar/remontar el runtime.
+- `legacyMigration.ts`: migración transparente y de una sola vez de proyectos guardados en el formato de Epic 1 (imagen embebida como data URL en `customProperties.impulsoImageDataUrl`) al nuevo modelo de Asset Library — convierte a `Blob`, lo guarda en el `AssetBinaryStore`, crea el `ImageAsset` real, limpia la `customProperty` legada. "Abrir" ejecuta la migración automáticamente y reporta cuántas imágenes se migraron.
+- `tools.ts` gana `uploadAsset(file)` (solo sube a la biblioteca, sin insertar — usado por el panel Assets) e `insertImageFromAsset(assetId)` (inserta un Asset ya existente sin re-subir).
+- `app.ts`: nuevas dependencias inyectables `binaryStore`/`keyboardTarget` (esta última resuelve un bug real de contaminación entre tests, ver abajo); tabs de Sidebar Layers/Assets; `doOpen()` ejecuta la migración legada antes de remontar.
+- Se apoya en `@impulso/asset-library` (paquete nuevo, ver ADR-0011) y en `Document.assets`/`AssetSchema` (`@impulso/document-schema` 0.2.0) y en los comandos `addAsset`/`removeAsset`/`renameAsset` (`@impulso/engine` 0.5.0).
+- 25 tests nuevos (186 en total), ~99.8%/94%/96%/~99.8% de cobertura.
+
+### Eliminado
+- `imageAssets.ts`/`imageAssets.test.ts` (hack de Epic 1: cache de imágenes en memoria sin Asset Library real) — reemplazados por `assetResolution.ts` + `@impulso/asset-library`.
+
+### Corregido
+- Bug de contaminación entre tests: instancias de `App` nunca destruidas entre tests permanecían suscritas a `window`'s `keydown`, provocando que un despacho de evento en un test tardío disparara `doOpen()` en instancias de tests ya completados (con sus stubs de `URL`/`Image` ya revertidos), causando un rechazo no manejado (`URL.revokeObjectURL is not a function`, ausente en el `URL` nativo de jsdom). Corregido agregando `keyboardTarget` como dependencia inyectable de `App` (default a `window` en producción), permitiendo que cada test use un `EventTarget` aislado.
+
+### Fuera de alcance (deliberado)
+Deduplicación de Assets, compresión, tipos de Asset más allá de `image` (fuentes, plantillas, íconos, etc. — el modelo ya los admite, ver ADR-0011), validación de Assets huérfanos (sin ninguna referencia), carga perezosa de Assets (`preloadDocumentAssets` resuelve todos al abrir/remontar).
+
 ## [0.3.0] — Epic 1: Sticker Creation Experience
 
 ### Agregado

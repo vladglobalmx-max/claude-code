@@ -124,6 +124,7 @@ function buildExampleProject(): Project {
           customProperties: {},
         },
       ],
+      assets: [],
       metadata: {
         name: "Sticker circular de logo",
         tags: ["demo"],

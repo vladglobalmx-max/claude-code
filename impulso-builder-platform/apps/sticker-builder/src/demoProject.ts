@@ -94,6 +94,7 @@ export function createDemoProject(): Project {
           customProperties: {},
         },
       ],
+      assets: [],
       metadata: { ...baseMetadata, name: "Documento de demostración" },
       history: { entries: [] },
       pluginData: {},

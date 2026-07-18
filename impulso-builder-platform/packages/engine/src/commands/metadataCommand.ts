@@ -83,5 +83,18 @@ export function updateMetadata(project: Project, command: UpdateMetadataCommand)
       }));
       return ok({ ...project, document });
     }
+
+    case "asset": {
+      const assetIndex = project.document.assets.findIndex((asset) => asset.id === target.assetId);
+      if (assetIndex === -1) {
+        return err(engineError("asset_not_found", `No existe un Asset con id "${target.assetId}".`));
+      }
+      const existing = project.document.assets[assetIndex]!;
+      const merged = mergeMetadata(existing.metadata, patch);
+      if (!merged.ok) return merged;
+      const assets = [...project.document.assets];
+      assets[assetIndex] = { ...existing, metadata: merged.value };
+      return ok({ ...project, document: { ...project.document, assets } });
+    }
   }
 }

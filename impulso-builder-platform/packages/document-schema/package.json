@@ -1,6 +1,6 @@
 {
   "name": "@impulso/document-schema",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Contrato oficial de datos de Impulso Builder Platform. TypeScript puro, sin dependencias de renderizado.",
   "type": "module",

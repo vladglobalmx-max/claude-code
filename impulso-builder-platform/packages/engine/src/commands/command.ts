@@ -3,10 +3,12 @@ import {
   PageIdSchema,
   LayerIdSchema,
   ObjectIdSchema,
+  AssetIdSchema,
   PageSchema,
   LayerSchema,
   SceneObjectSchema,
   SceneObjectBaseSchema,
+  AssetSchema,
   TransformSchema,
   StyleSchema,
   MetadataSchema,
@@ -111,6 +113,18 @@ export const ContentCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("ungroupObject"),
     objectId: ObjectIdSchema,
   }),
+
+  /**
+   * Asset Library: `document.assets` es el registro de descriptores de
+   * Asset del documento (nunca el binario — ver `@impulso/document-schema`
+   * `asset/base.ts`). Estos tres comandos son genéricos sobre `AssetSchema`
+   * (la unión completa) — agregar un tipo de Asset nuevo (plantilla, ícono,
+   * patrón...) no requiere ningún comando nuevo, solo una variante nueva de
+   * la unión del Document Schema.
+   */
+  z.object({ type: z.literal("addAsset"), asset: AssetSchema }),
+  z.object({ type: z.literal("removeAsset"), assetId: AssetIdSchema }),
+  z.object({ type: z.literal("renameAsset"), assetId: AssetIdSchema, name: z.string().min(1) }),
 ]);
 export type ContentCommand = z.infer<typeof ContentCommandSchema>;
 

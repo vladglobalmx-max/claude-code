@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PageIdSchema, LayerIdSchema, ObjectIdSchema } from "@impulso/document-schema";
+import { PageIdSchema, LayerIdSchema, ObjectIdSchema, AssetIdSchema } from "@impulso/document-schema";
 import { applyContentCommand } from "./applyCommand.js";
 import {
   buildProject,
@@ -9,6 +9,7 @@ import {
   buildRectangle,
   buildText,
   buildGroup,
+  buildImageAsset,
   NOW,
 } from "../testUtils/fixtures.js";
 
@@ -314,6 +315,48 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
     if (result.ok) {
       expect(result.value.document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual(["rect_1"]);
       expect(result.value.document.history.entries[0]?.description).toBe('Desagrupar "group_1"');
+    }
+  });
+
+  it("addAsset", () => {
+    const asset = buildImageAsset("asset_1");
+    const result = applyContentCommand(buildProject(), { type: "addAsset", asset }, options());
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.assets).toEqual([asset]);
+      expect(result.value.document.history.entries[0]?.description).toBe('Agregar asset "asset_1" (image)');
+    }
+  });
+
+  it("removeAsset", () => {
+    const project = buildProject({
+      document: { ...buildProject().document, assets: [buildImageAsset("asset_1")] },
+    });
+    const result = applyContentCommand(
+      project,
+      { type: "removeAsset", assetId: AssetIdSchema.parse("asset_1") },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.assets).toEqual([]);
+      expect(result.value.document.history.entries[0]?.description).toBe('Eliminar asset "asset_1"');
+    }
+  });
+
+  it("renameAsset", () => {
+    const project = buildProject({
+      document: { ...buildProject().document, assets: [buildImageAsset("asset_1", { name: "viejo.png" })] },
+    });
+    const result = applyContentCommand(
+      project,
+      { type: "renameAsset", assetId: AssetIdSchema.parse("asset_1"), name: "nuevo.png" },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.assets[0]?.name).toBe("nuevo.png");
+      expect(result.value.document.history.entries[0]?.description).toBe('Renombrar asset "asset_1"');
     }
   });
 });

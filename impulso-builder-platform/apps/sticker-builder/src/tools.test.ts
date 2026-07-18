@@ -5,11 +5,13 @@ import {
   LayerIdSchema,
   PageIdSchema,
   ProjectIdSchema,
+  AssetIdSchema,
   CURRENT_SCHEMA_VERSION,
   type Project,
 } from "@impulso/document-schema";
+import { createMemoryAssetStore } from "@impulso/asset-library";
 import { computeInsertPosition, createToolsController, mountToolButtons } from "./tools.js";
-import { createImageAssetCache } from "./imageAssets.js";
+import { createResolvedAssetCache } from "./assetResolution.js";
 
 const NOW = "2026-07-18T00:00:00.000Z";
 const metadata = { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW };
@@ -48,6 +50,7 @@ function buildProject(): Project {
           customProperties: {},
         },
       ],
+      assets: [],
       metadata,
       history: { entries: [] },
       pluginData: {},
@@ -57,6 +60,10 @@ function buildProject(): Project {
     pluginData: {},
     customProperties: {},
   };
+}
+
+function stubUrl(): void {
+  vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:mock"), revokeObjectURL: vi.fn() });
 }
 
 describe("computeInsertPosition", () => {
@@ -77,8 +84,12 @@ describe("createToolsController", () => {
   describe("insertText", () => {
     it("agrega un TextObject centrado en la primera Page/Layer", () => {
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
 
       controller.insertText();
 
@@ -94,8 +105,12 @@ describe("createToolsController", () => {
 
     it("cada llamada usa un id distinto y aplica el desplazamiento en cascada", () => {
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
 
       controller.insertText();
       controller.insertText();
@@ -108,8 +123,11 @@ describe("createToolsController", () => {
 
     it("sin now/generateId inyectados, usa los valores por defecto (Date/crypto.randomUUID reales)", () => {
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+      });
 
       controller.insertText();
 
@@ -120,10 +138,10 @@ describe("createToolsController", () => {
 
     it("con un generateId inyectado, produce un id determinístico", () => {
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
       const controller = createToolsController({
         engine,
-        imageCache: cache,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
         now: () => NOW,
         generateId: () => "fixed",
       });
@@ -138,25 +156,32 @@ describe("createToolsController", () => {
   describe("insertImage", () => {
     beforeEach(() => {
       vi.stubGlobal("Image", FakeImage);
+      stubUrl();
     });
     afterEach(() => {
       vi.unstubAllGlobals();
     });
 
-    it("agrega un ImageObject con el dataUrl embebido en customProperties, y lo registra en el cache", async () => {
+    it("registra el Asset en document.assets, guarda el binario, resuelve el cache, e inserta un ImageObject", async () => {
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+      const binaryStore = createMemoryAssetStore();
+      const resolvedCache = createResolvedAssetCache();
+      const controller = createToolsController({ engine, binaryStore, resolvedCache, now: () => NOW, generateId: () => "img1" });
       const file = new File(["contenido"], "sticker.png", { type: "image/png" });
 
       await controller.insertImage(file);
 
+      const assets = engine.getProject().document.assets;
+      expect(assets).toHaveLength(1);
+      expect(assets[0]?.type).toBe("image");
+
       const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
       expect(objects).toHaveLength(1);
       expect(objects[0]?.type).toBe("image");
-      if (objects[0]?.type === "image") {
-        expect(cache.resolve(objects[0].assetId)).toBeDefined();
-        expect(objects[0].customProperties.impulsoImageDataUrl).toMatch(/^data:/);
+      if (objects[0]?.type === "image" && assets[0]) {
+        expect(objects[0].assetId).toBe(assets[0].id);
+        expect(await binaryStore.get(assets[0].id)).toBeDefined();
+        expect(resolvedCache.resolve(assets[0].id)).toBeDefined();
       }
     });
 
@@ -177,8 +202,12 @@ describe("createToolsController", () => {
       }
       vi.stubGlobal("Image", SmallFakeImage);
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
       const file = new File(["x"], "chico.png", { type: "image/png" });
 
       await controller.insertImage(file);
@@ -192,8 +221,12 @@ describe("createToolsController", () => {
     it("reduce el tamaño de imágenes más grandes que MAX_IMAGE_DIMENSION manteniendo el aspect ratio", async () => {
       // FakeImage: 400x100 -> el lado mayor (400) se reduce a 200, escala 0.5 -> 200x50
       const engine = createEngine(buildProject());
-      const cache = createImageAssetCache();
-      const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
       const file = new File(["x"], "grande.png", { type: "image/png" });
 
       await controller.insertImage(file);
@@ -205,6 +238,87 @@ describe("createToolsController", () => {
     });
   });
 
+  describe("uploadAsset", () => {
+    beforeEach(() => {
+      vi.stubGlobal("Image", FakeImage);
+      stubUrl();
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("registra el Asset y el binario, pero NO inserta ningún object en el canvas", async () => {
+      const engine = createEngine(buildProject());
+      const binaryStore = createMemoryAssetStore();
+      const resolvedCache = createResolvedAssetCache();
+      const controller = createToolsController({ engine, binaryStore, resolvedCache, now: () => NOW });
+      const file = new File(["contenido"], "sticker.png", { type: "image/png" });
+
+      await controller.uploadAsset(file);
+
+      const assets = engine.getProject().document.assets;
+      expect(assets).toHaveLength(1);
+      expect(await binaryStore.get(assets[0]!.id)).toBeDefined();
+      expect(resolvedCache.resolve(assets[0]!.id)).toBeDefined();
+      expect(engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(0);
+    });
+  });
+
+  describe("insertImageFromAsset", () => {
+    it("inserta un ImageObject reutilizando un Asset ya existente, sin tocar binaryStore/resolvedCache", () => {
+      const project = buildProject();
+      const engine = createEngine({
+        ...project,
+        document: {
+          ...project.document,
+          assets: [
+            {
+              id: AssetIdSchema.parse("asset_1"),
+              type: "image",
+              name: "logo.png",
+              mimeType: "image/png",
+              width: 60,
+              height: 40,
+              metadata,
+              pluginData: {},
+              customProperties: {},
+            },
+          ],
+        },
+      });
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+        generateId: () => "obj1",
+      });
+
+      controller.insertImageFromAsset(AssetIdSchema.parse("asset_1"));
+
+      const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
+      expect(objects).toHaveLength(1);
+      if (objects[0]?.type === "image") {
+        expect(objects[0].assetId).toBe("asset_1");
+        expect(objects[0].size).toEqual({ width: 60, height: 40 });
+      }
+    });
+
+    it("no hace nada si el assetId no existe o no es de type image", () => {
+      const engine = createEngine(buildProject());
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
+
+      controller.insertImageFromAsset(AssetIdSchema.parse("no_existe"));
+
+      expect(engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(0);
+    });
+  });
+
   it("lanza si la primera Page no tiene ninguna Layer", () => {
     const project = buildProject();
     const pageWithoutLayers = { ...project.document.pages[0]!, layers: [] };
@@ -213,8 +327,12 @@ describe("createToolsController", () => {
       document: { ...project.document, pages: [pageWithoutLayers] },
     };
     const engine = createEngine(noLayerProject);
-    const cache = createImageAssetCache();
-    const controller = createToolsController({ engine, imageCache: cache, now: () => NOW });
+    const controller = createToolsController({
+      engine,
+      binaryStore: createMemoryAssetStore(),
+      resolvedCache: createResolvedAssetCache(),
+      now: () => NOW,
+    });
 
     expect(() => controller.insertText()).toThrow(/Page\/Layer/);
   });
@@ -230,8 +348,10 @@ describe("mountToolButtons", () => {
   it("click en 'Texto' llama a controller.insertText()", () => {
     const div = container();
     const insertText = vi.fn();
+    const uploadAsset = vi.fn();
     const insertImage = vi.fn();
-    mountToolButtons(div, { insertText, insertImage });
+    const insertImageFromAsset = vi.fn();
+    mountToolButtons(div, { insertText, uploadAsset, insertImage, insertImageFromAsset });
 
     (div.querySelector(".tool-text") as HTMLButtonElement).click();
 
@@ -240,7 +360,7 @@ describe("mountToolButtons", () => {
 
   it("click en 'Imagen' abre el input de archivo oculto", () => {
     const div = container();
-    const controller = { insertText: vi.fn(), insertImage: vi.fn() };
+    const controller = { insertText: vi.fn(), uploadAsset: vi.fn(), insertImage: vi.fn(), insertImageFromAsset: vi.fn() };
     mountToolButtons(div, controller);
 
     const fileInput = div.querySelector(".tool-image-input") as HTMLInputElement;
@@ -253,13 +373,10 @@ describe("mountToolButtons", () => {
   it("seleccionar un archivo llama a controller.insertImage(file) y limpia el input", () => {
     const div = container();
     const insertImage = vi.fn().mockResolvedValue(undefined);
-    mountToolButtons(div, { insertText: vi.fn(), insertImage });
+    mountToolButtons(div, { insertText: vi.fn(), uploadAsset: vi.fn(), insertImage, insertImageFromAsset: vi.fn() });
 
     const fileInput = div.querySelector(".tool-image-input") as HTMLInputElement;
     const file = new File(["x"], "a.png", { type: "image/png" });
-    // jsdom no implementa el constructor `DataTransfer`; se define `files`
-    // directamente (es una propiedad de solo lectura en el DOM real, pero
-    // configurable aquí para el test).
     Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
     fileInput.dispatchEvent(new Event("change"));
 
@@ -270,7 +387,7 @@ describe("mountToolButtons", () => {
   it("cambiar el input sin ningún archivo seleccionado no llama a insertImage", () => {
     const div = container();
     const insertImage = vi.fn();
-    mountToolButtons(div, { insertText: vi.fn(), insertImage });
+    mountToolButtons(div, { insertText: vi.fn(), uploadAsset: vi.fn(), insertImage, insertImageFromAsset: vi.fn() });
 
     const fileInput = div.querySelector(".tool-image-input") as HTMLInputElement;
     fileInput.dispatchEvent(new Event("change"));
@@ -280,7 +397,7 @@ describe("mountToolButtons", () => {
 
   it("openFilePicker() abre el input de archivo oculto (usado por el atajo de teclado 'I')", () => {
     const div = container();
-    const buttons = mountToolButtons(div, { insertText: vi.fn(), insertImage: vi.fn() });
+    const buttons = mountToolButtons(div, { insertText: vi.fn(), uploadAsset: vi.fn(), insertImage: vi.fn(), insertImageFromAsset: vi.fn() });
     const fileInput = div.querySelector(".tool-image-input") as HTMLInputElement;
     const clickSpy = vi.spyOn(fileInput, "click");
 
@@ -291,7 +408,7 @@ describe("mountToolButtons", () => {
 
   it("destroy() remueve los botones y el input del DOM", () => {
     const div = container();
-    const buttons = mountToolButtons(div, { insertText: vi.fn(), insertImage: vi.fn() });
+    const buttons = mountToolButtons(div, { insertText: vi.fn(), uploadAsset: vi.fn(), insertImage: vi.fn(), insertImageFromAsset: vi.fn() });
 
     buttons.destroy();
 

@@ -10,6 +10,7 @@ export * from "./common/customProperties.js";
 
 // Estilo y assets
 export * from "./style/style.js";
+export * from "./asset/base.js";
 export * from "./asset/asset.js";
 
 // Objects (Rectangle, Ellipse, Path, Image, Text, Group + unión SceneObject)

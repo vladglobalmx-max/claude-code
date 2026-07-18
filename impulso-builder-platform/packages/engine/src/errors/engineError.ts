@@ -22,6 +22,8 @@ export type EngineErrorCode =
   | "invalid_content"
   | "invalid_group"
   | "invalid_reorder"
+  | "asset_not_found"
+  | "duplicate_asset_id"
   | "cannot_remove_last_page"
   | "invariant_violation"
   | "nothing_to_undo"

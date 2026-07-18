@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.2.0] — Epic 2: Asset Library
+
+### Cambiado
+- `AssetSchema` pasa de un objeto plano con `superRefine` a una unión discriminada extensible: `asset/base.ts` (`AssetBaseSchema`, gana `pluginData`/`customProperties`), `asset/image.ts` (`ImageAssetSchema`), `asset/font.ts` (`FontAssetSchema`, extraído a su propio archivo). Agregar un tipo de Asset nuevo es agregar una variante, sin tocar ningún consumidor existente — ver ADR-0011.
+- `Document` gana `assets: Asset[]` (`.default([])`, aditivo — sin bump de `schemaVersion`, sin migración necesaria: `Asset` nunca se persistió realmente antes de esta épica).
+
+### Agregado
+- 5 tests nuevos (85 en total), 100% de cobertura mantenida.
+
+### Fuera de alcance (deliberado)
+Validación de integridad referencial entre `ImageObject.assetId` y `document.assets`; cualquier tipo de Asset más allá de `image`/`font`.
+
 ## [0.1.0] — Foundation 1
 
 ### Agregado

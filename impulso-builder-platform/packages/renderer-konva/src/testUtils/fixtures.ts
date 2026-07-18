@@ -150,6 +150,7 @@ export function buildDocument(pages: Page[] = [buildPage("page_1")], overrides: 
     schemaVersion: CURRENT_SCHEMA_VERSION,
     documentVersion: 1,
     pages,
+    assets: [],
     metadata: { ...baseMetadata, name: "Documento de prueba" },
     history: { entries: [] },
     pluginData: {},

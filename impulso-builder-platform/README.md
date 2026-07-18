@@ -35,6 +35,7 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 | Épica | Paquetes | Estado |
 |---|---|---|
 | EPIC 1 — Sticker Creation Experience | [`packages/engine`](packages/engine) + [`packages/renderer-konva`](packages/renderer-konva) + [`apps/sticker-builder`](apps/sticker-builder) | ✅ Completo — ver [ADR-0010](docs/adr/0010-sticker-creation-experience.md) |
+| EPIC 2 — Asset Library | [`packages/document-schema`](packages/document-schema) + [`packages/engine`](packages/engine) + [`packages/asset-library`](packages/asset-library) + [`apps/sticker-builder`](apps/sticker-builder) | ✅ Completo — ver [ADR-0011](docs/adr/0011-asset-library.md) |
 
 Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 

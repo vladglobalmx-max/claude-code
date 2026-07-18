@@ -4,6 +4,7 @@ import {
   PageIdSchema,
   LayerIdSchema,
   ObjectIdSchema,
+  AssetIdSchema,
   CURRENT_SCHEMA_VERSION,
   type Project,
   type Document,
@@ -13,6 +14,7 @@ import {
   type RectangleObject,
   type GroupObject,
   type TextObject,
+  type ImageAsset,
 } from "@impulso/document-schema";
 
 /** Fixtures compartidos entre tests del Engine — no forman parte de la API pública. */
@@ -96,8 +98,24 @@ export function buildDocument(pages: Page[] = [buildPage("page_1")], overrides: 
     schemaVersion: CURRENT_SCHEMA_VERSION,
     documentVersion: 1,
     pages,
+    assets: [],
     metadata: { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW },
     history: { entries: [] },
+    pluginData: {},
+    customProperties: {},
+    ...overrides,
+  };
+}
+
+export function buildImageAsset(id: string, overrides: Partial<ImageAsset> = {}): ImageAsset {
+  return {
+    id: AssetIdSchema.parse(id),
+    type: "image",
+    name: "logo.png",
+    mimeType: "image/png",
+    width: 100,
+    height: 100,
+    metadata: { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW },
     pluginData: {},
     customProperties: {},
     ...overrides,

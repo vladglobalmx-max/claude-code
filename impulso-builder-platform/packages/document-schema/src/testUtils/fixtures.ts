@@ -56,6 +56,7 @@ export function buildMinimalDocument(): Document {
         customProperties: {},
       },
     ],
+    assets: [],
     metadata: {
       name: "Sticker de ejemplo",
       tags: [],

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ObjectIdSchema,
+  AssetIdSchema,
   PageIdSchema,
   DocumentIdSchema,
   LayerIdSchema,
@@ -9,10 +10,26 @@ import {
   type Project,
   type SceneObject,
 } from "@impulso/document-schema";
+import { createMemoryAssetStore } from "@impulso/asset-library";
 import { mountApp, moveIndexBy, type AppElements } from "./app.js";
 
 const NOW = "2026-07-18T00:00:00.000Z";
 const metadata = { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW };
+
+class FakeImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  naturalWidth = 20;
+  naturalHeight = 20;
+  private _src = "";
+  get src() {
+    return this._src;
+  }
+  set src(value: string) {
+    this._src = value;
+    queueMicrotask(() => this.onload?.());
+  }
+}
 
 function buildRect(id: string, overrides: Partial<SceneObject> = {}): SceneObject {
   return {
@@ -48,6 +65,7 @@ function buildProject(objects: SceneObject[]): Project {
           customProperties: {},
         },
       ],
+      assets: [],
       metadata,
       history: { entries: [] },
       pluginData: {},
@@ -63,6 +81,7 @@ function buildElements(): AppElements {
   const canvasViewport = document.createElement("div");
   const canvasContainer = document.createElement("div");
   const layersContainer = document.createElement("div");
+  const assetsContainer = document.createElement("div");
   const inspectorContainer = document.createElement("div");
   const toolsContainer = document.createElement("div");
   const zoomContainer = document.createElement("div");
@@ -77,6 +96,7 @@ function buildElements(): AppElements {
   root.append(
     canvasViewport,
     layersContainer,
+    assetsContainer,
     inspectorContainer,
     toolsContainer,
     zoomContainer,
@@ -90,6 +110,9 @@ function buildElements(): AppElements {
     canvasViewport,
     canvasContainer,
     layersContainer,
+    assetsContainer,
+    tabLayersButton: button(),
+    tabAssetsButton: button(),
     inspectorContainer,
     toolsContainer,
     zoomContainer,
@@ -159,9 +182,17 @@ describe("moveIndexBy", () => {
 
 describe("mountApp", () => {
   let elements: AppElements;
+  // Cada test recibe su propio EventTarget para los atajos de teclado — sin
+  // esto, todas las instancias de App montadas en TODO el archivo (nunca
+  // destruidas explícitamente por la mayoría de los tests) compartirían el
+  // listener global de `window`, y un `dispatchEvent` en un test tardío
+  // dispararía también los atajos de instancias de tests anteriores ya
+  // "terminados" (con sus `vi.stubGlobal` ya revertidos).
+  let keyboardTarget: EventTarget;
 
   beforeEach(() => {
     elements = buildElements();
+    keyboardTarget = document.createElement("div");
   });
 
   afterEach(() => {
@@ -169,19 +200,19 @@ describe("mountApp", () => {
   });
 
   it("monta el CanvasRuntime, el panel de capas y el Inspector con el Project inicial dado", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(1);
     expect(elements.layersContainer.querySelectorAll(".layer-row")).toHaveLength(1);
   });
 
   it("sin initialProject, monta el proyecto de demostración", () => {
-    const app = mountApp({ elements });
+    const app = mountApp({ elements, keyboardTarget });
     expect(app.getRuntime().engine.getProject().moduleId).toBe("sticker-builder");
   });
 
   it("Deshacer/Rehacer reflejan canUndo/canRedo del Engine", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
     expect(elements.undoButton.disabled).toBe(true);
 
     app.getRuntime().engine.dispatch({ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 99 } });
@@ -196,7 +227,7 @@ describe("mountApp", () => {
   });
 
   it("Deshacer/Rehacer sin nada pendiente informa el status correspondiente (el botón mismo queda deshabilitado, ver atajo de teclado)", () => {
-    mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
     expect(elements.undoButton.disabled).toBe(true);
     expect(elements.redoButton.disabled).toBe(true);
 
@@ -214,7 +245,7 @@ describe("mountApp", () => {
 
   it("Guardar/Abrir persisten y restauran el Project vía Storage", async () => {
     const storage = new FakeStorage();
-    const app = mountApp({ elements, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     elements.saveButton.click();
     expect(elements.statusElement.textContent).toBe("Documento guardado localmente.");
@@ -231,7 +262,7 @@ describe("mountApp", () => {
 
   it("Abrir sin ningún documento guardado muestra un status informativo", async () => {
     const storage = new FakeStorage();
-    mountApp({ elements, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     elements.openButton.click();
     await vi.waitFor(() => {
@@ -242,7 +273,7 @@ describe("mountApp", () => {
   it("Abrir un documento corrupto muestra el error sin lanzar", async () => {
     const storage = new FakeStorage();
     storage.setItem("impulso:sticker-builder:project", "{ esto no es JSON válido");
-    mountApp({ elements, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     elements.openButton.click();
     await vi.waitFor(() => {
@@ -250,8 +281,46 @@ describe("mountApp", () => {
     });
   });
 
+  it("Abrir un documento guardado con imágenes legacy (formato embebido de EPIC 1) las migra a la Biblioteca de Assets y vuelve a guardar", async () => {
+    vi.stubGlobal("Image", FakeImage);
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:mock"), revokeObjectURL: vi.fn() });
+    const storage = new FakeStorage();
+    const legacyDataUrl = `data:image/png;base64,${btoa("contenido")}`;
+    const legacyImage: SceneObject = {
+      id: ObjectIdSchema.parse("img_1"),
+      type: "image",
+      assetId: AssetIdSchema.parse("asset_legacy"),
+      transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+      size: { width: 20, height: 20 },
+      style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
+      metadata,
+      pluginData: {},
+      customProperties: { impulsoImageDataUrl: legacyDataUrl },
+    } as SceneObject;
+    storage.setItem(
+      "impulso:sticker-builder:project",
+      JSON.stringify(buildProject([legacyImage])),
+    );
+    mountApp({
+      elements,
+      keyboardTarget,
+      storage,
+      binaryStore: createMemoryAssetStore(),
+      initialProject: buildProject([]),
+      now: () => NOW,
+    });
+
+    elements.openButton.click();
+    await vi.waitFor(() => {
+      expect(elements.statusElement.textContent).toMatch(/se migraron 1 imagen/);
+    });
+
+    const resaved = JSON.parse(storage.getItem("impulso:sticker-builder:project")!);
+    expect(resaved.document.assets).toHaveLength(1);
+  });
+
   it("el botón 'Nuevo' abre el diálogo, y crear reemplaza el Project actual", async () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     elements.newButton.click();
     const overlay = elements.newProjectDialogContainer.querySelector(".new-project-dialog-overlay") as HTMLElement;
@@ -268,7 +337,7 @@ describe("mountApp", () => {
   });
 
   it("Eliminar borra todos los objects seleccionados", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
     app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
 
     elements.deleteButton.click();
@@ -279,6 +348,7 @@ describe("mountApp", () => {
   it("Duplicar clona los objects seleccionados con un offset y los deja seleccionados", () => {
     const app = mountApp({
       elements,
+      keyboardTarget,
       initialProject: buildProject([buildRect("a")]),
       now: () => NOW,
       generateId: idGeneratorFrom(["dup1"]),
@@ -297,6 +367,7 @@ describe("mountApp", () => {
   it("Agrupar combina 2+ objects seleccionados en un Group y lo deja seleccionado", () => {
     const app = mountApp({
       elements,
+      keyboardTarget,
       initialProject: buildProject([buildRect("a"), buildRect("b")]),
       now: () => NOW,
       generateId: idGeneratorFrom(["group1"]),
@@ -315,7 +386,7 @@ describe("mountApp", () => {
   });
 
   it("Agrupar con menos de 2 seleccionados no hace nada", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
     app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
 
     elements.groupButton.click();
@@ -334,7 +405,7 @@ describe("mountApp", () => {
       customProperties: {},
       children: [buildRect("child_a")],
     };
-    const app = mountApp({ elements, initialProject: buildProject([group]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([group]), now: () => NOW });
     app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("g1")] });
 
     elements.ungroupButton.click();
@@ -344,7 +415,7 @@ describe("mountApp", () => {
   });
 
   it("Desagrupar sin un Group seleccionado no hace nada", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
     app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
 
     elements.ungroupButton.click();
@@ -353,7 +424,7 @@ describe("mountApp", () => {
   });
 
   it("los botones de acción se habilitan/deshabilitan según la selección", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
     expect(elements.deleteButton.disabled).toBe(true);
     expect(elements.duplicateButton.disabled).toBe(true);
     expect(elements.groupButton.disabled).toBe(true);
@@ -371,33 +442,33 @@ describe("mountApp", () => {
 
   describe("atajos de teclado", () => {
     it("V/T/I están cableados: T inserta texto, I abre el picker de imagen", () => {
-      mountApp({ elements, initialProject: buildProject([]), now: () => NOW });
+      mountApp({ elements, keyboardTarget, initialProject: buildProject([]), now: () => NOW });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
       const objects = elements.layersContainer.querySelectorAll(".layer-row");
       expect(objects).toHaveLength(1);
 
       const fileInput = elements.toolsContainer.querySelector(".tool-image-input") as HTMLInputElement;
       const clickSpy = vi.spyOn(fileInput, "click");
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "i" }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "i" }));
       expect(clickSpy).toHaveBeenCalledOnce();
     });
 
     it("Ctrl/Cmd+A selecciona todos los objects de nivel superior; Escape limpia la selección", () => {
-      const app = mountApp({ elements, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
+      const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a"), buildRect("b")]), now: () => NOW });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true }));
       expect(app.getRuntime().engine.getSelection()).toEqual(["a", "b"]);
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       expect(app.getRuntime().engine.getSelection()).toEqual([]);
     });
 
     it("las flechas mueven el object seleccionado", () => {
-      const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+      const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
       app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
 
       const object = app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects[0];
       expect(object?.transform.x).toBe(11);
@@ -406,19 +477,20 @@ describe("mountApp", () => {
     it("Ctrl/Cmd+] adelanta la capa seleccionada; Ctrl/Cmd+[ la retrasa", () => {
       const app = mountApp({
         elements,
+        keyboardTarget,
         initialProject: buildProject([buildRect("a"), buildRect("b"), buildRect("c")]),
         now: () => NOW,
       });
       app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "]", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "]", ctrlKey: true }));
       expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual([
         "b",
         "a",
         "c",
       ]);
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "[", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "[", ctrlKey: true }));
       expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual([
         "a",
         "b",
@@ -429,6 +501,7 @@ describe("mountApp", () => {
     it("adelantar/atrasar capa con más de un object seleccionado no hace nada", () => {
       const app = mountApp({
         elements,
+        keyboardTarget,
         initialProject: buildProject([buildRect("a"), buildRect("b")]),
         now: () => NOW,
       });
@@ -437,7 +510,7 @@ describe("mountApp", () => {
         objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")],
       });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "]", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "]", ctrlKey: true }));
 
       expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.id)).toEqual([
         "a",
@@ -449,45 +522,46 @@ describe("mountApp", () => {
       const storage = new FakeStorage();
       const app = mountApp({
         elements,
+        keyboardTarget,
         storage,
         initialProject: buildProject([buildRect("a"), buildRect("b")]),
         now: () => NOW,
         generateId: idGeneratorFrom(["dup1", "group1"]),
       });
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
       expect(elements.statusElement.textContent).toBe("Documento guardado localmente.");
 
       app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "d", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "d", ctrlKey: true }));
       expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(3);
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true }));
       expect(elements.statusElement.textContent).toBe("Deshecho.");
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, shiftKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, shiftKey: true }));
       expect(elements.statusElement.textContent).toBe("Rehecho.");
 
       app.getRuntime().engine.dispatch({
         type: "setSelection",
         objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")],
       });
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "g", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "g", ctrlKey: true }));
       const afterGroup = app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
       expect(afterGroup.some((o) => o.type === "group")).toBe(true);
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "g", ctrlKey: true, shiftKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "g", ctrlKey: true, shiftKey: true }));
       const afterUngroup = app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
       expect(afterUngroup.some((o) => o.type === "group")).toBe(false);
 
       app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [] });
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete" }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete" }));
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "o", ctrlKey: true }));
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "o", ctrlKey: true }));
     });
   });
 
   it("el zoom mide el tamaño de página actual para 'Ajustar a pantalla'", () => {
-    mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
     Object.defineProperty(elements.canvasViewport, "clientWidth", { value: 400, configurable: true });
     Object.defineProperty(elements.canvasViewport, "clientHeight", { value: 400, configurable: true });
 
@@ -497,8 +571,28 @@ describe("mountApp", () => {
     expect(elements.canvasContainer.style.transform).toBe("scale(1.68)");
   });
 
+  it("las pestañas de la sidebar izquierda alternan entre Capas y Assets", () => {
+    mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+
+    expect(elements.layersContainer.style.display).toBe("");
+    expect(elements.assetsContainer.style.display).toBe("none");
+    expect(elements.tabLayersButton.classList.contains("active")).toBe(true);
+
+    elements.tabAssetsButton.click();
+    expect(elements.layersContainer.style.display).toBe("none");
+    expect(elements.assetsContainer.style.display).toBe("");
+    expect(elements.tabAssetsButton.classList.contains("active")).toBe(true);
+    expect(elements.tabLayersButton.classList.contains("active")).toBe(false);
+
+    elements.tabLayersButton.click();
+    expect(elements.layersContainer.style.display).toBe("");
+    expect(elements.assetsContainer.style.display).toBe("none");
+    expect(elements.tabLayersButton.classList.contains("active")).toBe(true);
+    expect(elements.tabAssetsButton.classList.contains("active")).toBe(false);
+  });
+
   it("destroy() limpia toda la UI montada (capas, inspector, atajos, zoom, herramientas, diálogo)", () => {
-    const app = mountApp({ elements, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
 
     app.destroy();
 
@@ -506,17 +600,28 @@ describe("mountApp", () => {
     expect(elements.zoomContainer.querySelector(".zoom-control")).toBeNull();
     expect(elements.newProjectDialogContainer.querySelector(".new-project-dialog-overlay")).toBeNull();
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
     expect(elements.layersContainer.querySelectorAll(".layer-row")).toHaveLength(1); // sin cambios: los atajos ya no escuchan
   });
 
   it("sin now/generateId inyectados, usa los valores por defecto reales", () => {
-    const app = mountApp({ elements, initialProject: buildProject([]) });
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([]) });
 
     app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [] });
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
 
     const objects = app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
     expect(objects[0]?.id).toMatch(/^object_/);
+  });
+
+  it("sin keyboardTarget inyectado, los atajos escuchan en window por defecto", () => {
+    const app = mountApp({ elements, initialProject: buildProject([]) });
+    try {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+      const objects = app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
+      expect(objects).toHaveLength(1);
+    } finally {
+      app.destroy();
+    }
   });
 });

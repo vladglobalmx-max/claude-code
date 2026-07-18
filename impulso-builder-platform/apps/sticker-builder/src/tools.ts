@@ -1,6 +1,7 @@
-import { ObjectIdSchema } from "@impulso/document-schema";
+import { ObjectIdSchema, type AssetId, type ImageAsset } from "@impulso/document-schema";
 import type { Engine } from "@impulso/engine";
-import { loadImageFile, IMAGE_DATA_URL_PROPERTY, type ImageAssetCache } from "./imageAssets.js";
+import { createImageAssetFromFile, type AssetBinaryStore } from "@impulso/asset-library";
+import { loadImageElement, type ResolvedAssetCache } from "./assetResolution.js";
 
 const DEFAULT_TEXT_WIDTH = 160;
 const DEFAULT_TEXT_HEIGHT = 40;
@@ -32,12 +33,22 @@ function scaleToFit(width: number, height: number, maxDimension: number): { widt
 
 export interface ToolsController {
   insertText(): void;
+  /** Sube un archivo a la Biblioteca de Assets (binario + descriptor) SIN
+   * insertarlo en el canvas — usado por el panel de Assets ("Subir
+   * imagen"). */
+  uploadAsset(file: File): Promise<void>;
+  /** Sube un archivo nuevo: lo registra en la Asset Library y lo inserta
+   * de inmediato como un `ImageObject` — usado por la tools-bar/atajo "I". */
   insertImage(file: File): Promise<void>;
+  /** Inserta un `ImageObject` que reutiliza un Asset YA existente en la
+   * Biblioteca (ver `assetsPanel.ts`) — sin subir nada de nuevo. */
+  insertImageFromAsset(assetId: AssetId): void;
 }
 
 export interface CreateToolsControllerOptions {
   engine: Engine;
-  imageCache: ImageAssetCache;
+  binaryStore: AssetBinaryStore;
+  resolvedCache: ResolvedAssetCache;
   now?: () => string;
   generateId?: () => string;
 }
@@ -62,7 +73,7 @@ function firstPageAndLayer(engine: Engine) {
  * de UX documentada en ADR-0010.
  */
 export function createToolsController(options: CreateToolsControllerOptions): ToolsController {
-  const { engine, imageCache } = options;
+  const { engine, binaryStore, resolvedCache } = options;
   const now = options.now ?? (() => new Date().toISOString());
   const generateId = options.generateId ?? (() => crypto.randomUUID());
   let insertCount = 0;
@@ -109,32 +120,64 @@ export function createToolsController(options: CreateToolsControllerOptions): To
     });
   }
 
-  async function insertImage(file: File): Promise<void> {
-    const loaded = await loadImageFile(file);
-    imageCache.set(loaded.assetId, loaded.image);
-
+  function insertImageObject(
+    assetId: AssetId,
+    size: { width: number; height: number },
+    id: string,
+    timestamp: string,
+    insertIndex: number,
+  ): void {
     const { page, layer } = firstPageAndLayer(engine);
-    const size = scaleToFit(loaded.width, loaded.height, MAX_IMAGE_DIMENSION);
-    const position = computeInsertPosition(page.size.width, page.size.height, size.width, size.height, insertCount++);
+    const fitSize = scaleToFit(size.width, size.height, MAX_IMAGE_DIMENSION);
+    const position = computeInsertPosition(page.size.width, page.size.height, fitSize.width, fitSize.height, insertIndex);
     engine.dispatch({
       type: "addObject",
       pageId: page.id,
       layerId: layer.id,
       object: {
-        id: ObjectIdSchema.parse(`object_${generateId()}`),
+        id: ObjectIdSchema.parse(id),
         type: "image",
-        assetId: loaded.assetId,
+        assetId,
         transform: { x: position.x, y: position.y, rotation: 0, scaleX: 1, scaleY: 1 },
-        size,
+        size: fitSize,
         style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
-        metadata: baseMetadata(),
+        metadata: { tags: [], visible: true, locked: false, createdAt: timestamp, updatedAt: timestamp },
         pluginData: {},
-        customProperties: { [IMAGE_DATA_URL_PROPERTY]: loaded.dataUrl },
+        customProperties: {},
       },
     });
   }
 
-  return { insertText, insertImage };
+  /** Ingesta compartida por `uploadAsset` (solo Biblioteca) e `insertImage`
+   * (Biblioteca + inserción inmediata): decodifica el archivo, guarda su
+   * binario, resuelve el cache sincrónico del Renderer, y registra el
+   * descriptor en `document.assets`. */
+  async function ingestAndRegister(file: File): Promise<ImageAsset> {
+    const timestamp = now();
+    const { asset, binary } = await createImageAssetFromFile(file, { now: timestamp, generateId });
+    await binaryStore.set(asset.id, binary);
+    const { image, objectUrl } = await loadImageElement(binary);
+    resolvedCache.set(asset.id, image, objectUrl);
+    engine.dispatch({ type: "addAsset", asset });
+    return asset;
+  }
+
+  async function uploadAsset(file: File): Promise<void> {
+    await ingestAndRegister(file);
+  }
+
+  async function insertImage(file: File): Promise<void> {
+    const asset = await ingestAndRegister(file);
+    insertImageObject(asset.id, { width: asset.width, height: asset.height }, `object_${generateId()}`, now(), insertCount++);
+  }
+
+  function insertImageFromAsset(assetId: AssetId): void {
+    const asset = engine.getProject().document.assets.find((candidate) => candidate.id === assetId);
+    if (!asset || asset.type !== "image") return;
+    insertImageObject(assetId, { width: asset.width, height: asset.height }, `object_${generateId()}`, now(), insertCount++);
+  }
+
+  return { insertText, uploadAsset, insertImage, insertImageFromAsset };
 }
 
 export interface ToolButtons {

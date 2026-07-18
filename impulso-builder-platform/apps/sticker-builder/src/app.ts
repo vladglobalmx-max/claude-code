@@ -1,12 +1,15 @@
 import { ObjectIdSchema, type ObjectId, type Project } from "@impulso/document-schema";
 import { findObjectInDocument, cloneSceneObjectWithNewIds } from "@impulso/engine";
+import { createIndexedDbAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import type { CanvasRuntime } from "./bootstrap.js";
 import { mountCanvasRuntime } from "./bootstrap.js";
 import { createDemoProject } from "./demoProject.js";
 import { saveProjectLocally, loadProjectLocally } from "./persistence.js";
-import { createImageAssetCache, preloadProjectImages } from "./imageAssets.js";
+import { createResolvedAssetCache, preloadDocumentAssets, type ResolvedAssetCache } from "./assetResolution.js";
+import { migrateLegacyEmbeddedImages } from "./legacyMigration.js";
 import { mountLayersPanel, type LayersPanel } from "./layersPanel.js";
 import { mountInspector, type Inspector } from "./inspector.js";
+import { mountAssetsPanel, type AssetsPanel } from "./assetsPanel.js";
 import { mountZoomControl, type ZoomController } from "./zoom.js";
 import { createToolsController, mountToolButtons, type ToolButtons } from "./tools.js";
 import { mountKeyboardShortcuts, type KeyboardShortcuts } from "./keyboardShortcuts.js";
@@ -22,6 +25,9 @@ export interface AppElements {
    * aplica el `transform: scale(...)` del zoom (ver zoom.ts). */
   canvasContainer: HTMLDivElement;
   layersContainer: HTMLElement;
+  assetsContainer: HTMLElement;
+  tabLayersButton: HTMLButtonElement;
+  tabAssetsButton: HTMLButtonElement;
   inspectorContainer: HTMLElement;
   toolsContainer: HTMLElement;
   zoomContainer: HTMLElement;
@@ -42,6 +48,14 @@ export interface AppDependencies {
   elements: AppElements;
   /** Inyectable para tests; por defecto `localStorage` real. */
   storage?: Storage;
+  /** Inyectable para tests (ej. `createMemoryAssetStore()` de
+   * `@impulso/asset-library`, sin depender de IndexedDB); por defecto
+   * `createIndexedDbAssetStore()`. */
+  binaryStore?: AssetBinaryStore;
+  /** Dónde escuchan los atajos de teclado (ver `keyboardShortcuts.ts`); por
+   * defecto `window`. Inyectable en tests para que instancias de `App`
+   * montadas en tests distintos no compartan el mismo listener global. */
+  keyboardTarget?: EventTarget;
   initialProject?: Project;
   now?: () => string;
   generateId?: () => string;
@@ -81,14 +95,16 @@ export function mountApp(deps: AppDependencies): App {
   const { elements, storage } = deps;
   const now = deps.now ?? (() => new Date().toISOString());
   const generateId = deps.generateId ?? (() => crypto.randomUUID());
-  const imageCache = createImageAssetCache();
+  const binaryStore = deps.binaryStore ?? createIndexedDbAssetStore();
+  const resolvedCache: ResolvedAssetCache = createResolvedAssetCache();
 
   let runtime: CanvasRuntime = mountCanvasRuntime(elements.canvasContainer, deps.initialProject ?? createDemoProject(), {
-    resolveAssetSource: imageCache.resolve,
+    resolveAssetSource: resolvedCache.resolve,
   });
-  let toolsController = createToolsController({ engine: runtime.engine, imageCache, now, generateId });
+  let toolsController = createToolsController({ engine: runtime.engine, binaryStore, resolvedCache, now, generateId });
   let layersPanel: LayersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
   let inspector: Inspector = mountInspector(elements.inspectorContainer, runtime.engine);
+  let assetsPanel: AssetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
 
   function setStatus(message: string): void {
     elements.statusElement.textContent = message;
@@ -131,21 +147,22 @@ export function mountApp(deps: AppDependencies): App {
   let unsubscribeEngine = subscribeToEngine();
 
   /** Reemplaza el runtime completo (Nuevo/Abrir, ver ADR-0009), precargando
-   * antes cualquier imagen embebida en `customProperties` (ver
-   * imageAssets.ts) para que el primer render ya las resuelva — sin esto,
-   * un Project cargado con imágenes mostraría un placeholder hasta el
-   * siguiente evento del Engine. */
+   * antes cada Asset de type "image" del documento (`assetResolution.ts`)
+   * para que el primer render ya las resuelva — sin esto, un Project con
+   * imágenes mostraría un placeholder hasta el siguiente evento del Engine. */
   async function remount(project: Project): Promise<void> {
     unsubscribeEngine();
     layersPanel.destroy();
     inspector.destroy();
+    assetsPanel.destroy();
     runtime.renderer.destroy();
-    imageCache.clear();
-    await preloadProjectImages(project, imageCache);
-    runtime = mountCanvasRuntime(elements.canvasContainer, project, { resolveAssetSource: imageCache.resolve });
-    toolsController = createToolsController({ engine: runtime.engine, imageCache, now, generateId });
+    resolvedCache.clear();
+    await preloadDocumentAssets(project.document, binaryStore, resolvedCache);
+    runtime = mountCanvasRuntime(elements.canvasContainer, project, { resolveAssetSource: resolvedCache.resolve });
+    toolsController = createToolsController({ engine: runtime.engine, binaryStore, resolvedCache, now, generateId });
     layersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
     inspector = mountInspector(elements.inspectorContainer, runtime.engine);
+    assetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
     unsubscribeEngine = subscribeToEngine();
     zoomController.setZoom(1);
   }
@@ -167,8 +184,14 @@ export function mountApp(deps: AppDependencies): App {
       setStatus("No hay ningún documento guardado todavía.");
       return;
     }
-    await remount(loaded);
-    setStatus("Documento cargado.");
+    const { project: migrated, migratedCount } = await migrateLegacyEmbeddedImages(loaded, binaryStore, { now: now() });
+    await remount(migrated);
+    if (migratedCount > 0) {
+      saveProjectLocally(migrated, storage);
+      setStatus(`Documento cargado (se migraron ${migratedCount} imagen(es) a la Biblioteca de Assets).`);
+    } else {
+      setStatus("Documento cargado.");
+    }
   }
 
   function deleteSelected(): void {
@@ -263,8 +286,26 @@ export function mountApp(deps: AppDependencies): App {
 
   const toolButtons: ToolButtons = mountToolButtons(elements.toolsContainer, {
     insertText: () => toolsController.insertText(),
+    uploadAsset: (file) => toolsController.uploadAsset(file),
     insertImage: (file) => toolsController.insertImage(file),
+    insertImageFromAsset: (assetId) => toolsController.insertImageFromAsset(assetId),
   });
+
+  function showLayersTab(): void {
+    elements.layersContainer.style.display = "";
+    elements.assetsContainer.style.display = "none";
+    elements.tabLayersButton.classList.add("active");
+    elements.tabAssetsButton.classList.remove("active");
+  }
+  function showAssetsTab(): void {
+    elements.layersContainer.style.display = "none";
+    elements.assetsContainer.style.display = "";
+    elements.tabLayersButton.classList.remove("active");
+    elements.tabAssetsButton.classList.add("active");
+  }
+  elements.tabLayersButton.addEventListener("click", showLayersTab);
+  elements.tabAssetsButton.addEventListener("click", showAssetsTab);
+  showLayersTab();
 
   const zoomController: ZoomController = mountZoomControl(elements.zoomContainer, {
     viewport: elements.canvasViewport,
@@ -326,7 +367,7 @@ export function mountApp(deps: AppDependencies): App {
     nudge,
     bringForward: () => reorderSelected(1),
     sendBackward: () => reorderSelected(-1),
-  });
+  }, { target: deps.keyboardTarget });
 
   return {
     getRuntime: () => runtime,
@@ -338,6 +379,7 @@ export function mountApp(deps: AppDependencies): App {
       newProjectDialog.destroy();
       layersPanel.destroy();
       inspector.destroy();
+      assetsPanel.destroy();
       runtime.renderer.destroy();
     },
   };

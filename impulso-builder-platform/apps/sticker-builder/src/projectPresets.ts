@@ -96,6 +96,7 @@ export function createProjectFromSize(options: CreateProjectFromSizeOptions): Pr
           customProperties: {},
         },
       ],
+      assets: [],
       metadata,
       history: { entries: [] },
       pluginData: {},

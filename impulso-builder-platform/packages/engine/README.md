@@ -1,6 +1,6 @@
 # @impulso/engine
 
-> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado. Desde EDITOR EPIC 1 (Manipulation System) también expone la geometría pura de resize/rotate — ver [ADR-0008](../../docs/adr/0008-manipulation-system.md). Desde el épico Sticker Creation Experience, agrupar/desagrupar, editar el contenido de un texto, y clonar un object con identidad fresca — ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md).
+> FOUNDATION 2 de Impulso Builder Platform. El núcleo del motor de edición: estado, comandos y eventos sobre el `@impulso/document-schema`. Cero dependencias de renderizado. Desde EDITOR EPIC 1 (Manipulation System) también expone la geometría pura de resize/rotate — ver [ADR-0008](../../docs/adr/0008-manipulation-system.md). Desde el épico Sticker Creation Experience, agrupar/desagrupar, editar el contenido de un texto, y clonar un object con identidad fresca — ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md). Desde Asset Library (Epic 2), comandos para el registro de Assets del documento — ver [ADR-0011](../../docs/adr/0011-asset-library.md).
 
 **Estado:** completo. No implementa Renderer, Konva, React, Canvas, UI, Assets/Fonts (gestión de binarios), Export ni Persistence — eso es alcance de micro-sprints futuros.
 
@@ -37,6 +37,7 @@ packages/engine/
     │   ├── resizeObjectCommand.ts  # resizeObject — delega en geometry/resizeMath.ts + updateObjectTransform
     │   ├── rotateObjectCommand.ts  # rotateObject — delega en geometry/rotateMath.ts + updateObjectTransform
     │   ├── groupCommands.ts        # groupObjects / ungroupObject — solo hijos directos de una layer
+    │   ├── assetCommands.ts        # addAsset / removeAsset / renameAsset — genéricos sobre cualquier tipo de Asset
     │   ├── metadataCommand.ts      # updateMetadata — un comando, 5 niveles (project/document/page/layer/object)
     │   ├── selectionCommands.ts    # setSelection / clearSelection / toggleObjectSelection / pruneSelection
     │   └── applyCommand.ts         # orquesta: reducer -> versión -> historial -> validación final
@@ -65,7 +66,7 @@ packages/engine/
     └── testUtils/
         └── fixtures.ts             # builders de Project/Document/Page/Layer/Object para tests
 
-    (202 tests, 100% de cobertura)
+    (218 tests, 100% de cobertura)
 ```
 
 ## 3. Arquitectura
@@ -111,17 +112,18 @@ Un `Engine` no expone `engine.project.pages.push(...)`. Todo pasa por `dispatch(
 
 ### 3.3 Comandos: un catálogo simétrico, no ad-hoc
 
-Los 19 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
+Los 22 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
 
 | Nivel | Comandos |
 |---|---|
 | Page | `addPage`, `removePage`, `reorderPages` |
 | Layer | `addLayer`, `removeLayer`, `reorderLayers` |
 | Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `updateObjectContent`, `reorderObjects`, `resizeObject`, `rotateObject`, `groupObjects`, `ungroupObject` |
-| Metadata (genérico, 5 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`) |
+| Asset (Asset Library, genérico sobre cualquier tipo de Asset) | `addAsset`, `removeAsset`, `renameAsset` |
+| Metadata (genérico, 6 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`\|`asset`) |
 | Selección (efímera, no versionada) | `setSelection`, `clearSelection`, `toggleObjectSelection` (selección múltiple, ver Editor 2 / ADR-0006) |
 
-`updateMetadata` es un único comando para los cinco niveles en vez de `updateProjectMetadata`/`updateDocumentMetadata`/... — mismo principio de "sistema genérico" que el Document Schema aplicó a sus tipos de Object.
+`updateMetadata` es un único comando para los seis niveles en vez de `updateProjectMetadata`/`updateDocumentMetadata`/... — mismo principio de "sistema genérico" que el Document Schema aplicó a sus tipos de Object. `renameAsset` es su propio comando (no parte de `updateMetadata`) porque `Asset.name` es un campo propio, no parte de `metadata` — `updateMetadata` a nivel `"asset"` sigue cubriendo `tags`/`description`/etc.
 
 Los comandos de **objeto** se dirigen solo por `objectId` (no `pageId`+`layerId`): un Object puede estar anidado a cualquier profundidad dentro de un `group`, así que el Engine lo busca en todo el árbol (`tree/objectTree.ts`) en vez de exigirle a quien llama que sepa la ruta exacta.
 
@@ -144,6 +146,14 @@ Estas dos funciones son deliberadamente las únicas en el Engine que no requiere
 ### 3.10 Clonar con identidad fresca: una utilidad, no un comando
 
 "Duplicar" un object no tiene un comando propio — `cloneSceneObjectWithNewIds` (`cloning/cloneSceneObject.ts`) es una función pura que clona un `SceneObject` (recursivamente si es un `Group`, a cualquier profundidad) asignando un id nuevo a cada nodo, y el resultado se despacha con el `addObject` ya existente. Quien llama provee tanto el generador de ids como el timestamp — el Engine nunca inventa ninguno de los dos, exactamente como con cualquier otro object nuevo. Un `offset` opcional desplaza `x`/`y` solo del object de nivel superior; los hijos de un Group conservan su posición relativa intacta (ya es relativa al Group, no al documento).
+
+### 3.11 Comandos de Asset Library: genéricos sobre `AssetSchema`, sin duplicar el registro
+
+`addAsset`/`removeAsset`/`renameAsset` (`commands/assetCommands.ts`) operan sobre `document.assets` — el registro de descriptores de Asset Library (`@impulso/document-schema`, ver ADR-0011). Son genéricos sobre la unión completa de `Asset` (hoy `image`/`font`, mañana cualquier variante nueva): el reducer nunca necesita saber de qué tipo concreto es un Asset para agregarlo/quitarlo/renombrarlo, exactamente igual que `addObject` no necesita saber si un `SceneObject` es un Rectangle o un Group.
+
+`removeAsset` no valida si el Asset sigue siendo referenciado por algún `ImageObject.assetId` — mismo criterio que el resto del Engine (no valida referencias cruzadas en otros casos tampoco); el Renderer ya degrada correctamente a un placeholder ante un `assetId` sin resolver.
+
+El binario real de un Asset vive fuera de este paquete (`@impulso/asset-library`, IndexedDB) — el Engine solo conoce el descriptor.
 
 ### 3.4 Versionado e historial
 

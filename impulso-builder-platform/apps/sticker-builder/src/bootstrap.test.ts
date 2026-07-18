@@ -104,6 +104,7 @@ describe("mountCanvasRuntime — pipeline completo Document Schema -> Engine -> 
             customProperties: {},
           },
         ],
+        assets: [],
         metadata,
         history: { entries: [] },
         pluginData: {},

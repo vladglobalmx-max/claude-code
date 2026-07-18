@@ -1,6 +1,8 @@
 # 06 — Architecture Decisions (índice centralizado)
 
 > Este documento centraliza, en un solo lugar, los nueve Architecture Decision Records creados hasta la fecha — cada uno resumido en **Contexto, Problema, Alternativas, Decisión, Consecuencias**. Es un índice de lectura rápida, no un reemplazo: cada ADR original en [`../adr/`](../adr) incluye además **Riesgos**, **Compatibilidad futura**, y — cuando aplica — una sección **Rendimiento**, que aquí solo se referencian, no se repiten. Ver [`../adr/README.md`](../adr/README.md) para la plantilla completa y las reglas permanentes (ADR obligatorio por Foundation/Editor, Performance Budget, Stable Public API, UX First).
+>
+> **Nota de nomenclatura:** estos resúmenes preservan el lenguaje de cada ADR original en el momento en que se escribió (algunos usan "Impulso" o "la plataforma" de forma genérica, antes de que "Impulso Platform" fuera el nombre oficial adoptado — ver [`01-Product-Vision.md`](01-Product-Vision.md)). No se reescribe retroactivamente el historial de decisiones; el nombre oficial rige para toda documentación nueva desde este punto en adelante.
 
 ---
 

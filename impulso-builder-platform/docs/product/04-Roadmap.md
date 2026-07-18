@@ -20,11 +20,11 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 
 **Objetivo:** convertir el Alpha (que valida el flujo) en una herramienta que alguien externo al equipo pueda usar sin acompañamiento — todavía sin ambición de "producto terminado", pero sin las asperezas que el Alpha aceptó a propósito.
 
-- **Interfaz de edición real**: Toolbar y Sidebar/Inspector con diseño (no botones HTML sin estilo) — panel de propiedades (color, opacidad, tipografía), lista de capas.
-- **Biblioteca de assets básica**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración.
+- **Interfaz de edición real**: Toolbar y Sidebar/Inspector con diseño (no botones HTML sin estilo) — panel de propiedades (color, opacidad, tipografía), lista de capas. Primer uso real que justificaría empezar el pilar **Design System** (ver [`03-Architecture-Map.md`](03-Architecture-Map.md)).
+- **Asset Library, primera versión**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración — hoy solo un pilar planeado, sin implementación.
 - **Múltiples documentos**: reemplazar el slot único de `localStorage` (Alpha) por una gestión real de varios proyectos guardados localmente (IndexedDB), con lista, nombres y miniaturas.
 - **Especificación de producto para Sticker Builder**: tamaño físico, forma, sangrado y material del sticker — lo que hoy solo existe como concepto en `../ARCHITECTURE.md`.
-- **Exportación real**: PNG y SVG como mínimo, con la línea de corte modelada correctamente (`metadata.role: "die-line"`).
+- **Export Engine, primera versión**: PNG y SVG como mínimo, con la línea de corte modelada correctamente (`metadata.role: "die-line"`) — el primer paso real del pilar hoy solo planeado.
 - **Zoom y Pan** — hoy el canvas se corta si el documento excede el tamaño de la ventana; sin esto, un documento de tamaño real no es utilizable.
 - **Accesibilidad de primera pasada**: navegación por teclado para al menos mover un object seleccionado (el Engine ya soporta esto sin cambios — es un problema de UI, no de arquitectura).
 
@@ -41,10 +41,11 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 
 ## v2.0
 
-**Objetivo:** demostrar que Impulso es una plataforma, no un editor con nombre de plataforma — el segundo módulo real es la prueba definitiva de la tesis arquitectónica central.
+**Objetivo:** demostrar que Impulso Platform es una plataforma real, no un editor con nombre de plataforma — el segundo módulo real es la prueba definitiva de la tesis arquitectónica central.
 
-- **Segundo módulo real** (Planner Builder o Coloring Book Builder, a decidir según validación de mercado): construido reutilizando Impulso Engine sin modificarlo — la prueba de que "un núcleo, múltiples productos" no era solo una aspiración de arquitectura.
-- **Evaluación honesta de cuentas/sincronización remota**: solo si para entonces existe una necesidad real de continuar un proyecto entre dispositivos — no antes, y no por moda (ver ADR-0009 y `../ARCHITECTURE.md` §9, "diferido hasta que exista necesidad real").
+- **Segundo módulo real** (Planner Builder, Coloring Book Builder, Flashcard Builder, Worksheet Builder, Journal Builder o Bundle Builder — a decidir según validación de mercado, ver [`03-Architecture-Map.md`](03-Architecture-Map.md) para el roster completo): construido reutilizando Impulso Engine sin modificarlo — la prueba de que "un núcleo, múltiples productos" no era solo una aspiración de arquitectura.
+- **Los pilares de plataforma dejan de ser especulativos**: con un segundo módulo real consumiendo Design System/Asset Library/Export Engine, cada uno se valida (o se corrige) con evidencia real en vez de diseño anticipado — exactamente el propósito de no construirlos antes de que hubiera un segundo consumidor.
+- **Evaluación honesta de cuentas/sincronización remota (Shared Services)**: solo si para entonces existe una necesidad real de continuar un proyecto entre dispositivos — no antes, y no por moda (ver ADR-0009 y `../ARCHITECTURE.md` §9, "diferido hasta que exista necesidad real").
 - **Exploración de colaboración** (si el módulo de negocio lo justifica): evaluar, no necesariamente construir todavía — ver `05-Technical-Debt.md`.
 - **Revisión de la arquitectura de plugins**: con dos-tres módulos reales ya construidos, es el momento correcto de revisar si el contrato de plugin (`registerShapeTypes`/`registerExporters`/`registerToolPanels`/`registerRendererBindings`, boceto en `../ARCHITECTURE.md` §2.4) sigue siendo el adecuado, con evidencia real en vez de diseño especulativo.
 

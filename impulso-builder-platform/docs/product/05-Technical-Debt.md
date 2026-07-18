@@ -19,6 +19,18 @@ Estos son los que más directamente cambian qué tipo de producto es Impulso hoy
 | **Multiusuario / organizaciones** | Visión de producto de largo plazo (B2C y B2B, ver `../ARCHITECTURE.md` §0), explícitamente no implementada en la fase actual — no hay cuentas individuales todavía, mucho menos organizaciones. | Exista un caso de uso B2B real de colaboración entre varias personas de un mismo equipo/negocio. |
 | **Facturación** | No hay ningún modelo de monetización implementado todavía — el producto actual no distingue "gratis" de "pago" en ningún lugar. | El producto tenga una propuesta de precios definida y validada — una decisión de negocio que precede a la implementación, no al revés. |
 
+## Pilares de Impulso Platform aún no construidos (ver `03-Architecture-Map.md`)
+
+La estructura conceptual de la plataforma (ver [`03-Architecture-Map.md`](03-Architecture-Map.md)) nombra pilares que hoy son solo eso — conceptos, no paquetes con código. Se registran aquí para que nombrarlos en el mapa de arquitectura no se confunda con haberlos construido:
+
+| Pilar | Estado hoy | Se construye cuando... |
+|---|---|---|
+| **Shared Services** | No existe ningún servicio compartido real — la persistencia local de Sticker Builder (`apps/sticker-builder/src/persistence.ts`) es código de aplicación, no un servicio de plataforma. | Exista un segundo módulo que necesite el mismo servicio (persistencia, y eventualmente auth/sync), justificando extraerlo como pilar compartido (ver ADR-0009, "Compatibilidad futura"). |
+| **Design System** | No existe `packages/ui` ni ningún componente compartido — la UI mínima de Milestone 1 (5 botones HTML sin estilo) es explícitamente provisional. | La etapa Beta construya una interfaz de edición real (Toolbar/Sidebar con diseño) — el primer caso de uso real que justifique un sistema compartido en vez de estilos ad-hoc por módulo. |
+| **AI Engine** | No existe ninguna funcionalidad de IA en la plataforma todavía. | Se defina la primera capacidad de IA concreta a construir — y se construya desde el principio detrás de un contrato/adaptador propio (principio "AI Provider Agnostic", ver `02-Product-Principles.md`), nunca acoplada directamente a un proveedor. |
+| **Asset Library** | Solo existe el punto de extensión ya preparado en el Renderer (`resolveAssetSource`) — sin ninguna forma real de subir/gestionar assets desde la UI. | La etapa Beta lo requiera explícitamente (ver `04-Roadmap.md`). |
+| **Export Engine** | No existe ningún exportador implementado — ni PNG, ni SVG, ni PDF. Sticker Builder hoy no puede producir ningún archivo de salida. | La etapa Beta implemente la primera versión (PNG/SVG) y v1.0 la versión print-ready completa (PDF con línea de corte y sangrado) — ver `04-Roadmap.md`. |
+
 ## Infraestructura y backend (ya identificados en `../ARCHITECTURE.md` §9)
 
 Estos ya estaban registrados como diferidos desde la fase de diseño original (Foundation 0) — se listan aquí también para que este documento sea el punto único de referencia de toda la deuda deliberada del proyecto:

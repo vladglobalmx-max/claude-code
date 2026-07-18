@@ -1,40 +1,44 @@
 # 03 — Architecture Map
 
-> Cómo está organizada toda la plataforma, en capas. Para el razonamiento de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza, ver el README de su paquete.
+> Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
+>
+> **Nota de honestidad:** de todo lo descrito aquí, hoy solo existe código para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine, Asset Library, Export Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
 ## El mapa completo
 
 ```
-                    ┌─────────────────────────────┐
-                    │        Impulso Engine        │
-                    │  (núcleo reutilizable)       │
-                    │                               │
-                    │  Document Schema              │
-                    │       ↓                       │
-                    │  Engine Core                   │
-                    │       ↓                       │
-                    │  Renderer Adapter (contrato)   │
-                    └───────────────┬───────────────┘
-                                    │
-                                    ▼
-                    ┌─────────────────────────────┐
-                    │           Modules             │
-                    │  (plugins sobre el Engine)    │
-                    └───┬───────────┬───────────┬───┘
-                        │           │           │
-                        ▼           ▼           ▼
-                ┌───────────┐ ┌───────────┐ ┌───────────────┐     ┌───────────────┐
-                │  Sticker  │ │  Planner  │ │ Coloring Book │ ... │ Future Modules│
-                │  Builder  │ │  Builder  │ │    Builder    │     │               │
-                │ (✅ hoy)  │ │ (futuro)  │ │   (futuro)    │     │   (futuro)    │
-                └───────────┘ └───────────┘ └───────────────┘     └───────────────┘
+Impulso Platform
+│
+├── Impulso Engine        (✅ construido — el núcleo: Document Schema, Engine Core, Renderer Adapter)
+│
+├── Shared Services         (⏳ planeado — servicios transversales a todos los módulos)
+│
+├── Design System           (⏳ planeado — UI/componentes compartidos entre módulos)
+│
+├── AI Engine                (⏳ planeado — capacidades de IA, AI Provider Agnostic)
+│
+├── Asset Library             (⏳ planeado — biblioteca de imágenes/íconos/fuentes compartida)
+│
+├── Export Engine              (⏳ planeado — exportación print-ready como capacidad de plataforma)
+│
+└── Modules                     (consumidores de todo lo anterior)
+      ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)
+      ├── Planner Builder          ⏳ planeado
+      ├── Coloring Book Builder    ⏳ planeado
+      ├── Flashcard Builder        ⏳ planeado
+      ├── Worksheet Builder        ⏳ planeado
+      ├── Journal Builder          ⏳ planeado
+      ├── Bundle Builder           ⏳ planeado
+      └── futuros módulos          ⏳ sin definir todavía
 ```
 
-**Nota importante sobre esta forma:** Sticker Builder, Planner Builder, Coloring Book Builder y los módulos futuros **no dependen unos de otros** — son **hermanos**, cada uno un consumidor independiente del mismo Impulso Engine. La plataforma crece agregando módulos nuevos en paralelo, no encadenando uno sobre otro. (La instrucción original describe esta jerarquía como una cadena vertical de flechas; arquitectónicamente es un árbol — un núcleo con varias ramas — no una cadena, y ese es precisamente el punto: ningún módulo nuevo depende de que exista otro módulo antes que él.)
+**Sobre la forma de este árbol:** Impulso Engine, Shared Services, Design System, AI Engine, Asset Library y Export Engine son **pilares hermanos** de la plataforma — cada uno una capacidad transversal que cualquier Module puede consumir. Los Modules, a su vez, también son **hermanos entre sí**: Sticker Builder, Planner Builder, Coloring Book Builder y el resto **no dependen unos de otros** — cada uno consume los pilares de la plataforma de forma independiente. La plataforma crece agregando pilares y módulos en paralelo, nunca encadenando uno sobre otro.
 
-## Vista por capas técnicas (dentro de "Impulso Engine")
+## Vista por capas técnicas (dentro del pilar "Impulso Engine")
+
+Esta es la única parte del mapa con implementación real hoy — el detalle ya documentado en `03-Architecture-Map.md` de versiones anteriores de este documento, sin cambios técnicos:
 
 ```mermaid
 flowchart TD
@@ -47,37 +51,58 @@ flowchart TD
     F -.monta.-> D
 ```
 
-## Responsabilidades de cada capa
+## Responsabilidades de cada pilar
 
-### Impulso Engine (el núcleo)
+### Impulso Engine (✅ construido) — el núcleo
 
-El núcleo se divide, a su vez, en tres piezas con dependencia estrictamente en una sola dirección — ninguna capa conoce a la que está después de ella:
+Se divide, a su vez, en tres piezas con dependencia estrictamente en una sola dirección — ninguna capa conoce a la que está después de ella:
 
 | Capa | Paquete | Responsabilidad | Lo que NO hace |
 |---|---|---|---|
 | **Document Schema** | `packages/document-schema` | La única fuente de verdad de un proyecto: tipos (`Project → Document → Page → Layer → SceneObject`) + validación (Zod) + versionado/migraciones. Es literalmente lo que se guarda en disco o `localStorage`, y lo que viaja entre el Engine y cualquier Renderer. | No sabe dibujar nada. Cero dependencias de render, React, Canvas o DOM. |
 | **Engine Core** | `packages/engine` | Opera exclusivamente sobre el Document Schema: comandos (agregar/mover/redimensionar/rotar/etc.), estado, undo/redo, selección (efímera), eventos. Toda la lógica de "qué le puedo hacer a un documento" vive aquí — incluida la matemática de resize/rotación. | No sabe dibujar nada, no conoce Konva ni ninguna librería de render, no sabe qué es un "sticker" ni una "línea de corte". |
-| **Renderer Adapter** | `packages/renderer-konva` (primera implementación) | Traduce el Document Schema (vía Engine) a un árbol de nodos Konva reales, y traduce gestos de puntero (click, arrastre, handles) de vuelta en llamadas a `engine.dispatch(...)`. Es un adaptador reemplazable — el contrato que implementa (`RendererAdapter`) permitiría un `renderer-pixi` o `renderer-svg` sin tocar el Engine. | No decide ninguna regla de negocio: no valida, no versiona, no sabe qué pasa si un comando es inválido más allá de reflejarlo visualmente. |
+| **Renderer Adapter** | `packages/renderer-konva` (primera implementación) | Traduce el Document Schema (vía Engine) a un árbol de nodos Konva reales, y traduce gestos de puntero (click, arrastre, handles) de vuelta en llamadas a `engine.dispatch(...)`. Es un adaptador reemplazable. | No decide ninguna regla de negocio: no valida, no versiona, no sabe qué pasa si un comando es inválido más allá de reflejarlo visualmente. |
 
-### Modules (la capa de plugins)
+### Shared Services (⏳ planeado)
 
-Cada módulo (Sticker Builder, y en el futuro Planner Builder, Coloring Book Builder...) es un **consumidor** del Engine, no una extensión de él. Un módulo:
+Servicios transversales que cualquier Module necesitaría sin reimplementarlos cada vez — por ejemplo, autenticación (cuando exista), persistencia remota, telemetría/analytics, feature flags, internacionalización. Hoy, lo único parecido a esto es la persistencia local de Sticker Builder (`apps/sticker-builder/src/persistence.ts`, ver ADR-0009) — construida como código de aplicación, no todavía como un servicio compartido de plataforma. Se convierte en un pilar real cuando exista un segundo módulo que también lo necesite (ver ADR-0009, "Compatibilidad futura").
+
+### Design System (⏳ planeado)
+
+Componentes de UI (botones, paneles, inputs, iconografía, tokens de color/tipografía) compartidos entre todos los Modules, para que cada uno no reconstruya su propia Toolbar/Sidebar desde cero ni con una identidad visual distinta. `ARCHITECTURE.md` ya anticipaba un paquete `packages/ui` con este propósito — no construido todavía porque Sticker Builder, en su etapa Alpha, no tiene todavía una interfaz de edición con diseño real que lo justifique (ver Milestone 1, "Riesgos y limitaciones conocidas").
+
+### AI Engine (⏳ planeado)
+
+Cualquier capacidad de inteligencia artificial de la plataforma (generación de imágenes, sugerencias de diseño, autocompletado, etc.), diseñada desde el principio para ser **AI Provider Agnostic** (ver [`02-Product-Principles.md`](02-Product-Principles.md)) — un contrato/adaptador propio, análogo a `RendererAdapter`, en vez de un acoplamiento directo a un proveedor específico. Hoy no existe ninguna funcionalidad de IA en la plataforma; este pilar documenta la intención de cómo se construiría cuando llegue el momento, no una implementación en curso.
+
+### Asset Library (⏳ planeado)
+
+Biblioteca compartida de imágenes, íconos y fuentes, disponible para cualquier Module — hoy mencionada conceptualmente en `../ARCHITECTURE.md` (`Assets`/`Fonts` como subsistemas del Engine) pero sin implementación real: `renderer-konva` ya tiene el punto de extensión preparado (`resolveAssetSource`), y Sticker Builder hoy solo puede mostrar su Project de demostración hardcodeado — no hay todavía forma de subir/gestionar un asset propio desde la UI.
+
+### Export Engine (⏳ planeado)
+
+Capacidad de exportación print-ready (PNG/SVG/PDF con línea de corte y sangrado) como servicio de plataforma, reutilizable por cualquier módulo que necesite producir un archivo final — no solo Sticker Builder. `../ARCHITECTURE.md` §2.5 ya documenta por qué la exportación vectorial puede (y debe) leer el Document Schema directamente sin pasar por el Renderer. Hoy no existe ningún exportador implementado todavía — es la funcionalidad de mayor prioridad de la etapa Beta (ver [`04-Roadmap.md`](04-Roadmap.md)).
+
+### Modules — consumidores de la plataforma
+
+Cada módulo (Sticker Builder, y en el futuro Planner Builder, Coloring Book Builder, Flashcard Builder, Worksheet Builder, Journal Builder, Bundle Builder...) es un **consumidor** de Impulso Engine y de los pilares de plataforma, no una extensión de ellos. Un módulo:
 
 - Compone `createEngine()` + un `RendererAdapter` (hoy, `createKonvaRenderer()`) — exactamente como lo hace `apps/sticker-builder/src/bootstrap.ts`.
 - Puede definir semántica propia usando `metadata.role` sobre los tipos genéricos del Document Schema (ej. la línea de corte de un sticker es un `path` con `role: "die-line"`) — nunca inventando un tipo de `SceneObject` nuevo.
-- Construye su propia UI de aplicación (Toolbar, Sidebar, paneles de especificación de producto) — esto vive en la capa de aplicación, no en el Engine ni en el Renderer.
-- Puede definir exportadores específicos de producto (ej. un PDF print-ready con línea de corte y sangrado para Sticker Builder) que leen el Document Schema directamente.
+- Construye su propia UI de aplicación (Toolbar, Sidebar, paneles de especificación de producto) — hoy código propio de cada módulo; en el futuro, construida sobre el Design System compartido.
+- Consume Asset Library, Export Engine y AI Engine según los necesite, en vez de reimplementarlos.
 
-### Sticker Builder (el primer módulo, hoy construido)
+#### Sticker Builder (✅ construido — el primer módulo)
 
-`apps/sticker-builder` es la prueba de que la separación de capas funciona: un editor completo (Foundations 1-3, Editores 1-3, Editor Epic 1, Milestone 1 Alpha) construido componiendo únicamente las APIs públicas ya existentes del Engine y del Renderer, sin que ninguno de los dos supiera de antemano que "sticker" existía como concepto.
+`apps/sticker-builder` es la prueba de que la separación de capas funciona: un editor completo (Foundations 1-3, Editores 1-3, Editor Epic 1, Milestone 1 Alpha) construido componiendo únicamente las APIs públicas ya existentes de Impulso Engine, sin que este supiera de antemano que "sticker" existía como concepto.
 
-### Planner Builder / Coloring Book Builder / Future Modules (planeados, no construidos)
+#### Planner Builder / Coloring Book Builder / Flashcard Builder / Worksheet Builder / Journal Builder / Bundle Builder / futuros módulos (⏳ planeados)
 
-Módulos futuros que consumirían el mismo Impulso Engine de la misma manera que Sticker Builder — heredando selección, transformación, historial, resize/rotación y persistencia local sin reescribirlos. La validez de esta promesa (que un módulo nuevo no requiere tocar el núcleo) es, en sí misma, uno de los objetivos de producto declarados (ver [`01-Product-Vision.md`](01-Product-Vision.md), "Objetivos del producto").
+Módulos futuros que consumirían el mismo Impulso Engine y los mismos pilares de plataforma de la misma manera que Sticker Builder — heredando selección, transformación, historial, resize/rotación y (cuando existan) Asset Library/Export Engine/Design System sin reescribirlos. La validez de esta promesa es, en sí misma, uno de los objetivos de producto declarados (ver [`01-Product-Vision.md`](01-Product-Vision.md), "Objetivos del producto") y del roadmap hacia v2.0 (ver [`04-Roadmap.md`](04-Roadmap.md)).
 
 ## Qué hace posible este mapa
 
-1. **Dirección única de dependencia** (ADR-0001): Document Schema no depende de nada; Engine depende solo de Document Schema; Renderer depende de Engine y de Document Schema; un Módulo depende de Engine y de un Renderer. Nunca al revés — verificado activamente con `madge --circular` en cada paquete del monorepo.
-2. **Tipos genéricos, semántica vía metadata**: los 6 tipos de `SceneObject` (rectangle/ellipse/path/image/text/group) son los mismos para cualquier módulo — lo que hace único a un sticker, un planner o un coloring book se expresa con `metadata.role` y con exportadores/paneles propios del módulo, no con tipos de dato nuevos que fragmentarían el Document Schema entre módulos.
+1. **Dirección única de dependencia** (ADR-0001): Document Schema no depende de nada; Engine Core depende solo de Document Schema; Renderer Adapter depende de Engine Core y de Document Schema; un Module depende de Impulso Engine y de los pilares de plataforma que use. Nunca al revés — verificado activamente con `madge --circular` en cada paquete del monorepo.
+2. **Tipos genéricos, semántica vía metadata**: los 6 tipos de `SceneObject` (rectangle/ellipse/path/image/text/group) son los mismos para cualquier módulo — lo que hace único a un sticker, un planner, un coloring book o un flashcard se expresa con `metadata.role` y con exportadores/paneles propios del módulo, no con tipos de dato nuevos que fragmentarían el Document Schema entre módulos.
 3. **El Renderer es reemplazable, no solo en teoría**: `packages/engine/package.json` no declara `konva` como dependencia — es una garantía verificable, no una promesa de diseño.
+4. **Los pilares de plataforma se construyen bajo demanda real, no especulativamente**: Shared Services, Design System, AI Engine, Asset Library y Export Engine están definidos conceptualmente para que ningún módulo futuro los reinvente distinto, pero cada uno se implementa recién cuando un caso de uso real (típicamente, un segundo módulo) lo exige — la misma disciplina de "no optimizar/construir prematuramente" que ya rige el Performance Budget (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Simplicidad").

@@ -1,12 +1,14 @@
-# Impulso Builder Platform
+# Impulso Platform
 
-Monorepo de Impulso Builder Platform. **Impulso Sticker Builder** es el primer módulo construido sobre **Impulso Engine**, el núcleo reutilizable (Document Schema, Layers, Assets, Fonts, Export, History, Plugins) del que también se alimentarán futuros módulos como Planner Builder o Coloring Book Builder.
+Monorepo de **Impulso Platform** — una plataforma de creación de productos visuales construida sobre un núcleo reutilizable (**Impulso Engine**) del que se alimentan **Modules** independientes. **Sticker Builder** es el primer módulo, no el producto en sí; Planner Builder, Coloring Book Builder y otros módulos futuros están planeados sobre el mismo Engine. Ver la visión de producto completa y el mapa de toda la plataforma (Engine, Shared Services, Design System, AI Engine, Asset Library, Export Engine, Modules) en [`docs/product/`](docs/product/).
 
-Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. Todo proyecto se representa en un **Document Schema** propio, y el renderer (Konva, hoy) es un adaptador reemplazable — `Document Schema → Engine → Renderer → Konva`. Ver el diseño completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. Todo proyecto se representa en un **Document Schema** propio, y el renderer (Konva, hoy) es un adaptador reemplazable — `Document Schema → Engine → Renderer → Konva`. Ver el diseño técnico completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) y el mapa de arquitectura de producto en [`docs/product/03-Architecture-Map.md`](docs/product/03-Architecture-Map.md).
 
 **Metodología:** desarrollo por micro-sprints. Cada micro-sprint se detiene al terminar y espera aprobación explícita antes de continuar con el siguiente.
 
 ## Estado
+
+> La tabla de abajo trackea el progreso de ingeniería de **Impulso Engine** y de su primer módulo, **Sticker Builder** — el único módulo construido hasta la fecha. Para la visión completa de Impulso Platform (todos los módulos planeados, principios de producto, roadmap) ver [`docs/product/`](docs/product/).
 
 **Etapa Foundations — completa.** Document Schema, Engine y Renderer Adapter, cada uno cerrado y aprobado.
 

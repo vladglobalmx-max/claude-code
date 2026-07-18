@@ -22,6 +22,12 @@ Arquitectura aprobada: Impulso Engine nunca depende de una librería de render. 
 | EDITOR 3 — Transform System | [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0007](docs/adr/0007-transform-system.md) |
 | EDITOR EPIC 1 — Manipulation System (resize, rotación, bounding box, handles) | [`packages/engine`](packages/engine) + [`packages/renderer-konva`](packages/renderer-konva) | ✅ Completo — ver [ADR-0008](docs/adr/0008-manipulation-system.md) |
 
+**Milestones — primeras versiones integradas y ejecutables**, validando el flujo completo antes de seguir agregando capacidades.
+
+| Milestone | Objetivo | Estado |
+|---|---|---|
+| MILESTONE 1 — Impulso Alpha | Crear, mostrar, renderizar, seleccionar, mover, redimensionar, rotar, deshacer, rehacer, guardar y abrir un documento — de principio a fin | ✅ Completo — ver [`docs/MILESTONE_1_ALPHA.md`](docs/MILESTONE_1_ALPHA.md) y [ADR-0009](docs/adr/0009-local-persistence-alpha.md) |
+
 Ver [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) para la regla permanente de calidad que todo paquete debe cumplir, [`docs/adr/`](docs/adr) para el registro de Architecture Decision Records, y [`docs/PERFORMANCE_BUDGET.md`](docs/PERFORMANCE_BUDGET.md) para el registro de decisiones con impacto de rendimiento.
 
 ## Desarrollo

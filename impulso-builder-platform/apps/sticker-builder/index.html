@@ -3,13 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Impulso Sticker Builder — Canvas Runtime</title>
+    <title>Impulso Sticker Builder — Alpha</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #e5e5e5; }
+      html, body { margin: 0; height: 100%; background: #e5e5e5; font-family: system-ui, sans-serif; }
+      #toolbar { display: flex; align-items: center; gap: 8px; padding: 8px; background: #1c1917; }
+      #toolbar button { font: inherit; padding: 4px 10px; cursor: pointer; }
+      #toolbar button:disabled { cursor: not-allowed; opacity: 0.5; }
+      #toolbar-status { color: #e5e5e5; font-size: 0.85em; margin-left: auto; }
       #canvas-runtime { display: inline-block; background: #ffffff; }
     </style>
   </head>
   <body>
+    <!--
+      Milestone 1 (Impulso Alpha): UI mínima, sin estilo final, solo para
+      validar el flujo completo de principio a fin. No es Toolbar/Sidebar
+      "real" (explícitamente fuera de alcance) — ver docs/MILESTONE_1_ALPHA.md.
+    -->
+    <div id="toolbar">
+      <button id="new-btn" type="button">Nuevo</button>
+      <button id="undo-btn" type="button">Deshacer</button>
+      <button id="redo-btn" type="button">Rehacer</button>
+      <button id="save-btn" type="button">Guardar</button>
+      <button id="open-btn" type="button">Abrir</button>
+      <span id="toolbar-status"></span>
+    </div>
     <div id="canvas-runtime"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -28,3 +28,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0006](0006-selection-system.md) | Editor 2 | Selection System: click, Shift-click, deselección |
 | [0007](0007-transform-system.md) | Editor 3 | Transform System: mover objetos con el puntero |
 | [0008](0008-manipulation-system.md) | Editor Epic 1 | Manipulation System: resize, rotación, bounding box, handles |
+| [0009](0009-local-persistence-alpha.md) | Milestone 1 | Local Persistence: guardar/abrir un documento (Impulso Alpha) |

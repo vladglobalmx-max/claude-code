@@ -42,3 +42,7 @@ Toda capacidad nueva se evalúa desde **dos perspectivas**, ninguna suficiente p
 - **Comportamiento esperado por un usuario nuevo** — el que nunca usó ninguna.
 
 La vara es explícita: Impulso debe sentirse como un producto profesional (comparable a Figma/Illustrator/Canva/Kittl cuando aplique) desde su primera versión, no solo estar bien construido por dentro. Si este análisis revela una mejora de UX clara que no rompe la arquitectura ni amplía significativamente el alcance de la épica en curso, se incorpora y se documenta al cierre — no se difiere solo porque no fue pedida explícitamente.
+
+## UX Audits (desde Epic 5)
+
+Al cerrar cada gran bloque funcional (Workspace, Editor, Export, etc.) se realiza una **UX Audit independiente**, registrada en [`docs/ux-audits/`](ux-audits) — analiza el bloque ya construido como lo haría un equipo de UX de una herramienta profesional de referencia, evaluando las diez dimensiones de "Evaluación dual" de arriba. No modifica código, no propone refactors arquitectónicos, no abre épicas nuevas: es un insumo para decisiones de producto futuras, con hallazgos clasificados en quick wins (<30 min), cambios medianos, y cambios grandes que esperan una épica futura. Ver [`docs/ux-audits/README.md`](ux-audits/README.md) para la plantilla completa.

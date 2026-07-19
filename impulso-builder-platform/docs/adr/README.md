@@ -34,3 +34,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0012](0012-export-engine.md) | Epic 3 | Export Engine Foundation: SVG independiente de Konva, PNG vía Stage headless de `@impulso/renderer-konva` |
 | [0013](0013-templates-foundation.md) | Epic 4 | Templates Foundation: Template = `Project` + metadatos de catálogo, `packages/template-library`, unificación de `STICKER_SIZE_PRESETS` en Templates built-in |
 | [0014](0014-project-library-workspace.md) | Epic 5 | Project Library / Workspace: `packages/project-library`, `packages/storage-kit`, app Workspace-first, migración desde el slot único legado |
+| [0015](0015-batch-dispatch-alignment.md) | Epic 7 / Fase 7.2 | Batch Dispatch + Alignment Engine: `dispatchBatch` atómico en `@impulso/engine`, bounding boxes rotados puros, Alignment/Distribution para selección múltiple |

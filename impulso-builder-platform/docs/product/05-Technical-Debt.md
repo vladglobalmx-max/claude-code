@@ -37,6 +37,8 @@ La estructura conceptual de la plataforma nombra pilares que hoy son solo eso �
 
 **Project Library** (Epic 5, `packages/project-library`) — Deuda restante (ver [ADR-0014](../adr/0014-project-library-workspace.md)): sin autosave (ver `PRODUCT_BACKLOG.md` — prioridad alta como capacidad, aquí solo se registra la ausencia técnica), sin deduplicación de binarios de Asset al duplicar un proyecto, sin búsqueda/carpetas/colecciones en la Workspace (ver `UX_BACKLOG.md`), sin papelera de reciclaje, sin manejo de cuota de IndexedDB agotada. Prioridad: media.
 
+**Batch Dispatch + Alignment Engine** (Epic 7 / Fase 7.2, `@impulso/engine`/`renderer-konva`/`apps/sticker-builder`) — Deuda restante (ver [ADR-0015](../adr/0015-batch-dispatch-alignment.md)): sin caché de bounding boxes entre operaciones sucesivas (cada alineación remide desde cero vía Konva); Alignment/Distribution no consideran objects dentro de un `group` (solo top-level); texto sin `size` explícito y `Path` siguen dependiendo de medición vía Konva para su bounding box exacto (limitación heredada de ADR-0008, no nueva de esta fase). Prioridad: baja.
+
 ## 4. Infraestructura y backend (no construida)
 
 Ninguna pieza de infraestructura de servidor existe todavía — Fase 1 es 100% cliente, por decisión de producto (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Offline First"), no por limitación. El disparador de negocio de cada una vive en `PRODUCT_BACKLOG.md` ("Cloud Sync / Cuentas", "Colaboración en tiempo real", "Marketplace").

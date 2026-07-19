@@ -14,3 +14,7 @@ export { segmentsToSvgPathData } from "./nodes/path.js";
 export { toKonvaXY, fromKonvaXY } from "./coordinates.js";
 export { toPixels } from "./unit.js";
 export { toCanvasBlendMode } from "./style.js";
+
+// Bounding box real de un object (Epic 7 / Fase 7.2 — Alignment): puente
+// entre la medición vía Konva y la aritmética pura de `@impulso/engine`.
+export { computeObjectBoundingBox } from "./manipulation/boundingBox.js";

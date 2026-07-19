@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.9.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
+
+### Agregado
+- Nueva sección "Alineación" en el Inspector (`alignment.ts`, nuevo): 0 objects seleccionados → nada; 1 → Centrar horizontal/vertical en página; 2+ → las 6 alineaciones (izquierda/centro/derecha, arriba/centro/abajo); 3+ → suma Distribuir horizontal/vertical. Cada botón: ícono SVG + `title` + `aria-label` + `aria-describedby` hacia un mensaje de error accesible (`role="alert"`) — nunca depende solo del ícono o del color.
+- Todas las operaciones aplican con `engine.dispatchBatch` (`@impulso/engine` 0.8.0): un solo Ctrl/Cmd+Z revierte toda la operación sin importar cuántos objects movió, verificado en Chromium con 3 objects distribuidos.
+- La caja de referencia para alinear/distribuir es la envolvente conjunta real de la selección (vía `computeObjectBoundingBox`, `@impulso/renderer-konva` 0.7.0) — correcto con objects rotados, escalados, de tamaños distintos, texto, imágenes y grupos.
+- Rechazos (ej. sin Stage montado, "Centrar en página" con 2+ seleccionados) muestran un mensaje de texto accesible, nunca solo color; nunca dejan estado parcial ni tocan el historial.
+- 297 tests en total (25 nuevos en `alignment.test.ts`), cobertura agregada 98.64%/92.65%/93.51%/98.64%.
+- UX Audit 0003 (`docs/ux-audits/0003-alignment-fase-7-2.md`).
+
+### Fuera de alcance (deliberado, ver ADR-0015 e instrucción de la épica)
+Resize/rotate multi-object, caja envolvente manipulable, Smart Guides, Grid, Rulers, snapping — quedan para Fases 7.3/7.4. Sin atajos de teclado nuevos para las 8 operaciones (no hay convención clara todavía). Alignment/Distribution no consideran objects dentro de un `group` (solo top-level).
+
 ## [0.8.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
 
 ### Agregado

@@ -456,6 +456,52 @@
         font-size: 13px;
       }
 
+      /* Alineación (Epic 7 / Fase 7.2) */
+      .alignment-row {
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .alignment-button {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        background: #fafaf9;
+        color: #44403c;
+        cursor: pointer;
+      }
+      .alignment-button svg {
+        width: 16px;
+        height: 16px;
+      }
+      .alignment-button:hover {
+        background: #f0efee;
+        border-color: #a8a29e;
+      }
+      .alignment-button:focus-visible {
+        outline: 2px solid #1c1917;
+        outline-offset: 1px;
+      }
+      .alignment-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .alignment-error {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: #b91c1c;
+      }
+      .alignment-error:empty {
+        margin: 0;
+      }
+
       /* Diálogo de proyecto nuevo */
       .new-project-dialog-overlay {
         position: fixed;
@@ -732,7 +778,10 @@
           <div id="canvas-viewport">
             <div id="canvas-runtime"></div>
           </div>
-          <div id="inspector-panel"></div>
+          <div id="inspector-panel">
+            <div id="alignment-panel"></div>
+            <div id="inspector-content"></div>
+          </div>
         </div>
       </div>
       <div id="new-project-dialog-root"></div>

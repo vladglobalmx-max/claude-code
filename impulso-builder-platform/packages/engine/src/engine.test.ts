@@ -229,6 +229,219 @@ describe("createEngine — eventos", () => {
   });
 });
 
+describe("createEngine — dispatchBatch (Epic 7 / Fase 7.2)", () => {
+  function twoRectEngine() {
+    let counter = 0;
+    return createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b")])]),
+        ]),
+      }),
+      { clock: () => NOW, historyEntryIdGenerator: () => `h_${++counter}` },
+    );
+  }
+
+  it("aplica varios comandos como una sola entrada de historial", () => {
+    const engine = twoRectEngine();
+    const result = engine.dispatchBatch([
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+    ]);
+    expect(result.ok).toBe(true);
+    expect(engine.getProject().document.history.entries).toHaveLength(1);
+    expect(
+      engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.transform.x),
+    ).toEqual([10, 20]);
+  });
+
+  it("un solo Undo revierte TODO el batch (atómico)", () => {
+    const engine = twoRectEngine();
+    engine.dispatchBatch([
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+    ]);
+
+    const undoResult = engine.undo();
+    expect(undoResult.ok).toBe(true);
+    expect(
+      engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.transform.x),
+    ).toEqual([0, 0]);
+    expect(engine.canRedo()).toBe(true);
+  });
+
+  it("un solo Redo restaura TODO el batch (atómico)", () => {
+    const engine = twoRectEngine();
+    engine.dispatchBatch([
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+    ]);
+    engine.undo();
+
+    const redoResult = engine.redo();
+    expect(redoResult.ok).toBe(true);
+    expect(
+      engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.transform.x),
+    ).toEqual([10, 20]);
+  });
+
+  it("interopera con dispatch()/undo/redo normales: un batch es una entrada más de la misma pila", () => {
+    const engine = twoRectEngine();
+    engine.dispatch({ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 1 } });
+    engine.dispatchBatch([
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 100 } },
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 200 } },
+    ]);
+    expect(engine.getProject().document.history.entries).toHaveLength(2);
+
+    engine.undo(); // revierte el batch completo
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.transform.x)).toEqual([1, 0]);
+
+    engine.undo(); // revierte el dispatch() individual anterior
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects.map((o) => o.transform.x)).toEqual([0, 0]);
+  });
+
+  it("batch vacío: no-op — no agrega historial, no emite projectChanged", () => {
+    const engine = twoRectEngine();
+    const events: EngineEvent[] = [];
+    engine.subscribe((event) => events.push(event));
+
+    const result = engine.dispatchBatch([]);
+    expect(result.ok).toBe(true);
+    expect(engine.getProject().document.history.entries).toHaveLength(0);
+    expect(engine.canUndo()).toBe(false);
+    expect(events).toHaveLength(0);
+  });
+
+  it("un batch fallido no deja estado parcial ni habilita undo", () => {
+    const engine = twoRectEngine();
+    const before = engine.getProject();
+    const result = engine.dispatchBatch([
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 999 } },
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 1 } },
+    ]);
+    expect(result.ok).toBe(false);
+    expect(engine.getProject()).toBe(before);
+    expect(engine.canUndo()).toBe(false);
+  });
+
+  it("rechaza un comando mal formado dentro de un batch (shape incorrecta) sin lanzar", () => {
+    const engine = twoRectEngine();
+    const result = engine.dispatchBatch([{ type: "updateObjectTransform" } as never]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_command");
+    expect(engine.canUndo()).toBe(false);
+  });
+
+  it("rechaza comandos de selección dentro de un batch (no participan de historial/undo)", () => {
+    const engine = twoRectEngine();
+    const result = engine.dispatchBatch([
+      { type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] } as never,
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_command");
+    expect(engine.getSelection()).toEqual([]);
+  });
+
+  it("emite batchRejected (no commandRejected) cuando el batch falla", () => {
+    const engine = twoRectEngine();
+    const listener = vi.fn();
+    engine.subscribe(listener);
+
+    engine.dispatchBatch([{ type: "removeObject", objectId: ObjectIdSchema.parse("no-existe") }]);
+
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "batchRejected", error: expect.objectContaining({ code: "object_not_found" }) }),
+    );
+  });
+
+  it("emite projectChanged con cause 'batch' (incluye los comandos y la label) en éxito", () => {
+    const engine = twoRectEngine();
+    const events: EngineEvent[] = [];
+    engine.subscribe((event) => events.push(event));
+
+    engine.dispatchBatch(
+      [{ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } }],
+      { label: "Alinear a la izquierda" },
+    );
+
+    const changed = events.find((e) => e.type === "projectChanged");
+    expect(changed && "cause" in changed ? changed.cause : undefined).toEqual(
+      expect.objectContaining({ type: "batch", label: "Alinear a la izquierda" }),
+    );
+  });
+
+  it("usa la etiqueta dada como descripción de la entrada de historial", () => {
+    const engine = twoRectEngine();
+    engine.dispatchBatch(
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+      ],
+      { label: "Distribuir horizontalmente" },
+    );
+    expect(engine.getProject().document.history.entries[0]?.description).toBe("Distribuir horizontalmente");
+  });
+
+  it("poda la selección tras un batch igual que tras un dispatch() normal", () => {
+    const engine = twoRectEngine();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+    engine.dispatchBatch([{ type: "removeObject", objectId: ObjectIdSchema.parse("a") }]);
+    expect(engine.getSelection()).toEqual(["b"]);
+  });
+
+  it("respeta historyLimit igual que dispatch() individual", () => {
+    let counter = 0;
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b")])]),
+        ]),
+      }),
+      { clock: () => NOW, historyEntryIdGenerator: () => `h_${++counter}`, historyLimit: 1 },
+    );
+    engine.dispatchBatch([{ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 1 } }]);
+    engine.dispatchBatch([{ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 2 } }]);
+
+    expect(engine.undo().ok).toBe(true);
+    expect(engine.undo().ok).toBe(false);
+  });
+
+  /**
+   * Benchmark ligero (Epic 7 / Fase 7.2, sección "Performance"): confirma
+   * que mover 150 objects en un solo batch sigue produciendo una única
+   * entrada de historial (no 150) y termina en un tiempo acotado — no es
+   * infraestructura de benchmarking real, solo una red de seguridad para
+   * detectar una regresión evidente (ej. si alguien reintrodujera un
+   * `ProjectSchema.safeParse` por comando dentro del batch en vez de uno
+   * solo al final).
+   */
+  it("mover 150 objects en un solo batch produce una entrada y termina en un tiempo acotado", () => {
+    const objects = Array.from({ length: 150 }, (_, i) => buildRectangle(`rect_${i}`));
+    let counter = 0;
+    const engine = createEngine(
+      buildProject({ document: buildDocument([buildPage("page_1", [buildLayer("layer_1", objects)])]) }),
+      { clock: () => NOW, historyEntryIdGenerator: () => `h_${++counter}` },
+    );
+    const commands = objects.map((object) => ({
+      type: "updateObjectTransform" as const,
+      objectId: object.id,
+      transform: { x: 10 },
+    }));
+
+    const start = Date.now();
+    const result = engine.dispatchBatch(commands, { label: "Alinear a la izquierda" });
+    const elapsedMs = Date.now() - start;
+
+    expect(result.ok).toBe(true);
+    expect(engine.getProject().document.history.entries).toHaveLength(1);
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects.every((o) => o.transform.x === 10)).toBe(true);
+    // Presupuesto generoso a propósito (evitar flakiness en CI) — el
+    // objetivo es atrapar una regresión de orden de magnitud, no medir con precisión.
+    expect(elapsedMs).toBeLessThan(500);
+  });
+});
+
 describe("createEngine — comandos de estructura no relacionados con Sticker Builder", () => {
   it("addPage / addLayer / addObject componen un documento multi-página genérico", () => {
     const engine = testEngine();

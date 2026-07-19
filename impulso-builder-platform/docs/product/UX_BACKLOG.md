@@ -13,6 +13,9 @@
 | 3 | Estado `:hover` visible en `.workspace-card` (borde o sombra) — señal de interactividad antes del clic | UX Audit 0001 | Workspace |
 | 4 | Repetir el botón "Nuevo proyecto" junto al mensaje de estado vacío, no solo arriba a la derecha | UX Audit 0001 | Workspace |
 | 5 | `aria-label` explícito en el botón de ícono (lápiz de renombrar), además del `title` ya existente | UX Audit 0001 | Workspace |
+| 6 | Agregar `title` explicando el motivo del rechazo cuando el Engine rechaza un valor del Inspector (hoy el `title` siempre explica la sintaxis de expresión, nunca el motivo puntual) | UX Audit 0002 | Editor |
+| 7 | Separador visual entre la fila de Alineación y la de Distribución en el Inspector, para reforzar que son categorías de operación distintas | UX Audit 0003 | Editor |
+| 8 | Mencionar en el tooltip de Distribuir que requiere 3+ objects (hoy solo describe qué hace, no cuándo está disponible) | UX Audit 0003 | Editor |
 
 ## Medium (más que un quick win, sin requerir una épica completa)
 
@@ -24,6 +27,9 @@
 | 4 | Unificar la ubicación visual de las 4 acciones de una tarjeta de proyecto (Renombrar vive separado de Duplicar/Eliminar/Abrir) | UX Audit 0001 | Workspace |
 | 5 | Detección de `Document.assets` huérfanos: eliminar un Asset no valida si algún `ImageObject` todavía lo referencia (hoy degrada a placeholder silenciosamente) | README `apps/sticker-builder`, §7 | Editor / Assets |
 | 6 | Indicador de progreso al precargar Assets de un documento con muchas imágenes (`preloadDocumentAssets` resuelve todo de una vez, sin carga perezosa ni progresiva) | README `apps/sticker-builder`, §7 | Editor |
+| 7 | Indicador visual breve durante el debounce de un campo numérico del Inspector (hoy el cambio se aplica en silencio tras la pausa, sin señal de "aplicando…") | UX Audit 0002 | Editor |
+| 8 | Mensaje inline junto al campo inválido del Inspector, no solo color (mejora de accesibilidad sobre lo ya construido en Fase 7.1) | UX Audit 0002 | Editor |
+| 9 | Mensaje explicativo específico cuando Distribuir produce superposición por falta de espacio (hoy es un comportamiento determinista sin explicación visible, distinto de un rechazo real) | UX Audit 0003 | Editor |
 
 ## Large (esperar una épica futura o evaluación de producto)
 
@@ -39,6 +45,8 @@
 | 8 | Un modo de herramienta persistente (hoy Texto/Imagen insertan de inmediato, sin "armar" un modo de colocación) | README `apps/sticker-builder`, §7 | Editor |
 | 9 | Manejo explícito de cuota de almacenamiento agotada, con mensaje claro en vez de fallar silenciosamente | README `apps/sticker-builder`/`asset-library`, varios | Editor / Workspace / Assets |
 | 10 | Onboarding: la primera vez que alguien abre la app sin contexto previo, debe entender qué hacer sin documentación externa (ya en el Roadmap como criterio de v1.0/Commercial Platform) | Roadmap | Plataforma completa |
+| 11 | Selector de fuentes curado (lista de fuentes reales disponibles, con previsualización) en vez de texto libre en el campo Tipografía del Inspector | UX Audit 0002 | Editor |
+| 12 | Vista previa en vivo al pasar el mouse sobre un botón de Alineación (ghost/outline de dónde quedaría cada object) | UX Audit 0003 | Editor |
 
 ---
 
@@ -46,7 +54,7 @@
 
 La práctica de UX Audits nació con Epic 5 — los siguientes bloques, ya construidos, nunca fueron auditados bajo el mismo proceso riguroso que la Workspace. Es razonable esperar hallazgos adicionales, hoy no documentados, cuando les toque su turno:
 
-- **Editor** (Toolbar, Sidebar/Inspector, Canvas Runtime, manipulación) — Epics 1 y Editor Epics 1-3.
+- **Editor** — el Inspector de un object individual (UX Audit 0002) y la sección de Alineación (UX Audit 0003) ya están auditados; Toolbar, Canvas Runtime y manipulación de un solo object (resize/rotate) siguen sin auditoría formal.
 - **Export** (diálogo de exportación PNG/SVG) — Epic 3.
 - **Templates** (galería de "Nuevo proyecto", "Guardar como plantilla") — Epic 4.
 

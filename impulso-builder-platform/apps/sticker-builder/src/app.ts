@@ -11,6 +11,7 @@ import { createResolvedAssetCache, preloadDocumentAssets, type ResolvedAssetCach
 import { createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
 import { mountLayersPanel, type LayersPanel } from "./layersPanel.js";
 import { mountInspector, type Inspector } from "./inspector.js";
+import { createAlignmentController, mountAlignmentPanel, type AlignmentPanel } from "./alignment.js";
 import { mountAssetsPanel, type AssetsPanel } from "./assetsPanel.js";
 import { mountZoomControl, type ZoomController } from "./zoom.js";
 import { createToolsController, mountToolButtons, type ToolButtons } from "./tools.js";
@@ -50,6 +51,7 @@ export interface AppElements {
   tabLayersButton: HTMLButtonElement;
   tabAssetsButton: HTMLButtonElement;
   inspectorContainer: HTMLElement;
+  alignmentContainer: HTMLElement;
   toolsContainer: HTMLElement;
   zoomContainer: HTMLElement;
   newProjectDialogContainer: HTMLElement;
@@ -169,6 +171,8 @@ export function mountApp(deps: AppDependencies): App {
   let layersPanel: LayersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
   let inspector: Inspector = mountInspector(elements.inspectorContainer, runtime.engine);
   let assetsPanel: AssetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
+  let alignmentController = createAlignmentController(runtime.engine, runtime.renderer);
+  let alignmentPanel: AlignmentPanel = mountAlignmentPanel(elements.alignmentContainer, runtime.engine, alignmentController);
 
   function setStatus(message: string): void {
     elements.statusElement.textContent = message;
@@ -219,6 +223,7 @@ export function mountApp(deps: AppDependencies): App {
     layersPanel.destroy();
     inspector.destroy();
     assetsPanel.destroy();
+    alignmentPanel.destroy();
     runtime.renderer.destroy();
     resolvedCache.clear();
     await preloadDocumentAssets(project.document, binaryStore, resolvedCache);
@@ -227,6 +232,8 @@ export function mountApp(deps: AppDependencies): App {
     layersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
     inspector = mountInspector(elements.inspectorContainer, runtime.engine);
     assetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
+    alignmentController = createAlignmentController(runtime.engine, runtime.renderer);
+    alignmentPanel = mountAlignmentPanel(elements.alignmentContainer, runtime.engine, alignmentController);
     unsubscribeEngine = subscribeToEngine();
     zoomController.setZoom(1);
   }
@@ -463,6 +470,7 @@ export function mountApp(deps: AppDependencies): App {
       layersPanel.destroy();
       inspector.destroy();
       assetsPanel.destroy();
+      alignmentPanel.destroy();
       runtime.renderer.destroy();
     },
   };

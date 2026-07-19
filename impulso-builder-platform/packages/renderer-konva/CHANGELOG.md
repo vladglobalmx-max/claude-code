@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.7.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
+
+### Agregado
+- `computeObjectBoundingBox(node, object)` (`manipulation/boundingBox.ts`): puente entre `computeManipulationBox` (mide vía Konva, ya existente) y `computeRotatedBoundingBox` (`@impulso/engine` 0.8.0, pura) — el AABB real de cualquier object rotado/escalado, sin duplicar la trigonometría de rotación. Consumido por Alignment (`apps/sticker-builder`) para calcular la caja de cada object seleccionado antes de alinear/distribuir.
+- Adición pura a la API pública existente — no requiere ADR de cambio de API (regla de Stable Public API); el razonamiento de diseño completo vive en ADR-0015.
+- 5 tests nuevos (149 en total), 100% de cobertura mantenida en el archivo modificado. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.6.0] — Epic 3: Export Engine Foundation
 
 ### Agregado

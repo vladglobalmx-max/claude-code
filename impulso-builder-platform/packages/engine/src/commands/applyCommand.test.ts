@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PageIdSchema, LayerIdSchema, ObjectIdSchema, AssetIdSchema } from "@impulso/document-schema";
-import { applyContentCommand } from "./applyCommand.js";
+import { applyContentCommand, applyContentCommandBatch } from "./applyCommand.js";
 import {
   buildProject,
   buildDocument,
@@ -375,5 +375,248 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
       expect(result.value.document.assets[0]?.name).toBe("nuevo.png");
       expect(result.value.document.history.entries[0]?.description).toBe('Renombrar asset "asset_1"');
     }
+  });
+});
+
+/** Documento con 2 rectangles top-level, para ejercitar batches multi-object. */
+function twoRectProject() {
+  return buildProject({
+    document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b")])])]),
+  });
+}
+
+describe("applyContentCommandBatch — Epic 7 / Fase 7.2 (Batch Operations)", () => {
+  it("batch exitoso: aplica los N comandos y produce una sola entrada de historial", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const objects = result.value.document.pages[0]?.layers[0]?.objects;
+    expect(objects?.map((o) => o.transform.x)).toEqual([10, 20]);
+    expect(result.value.document.history.entries).toHaveLength(1);
+    expect(result.value.document.documentVersion).toBe(project.document.documentVersion + 1);
+  });
+
+  it("batch de un solo comando: mismo resultado observable que dispatch() de ese comando", () => {
+    const project = twoRectProject();
+    const single = applyContentCommand(
+      project,
+      { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+      options(),
+    );
+    const batch = applyContentCommandBatch(
+      project,
+      [{ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } }],
+      options(),
+    );
+    expect(single.ok).toBe(true);
+    expect(batch.ok).toBe(true);
+    if (!single.ok || !batch.ok) return;
+    expect(batch.value.document.pages[0]?.layers[0]?.objects[0]?.transform.x).toBe(10);
+    expect(batch.value.document.history.entries[0]?.description).toBe(
+      single.value.document.history.entries[0]?.description,
+    );
+    expect(batch.value.document.history.entries).toHaveLength(1);
+  });
+
+  it("batch vacío: no-op explícito, mismo project, sin entrada de historial", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(project, [], options());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toBe(project); // misma referencia: ni siquiera se reconstruyó
+    expect(result.value.document.history.entries).toHaveLength(0);
+    expect(result.value.document.documentVersion).toBe(project.document.documentVersion);
+  });
+
+  it("falla en el primer comando: el batch entero se rechaza, nada se aplica", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("object_not_found");
+  });
+
+  it("falla en un comando intermedio: el batch entero se rechaza, nada se aplica", () => {
+    const project = buildProject({
+      document: buildDocument([
+        buildPage("page_1", [buildLayer("layer_1", [buildRectangle("a"), buildRectangle("b"), buildRectangle("c")])]),
+      ]),
+    });
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 20 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("c"), transform: { x: 30 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("object_not_found");
+  });
+
+  it("falla en el último comando: el batch entero se rechaza, nada se aplica", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("estado intacto después de un fallo: el project original no se modifica ni siquiera parcialmente", () => {
+    const project = twoRectProject();
+    const snapshot = JSON.parse(JSON.stringify(project));
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 999 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    expect(project).toEqual(snapshot);
+    expect(project.document.pages[0]?.layers[0]?.objects[0]?.transform.x).toBe(0);
+  });
+
+  it("orden de ejecución: los comandos se aplican en el orden dado, cada uno viendo el efecto del anterior", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        // Depende del resultado del comando anterior sobre el MISMO object.
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { y: 5 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.transform.x).toBe(10);
+    expect(object?.transform.y).toBe(5);
+  });
+
+  it("comandos que afectan distintos objects: cada uno recibe su propio patch de forma independiente", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectStyle", objectId: ObjectIdSchema.parse("a"), style: { opacity: 0.5 } },
+        { type: "updateObjectStyle", objectId: ObjectIdSchema.parse("b"), style: { opacity: 0.2 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const objects = result.value.document.pages[0]?.layers[0]?.objects;
+    expect(objects?.map((o) => o.style.opacity)).toEqual([0.5, 0.2]);
+  });
+
+  it("IDs inexistentes: se rechaza con object_not_found, sin aplicar el resto del batch", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [{ type: "removeObject", objectId: ObjectIdSchema.parse("fantasma") }],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("object_not_found");
+  });
+
+  it("valores inválidos: un patch que dejaría el object en un estado inválido rechaza todo el batch", () => {
+    const project = twoRectProject();
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectStyle", objectId: ObjectIdSchema.parse("b"), style: { opacity: 5 } }, // fuera de [0,1]
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("invalid_style");
+  });
+
+  it("no deja entradas de historial parciales: un batch fallido no agrega ninguna entrada", () => {
+    const project = twoRectProject();
+    const historyBefore = project.document.history.entries.length;
+    const result = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("no-existe"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(result.ok).toBe(false);
+    expect(project.document.history.entries).toHaveLength(historyBefore);
+  });
+
+  it("la red de seguridad rechaza un batch cuyo resultado combinado sea inválido, aunque cada reducer individual lo haya aceptado", () => {
+    // Mismo criterio que el equivalente singular de `applyContentCommand`:
+    // se corrompe el documento a propósito (pages: []) sin pasar por un
+    // reducer que lo detectaría, para probar que la validación final del
+    // batch no confía ciegamente en el éxito de cada comando individual.
+    const project = twoRectProject();
+    const corrupted = { ...project, document: { ...project.document, pages: [] } };
+
+    const result = applyContentCommandBatch(
+      corrupted,
+      [{ type: "updateMetadata", target: { level: "document" }, metadata: { name: "x" } }],
+      options(),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("invariant_violation");
+  });
+
+  it("usa la etiqueta dada en `label`, o describe el batch por defecto (N cambios)", () => {
+    const project = twoRectProject();
+    const withLabel = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+      ],
+      { ...options(), label: "Alinear a la izquierda" },
+    );
+    expect(withLabel.ok && withLabel.value.document.history.entries[0]?.description).toBe("Alinear a la izquierda");
+
+    const withoutLabel = applyContentCommandBatch(
+      project,
+      [
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 10 } },
+        { type: "updateObjectTransform", objectId: ObjectIdSchema.parse("b"), transform: { x: 20 } },
+      ],
+      options(),
+    );
+    expect(withoutLabel.ok && withoutLabel.value.document.history.entries[0]?.description).toBe(
+      "Operación por lotes (2 cambios)",
+    );
   });
 });

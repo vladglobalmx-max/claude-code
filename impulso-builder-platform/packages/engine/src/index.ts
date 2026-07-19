@@ -1,5 +1,10 @@
 // Motor
-export { createEngine, type Engine, type CreateEngineOptions } from "./engine.js";
+export {
+  createEngine,
+  type Engine,
+  type CreateEngineOptions,
+  type DispatchBatchMetadata,
+} from "./engine.js";
 
 // Comandos
 export {
@@ -36,6 +41,29 @@ export {
 // `ungroupObject`; se expone porque un Renderer podría necesitar la misma
 // matemática para previsualizar un ungroup antes de despachar el comando.
 export { composeChildTransformIntoParent } from "./geometry/composeTransform.js";
+
+// Bounding boxes rotados (Epic 7 / Fase 7.2) — función pura sin Konva/DOM;
+// `renderer-konva` la consume para no reimplementar la misma trigonometría
+// al medir la geometría real de un object vía Konva.
+export { computeRotatedBoundingBox, unionBoundingBox, type BoundingBox, type RotatedBoxInput } from "./geometry/boundingBox.js";
+
+// Alignment/Distribution (Epic 7 / Fase 7.2) — funciones puras que calculan
+// patches de `Transform`, nunca mutan ni dispatchan por sí solas. Quien
+// llama arma los `updateObjectTransform` y los aplica con `dispatchBatch`.
+export {
+  alignLeft,
+  alignRight,
+  alignCenterHorizontal,
+  alignTop,
+  alignBottom,
+  alignCenterVertical,
+  distributeHorizontal,
+  distributeVertical,
+  centerOnPageHorizontal,
+  centerOnPageVertical,
+  type AlignmentTarget,
+  type AlignmentPatch,
+} from "./geometry/alignment.js";
 
 // Errores (Result pattern — ver errors/engineError.ts)
 export { engineError, ok, err, type EngineError, type EngineErrorCode, type EngineResult } from "./errors/engineError.js";

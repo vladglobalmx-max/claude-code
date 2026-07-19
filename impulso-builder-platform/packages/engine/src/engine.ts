@@ -1,6 +1,6 @@
 import { ProjectSchema, type Project, type ObjectId } from "@impulso/document-schema";
-import { EngineCommandSchema, isSelectionCommand, type EngineCommand } from "./commands/command.js";
-import { applyContentCommand } from "./commands/applyCommand.js";
+import { EngineCommandSchema, isSelectionCommand, type ContentCommand, type EngineCommand } from "./commands/command.js";
+import { applyContentCommand, applyContentCommandBatch } from "./commands/applyCommand.js";
 import { applySelectionCommand, pruneSelection } from "./commands/selectionCommands.js";
 import { findObjectInDocument } from "./tree/objectTree.js";
 import { engineError, type EngineResult } from "./errors/engineError.js";
@@ -22,6 +22,15 @@ export interface CreateEngineOptions {
   historyLimit?: number;
 }
 
+export interface DispatchBatchMetadata {
+  /** Etiqueta legible para la única entrada de historial que produce el
+   * batch (ej. "Alinear a la izquierda"). Si se omite, se genera
+   * describiendo los comandos — ver `describeBatch` en `applyCommand.ts`.
+   * Deliberadamente sin más campos: esta fase no es un sistema de
+   * analytics, solo una etiqueta para historial/depuración. */
+  label?: string;
+}
+
 export interface Engine {
   /** Snapshot inmutable del Project actual. */
   getProject(): Project;
@@ -29,6 +38,17 @@ export interface Engine {
   getSelection(): readonly ObjectId[];
   /** Aplica un comando. Nunca lanza: los fallos esperados vuelven como `{ ok: false, error }`. */
   dispatch(command: EngineCommand): EngineResult<Project>;
+  /**
+   * Aplica N `ContentCommand` como una única transacción lógica (Epic 7 /
+   * Fase 7.2): una sola entrada de historial, un solo `Ctrl/Cmd+Z` revierte
+   * todo el batch, un solo Redo lo restaura completo. Atómico — si
+   * cualquier comando falla, ningún cambio del batch se aplica. No admite
+   * comandos de selección (nunca participaron de historial/undo). Un
+   * batch vacío es un no-op explícito: no cambia nada, no agrega historial.
+   * Reutilizable por Alignment/Distribution (ver `geometry/alignment.ts`)
+   * y cualquier operación futura sobre múltiples objects.
+   */
+  dispatchBatch(commands: readonly ContentCommand[], metadata?: DispatchBatchMetadata): EngineResult<Project>;
   undo(): EngineResult<Project>;
   redo(): EngineResult<Project>;
   canUndo(): boolean;
@@ -109,6 +129,57 @@ export function createEngine(initialProject: Project, options: CreateEngineOptio
     return { ok: true, value: project };
   }
 
+  function dispatchBatch(
+    commands: readonly ContentCommand[],
+    metadata: DispatchBatchMetadata = {},
+  ): EngineResult<Project> {
+    if (commands.length === 0) return { ok: true, value: project };
+
+    const parsedCommands: ContentCommand[] = [];
+    for (const command of commands) {
+      const parsed = EngineCommandSchema.safeParse(command);
+      if (!parsed.success) {
+        const error = engineError("invalid_command", parsed.error.message);
+        emitter.emit({ type: "batchRejected", commands, error });
+        return { ok: false, error };
+      }
+      if (isSelectionCommand(parsed.data)) {
+        const error = engineError(
+          "invalid_command",
+          "dispatchBatch no admite comandos de selección (no participan de historial/undo).",
+        );
+        emitter.emit({ type: "batchRejected", commands, error });
+        return { ok: false, error };
+      }
+      parsedCommands.push(parsed.data);
+    }
+
+    const result = applyContentCommandBatch(project, parsedCommands, {
+      now: clock(),
+      generateHistoryEntryId,
+      label: metadata.label,
+    });
+    if (!result.ok) {
+      emitter.emit({ type: "batchRejected", commands, error: result.error });
+      return result;
+    }
+
+    undoStack.push(project);
+    if (undoStack.length > historyLimit) undoStack.shift();
+    redoStack.length = 0;
+    project = result.value;
+
+    syncSelectionWith(project);
+    emitter.emit({
+      type: "projectChanged",
+      project,
+      cause: { type: "batch", commands: parsedCommands, label: metadata.label },
+    });
+    emitHistoryChanged();
+
+    return { ok: true, value: project };
+  }
+
   function undo(): EngineResult<Project> {
     const previous = undoStack.pop();
     if (!previous) {
@@ -139,6 +210,7 @@ export function createEngine(initialProject: Project, options: CreateEngineOptio
     getProject: () => project,
     getSelection: () => selection,
     dispatch,
+    dispatchBatch,
     undo,
     redo,
     canUndo: () => undoStack.length > 0,

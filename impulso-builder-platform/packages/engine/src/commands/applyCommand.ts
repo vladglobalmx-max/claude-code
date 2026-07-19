@@ -176,3 +176,78 @@ function bumpDocumentVersion(
     },
   };
 }
+
+export interface ApplyContentCommandBatchOptions {
+  now: string;
+  generateHistoryEntryId: () => string;
+  /** Etiqueta legible para la única entrada de historial del batch. Si se
+   * omite, se genera describiendo los comandos (ver `describeBatch`). */
+  label?: string;
+}
+
+function describeBatch(commands: readonly ContentCommand[]): string {
+  if (commands.length === 1) return describeCommand(commands[0]!);
+  return `Operación por lotes (${commands.length} cambios)`;
+}
+
+/**
+ * Aplica N `ContentCommand` como una única transacción lógica (Epic 7 /
+ * Fase 7.2 — dispatchBatch): una sola entrada de historial cubre todo el
+ * batch, un solo `documentVersion`+1, un solo undo/redo revierte/restaura
+ * todo el conjunto. Reutiliza `runReducer` (el mismo camino que
+ * `applyContentCommand`) — cero lógica de validación duplicada por comando.
+ *
+ * Atomicidad por construcción, no por rollback manual: cada reducer corre
+ * en secuencia sobre `current`, una variable LOCAL que nunca es el `project`
+ * recibido como parámetro. Si cualquier comando falla, se devuelve el error
+ * inmediatamente y `current` se descarta sin que el `project` original haya
+ * sido tocado — no hace falta deshacer nada porque nada externo llegó a
+ * mutarse. Solo si los N comandos tienen éxito se bumpea versión/historial
+ * (una vez) y se valida el `Project` final completo (una vez), igual que
+ * `applyContentCommand` hace por cada comando individual.
+ *
+ * Un batch vacío es un no-op explícito: no hay ninguna razón técnica para
+ * rechazarlo, y tratarlo como "no pasó nada" (mismo `project`, sin entrada
+ * de historial) es el comportamiento menos sorprendente para quien llama.
+ */
+export function applyContentCommandBatch(
+  project: Project,
+  commands: readonly ContentCommand[],
+  options: ApplyContentCommandBatchOptions,
+): EngineResult<Project> {
+  if (commands.length === 0) return { ok: true, value: project };
+
+  let current = project;
+  for (const command of commands) {
+    const result = runReducer(current, command);
+    if (!result.ok) return result;
+    current = result.value;
+  }
+
+  const before = project.document.documentVersion;
+  const after = before + 1;
+  const historyEntry: HistoryEntry = {
+    id: options.generateHistoryEntryId(),
+    createdAt: options.now,
+    description: options.label ?? describeBatch(commands),
+    documentVersionBefore: before,
+    documentVersionAfter: after,
+  };
+
+  const finalProject: Project = {
+    ...current,
+    metadata: { ...current.metadata, updatedAt: options.now },
+    document: {
+      ...current.document,
+      documentVersion: after,
+      metadata: { ...current.document.metadata, updatedAt: options.now },
+      history: { entries: [...current.document.history.entries, historyEntry] },
+    },
+  };
+
+  const validated = ProjectSchema.safeParse(finalProject);
+  if (!validated.success) {
+    return err(engineError("invariant_violation", validated.error.message));
+  }
+  return { ok: true, value: validated.data };
+}

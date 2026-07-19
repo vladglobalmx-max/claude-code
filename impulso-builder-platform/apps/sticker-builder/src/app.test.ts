@@ -85,6 +85,7 @@ function buildElements(): AppElements {
   const layersContainer = document.createElement("div");
   const assetsContainer = document.createElement("div");
   const inspectorContainer = document.createElement("div");
+  const alignmentContainer = document.createElement("div");
   const toolsContainer = document.createElement("div");
   const zoomContainer = document.createElement("div");
   const newProjectDialogContainer = document.createElement("div");
@@ -102,6 +103,7 @@ function buildElements(): AppElements {
     layersContainer,
     assetsContainer,
     inspectorContainer,
+    alignmentContainer,
     toolsContainer,
     zoomContainer,
     newProjectDialogContainer,
@@ -120,6 +122,7 @@ function buildElements(): AppElements {
     tabLayersButton: button(),
     tabAssetsButton: button(),
     inspectorContainer,
+    alignmentContainer,
     toolsContainer,
     zoomContainer,
     newProjectDialogContainer,

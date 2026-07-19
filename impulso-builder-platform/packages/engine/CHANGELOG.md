@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.8.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
+
+### Agregado
+- `dispatchBatch(commands, metadata?)` (`engine.ts`): aplica N `ContentCommand` como una única transacción lógica — una sola entrada de historial, un solo undo/redo revierte/restaura todo el batch. Atómico por construcción (`applyContentCommandBatch`, `commands/applyCommand.ts`, corre cada reducer sobre un acumulador local que nunca toca el `project` en vivo hasta que todos los comandos tienen éxito). No admite `SelectionCommand`. Batch vacío: no-op explícito. Compatible al 100% con `dispatch()` existente. Ver ADR-0015.
+- `EngineEvent` gana `batchRejected`; `EngineChangeCause` gana `{ type: "batch", commands, label? }` — aditivo, ningún consumidor existente se ve afectado.
+- `geometry/boundingBox.ts` (nuevo): `computeRotatedBoundingBox`, `unionBoundingBox` — AABB de un object rotado/escalado y envolvente conjunta de varias cajas, puros, sin Konva ni DOM.
+- `geometry/alignment.ts` (nuevo): `alignLeft/Right/Top/Bottom/CenterHorizontal/CenterVertical`, `distributeHorizontal/Vertical`, `centerOnPageHorizontal/Vertical` — funciones puras que calculan patches de `Transform` para selección múltiple/individual, filtrando internamente cualquier cambio menor a `1e-6` (garantiza cero entradas de historial cuando nada cambia).
+- Adición pura a la API pública existente — ningún comando/función previa cambia de comportamiento; no requiere ADR de cambio de API (regla de Stable Public API), pero sí un ADR de arquitectura nuevo (ADR-0015) por introducir un mecanismo genuinamente nuevo.
+- 286 tests en total (55 nuevos: contrato de batch dispatch, bounding boxes, alignment/distribution, benchmark ligero de 150 objects en un solo batch), 100%/99.57%/100%/100% de cobertura (únicos gaps: dos ramas defensivas ya documentadas, no ejercitables en uso normal). Sin dependencias circulares (verificado con `madge`).
+
 ## [0.7.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
 
 ### Agregado

@@ -1,6 +1,6 @@
 import type Konva from "konva";
 import type { SceneObject, Size } from "@impulso/document-schema";
-import type { ResizeHandle } from "@impulso/engine";
+import { computeRotatedBoundingBox, type BoundingBox, type ResizeHandle } from "@impulso/engine";
 
 const DEG2RAD = Math.PI / 180;
 
@@ -84,6 +84,26 @@ export function localHandlePoint(box: ManipulationBox, handle: ResizeHandle): { 
     case "bottom-right":
       return { x: o.x + w, y: o.y + h };
   }
+}
+
+/**
+ * Puente entre la medición real (este archivo, vía Konva — la única forma
+ * de conocer el tamaño intrínseco de CUALQUIER tipo, incluido texto sin
+ * `size` explícito o un Group anidado, ver ADR-0008) y la aritmética pura
+ * de bounding boxes rotados (`@impulso/engine`, sin Konva ni DOM). Alignment
+ * (Epic 7 / Fase 7.2) consume esto para obtener el AABB real de cada
+ * object seleccionado antes de calcular sus nuevas posiciones — el Engine
+ * en sí nunca necesita tocar un `Konva.Node`.
+ */
+export function computeObjectBoundingBox(node: Konva.Node, object: SceneObject): BoundingBox {
+  const box = computeManipulationBox(node, object);
+  return computeRotatedBoundingBox({
+    pivot: box.pivot,
+    originOffset: box.originOffset,
+    width: box.currentWidth,
+    height: box.currentHeight,
+    rotationDegrees: box.rotationDegrees,
+  });
 }
 
 /** Punto LOCAL del handle de rotación: centrado arriba de la caja, a

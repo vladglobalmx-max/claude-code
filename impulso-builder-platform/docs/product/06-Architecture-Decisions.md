@@ -261,6 +261,22 @@
 
 ---
 
+## ADR-0015 — Batch Dispatch + Alignment Engine
+
+> [`../adr/0015-batch-dispatch-alignment.md`](../adr/0015-batch-dispatch-alignment.md) · Epic 7 / Fase 7.2
+
+**Contexto:** `dispatch()` solo admite un `ContentCommand` a la vez — mover N objects (Alignment, y a futuro Multi Selection en Fase 7.4) exigiría N entradas de historial y N `Ctrl/Cmd+Z` para deshacer una sola operación conceptual.
+
+**Problema:** ¿Cómo aplicar N comandos como una sola transacción atómica y reversible, y cómo calcular la caja envolvente real de objects rotados/escalados sin que el Engine dependa de Konva?
+
+**Alternativas:** para bounding boxes rotados, función pura nueva en `@impulso/engine` (elegida) vs. reutilizar `localToParent` de `renderer-konva` (descartada, acoplada a un `Konva.Node` real) vs. refactorizar ambos paquetes hacia un tercero compartido (descartada, fuera del alcance de la fase). Para medir el tamaño intrínseco real (texto sin `size`, Path, Group), separar medición (Konva, en `renderer-konva`) de aritmética (pura, en `@impulso/engine`) — la única opción honesta dado que ADR-0008 ya estableció que esa medición no puede hacerse solo desde el Document Schema.
+
+**Decisión:** `dispatchBatch(commands, metadata?)` en `@impulso/engine` — atómico por construcción (reducers corren sobre un acumulador local, nunca el `project` en vivo), una sola entrada de historial, un solo undo/redo. `computeRotatedBoundingBox`/`unionBoundingBox` (puros) + `alignLeft/Right/Top/Bottom/CenterHorizontal/CenterVertical`/`distributeHorizontal/Vertical`/`centerOnPageHorizontal/Vertical` (puros, filtran no-ops con una tolerancia de `1e-6`). `computeObjectBoundingBox` en `renderer-konva` conecta ambos mundos. Nueva sección "Alineación" en el Inspector de `apps/sticker-builder`.
+
+**Consecuencias:** `dispatchBatch` queda disponible, sin cambios, para Multi Selection (Fase 7.4) y cualquier operación masiva futura. Primer módulo de `@impulso/engine` que opera sobre múltiples objects a la vez.
+
+---
+
 ## Cómo se mantiene este índice
 
 Cada vez que se cierra un nuevo ADR en [`../adr/`](../adr), se agrega aquí un resumen siguiendo el mismo formato de cinco campos — nunca se reescribe el ADR original, este documento solo lo resume para lectura rápida. Ver [`../adr/README.md`](../adr/README.md) para la plantilla completa (siete campos: Problema, Contexto, Alternativas evaluadas, Decisión tomada, Consecuencias, Riesgos, Compatibilidad futura, más Rendimiento cuando aplica) que todo ADR nuevo debe seguir.

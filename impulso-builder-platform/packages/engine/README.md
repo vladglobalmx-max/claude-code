@@ -112,13 +112,13 @@ Un `Engine` no expone `engine.project.pages.push(...)`. Todo pasa por `dispatch(
 
 ### 3.3 Comandos: un catálogo simétrico, no ad-hoc
 
-Los 22 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
+Los 24 comandos son 1:1 con las operaciones estructurales que el Document Schema ya define — nada específico de Sticker Builder:
 
 | Nivel | Comandos |
 |---|---|
 | Page | `addPage`, `removePage`, `reorderPages` |
 | Layer | `addLayer`, `removeLayer`, `reorderLayers` |
-| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `updateObjectContent`, `reorderObjects`, `resizeObject`, `rotateObject`, `groupObjects`, `ungroupObject` |
+| Object | `addObject`, `removeObject`, `updateObjectTransform`, `updateObjectStyle`, `updateObjectContent`, `updateTextStyle`, `reorderObjects`, `resizeObject`, `rotateObject`, `groupObjects`, `ungroupObject` |
 | Asset (Asset Library, genérico sobre cualquier tipo de Asset) | `addAsset`, `removeAsset`, `renameAsset` |
 | Metadata (genérico, 6 niveles) | `updateMetadata` con un `EntityRef` (`project`\|`document`\|`page`\|`layer`\|`object`\|`asset`) |
 | Selección (efímera, no versionada) | `setSelection`, `clearSelection`, `toggleObjectSelection` (selección múltiple, ver Editor 2 / ADR-0006) |
@@ -154,6 +154,28 @@ Estas dos funciones son deliberadamente las únicas en el Engine que no requiere
 `removeAsset` no valida si el Asset sigue siendo referenciado por algún `ImageObject.assetId` — mismo criterio que el resto del Engine (no valida referencias cruzadas en otros casos tampoco); el Renderer ya degrada correctamente a un placeholder ante un `assetId` sin resolver.
 
 El binario real de un Asset vive fuera de este paquete (`@impulso/asset-library`, IndexedDB) — el Engine solo conoce el descriptor.
+
+### 3.12 `dispatchBatch`: N comandos como una sola transacción (Epic 7 / Fase 7.2)
+
+`dispatchBatch(commands, metadata?)` aplica N `ContentCommand` como una única transacción lógica: una sola `HistoryEntry`, un solo `Ctrl/Cmd+Z` revierte todo el batch, un solo Redo lo restaura completo. Atomicidad **por construcción**, no por rollback manual: `applyContentCommandBatch` (`commands/applyCommand.ts`) corre cada reducer en secuencia sobre un acumulador `current` **local** — nunca el `project` que recibió como parámetro. Si cualquier comando falla, se devuelve el error de inmediato y `current` se descarta; el `project` original nunca fue tocado, así que no hace falta deshacer nada. Solo si los N comandos tienen éxito se bumpea `documentVersion` (una vez) y se agrega una `HistoryEntry` (una vez, con la `label` dada o una descripción generada — ver `describeBatch`).
+
+No admite `SelectionCommand` — nunca participaron del pipeline de versión/historial (§3.5), mezclarlos en un batch no tendría semántica de undo coherente. Un batch vacío es un no-op explícito: mismo `project`, sin entrada de historial, ver ADR-0015.
+
+Ver ADR-0015 para el contrato completo y las alternativas descartadas.
+
+### 3.13 Alignment Engine: geometría pura sobre múltiples objects (Epic 7 / Fase 7.2)
+
+`geometry/boundingBox.ts` + `geometry/alignment.ts` son el primer módulo de este paquete que opera sobre **varios** objects a la vez (§3.8 documentaba geometría de UN object). Ninguno depende de Konva ni del DOM:
+
+- `computeRotatedBoundingBox({ pivot, originOffset, width, height, rotationDegrees })`: rota las 4 esquinas de una caja alrededor de su pivote y devuelve el AABB resultante — la misma trigonometría que `localToParent` (`@impulso/renderer-konva`) usa para posicionar handles, reimplementada aquí como función pura de 5 números (sin depender de un `ManipulationBox`/`Konva.Node` real).
+- `unionBoundingBox(boxes)`: la envolvente conjunta de N cajas — la referencia que usa Alignment para que la selección completa no "salte" de posición al alinear.
+- `alignLeft/Right/Top/Bottom/CenterHorizontal/CenterVertical(targets)`: alinean contra la caja envolvente conjunta.
+- `distributeHorizontal/Vertical(targets)`: reparte el espacio disponible en partes iguales entre bordes adyacentes, conservando fijos los extremos (por posición visual, con el id como desempate determinista); no-op con menos de 3 targets.
+- `centerOnPageHorizontal/Vertical(target, pageWidth|Height)`: centra UN object respecto de la página — `pageWidth`/`pageHeight` deben venir ya en la unidad canónica (`toPixels` si `page.unit !== "px"`), esta función no sabe nada de unidades físicas.
+
+Todas devuelven `AlignmentPatch[]` (`{ objectId, transform: Partial<{x, y}> }`), filtrando internamente cualquier delta menor a `1e-6` — el resultado nunca incluye un patch para un object que ya estaba en la posición deseada (así, un batch con `dispatchBatch` nunca genera una entrada de historial vacía de cambios reales). No mutan nada ni despachan — quien llama arma los `updateObjectTransform` y los aplica con `dispatchBatch`.
+
+**Quién mide el tamaño real de cada object:** este paquete nunca lo hace — recibe `AlignmentTarget[]` ya armado (con la caja de cada object ya calculada) desde quien orquesta la operación. En Sticker Builder, `apps/sticker-builder/alignment.ts` obtiene esas cajas vía `computeObjectBoundingBox` (`@impulso/renderer-konva`), que sigue midiendo con Konva (único camino correcto para texto sin `size` explícito o un Group anidado, ver ADR-0008) y le aplica `computeRotatedBoundingBox` de aquí. Ver ADR-0015 para el razonamiento completo de esta separación.
 
 ### 3.4 Versionado e historial
 
@@ -219,6 +241,29 @@ engine.dispatch({
 });
 ```
 
+### `dispatchBatch` + Alignment: mover varios objects con un solo undo
+
+```ts
+import { alignLeft, type AlignmentTarget } from "@impulso/engine";
+
+// `targets` ya trae la caja real de cada object (ver `computeObjectBoundingBox`
+// en @impulso/renderer-konva — el Engine nunca mide geometría por sí solo).
+const targets: AlignmentTarget[] = [
+  { objectId: ObjectIdSchema.parse("a"), box: { minX: 0, minY: 0, maxX: 10, maxY: 10 }, transform: { x: 0, y: 0 } },
+  { objectId: ObjectIdSchema.parse("b"), box: { minX: 50, minY: 0, maxX: 60, maxY: 10 }, transform: { x: 50, y: 0 } },
+];
+
+const patches = alignLeft(targets); // [{ objectId: "b", transform: { x: 0 } }] — "a" ya estaba alineado
+
+if (patches.length > 0) {
+  const result = engine.dispatchBatch(
+    patches.map((p) => ({ type: "updateObjectTransform", objectId: p.objectId, transform: p.transform })),
+    { label: "Alinear a la izquierda" },
+  );
+  // Un solo engine.undo() revierte el movimiento de TODOS los objects del batch.
+}
+```
+
 ### Inyectar `clock` e ids para tests determinísticos
 
 ```ts
@@ -239,6 +284,8 @@ const engine = createEngine(myProject, {
 4. **El emisor de eventos entrega de forma síncrona y en orden de suscripción**, sin manejo especial si un listener lanza una excepción (esa excepción se propagaría hacia quien llamó a `dispatch`). No se agregó un try/catch por listener porque no hay evidencia de que haga falta todavía.
 5. **`resizeObject` confía en que `intrinsicSize` (medido por el Renderer) es correcto** — el Engine no tiene forma de verificar independientemente esa medición, porque calcular la geometría real de un `Path` con curvas bezier o de un `Group` anidado requiere conocimiento de renderizado que el Engine deliberadamente no tiene (ver ADR-0008). Un `intrinsicSize` incorrecto produce un resize matemáticamente consistente pero visualmente erróneo — no hay forma de detectarlo desde este paquete.
 6. **`groupObjects`/`ungroupObject` solo soportan un nivel de anidamiento** (hijos directos de una Layer) — agrupar objects ya anidados en otro group, o desagrupar un group anidado en otro group, se rechaza explícitamente con `invalid_group` en vez de intentarlo. Documentado, no un descuido (ver §3.9).
+7. **Alignment/Distribution no consideran objects dentro de un `group`** (solo top-level) — consistente con que un Group ya se trata como una unidad indivisible en el resto del producto, no una limitación nueva de esta fase (Epic 7 / Fase 7.2, ver ADR-0015).
+8. **Sin caché de bounding boxes entre operaciones sucesivas de Alignment** — cada operación remide desde cero vía `computeObjectBoundingBox` (ver `PERFORMANCE_BUDGET.md`, fila 18); aceptable a la escala actual de selección típica.
 
 ## 6. Posibles mejoras futuras
 
@@ -248,3 +295,5 @@ const engine = createEngine(myProject, {
 - Un modo de undo/redo basado en patches en vez de snapshots completos (ver Riesgo 1).
 - Índice `objectId -> ruta` para acelerar las operaciones sobre objetos en documentos grandes (ver Riesgo 2).
 - Middleware/interceptores de `dispatch` (por ejemplo, para que un plugin valide un comando antes de que llegue al reducer) — no se construyó porque Foundation 2 no incluye todavía el sistema de Plugins.
+- Manipulación visual conjunta de una selección múltiple (mover/redimensionar/rotar como una unidad, con una sola caja envolvente manipulable) — `dispatchBatch` ya está listo para soportarlo; falta la UX de Fase 7.4 (Multi Selection).
+- Reutilizar `computeRotatedBoundingBox`/`computeObjectBoundingBox` para Smart Guides/Snapping (Fase 7.3) — la matemática de bounding boxes ya existe, falta la lógica de snap en sí.

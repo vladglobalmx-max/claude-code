@@ -39,6 +39,7 @@ function buildEditorElements(): AppElements {
     tabLayersButton: button(),
     tabAssetsButton: button(),
     inspectorContainer: div(),
+    alignmentContainer: div(),
     toolsContainer: div(),
     zoomContainer: div(),
     newProjectDialogContainer: div(),

@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.6.0] — Epic 4: Templates Foundation
+
+### Agregado
+- "Nuevo proyecto" pasa de una lista de radio buttons (`STICKER_SIZE_PRESETS`) a una **galería de tarjetas** (`newProjectDialog.ts`, rediseñado): un Template por tarjeta (miniatura + nombre, eliminable si no es built-in) + una tarjeta "Personalizado" con ancho/alto — reutilizable como el único punto de entrada para crear un proyecto en toda Impulso Platform (ver ADR-0013).
+- 3 Templates built-in (`builtInTemplates.ts`): los tamaños anteriores de `STICKER_SIZE_PRESETS` (cuadrado 5×5, círculo 5×5, rectángulo 7×5), sembrados de forma perezosa e idempotente en el primer click real de "Nuevo".
+- Botón "Guardar como plantilla" (`saveAsTemplateDialog.ts`, nuevo): formulario nombre+descripción, genera una miniatura vía `@impulso/export-engine` y guarda el proyecto actual como un Template propio (`builtIn: false`, siempre eliminable).
+- Se apoya en `@impulso/template-library` (paquete nuevo, ver ADR-0013) y en `cloneProjectWithNewIds` (`@impulso/engine` 0.6.0).
+- `STICKER_SIZE_PRESETS`/`SizePreset` eliminados de `projectPresets.ts` (consolidados en Templates); `createProjectFromSize`/`StickerShape` se conservan para la ruta "Personalizado".
+- 220 tests en total (18 en `newProjectDialog.test.ts` reescritos, 10 nuevos en `saveAsTemplateDialog.test.ts`, 5 nuevos en `builtInTemplates.test.ts`), cobertura agregada 98.93%/93.89%/93.2%/98.93%.
+
+### Fuera de alcance (deliberado)
+Sin deduplicación de binarios de Asset al clonar un Template con imágenes, sin versionado/edición de un Template guardado, sin categorías/búsqueda en la galería — ver ADR-0013.
+
 ## [0.5.1] — Pruebas visuales del rasterizador PNG (condiciones de aprobación)
 
 ### Agregado

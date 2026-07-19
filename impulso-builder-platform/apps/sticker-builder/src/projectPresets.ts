@@ -10,28 +10,6 @@ import {
 
 export type StickerShape = "square" | "circle" | "rectangle";
 
-export interface SizePreset {
-  id: string;
-  label: string;
-  widthMm: number;
-  heightMm: number;
-  shape: StickerShape;
-}
-
-/**
- * Tres presets curados + "Personalizado" (ancho/alto libres, sin forma de
- * corte predefinida — ver `newProjectDialog.ts`). Solo el preset circular
- * agrega una forma de fondo explícita con `metadata.role: "die-line"`: un
- * sticker cuadrado/rectangular ya tiene su línea de corte implícita en el
- * borde de la página misma (ver `docs/business/01-Positioning.md` — el
- * rigor de producción vive en el dato desde el primer proyecto creado).
- */
-export const STICKER_SIZE_PRESETS: readonly SizePreset[] = [
-  { id: "square-5x5", label: "Sticker cuadrado (5×5 cm)", widthMm: 50, heightMm: 50, shape: "square" },
-  { id: "circle-5x5", label: "Sticker circular (5×5 cm)", widthMm: 50, heightMm: 50, shape: "circle" },
-  { id: "rect-7x5", label: "Sticker rectangular (7×5 cm)", widthMm: 70, heightMm: 50, shape: "rectangle" },
-];
-
 export interface CreateProjectFromSizeOptions {
   widthMm: number;
   heightMm: number;

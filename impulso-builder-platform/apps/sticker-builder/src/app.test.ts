@@ -11,7 +11,25 @@ import {
   type SceneObject,
 } from "@impulso/document-schema";
 import { createMemoryAssetStore } from "@impulso/asset-library";
+import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template-library";
 import { mountApp, moveIndexBy, type AppElements } from "./app.js";
+import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
+import { createProjectFromSize } from "./projectPresets.js";
+
+/** Pre-siembra el store con los 3 Templates incorporados ya "existentes"
+ * (mismos ids que `BUILT_IN_STICKER_TEMPLATES`) — así `seedBuiltInTemplates`
+ * (disparada al hacer click en "Nuevo") los salta a todos y nunca llama a
+ * `generateThumbnail`/`exportProject`, que necesita rasterizar un PNG real
+ * (`HTMLCanvasElement.toBlob`, no implementado por jsdom). Los tests de
+ * `seedBuiltInTemplates` en sí viven en `builtInTemplates.test.ts`. */
+async function preSeedBuiltIns(store: TemplateStore, now: string): Promise<void> {
+  for (const seed of BUILT_IN_STICKER_TEMPLATES) {
+    await store.save(
+      { id: seed.id, moduleId: "sticker-builder", name: seed.name, tags: [], builtIn: true, createdAt: now, updatedAt: now },
+      { project: createProjectFromSize({ widthMm: seed.widthMm, heightMm: seed.heightMm, shape: seed.shape, now }) },
+    );
+  }
+}
 
 const NOW = "2026-07-18T00:00:00.000Z";
 const metadata = { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW };
@@ -87,6 +105,7 @@ function buildElements(): AppElements {
   const zoomContainer = document.createElement("div");
   const newProjectDialogContainer = document.createElement("div");
   const exportDialogContainer = document.createElement("div");
+  const saveAsTemplateDialogContainer = document.createElement("div");
 
   function button(): HTMLButtonElement {
     return document.createElement("button");
@@ -103,6 +122,7 @@ function buildElements(): AppElements {
     zoomContainer,
     newProjectDialogContainer,
     exportDialogContainer,
+    saveAsTemplateDialogContainer,
     statusElement,
   );
   canvasViewport.appendChild(canvasContainer);
@@ -120,12 +140,14 @@ function buildElements(): AppElements {
     zoomContainer,
     newProjectDialogContainer,
     exportDialogContainer,
+    saveAsTemplateDialogContainer,
     newButton: button(),
     undoButton: button(),
     redoButton: button(),
     saveButton: button(),
     openButton: button(),
     exportButton: button(),
+    saveAsTemplateButton: button(),
     duplicateButton: button(),
     deleteButton: button(),
     groupButton: button(),
@@ -323,20 +345,36 @@ describe("mountApp", () => {
     expect(resaved.document.assets).toHaveLength(1);
   });
 
-  it("el botón 'Nuevo' abre el diálogo, y crear reemplaza el Project actual", async () => {
-    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+  it("el botón 'Nuevo' abre el diálogo, y crear (Personalizado) reemplaza el Project actual", async () => {
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:x"), revokeObjectURL: vi.fn() });
+    const templateStore = createMemoryTemplateStore();
+    await preSeedBuiltIns(templateStore, NOW);
+    const app = mountApp({
+      elements,
+      keyboardTarget,
+      initialProject: buildProject([buildRect("a")]),
+      now: () => NOW,
+      templateStore,
+    });
 
     elements.newButton.click();
     const overlay = elements.newProjectDialogContainer.querySelector(".new-project-dialog-overlay") as HTMLElement;
-    expect(overlay.style.display).not.toBe("none");
+    await vi.waitFor(() => {
+      expect(overlay.style.display).not.toBe("none");
+      expect(elements.newProjectDialogContainer.querySelector(".new-project-card-custom")).not.toBeNull();
+    });
 
+    const customCard = Array.from(
+      elements.newProjectDialogContainer.querySelectorAll(".new-project-card"),
+    ).find((card) => card.textContent === "Personalizado") as HTMLElement;
+    customCard.click();
     (elements.newProjectDialogContainer.querySelector(".new-project-dialog-create") as HTMLButtonElement).click();
 
     expect(overlay.style.display).toBe("none");
     await vi.waitFor(() => {
       expect(elements.statusElement.textContent).toBe("Documento nuevo creado.");
     });
-    // El proyecto nuevo (preset por defecto, cuadrado) no tiene el rectangle "a".
+    // El proyecto nuevo (Personalizado, sin objects) no tiene el rectangle "a".
     expect(app.getRuntime().engine.getProject().id).not.toBe("project_1");
   });
 

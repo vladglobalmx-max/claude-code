@@ -52,3 +52,4 @@ export { findObjectInDocument } from "./tree/objectTree.js";
 // provee el generador. El resultado se despacha con el `addObject` ya
 // existente, sin necesitar un comando nuevo.
 export { cloneSceneObjectWithNewIds, type CloneSceneObjectOptions } from "./cloning/cloneSceneObject.js";
+export { cloneProjectWithNewIds, type CloneProjectOptions } from "./cloning/cloneProject.js";

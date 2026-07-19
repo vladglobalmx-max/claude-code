@@ -1,31 +1,40 @@
 import type { Project } from "@impulso/document-schema";
-import { createProjectFromSize, STICKER_SIZE_PRESETS, type StickerShape } from "./projectPresets.js";
+import { instantiateTemplate, type TemplateDescriptor, type TemplateStore } from "@impulso/template-library";
+import { createProjectFromSize } from "./projectPresets.js";
 
-const CUSTOM_OPTION_VALUE = "custom";
+const CUSTOM_CARD_ID = "__custom__";
 const DEFAULT_CUSTOM_WIDTH_MM = 50;
 const DEFAULT_CUSTOM_HEIGHT_MM = 50;
 
 export interface NewProjectDialog {
-  open(): void;
+  open(): Promise<void>;
   close(): void;
   destroy(): void;
 }
 
 export interface MountNewProjectDialogOptions {
+  templateStore: TemplateStore;
+  /** Qué módulo filtrar en la galería — "sticker-builder" hoy; cualquier
+   * módulo futuro pasa el suyo (Templates es agnóstico al módulo, ver
+   * ADR-0013). */
+  moduleId: string;
   onCreate: (project: Project) => void;
   now?: () => string;
   generateId?: () => string;
 }
 
 /**
- * Modal "Crear proyecto nuevo": los 3 presets curados de
- * `STICKER_SIZE_PRESETS` + "Personalizado" (ancho/alto libres en mm, sin
- * línea de corte predefinida). Overlay propio en vez de `<dialog>` nativo
- * — jsdom no implementa `showModal()`, y un overlay simple es igual de
- * testeable sin depender de esa API — ver ADR-0010.
+ * Modal "Crear proyecto nuevo": galería de Templates (`@impulso/template-library`,
+ * filtrada por `moduleId`) + una tarjeta "Personalizado" (ancho/alto libres
+ * en mm, sin línea de corte predefinida). Templates es el único punto de
+ * entrada para crear un proyecto — los 3 tamaños curados de Epic 1 ahora
+ * son Templates incorporados (`builtInTemplates.ts`), no un sistema
+ * paralelo (ver ADR-0013). Overlay propio en vez de `<dialog>` nativo —
+ * jsdom no implementa `showModal()` — ver ADR-0010.
  */
 export function mountNewProjectDialog(container: HTMLElement, options: MountNewProjectDialogOptions): NewProjectDialog {
   const now = options.now ?? (() => new Date().toISOString());
+  const generateId = options.generateId ?? (() => crypto.randomUUID());
 
   const overlay = document.createElement("div");
   overlay.className = "new-project-dialog-overlay";
@@ -39,35 +48,14 @@ export function mountNewProjectDialog(container: HTMLElement, options: MountNewP
   title.textContent = "Nuevo proyecto";
   dialog.appendChild(title);
 
-  const optionsList = document.createElement("div");
-  optionsList.className = "new-project-dialog-options";
-  dialog.appendChild(optionsList);
+  const statusMessage = document.createElement("p");
+  statusMessage.className = "new-project-dialog-status";
+  statusMessage.style.display = "none";
+  dialog.appendChild(statusMessage);
 
-  const radios: HTMLInputElement[] = [];
-  for (const preset of STICKER_SIZE_PRESETS) {
-    const label = document.createElement("label");
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = "new-project-preset";
-    radio.value = preset.id;
-    radios.push(radio);
-    label.appendChild(radio);
-    label.appendChild(document.createTextNode(preset.label));
-    optionsList.appendChild(label);
-  }
-
-  const customLabel = document.createElement("label");
-  const customRadio = document.createElement("input");
-  customRadio.type = "radio";
-  customRadio.name = "new-project-preset";
-  customRadio.value = CUSTOM_OPTION_VALUE;
-  customRadio.className = "new-project-dialog-custom-radio";
-  radios.push(customRadio);
-  customLabel.appendChild(customRadio);
-  customLabel.appendChild(document.createTextNode("Personalizado"));
-  optionsList.appendChild(customLabel);
-
-  radios[0]!.checked = true;
+  const grid = document.createElement("div");
+  grid.className = "new-project-dialog-grid";
+  dialog.appendChild(grid);
 
   const customFields = document.createElement("div");
   customFields.className = "new-project-dialog-custom-fields";
@@ -94,13 +82,6 @@ export function mountNewProjectDialog(container: HTMLElement, options: MountNewP
   errorMessage.style.display = "none";
   dialog.appendChild(errorMessage);
 
-  function updateCustomFieldsVisibility(): void {
-    customFields.style.display = customRadio.checked ? "block" : "none";
-  }
-  for (const radio of radios) {
-    radio.addEventListener("change", updateCustomFieldsVisibility);
-  }
-
   const actions = document.createElement("div");
   actions.className = "new-project-dialog-actions";
   dialog.appendChild(actions);
@@ -117,17 +98,115 @@ export function mountNewProjectDialog(container: HTMLElement, options: MountNewP
   createButton.textContent = "Crear";
   actions.appendChild(createButton);
 
-  function close(): void {
-    overlay.style.display = "none";
+  let selectedId: string | null = null;
+  let objectUrls: string[] = [];
+  const cardsById = new Map<string, HTMLElement>();
+
+  function revokeObjectUrls(): void {
+    for (const url of objectUrls) URL.revokeObjectURL(url);
+    objectUrls = [];
   }
 
-  function open(): void {
-    radios[0]!.checked = true;
-    updateCustomFieldsVisibility();
+  function selectCard(id: string): void {
+    selectedId = id;
+    for (const card of cardsById.values()) card.classList.remove("selected");
+    cardsById.get(id)?.classList.add("selected");
+    customFields.style.display = id === CUSTOM_CARD_ID ? "block" : "none";
+  }
+
+  function buildTemplateCard(descriptor: TemplateDescriptor): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "new-project-card";
+
+    const thumbnail = document.createElement("img");
+    thumbnail.className = "new-project-card-thumbnail";
+    thumbnail.alt = descriptor.name;
+    card.appendChild(thumbnail);
+
+    void options.templateStore.getContent(descriptor.id).then((content) => {
+      if (content?.thumbnail) {
+        const url = URL.createObjectURL(content.thumbnail);
+        objectUrls.push(url);
+        thumbnail.src = url;
+      }
+    });
+
+    const name = document.createElement("span");
+    name.className = "new-project-card-name";
+    name.textContent = descriptor.name;
+    card.appendChild(name);
+
+    if (!descriptor.builtIn) {
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "new-project-card-delete";
+      deleteButton.textContent = "🗑";
+      deleteButton.title = "Eliminar plantilla";
+      deleteButton.addEventListener("click", (evt) => {
+        evt.stopPropagation();
+        void options.templateStore.delete(descriptor.id).then(() => renderGrid());
+      });
+      card.appendChild(deleteButton);
+    }
+
+    card.addEventListener("click", () => selectCard(descriptor.id));
+    return card;
+  }
+
+  function buildCustomCard(): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "new-project-card new-project-card-custom";
+    const name = document.createElement("span");
+    name.className = "new-project-card-name";
+    name.textContent = "Personalizado";
+    card.appendChild(name);
+    card.addEventListener("click", () => selectCard(CUSTOM_CARD_ID));
+    return card;
+  }
+
+  async function renderGrid(): Promise<void> {
+    grid.innerHTML = "";
+    cardsById.clear();
+    revokeObjectUrls();
+    statusMessage.textContent = "Cargando plantillas…";
+    statusMessage.style.display = "block";
+    errorMessage.style.display = "none";
+
+    let descriptors: TemplateDescriptor[];
+    try {
+      descriptors = await options.templateStore.listDescriptors({ moduleId: options.moduleId });
+    } catch (error) {
+      statusMessage.style.display = "none";
+      errorMessage.textContent = `No se pudieron cargar las plantillas: ${(error as Error).message}`;
+      errorMessage.style.display = "block";
+      descriptors = [];
+    }
+    statusMessage.style.display = "none";
+
+    for (const descriptor of descriptors) {
+      const card = buildTemplateCard(descriptor);
+      cardsById.set(descriptor.id, card);
+      grid.appendChild(card);
+    }
+
+    const customCard = buildCustomCard();
+    cardsById.set(CUSTOM_CARD_ID, customCard);
+    grid.appendChild(customCard);
+
+    selectCard(descriptors[0]?.id ?? CUSTOM_CARD_ID);
+  }
+
+  function close(): void {
+    overlay.style.display = "none";
+    revokeObjectUrls();
+  }
+
+  async function open(): Promise<void> {
     errorMessage.style.display = "none";
     widthInput.value = String(DEFAULT_CUSTOM_WIDTH_MM);
     heightInput.value = String(DEFAULT_CUSTOM_HEIGHT_MM);
     overlay.style.display = "flex";
+    await renderGrid();
   }
 
   function showError(message: string): void {
@@ -136,33 +215,30 @@ export function mountNewProjectDialog(container: HTMLElement, options: MountNewP
   }
 
   createButton.addEventListener("click", () => {
-    const selected = radios.find((radio) => radio.checked);
-    // Defensivo: siempre hay un radio marcado (el primero se marca al montar
-    // y en cada `open()`), así que `selected` no debería ser `undefined`.
-    const selectedValue = selected?.value ?? STICKER_SIZE_PRESETS[0]!.id;
+    const id = selectedId ?? CUSTOM_CARD_ID;
 
-    let widthMm: number;
-    let heightMm: number;
-    let shape: StickerShape | "custom";
-
-    if (selectedValue === CUSTOM_OPTION_VALUE) {
-      widthMm = Number(widthInput.value);
-      heightMm = Number(heightInput.value);
-      shape = "custom";
+    if (id === CUSTOM_CARD_ID) {
+      const widthMm = Number(widthInput.value);
+      const heightMm = Number(heightInput.value);
       if (!Number.isFinite(widthMm) || !Number.isFinite(heightMm) || widthMm <= 0 || heightMm <= 0) {
         showError("El ancho y el alto deben ser números mayores que cero.");
         return;
       }
-    } else {
-      const preset = STICKER_SIZE_PRESETS.find((p) => p.id === selectedValue)!;
-      widthMm = preset.widthMm;
-      heightMm = preset.heightMm;
-      shape = preset.shape;
+      const project = createProjectFromSize({ widthMm, heightMm, shape: "custom", now: now(), generateId });
+      close();
+      options.onCreate(project);
+      return;
     }
 
-    const project = createProjectFromSize({ widthMm, heightMm, shape, now: now(), generateId: options.generateId });
-    close();
-    options.onCreate(project);
+    void options.templateStore.getContent(id).then((content) => {
+      if (!content) {
+        showError("No se pudo cargar la plantilla seleccionada.");
+        return;
+      }
+      const project = instantiateTemplate(content.project, { now: now(), generateId });
+      close();
+      options.onCreate(project);
+    });
   });
 
   cancelButton.addEventListener("click", close);
@@ -172,6 +248,9 @@ export function mountNewProjectDialog(container: HTMLElement, options: MountNewP
   return {
     open,
     close,
-    destroy: () => overlay.remove(),
+    destroy: () => {
+      revokeObjectUrls();
+      overlay.remove();
+    },
   };
 }

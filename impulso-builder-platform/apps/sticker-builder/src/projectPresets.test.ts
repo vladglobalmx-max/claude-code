@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProjectSchema } from "@impulso/document-schema";
-import { createProjectFromSize, STICKER_SIZE_PRESETS } from "./projectPresets.js";
+import { createProjectFromSize } from "./projectPresets.js";
 
 const NOW = "2026-07-18T00:00:00.000Z";
 
@@ -8,12 +8,6 @@ function idGeneratorFrom(ids: string[]): () => string {
   let index = 0;
   return () => ids[index++]!;
 }
-
-describe("STICKER_SIZE_PRESETS", () => {
-  it("incluye exactamente los 3 presets curados (cuadrado, círculo, rectángulo)", () => {
-    expect(STICKER_SIZE_PRESETS.map((p) => p.shape)).toEqual(["square", "circle", "rectangle"]);
-  });
-});
 
 describe("createProjectFromSize", () => {
   it("produce un Project válido según ProjectSchema", () => {

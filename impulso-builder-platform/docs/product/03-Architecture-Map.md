@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -23,6 +23,8 @@ Impulso Platform
 │
 ├── Export Engine              (✅ construido — Epic 3, ver ADR-0012; PNG/SVG v1, PDF/print-ready planeado)
 │
+├── Templates                   (✅ construido — Epic 4, ver ADR-0013; único punto de entrada para crear proyectos nuevos)
+│
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)
       ├── Planner Builder          ⏳ planeado
@@ -34,7 +36,7 @@ Impulso Platform
       └── futuros módulos          ⏳ sin definir todavía
 ```
 
-**Sobre la forma de este árbol:** Impulso Engine, Shared Services, Design System, AI Engine, Asset Library y Export Engine son **pilares hermanos** de la plataforma — cada uno una capacidad transversal que cualquier Module puede consumir. Los Modules, a su vez, también son **hermanos entre sí**: Sticker Builder, Planner Builder, Coloring Book Builder y el resto **no dependen unos de otros** — cada uno consume los pilares de la plataforma de forma independiente. La plataforma crece agregando pilares y módulos en paralelo, nunca encadenando uno sobre otro.
+**Sobre la forma de este árbol:** Impulso Engine, Shared Services, Design System, AI Engine, Asset Library, Export Engine y Templates son **pilares hermanos** de la plataforma — cada uno una capacidad transversal que cualquier Module puede consumir. Los Modules, a su vez, también son **hermanos entre sí**: Sticker Builder, Planner Builder, Coloring Book Builder y el resto **no dependen unos de otros** — cada uno consume los pilares de la plataforma de forma independiente. La plataforma crece agregando pilares y módulos en paralelo, nunca encadenando uno sobre otro.
 
 ## Vista por capas técnicas (dentro del pilar "Impulso Engine")
 
@@ -82,6 +84,10 @@ Cualquier capacidad de inteligencia artificial de la plataforma (generación de 
 ### Export Engine (✅ construido — Epic 3)
 
 `packages/export-engine`: produce archivos finales (PNG/SVG v1) a partir del Document Schema, reutilizable por cualquier módulo. SVG es independiente de Konva (lee el Document Schema directamente, tal como anticipaba `../ARCHITECTURE.md` §2.5); PNG reutiliza `@impulso/renderer-konva` vía un Stage headless, nunca el Stage interactivo del editor. PDF print-ready con línea de corte/sangrado queda para una épica futura — ver [ADR-0012](../adr/0012-export-engine.md).
+
+### Templates (✅ construido — Epic 4)
+
+`packages/template-library`: catálogo de plataforma de puntos de partida para crear un proyecto nuevo, reutilizable por cualquier módulo. Un Template es un `Project` completo (Document Schema, sin cambios) envuelto en metadatos de catálogo (`TemplateDescriptor`, liviano y siempre listable) — el contenido pesado (`TemplateContent`: el `Project` + una miniatura opaca) se carga bajo demanda. Depende únicamente de `@impulso/document-schema` y `@impulso/engine` — nunca de `@impulso/export-engine` ni de Konva; la generación de miniaturas vive exclusivamente en código de aplicación. Es, desde esta épica, el único punto de entrada para crear un proyecto nuevo en Sticker Builder — reemplaza por completo el concepto anterior de "preset" específico de un módulo. Ver [ADR-0013](../adr/0013-templates-foundation.md).
 
 ### Modules — consumidores de la plataforma
 

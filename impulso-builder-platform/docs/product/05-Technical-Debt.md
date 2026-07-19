@@ -33,6 +33,8 @@ La estructura conceptual de la plataforma (ver [`03-Architecture-Map.md`](03-Arc
 
 **Export Engine — ya construido** (Epic 3, `packages/export-engine`): dejó de ser un pilar especulativo — PNG (vía Stage headless de `@impulso/renderer-konva`) y SVG (independiente de Konva) reales, con UI de exportación en Sticker Builder. Deuda restante (ver [`../adr/0012-export-engine.md`](../adr/0012-export-engine.md)): sin PDF print-ready/línea de corte/sangrado (queda para v1.0, ver `04-Roadmap.md`), sin detección de `font_unavailable`, sin deduplicación/compresión de imágenes embebidas, ajuste automático de línea de texto no se reproduce en SVG (solo saltos explícitos).
 
+**Templates — ya construido** (Epic 4, `packages/template-library`): dejó de ser un pilar especulativo — catálogo real (`TemplateStore`, IndexedDB + memoria), galería de creación de proyecto en Sticker Builder, Templates built-in y guardado de Templates propios por el usuario. Deuda restante (ver [`../adr/0013-templates-foundation.md`](../adr/0013-templates-foundation.md)): sin deduplicación de binarios de Asset al clonar un Template con imágenes (el clon comparte referencia con el original), sin versionado/edición de un Template ya guardado (solo crear/eliminar), sin categorías ni búsqueda en la galería.
+
 ## Infraestructura y backend (ya identificados en `../ARCHITECTURE.md` §9)
 
 Estos ya estaban registrados como diferidos desde la fase de diseño original (Foundation 0) — se listan aquí también para que este documento sea el punto único de referencia de toda la deuda deliberada del proyecto:

@@ -32,3 +32,4 @@ Cuando la decisión tiene impacto de rendimiento (regla del Performance Budget, 
 | [0010](0010-sticker-creation-experience.md) | Epic 1 | Sticker Creation Experience: agrupar, imágenes sin Asset Library, edición de texto in-canvas, zoom |
 | [0011](0011-asset-library.md) | Epic 2 | Asset Library: unión extensible de tipos de Asset, IndexedDB, migración desde el formato embebido de Epic 1 |
 | [0012](0012-export-engine.md) | Epic 3 | Export Engine Foundation: SVG independiente de Konva, PNG vía Stage headless de `@impulso/renderer-konva` |
+| [0013](0013-templates-foundation.md) | Epic 4 | Templates Foundation: Template = `Project` + metadatos de catálogo, `packages/template-library`, unificación de `STICKER_SIZE_PRESETS` en Templates built-in |

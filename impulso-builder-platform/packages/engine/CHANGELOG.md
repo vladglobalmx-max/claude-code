@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.6.0] — Epic 4: Templates Foundation
+
+### Agregado
+- `cloneProjectWithNewIds(project, { now, generateId }): Project` (`cloning/cloneProject.ts`): clona un `Project` completo asignando un id nuevo a `Project`/`Document`/cada `Page`/cada `Layer`/cada object de nivel superior (reutilizando `cloneSceneObjectWithNewIds` por object, incluida la recursión de grupos). Resetea `documentVersion` a 1 y `history.entries` a `[]`; actualiza timestamps. `generateId` es un parámetro **requerido** (sin default) — misma convención que `cloneSceneObjectWithNewIds`: el Engine nunca inventa identidad, y el paquete se mantiene libre de dependencias del DOM (`crypto.randomUUID()` no está disponible en su `lib`).
+- Deliberadamente preserva `document.assets` y cada `ImageObject.assetId` sin reasignar — es una función pura y síncrona sin acceso a `AssetBinaryStore`, no puede duplicar binarios de forma segura. Ver ADR-0013 para el riesgo aceptado.
+- Adición pura a la API pública existente (una función nueva) — ningún comando previo cambia de comportamiento; no requiere ADR de cambio de API (regla de Stable Public API). Ver ADR-0013 para el razonamiento de diseño de la épica completa (Templates Foundation).
+- 7 tests nuevos (232 en total), 100%/99.72%/100%/100% de cobertura. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.5.0] — Epic 2: Asset Library
 
 ### Agregado

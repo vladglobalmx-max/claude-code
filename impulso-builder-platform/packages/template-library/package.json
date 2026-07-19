@@ -1,8 +1,8 @@
 {
-  "name": "@impulso/engine",
-  "version": "0.6.0",
+  "name": "@impulso/template-library",
+  "version": "0.1.0",
   "private": true,
-  "description": "Núcleo del motor de edición de Impulso Builder Platform: estado, comandos y eventos sobre el Document Schema. Sin renderer, sin UI.",
+  "description": "Templates Foundation oficial de Impulso Platform: catálogo de plantillas reutilizable por cualquier módulo (Sticker Builder, Planner Builder, Coloring Book Builder...). Un Template es un Project completo + metadata de catálogo, independiente del módulo que lo consuma.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,10 +24,12 @@
   },
   "dependencies": {
     "@impulso/document-schema": "workspace:*",
-    "zod": "^3.23.8"
+    "@impulso/engine": "workspace:*"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.0.5",
+    "fake-indexeddb": "^6.0.0",
+    "jsdom": "^25.0.1",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"

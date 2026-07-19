@@ -270,13 +270,66 @@
         background: #ffffff;
         border-radius: 8px;
         padding: 20px;
-        min-width: 320px;
+        min-width: 420px;
+        max-width: 560px;
       }
-      .new-project-dialog-options {
+      .new-project-dialog-status {
+        color: #57534e;
+      }
+      .new-project-dialog-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 12px 0;
+        max-height: 320px;
+        overflow-y: auto;
+      }
+      .new-project-card {
+        position: relative;
+        border: 2px solid #d6d3d1;
+        border-radius: 6px;
+        padding: 6px;
+        cursor: pointer;
+        text-align: center;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        margin: 12px 0;
+        align-items: center;
+        gap: 4px;
+        min-height: 100px;
+        justify-content: center;
+      }
+      .new-project-card:hover {
+        background: #f5f5f4;
+      }
+      .new-project-card.selected {
+        border-color: #1c1917;
+      }
+      .new-project-card-thumbnail {
+        max-width: 100%;
+        max-height: 70px;
+        object-fit: contain;
+      }
+      .new-project-card-name {
+        font-size: 0.85em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+      .new-project-card-delete {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        border: none;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.8em;
+        line-height: 1;
+        padding: 2px 4px;
+      }
+      .new-project-card-custom {
+        border-style: dashed;
       }
       .new-project-dialog-custom-fields {
         display: flex;
@@ -387,6 +440,57 @@
         color: #ffffff;
         border-color: #1c1917;
       }
+
+      /* Diálogo de guardar como plantilla */
+      .save-as-template-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .save-as-template-dialog {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 320px;
+      }
+      .save-as-template-dialog-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 10px 0;
+      }
+      .save-as-template-dialog-name,
+      .save-as-template-dialog-description {
+        font: inherit;
+        padding: 4px 6px;
+      }
+      .save-as-template-dialog-status {
+        color: #1c1917;
+      }
+      .save-as-template-dialog-error {
+        color: #b91c1c;
+      }
+      .save-as-template-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .save-as-template-dialog-actions button {
+        font: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+      }
+      .save-as-template-dialog-save {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
     </style>
   </head>
   <body>
@@ -401,6 +505,7 @@
         <button id="open-btn" type="button">Abrir</button>
         <span class="divider"></span>
         <button id="export-btn" type="button">Exportar</button>
+        <button id="save-as-template-btn" type="button">Guardar como plantilla</button>
         <span class="divider"></span>
         <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
         <button id="delete-btn" type="button" title="Eliminar (Supr)">Eliminar</button>
@@ -429,6 +534,7 @@
     </div>
     <div id="new-project-dialog-root"></div>
     <div id="export-dialog-root"></div>
+    <div id="save-as-template-dialog-root"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

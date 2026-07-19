@@ -1,12 +1,15 @@
 import { ObjectIdSchema, type ObjectId, type Project } from "@impulso/document-schema";
 import { findObjectInDocument, cloneSceneObjectWithNewIds } from "@impulso/engine";
 import { createIndexedDbAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
+import { createIndexedDbTemplateStore, type TemplateStore } from "@impulso/template-library";
+import { exportProject, type ExportAssetResolver } from "@impulso/export-engine";
 import type { CanvasRuntime } from "./bootstrap.js";
 import { mountCanvasRuntime } from "./bootstrap.js";
 import { createDemoProject } from "./demoProject.js";
 import { saveProjectLocally, loadProjectLocally } from "./persistence.js";
 import { createResolvedAssetCache, preloadDocumentAssets, type ResolvedAssetCache } from "./assetResolution.js";
 import { migrateLegacyEmbeddedImages } from "./legacyMigration.js";
+import { seedBuiltInTemplates } from "./builtInTemplates.js";
 import { mountLayersPanel, type LayersPanel } from "./layersPanel.js";
 import { mountInspector, type Inspector } from "./inspector.js";
 import { mountAssetsPanel, type AssetsPanel } from "./assetsPanel.js";
@@ -15,8 +18,21 @@ import { createToolsController, mountToolButtons, type ToolButtons } from "./too
 import { mountKeyboardShortcuts, type KeyboardShortcuts } from "./keyboardShortcuts.js";
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
 import { mountExportDialog, type ExportDialog } from "./exportDialog.js";
+import { mountSaveAsTemplateDialog, type SaveAsTemplateDialog } from "./saveAsTemplateDialog.js";
 
 const DUPLICATE_OFFSET = 20;
+const MODULE_ID = "sticker-builder";
+
+/** Genera el thumbnail de un Project llamando a `exportProject`
+ * (`@impulso/export-engine`) — Templates no depende de Export Engine (ver
+ * ADR-0013); esta función es el único puente entre ambos, y vive en la
+ * app, no en ninguno de los dos paquetes. */
+function createThumbnailGenerator(resolver: ExportAssetResolver): (project: Project) => Promise<Blob> {
+  return async (project) => {
+    const result = await exportProject(project, resolver, { format: "png", scale: 1, background: { type: "solid", color: "#ffffff" } });
+    return result.blob;
+  };
+}
 
 export interface AppElements {
   /** Contenedor con scroll donde vive `canvasContainer` — se mide para
@@ -34,12 +50,14 @@ export interface AppElements {
   zoomContainer: HTMLElement;
   newProjectDialogContainer: HTMLElement;
   exportDialogContainer: HTMLElement;
+  saveAsTemplateDialogContainer: HTMLElement;
   newButton: HTMLButtonElement;
   undoButton: HTMLButtonElement;
   redoButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
   openButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
+  saveAsTemplateButton: HTMLButtonElement;
   duplicateButton: HTMLButtonElement;
   deleteButton: HTMLButtonElement;
   groupButton: HTMLButtonElement;
@@ -55,6 +73,10 @@ export interface AppDependencies {
    * `@impulso/asset-library`, sin depender de IndexedDB); por defecto
    * `createIndexedDbAssetStore()`. */
   binaryStore?: AssetBinaryStore;
+  /** Inyectable para tests (ej. `createMemoryTemplateStore()` de
+   * `@impulso/template-library`, sin depender de IndexedDB); por defecto
+   * `createIndexedDbTemplateStore()`. */
+  templateStore?: TemplateStore;
   /** Dónde escuchan los atajos de teclado (ver `keyboardShortcuts.ts`); por
    * defecto `window`. Inyectable en tests para que instancias de `App`
    * montadas en tests distintos no compartan el mismo listener global. */
@@ -99,7 +121,24 @@ export function mountApp(deps: AppDependencies): App {
   const now = deps.now ?? (() => new Date().toISOString());
   const generateId = deps.generateId ?? (() => crypto.randomUUID());
   const binaryStore = deps.binaryStore ?? createIndexedDbAssetStore();
+  const templateStore = deps.templateStore ?? createIndexedDbTemplateStore();
   const resolvedCache: ResolvedAssetCache = createResolvedAssetCache();
+
+  // Sembrado perezoso (recién al primer "Nuevo" real, ver el listener de
+  // `newButton` más abajo) — nunca al montar. Igual que `binaryStore`, el
+  // store por defecto es real IndexedDB: tocarlo incondicionalmente en
+  // cada `mountApp()` rompería cualquier test que no inyecte un
+  // `templateStore` en memoria (jsdom no implementa `indexedDB` en
+  // absoluto). Ver ADR-0013.
+  let builtInTemplatesSeeded = false;
+  async function ensureBuiltInTemplatesSeeded(): Promise<void> {
+    if (builtInTemplatesSeeded) return;
+    builtInTemplatesSeeded = true;
+    await seedBuiltInTemplates(templateStore, {
+      now: now(),
+      generateThumbnail: createThumbnailGenerator({ resolve: () => Promise.resolve(undefined) }),
+    });
+  }
 
   let runtime: CanvasRuntime = mountCanvasRuntime(elements.canvasContainer, deps.initialProject ?? createDemoProject(), {
     resolveAssetSource: resolvedCache.resolve,
@@ -320,6 +359,8 @@ export function mountApp(deps: AppDependencies): App {
   });
 
   const newProjectDialog: NewProjectDialog = mountNewProjectDialog(elements.newProjectDialogContainer, {
+    templateStore,
+    moduleId: MODULE_ID,
     now,
     generateId,
     onCreate: (project) => {
@@ -332,8 +373,29 @@ export function mountApp(deps: AppDependencies): App {
     resolver: { resolve: (assetId) => binaryStore.get(assetId) },
   });
 
-  elements.newButton.addEventListener("click", () => newProjectDialog.open());
+  const saveAsTemplateDialog: SaveAsTemplateDialog = mountSaveAsTemplateDialog(elements.saveAsTemplateDialogContainer, {
+    getProject: () => runtime.engine.getProject(),
+    templateStore,
+    moduleId: MODULE_ID,
+    generateThumbnail: createThumbnailGenerator({ resolve: (assetId) => binaryStore.get(assetId) }),
+    now,
+    generateId,
+    onSaved: () => setStatus("Plantilla guardada."),
+  });
+
+  elements.newButton.addEventListener("click", () => {
+    // Si sembrar los built-in falla (cuota agotada, un fallo real de
+    // rasterización), el diálogo igual debe abrir — el usuario siempre
+    // puede seguir creando un proyecto "Personalizado" aunque la galería
+    // de Templates incorporados no se haya podido preparar esta sesión.
+    void ensureBuiltInTemplatesSeeded()
+      .catch((error: unknown) => {
+        console.error("No se pudieron sembrar los Templates incorporados:", error);
+      })
+      .then(() => newProjectDialog.open());
+  });
   elements.exportButton.addEventListener("click", () => exportDialog.open());
+  elements.saveAsTemplateButton.addEventListener("click", () => saveAsTemplateDialog.open());
   elements.undoButton.addEventListener("click", () => {
     const result = runtime.engine.undo();
     setStatus(result.ok ? "Deshecho." : "No hay nada para deshacer.");
@@ -387,6 +449,7 @@ export function mountApp(deps: AppDependencies): App {
       toolButtons.destroy();
       newProjectDialog.destroy();
       exportDialog.destroy();
+      saveAsTemplateDialog.destroy();
       layersPanel.destroy();
       inspector.destroy();
       assetsPanel.destroy();

@@ -33,7 +33,7 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 **Objetivo:** primer lanzamiento con ambición comercial real — algo que se pueda ofrecer a usuarios finales fuera de un contexto de prueba, con la calidad de experiencia que la Visión de Producto exige.
 
 - **Exportación print-ready completa**: PDF con línea de corte y sangrado ensamblado correctamente, validado contra especificaciones reales de imprenta.
-- **Plantillas / punto de partida**: no empezar siempre de un lienzo en blanco o el demo — una selección curada de plantillas de sticker.
+- ~~**Plantillas / punto de partida**: no empezar siempre de un lienzo en blanco o el demo — una selección curada de plantillas de sticker~~ — construida antes de lo previsto, en Epic 4 (`packages/template-library`), ver [`../adr/0013-templates-foundation.md`](../adr/0013-templates-foundation.md).
 - **Rendimiento validado con documentos grandes**: la meta declarada del proyecto ("miles de objetos sin degradar la experiencia") deja de ser un objetivo documentado en `PERFORMANCE_BUDGET.md` y pasa a estar medido con documentos reales de ese tamaño — resolviendo, si hace falta, la reconciliación incremental del Renderer (ya diseñada, no implementada).
 - **Onboarding**: la primera vez que alguien abre la app sin contexto previo, entiende qué hacer sin documentación externa.
 - **Persistencia robusta**: manejo explícito de cuota de almacenamiento agotada, en vez de fallar sin un mensaje claro (limitación conocida desde Alpha).

@@ -1,6 +1,6 @@
 # 06 — Architecture Decisions (índice centralizado)
 
-> Este documento centraliza, en un solo lugar, los nueve Architecture Decision Records creados hasta la fecha — cada uno resumido en **Contexto, Problema, Alternativas, Decisión, Consecuencias**. Es un índice de lectura rápida, no un reemplazo: cada ADR original en [`../adr/`](../adr) incluye además **Riesgos**, **Compatibilidad futura**, y — cuando aplica — una sección **Rendimiento**, que aquí solo se referencian, no se repiten. Ver [`../adr/README.md`](../adr/README.md) para la plantilla completa y las reglas permanentes (ADR obligatorio por Foundation/Editor, Performance Budget, Stable Public API, UX First).
+> Este documento centraliza, en un solo lugar, los catorce Architecture Decision Records creados hasta la fecha (actualizado en Epic 6 — Platform Consolidation, con los resúmenes de ADR-0010 a ADR-0014 que faltaban) — cada uno resumido en **Contexto, Problema, Alternativas, Decisión, Consecuencias**. Es un índice de lectura rápida, no un reemplazo: cada ADR original en [`../adr/`](../adr) incluye además **Riesgos**, **Compatibilidad futura**, y — cuando aplica — una sección **Rendimiento**, que aquí solo se referencian, no se repiten. Ver [`../adr/README.md`](../adr/README.md) para la plantilla completa y las reglas permanentes (ADR obligatorio por Foundation/Editor, Performance Budget, Stable Public API, UX First).
 >
 > **Nota de nomenclatura:** estos resúmenes preservan el lenguaje de cada ADR original en el momento en que se escribió (algunos usan "Impulso" o "la plataforma" de forma genérica, antes de que "Impulso Platform" fuera el nombre oficial adoptado — ver [`01-Product-Vision.md`](01-Product-Vision.md)). No se reescribe retroactivamente el historial de decisiones; el nombre oficial rige para toda documentación nueva desde este punto en adelante.
 
@@ -178,6 +178,86 @@
 **Decisión:** `persistence.ts` (`saveProjectLocally`/`loadProjectLocally`/`hasLocalProject`/`clearLocalProject`, `storage: Storage` inyectable) + `toolbar.ts` (5 botones: Nuevo/Deshacer/Rehacer/Guardar/Abrir, "Nuevo"/"Abrir" remontan el runtime completo).
 
 **Consecuencias:** Cero cambios en `document-schema`/`engine`. `@impulso/sticker-builder` 0.1.0→0.2.0. El patrón "destruir y remontar" para cambiar de documento no requirió ninguna extensión de `RendererAdapter`/`Engine`.
+
+---
+
+## ADR-0010 — Sticker Creation Experience: agrupar, imágenes sin Asset Library, edición de texto in-canvas, zoom
+
+> [`../adr/0010-sticker-creation-experience.md`](../adr/0010-sticker-creation-experience.md) · Epic 1
+
+**Contexto:** Con Foundations + Editor Epic 1 cerrados, Sticker Builder podía seleccionar/mover/redimensionar/rotar, pero no tenía ninguna experiencia completa de creación — sin agrupar, sin imágenes, sin editar texto, sin zoom, sin guardar más allá del slot único.
+
+**Problema:** ¿Cómo cerrar el primer flujo completo de creación de un sticker (crear → diseñar → guardar → abrir) sin romper la separación Document Schema/Engine/Renderer ya establecida?
+
+**Alternativas:** Imágenes con Asset Library real desde ahora vs. embebidas como data URL (elegida esta última, deliberadamente, para no bloquear la épica con una Foundation nueva sin evidencia de que hiciera falta ya); edición de texto in-canvas con un `<textarea>` superpuesto vs. reimplementar un editor de texto propio (elegido el `<textarea>`); agrupar/desagrupar limitado a un solo nivel vs. anidamiento arbitrario (elegido un solo nivel, documentado como límite deliberado).
+
+**Decisión:** Comandos `groupObjects`/`ungroupObject`/`updateObjectContent` + `cloneSceneObjectWithNewIds` (Engine); `<textarea>` superpuesto para edición de texto, zoom CSS, imágenes embebidas como data URL temporal (ver ADR-0011 para su reemplazo).
+
+**Consecuencias:** Primera versión completa de Sticker Builder usable de punta a punta. La decisión de imágenes embebidas creó deuda técnica explícita, resuelta un epic después.
+
+---
+
+## ADR-0011 — Asset Library: unión extensible de tipos de Asset, IndexedDB, migración desde el formato embebido de Epic 1
+
+> [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md) · Epic 2
+
+**Contexto:** Epic 1 embebía imágenes como data URL dentro de `customProperties` — deuda deliberada. `docs/product/03-Architecture-Map.md` ya nombraba "Asset Library" como pilar planeado.
+
+**Problema:** ¿Cómo construir un pilar de plataforma reutilizable para gestionar binarios (no solo imágenes, a futuro fuentes/patrones/mockups) sin acoplarlo a Sticker Builder?
+
+**Alternativas:** Descriptor de Asset dentro de `Document.assets` (Document Schema) + binario en `AssetBinaryStore` (paquete nuevo) vs. todo en un solo lugar — elegida la separación descriptor/binario; unión extensible (`Asset = ImageAsset | FontAsset | ...`) vs. un tipo único — elegida la unión, con `image` como única implementación real de v1.
+
+**Decisión:** `packages/asset-library` (nuevo): `AssetBinaryStore` (IndexedDB + memoria, contract-tested) + `createImageAssetFromFile`. `Document.assets` como registro de descriptores. Migración transparente de una sola vez desde el formato embebido de Epic 1.
+
+**Consecuencias:** Primera aplicación del patrón "descriptor liviano + binario pesado" — reutilizado dos veces más (Template Library, Project Library) en épicas posteriores.
+
+---
+
+## ADR-0012 — Export Engine Foundation: SVG independiente de Konva, PNG vía Stage headless de `@impulso/renderer-konva`
+
+> [`../adr/0012-export-engine.md`](../adr/0012-export-engine.md) · Epic 3
+
+**Contexto:** Con crear/diseñar/guardar/abrir cerrado, faltaba producir un archivo final utilizable fuera de Impulso. `ARCHITECTURE.md` §2.5 ya anticipaba que SVG debía leer el Document Schema directamente y que PNG sería la única excepción real necesitando al Renderer.
+
+**Problema:** ¿Cómo rasterizar PNG con fidelidad real sin convertir a Konva en el motor oficial de exportación?
+
+**Alternativas (la única decisión llevada al usuario):** reutilizar Konva vía un Stage headless (elegida, con 8 condiciones de aprobación formal: desacoplado del Stage del editor, sin interactividad, dependencia acotada al adaptador PNG, núcleo independiente de Konva, interfaz reemplazable, pruebas visuales, ADR con costo/estrategia de sustitución) vs. SVG propio rasterizado en canvas vs. un walker Canvas2D propio.
+
+**Decisión:** `packages/export-engine` (nuevo): `exportProject` (PNG/SVG), `buildSvgDocument` (independiente de Konva), `konvaPngRasterizer` (puerto `PngRasterizer` inyectable). Pruebas visuales Playwright comparando editor vs. PNG exportado píxel a píxel.
+
+**Consecuencias:** Cierra el flujo fundamental Crear→Diseñar→Guardar→Abrir→Exportar. PDF print-ready queda diferido a una fase futura (ver `04-Roadmap.md`).
+
+---
+
+## ADR-0013 — Templates Foundation: Template = `Project` + metadatos de catálogo, unificación de `STICKER_SIZE_PRESETS`
+
+> [`../adr/0013-templates-foundation.md`](../adr/0013-templates-foundation.md) · Epic 4
+
+**Contexto:** "Nuevo proyecto" solo ofrecía 3 tamaños fijos (`STICKER_SIZE_PRESETS`), un concepto específico de Sticker Builder sin reutilización posible. `ARCHITECTURE.md` ya anticipaba "elegir plantilla o lienzo en blanco" sin diseño concreto.
+
+**Problema:** ¿Cómo construir un sistema de plantillas reutilizable por cualquier módulo, sin fragmentar en "presets" (por módulo) y "Templates" (de plataforma) como dos conceptos paralelos?
+
+**Alternativas (única decisión llevada al usuario):** unificar `STICKER_SIZE_PRESETS` bajo Templates, eliminando el concepto de preset (elegida, aprobada explícitamente) vs. mantener ambos en paralelo.
+
+**Decisión:** `packages/template-library` (nuevo): un Template ES un `Project` completo + `TemplateDescriptor` (catálogo). `cloneProjectWithNewIds` (nuevo en `@impulso/engine`) + `instantiateTemplate` (envoltorio). Los 3 tamaños anteriores renacen como Templates built-in, sembrado perezoso e idempotente.
+
+**Consecuencias:** Cero cambios en Document Schema. Precedente directo para Project Library (mismo patrón descriptor/contenido, un epic después).
+
+---
+
+## ADR-0014 — Project Library / Workspace: `packages/project-library`, `packages/storage-kit`, app Workspace-first
+
+> [`../adr/0014-project-library-workspace.md`](../adr/0014-project-library-workspace.md) · Epic 5
+
+**Contexto:** Sticker Builder seguía siendo "un editor que guarda un proyecto" — un único slot de `localStorage` (ADR-0009), sin lista, nombres ni miniaturas. `04-Roadmap.md` (Beta) ya lo nombraba como pendiente.
+
+**Problema:** ¿Cómo convertir Impulso en una plataforma que administra múltiples proyectos, reutilizable por cualquier módulo, sin construir una app shell cross-módulo especulativa?
+
+**Alternativas (dos decisiones llevadas al usuario, ambas aprobadas):** Workspace embebida por módulo (elegida) vs. app shell cross-módulo (diferida a un segundo módulo real); app Workspace-first (elegida) vs. Editor-first con Workspace secundaria. Ajuste adicional aprobado: extraer `packages/storage-kit` (andamiaje IndexedDB compartido) tras su tercera duplicación real (Asset/Template/Project Library).
+
+**Decisión:** `packages/project-library` (nuevo, `ProjectStore` + `duplicateProject`) + `packages/storage-kit` (nuevo). `shell.ts`/`workspace.ts` (nuevos): la app aterriza en "Mis proyectos", el editor se monta solo al abrir/crear un proyecto. Migración transparente desde el slot legado.
+
+**Consecuencias:** Asset Library y Template Library refactorizados sobre `storage-kit` sin cambio de comportamiento. Primera UX Audit independiente de la plataforma (`docs/ux-audits/0001-workspace.md`) — encontró el riesgo de mayor impacto detectado hasta la fecha (pérdida silenciosa de trabajo sin guardar), heredado por cualquier módulo futuro que reutilice esta base sin resolverlo antes.
 
 ---
 

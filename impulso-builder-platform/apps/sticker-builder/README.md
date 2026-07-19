@@ -127,7 +127,7 @@ Todos los controles de la barra superior/herramientas son elementos `<button>`/`
 
 ## 7. Riesgos y limitaciones conocidas
 
-Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md) para el detalle completo. En resumen:
+Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md)/[ADR-0013](../../docs/adr/0013-templates-foundation.md)/[ADR-0014](../../docs/adr/0014-project-library-workspace.md) para el detalle completo. En resumen:
 
 - **Sin PDF print-ready ni línea de corte/sangrado** al exportar — solo PNG/SVG en esta versión (v1.0 futuro).
 - **Exportar SVG no detecta fuentes no disponibles** en el visor que abra el archivo, ni reproduce el ajuste automático de línea de un `TextObject` con caja de wrap (solo saltos de línea explícitos).
@@ -139,6 +139,6 @@ Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](..
 - **Sin "entrar" a un Group**: siempre se selecciona/edita como una unidad completa.
 - **El `<textarea>` de edición de texto in-canvas** no garantiza pixel-match exacto con el `Konva.Text` renderizado (diferencias de fuente/kerning entre el navegador y Konva).
 - **Sin modo de herramienta persistente**: Texto/Imagen insertan de inmediato, no "arman" un modo de colocación.
-- **Un solo slot de guardado en `localStorage`** (heredado de Milestone 1/ADR-0009): cada "Guardar" sobrescribe el anterior sin aviso.
-- **El historial de undo/redo no sobrevive a Guardar/Abrir/recargar** (heredado de ADR-0009).
+- **Sin autosave**: "Guardar" persiste en `@impulso/project-library` (Workspace, ver ADR-0014) de forma explícita — salir del editor sin guardar descarta cambios sin aviso (ver `docs/ux-audits/0001-workspace.md`, hallazgo de mayor impacto detectado en la plataforma; y `docs/product/PRODUCT_BACKLOG.md`, "Autosave"). El slot único legado de `localStorage` de Milestone 1/ADR-0009 fue reemplazado en Epic 5 — se conserva únicamente como origen de la migración transparente de una sola vez.
+- **El historial de undo/redo no sobrevive a Guardar/salir de la Workspace/recargar** (heredado de ADR-0009, sigue vigente tras Epic 5: el historial es efímero por instancia del Engine, no se serializa).
 - **La UI asume una sola Page/Layer**: el Document Schema soporta múltiples, pero el panel de capas y el Inspector no las exponen todavía.

@@ -1,67 +1,68 @@
 # 05 — Technical Debt (deliberadamente pospuesto)
 
 > Este documento no es una lista de errores ni de trabajo mal hecho. Es un registro deliberado de todo lo que Impulso **decide no construir todavía**, para que la decisión de posponerlo sea explícita y revisitable — no un olvido accidental que alguien redescubre meses después. "Pospuesto" no significa "descartado": cada ítem se incorpora cuando exista una necesidad real, no por anticipación especulativa (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Simplicidad").
+>
+> **Reorganizado en Epic 6 (Platform Consolidation).** Este documento contiene exclusivamente deuda **técnica/arquitectónica** — código o infraestructura que se decidió no construir todavía. Las capacidades de negocio futuras (cuentas, Cloud Sync, Marketplace, Colaboración, Plugins públicos, IA, Facturación...) se movieron a [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md), cada una con Valor/Prioridad/Dependencias/Complejidad. Las oportunidades de mejora de experiencia de usuario viven en [`UX_BACKLOG.md`](UX_BACKLOG.md). Ver [`../platform/STATE_001.md`](../platform/STATE_001.md) para la auditoría completa que motivó esta reorganización.
 
 ---
 
-## Producto / Negocio
+## 1. Deuda de arquitectura / código (detectada en la auditoría de Epic 6)
 
-Estos son los que más directamente cambian qué tipo de producto es Impulso hoy — todos deliberadamente fuera de alcance hasta que exista una razón de negocio concreta para incorporarlos:
+Prioridad: **media** — ninguna bloquea nada hoy, pero afectan a un consumidor futuro (un segundo módulo, o cualquiera que integre varios pilares a la vez).
 
-| Ítem | Por qué se pospone | Se incorpora cuando... |
+| Ítem | Detalle | Se resuelve cuando... |
 |---|---|---|
-| **Usuarios / cuentas** | El producto actual (Fase Alpha/Beta) es de uso individual, local al dispositivo — no hay necesidad de identificar a nadie entre sesiones todavía. | Exista una razón real para que un usuario necesite acceder a su trabajo desde más de un dispositivo, o el negocio requiera identificar usuarios (ej. planes pagos). |
-| **Cloud Sync** | Depende de que exista Usuarios/cuentas primero — sincronizar el trabajo de "nadie" no tiene sentido. `StorageProvider` (ver `../ARCHITECTURE.md`) ya está diseñado como una interfaz para que esto se incorpore sin rediseñar cómo el Engine guarda/lee un documento. | Exista una necesidad real de continuidad entre dispositivos — no antes. |
-| **Marketplace** | No existe todavía ni un segundo módulo real, ni una base de usuarios que justifique un mercado de plantillas/assets/plugins. Construir un marketplace antes de tener algo que vender en él es invertir en infraestructura sin demanda. | Exista un catálogo de contenido (plantillas, assets, plugins de terceros) suficientemente grande y una base de usuarios que lo justifique. |
-| **Colaboración en tiempo real** | Requiere resolver primero cuentas + sincronización remota, y además introduce problemas de concurrencia (edición simultánea, resolución de conflictos) que no tienen relación con el objetivo actual (un editor individual, rápido, offline-first). | El módulo de negocio (B2B, equipos de diseño) lo justifique explícitamente — evaluado, no asumido, en v2.0 (ver [`04-Roadmap.md`](04-Roadmap.md)). |
-| **Plugins públicos** | La arquitectura de plugins (ver `../ARCHITECTURE.md` §2.4) existe para que Impulso mismo crezca (módulos internos como Planner Builder), no para que terceros publiquen extensiones todavía — abrir esa superficie a terceros implica compromisos de API pública y seguridad que no se han diseñado. | Existan al menos dos-tres módulos internos reales validando el contrato de plugin, y una razón de negocio para abrirlo a terceros. |
-| **APIs (públicas, de integración)** | No hay todavía ningún backend real (Fase 1 es 100% cliente) — no existe "una API" que exponer. | Exista un backend real (ver "Backend HTTP" abajo) y un caso de uso concreto de integración externa. |
-| **Multiusuario / organizaciones** | Visión de producto de largo plazo (B2C y B2B, ver `../ARCHITECTURE.md` §0), explícitamente no implementada en la fase actual — no hay cuentas individuales todavía, mucho menos organizaciones. | Exista un caso de uso B2B real de colaboración entre varias personas de un mismo equipo/negocio. |
-| **Facturación** | No hay ningún modelo de monetización implementado todavía — el producto actual no distingue "gratis" de "pago" en ningún lugar. | El producto tenga una propuesta de precios definida y validada — una decisión de negocio que precede a la implementación, no al revés. |
+| **Filosofía de manejo de errores no unificada entre paquetes** | `engine` usa un patrón Result (`dispatch` nunca lanza); `export-engine` lanza una clase `ExportError` propia; `document-schema` deja pasar excepciones de Zod sin envolver; Asset/Template/Project Library son funciones async que rechazan/lanzan sin Result pattern. | Un segundo módulo real evidencie que la inconsistencia genera fricción concreta (no antes — unificar sin ese caso real sería anticipar una necesidad no probada). |
+| **`document-schema/src/index.ts` usa `export * from ...`** (superficie implícita) mientras los otros 7 paquetes usan exports nombrados explícitos (superficie deliberada) | Inconsistencia de estilo, no de sustancia — `document-schema` es el paquete más grande y fundacional, revisar/angostar su superficie ahora sería un cambio grande y mecánico sin beneficio funcional inmediato. | Se audite la superficie pública de `document-schema` con un objetivo concreto (ej. antes de considerar publicarlo fuera del monorepo). |
+| **Bridge de thumbnails (`createThumbnailGenerator`) no extraído** | Conecta Export Engine con Template/Project Library; vive privado en `apps/sticker-builder/src/app.ts`, reutilizado 3 veces dentro de la misma app. Correcto según el diseño de cada librería (ninguna quiere depender de Export Engine) — pero un segundo módulo lo reimplementaría línea por línea. | Exista un segundo módulo real que necesite exactamente el mismo bridge — momento en el que extraerlo es mecánico. |
+| **`ProjectStore`/`TemplateStore` comparten forma pero no una interfaz genérica** (`CatalogStore<TDescriptor, TContent>` evaluado, no implementado) | Los tres dominios (Asset/Template/Project) difieren lo suficiente (Asset = solo binario; Template = descriptor con `builtIn`/`tags`; Project = descriptor derivable del propio contenido) que forzar una interfaz genérica reduciría claridad más de lo que ahorraría código. | Aparezca un cuarto store con exactamente la misma forma — evidencia real de un patrón, no una generalización de dos casos. |
 
-## Pilares de Impulso Platform aún no construidos (ver `03-Architecture-Map.md`)
+## 2. Pilares de Impulso Platform aún no construidos (ver `03-Architecture-Map.md`)
 
-La estructura conceptual de la plataforma (ver [`03-Architecture-Map.md`](03-Architecture-Map.md)) nombra pilares que hoy son solo eso — conceptos, no paquetes con código. Se registran aquí para que nombrarlos en el mapa de arquitectura no se confunda con haberlos construido:
+La estructura conceptual de la plataforma nombra pilares que hoy son solo eso — conceptos, no paquetes con código. El disparador de NEGOCIO para construir cada uno (qué módulo/capacidad los justifica) vive en `PRODUCT_BACKLOG.md`; aquí se registra únicamente el estado técnico actual.
 
-| Pilar | Estado hoy | Se construye cuando... |
+| Pilar | Estado hoy | Prioridad |
 |---|---|---|
-| **Shared Services** | No existe ningún servicio compartido real — la persistencia local de Sticker Builder (`apps/sticker-builder/src/persistence.ts`) es código de aplicación, no un servicio de plataforma. | Exista un segundo módulo que necesite el mismo servicio (persistencia, y eventualmente auth/sync), justificando extraerlo como pilar compartido (ver ADR-0009, "Compatibilidad futura"). |
-| **Design System** | No existe `packages/ui` ni ningún componente compartido — Sticker Builder (Epic 1) ya tiene una interfaz de edición real (Toolbar/Sidebars/Inspector con estilo propio), pero implementada con CSS/DOM ad-hoc directamente en `apps/sticker-builder`, no con componentes reutilizables de una librería compartida. | Exista un segundo módulo (Planner Builder, etc.) que necesite los mismos componentes visuales, justificando extraerlos a un paquete compartido en vez de duplicar estilos ad-hoc. |
-| **AI Engine** | No existe ninguna funcionalidad de IA en la plataforma todavía. | Se defina la primera capacidad de IA concreta a construir — y se construya desde el principio detrás de un contrato/adaptador propio (principio "AI Provider Agnostic", ver `02-Product-Principles.md`), nunca acoplada directamente a un proveedor. |
+| **Shared Services** | No existe ningún servicio compartido real — la persistencia local de Sticker Builder es código de aplicación, no un servicio de plataforma. | Baja — depende de un segundo módulo real (ver `PRODUCT_BACKLOG.md`, "Segundo módulo real"). |
+| **Design System** | No existe `packages/ui` ni ningún componente compartido — cada pantalla de Sticker Builder usa CSS/DOM ad-hoc. Ya identificado en `docs/platform/STATE_001.md` como el gap concreto de "preparación para múltiples Builders". | Media — sube a Alta en el momento exacto en que arranca un segundo módulo. |
+| **AI Engine** | No existe ninguna funcionalidad de IA en la plataforma todavía; el principio "AI Provider Agnostic" ya está declarado de antemano. | Media — ver `PRODUCT_BACKLOG.md`, "AI". |
 
-**Asset Library — ya construida** (Epic 2, `packages/asset-library`): dejó de ser un pilar especulativo — descriptores en `Document.assets`, binarios en IndexedDB, UI real de subir/reutilizar/eliminar. Deuda restante (ver [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md)): sin deduplicación por contenido, sin compresión al subir, sin gestión de assets entre proyectos distintos (depende de que exista gestión de múltiples proyectos, ver Beta en `04-Roadmap.md`), y `font` sigue siendo un tipo declarado en el Document Schema sin ningún flujo real que lo produzca.
+## 3. Deuda por pilar ya construido
 
-**Export Engine — ya construido** (Epic 3, `packages/export-engine`): dejó de ser un pilar especulativo — PNG (vía Stage headless de `@impulso/renderer-konva`) y SVG (independiente de Konva) reales, con UI de exportación en Sticker Builder. Deuda restante (ver [`../adr/0012-export-engine.md`](../adr/0012-export-engine.md)): sin PDF print-ready/línea de corte/sangrado (queda para v1.0, ver `04-Roadmap.md`), sin detección de `font_unavailable`, sin deduplicación/compresión de imágenes embebidas, ajuste automático de línea de texto no se reproduce en SVG (solo saltos explícitos).
+**Asset Library** (Epic 2, `packages/asset-library`) — Deuda restante (ver [ADR-0011](../adr/0011-asset-library.md)): sin deduplicación por contenido, sin compresión al subir, sin gestión de assets entre proyectos distintos, y `font` sigue siendo un tipo declarado en el Document Schema sin ningún flujo real que lo produzca. Prioridad: baja.
 
-**Templates — ya construido** (Epic 4, `packages/template-library`): dejó de ser un pilar especulativo — catálogo real (`TemplateStore`, IndexedDB + memoria), galería de creación de proyecto en Sticker Builder, Templates built-in y guardado de Templates propios por el usuario. Deuda restante (ver [`../adr/0013-templates-foundation.md`](../adr/0013-templates-foundation.md)): sin deduplicación de binarios de Asset al clonar un Template con imágenes (el clon comparte referencia con el original), sin versionado/edición de un Template ya guardado (solo crear/eliminar), sin categorías ni búsqueda en la galería.
+**Export Engine** (Epic 3, `packages/export-engine`) — Deuda restante (ver [ADR-0012](../adr/0012-export-engine.md)): sin PDF print-ready/línea de corte/sangrado (ver `PRODUCT_BACKLOG.md` — es una capacidad de negocio, no solo deuda técnica), sin detección de `font_unavailable`, sin deduplicación/compresión de imágenes embebidas, ajuste automático de línea de texto no se reproduce en SVG. Prioridad: media (el PDF es alta prioridad de negocio; el resto, baja).
 
-**Project Library — ya construido** (Epic 5, `packages/project-library`): dejó de ser un pilar especulativo — `ProjectStore` real (IndexedDB + memoria), pantalla Workspace ("Mis proyectos") en Sticker Builder, app Workspace-first. Deuda restante (ver [`../adr/0014-project-library-workspace.md`](../adr/0014-project-library-workspace.md)): sin autosave (guardado explícito, deliberado en v1), sin deduplicación de binarios de Asset al duplicar un proyecto con imágenes, sin búsqueda/carpetas/colecciones en la Workspace, sin papelera de reciclaje (eliminar es definitivo, con `window.confirm` como única red de seguridad), sin manejo de cuota de IndexedDB agotada.
+**Templates** (Epic 4, `packages/template-library`) — Deuda restante (ver [ADR-0013](../adr/0013-templates-foundation.md)): sin deduplicación de binarios de Asset al clonar un Template con imágenes, sin versionado/edición de un Template ya guardado, sin categorías ni búsqueda en la galería. Prioridad: baja.
 
-## Infraestructura y backend (ya identificados en `../ARCHITECTURE.md` §9)
+**Project Library** (Epic 5, `packages/project-library`) — Deuda restante (ver [ADR-0014](../adr/0014-project-library-workspace.md)): sin autosave (ver `PRODUCT_BACKLOG.md` — prioridad alta como capacidad, aquí solo se registra la ausencia técnica), sin deduplicación de binarios de Asset al duplicar un proyecto, sin búsqueda/carpetas/colecciones en la Workspace (ver `UX_BACKLOG.md`), sin papelera de reciclaje, sin manejo de cuota de IndexedDB agotada. Prioridad: media.
 
-Estos ya estaban registrados como diferidos desde la fase de diseño original (Foundation 0) — se listan aquí también para que este documento sea el punto único de referencia de toda la deuda deliberada del proyecto:
+## 4. Infraestructura y backend (no construida)
+
+Ninguna pieza de infraestructura de servidor existe todavía — Fase 1 es 100% cliente, por decisión de producto (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Offline First"), no por limitación. El disparador de negocio de cada una vive en `PRODUCT_BACKLOG.md` ("Cloud Sync / Cuentas", "Colaboración en tiempo real", "Marketplace").
 
 | Ítem | Se incorpora cuando... |
 |---|---|
-| Auth (Clerk/Auth.js u equivalente) | Se necesite identificar usuarios entre sesiones/dispositivos (mismo disparador que "Usuarios/cuentas" arriba). |
+| Auth (Clerk/Auth.js o equivalente) | Se necesite identificar usuarios entre sesiones/dispositivos. |
 | Backend HTTP | El `StorageProvider` remoto (Cloud Sync) necesite un servidor real detrás. |
 | Base de datos relacional (PostgreSQL) | Exista almacenamiento server-side — viene junto con el backend HTTP. |
-| Cola de jobs distribuida (Redis + BullMQ) | El procesamiento de exportación deje de poder resolverse en un Web Worker del navegador (ej. exportaciones en lote server-side). |
-| Object storage remoto (S3/R2) | Los assets/exports necesiten vivir fuera del navegador del usuario (ej. para compartir/sincronizar). |
-| Renderers adicionales (Pixi, SVG-only, headless) | Exista un caso de uso concreto (export headless en servidor, necesidad real de performance) — el contrato `RendererAdapter` ya lo permite sin rediseño, pero no se construye especulativamente. |
-| Checkout, fulfillment, integración con proveedores de impresión, white-label | Fuera de alcance del producto tal como está definido hoy (ver [`01-Product-Vision.md`](01-Product-Vision.md), "Qué NO intenta resolver") — no es solo una postergación técnica, es una decisión de qué ES y qué NO ES Impulso. |
+| Cola de jobs distribuida (Redis + BullMQ) | El procesamiento de exportación deje de poder resolverse en un Web Worker del navegador. |
+| Object storage remoto (S3/R2) | Los assets/exports necesiten vivir fuera del navegador del usuario. |
+| Renderers adicionales (Pixi, SVG-only, headless) | Exista un caso de uso concreto — el contrato `RendererAdapter` ya lo permite sin rediseño. |
+| Checkout, fulfillment, integración con imprentas, white-label | Fuera de alcance del producto tal como está definido hoy (ver [`01-Product-Vision.md`](01-Product-Vision.md)) — decisión de qué ES y qué NO ES Impulso, no solo una postergación técnica. |
 
-## Deuda técnica de rendimiento (ya registrada en `../PERFORMANCE_BUDGET.md`)
+## 5. Deuda técnica de rendimiento (registrada en `../PERFORMANCE_BUDGET.md`)
 
-Estas son decisiones de implementación con impacto de rendimiento conocido, ya documentadas con su complejidad, cuello de botella y estrategia de optimización futura — enlazadas aquí para que no queden invisibles fuera de ese documento:
+Prioridad: **media-alta** — es la única categoría de deuda con un objetivo de producto ya declarado y todavía sin medir ("miles de objetos sin degradar la experiencia", ver `docs/platform/STATE_001.md` §3).
 
-- Undo/redo por snapshot completo del `Project` (no por patches) — costo en memoria proporcional al tamaño del documento por cada entrada de historial.
-- Búsqueda/actualización de un `SceneObject` por id reconstruyendo el árbol completo (O(n) en el total de objetos del documento).
+- Undo/redo por snapshot completo del `Project` (no por patches).
+- Búsqueda/actualización de un `SceneObject` por id reconstruyendo el árbol completo (O(n)).
 - Rebuild completo del Renderer en cada cambio de contenido, sin reconciliación incremental por id.
-- Guardado local (Milestone 1) serializa el `Project` completo en cada click de "Guardar", sin manejo de cuota de `localStorage` agotada.
+- Guardado local (Milestone 1) serializa el `Project` completo en cada guardado, sin manejo de cuota agotada.
+- Generación de thumbnail (rasterización PNG completa vía Konva headless) en cada "Guardar"/"Guardar como plantilla" — costo no medido todavía (fila nueva en `PERFORMANCE_BUDGET.md`, Epic 6).
 
 Ver `../PERFORMANCE_BUDGET.md` para el registro completo, fila por fila, con la estrategia de optimización futura de cada una.
 
 ## Cómo se usa este documento
 
-Antes de cerrar cualquier Milestone o etapa mayor del roadmap, revisar si algo nuevo se está posponiendo deliberadamente y agregarlo aquí. No es una lista de tareas pendientes con fecha — es un mapa de "qué decidimos no construir todavía, y por qué", para que la próxima vez que alguien pregunte "¿y esto no se supone que existiría?", la respuesta ya esté escrita.
+Antes de cerrar cualquier épica mayor, revisar si algo nuevo se está posponiendo deliberadamente y agregarlo aquí — clasificado en la sección que corresponda (arquitectura/código, pilar no construido, deuda de un pilar ya construido, infraestructura, o rendimiento). No es una lista de tareas pendientes con fecha — es un mapa de "qué decidimos no construir todavía, y por qué". Revisar también, periódicamente (ver `docs/platform/STATE_00N.md`), si algún ítem cambió de categoría o dejó de ser válido.

@@ -112,7 +112,7 @@ Cada módulo (Sticker Builder, y en el futuro Planner Builder, Coloring Book Bui
 
 #### Planner Builder / Coloring Book Builder / Flashcard Builder / Worksheet Builder / Journal Builder / Bundle Builder / futuros módulos (⏳ planeados)
 
-Módulos futuros que consumirían el mismo Impulso Engine y los mismos pilares de plataforma de la misma manera que Sticker Builder — heredando selección, transformación, historial, resize/rotación y (cuando existan) Asset Library/Export Engine/Design System sin reescribirlos. La validez de esta promesa es, en sí misma, uno de los objetivos de producto declarados (ver [`01-Product-Vision.md`](01-Product-Vision.md), "Objetivos del producto") y del roadmap hacia v2.0 (ver [`04-Roadmap.md`](04-Roadmap.md)).
+Módulos futuros que consumirían el mismo Impulso Engine y los mismos pilares de plataforma de la misma manera que Sticker Builder — heredando selección, transformación, historial, resize/rotación y (cuando existan) Asset Library/Export Engine/Design System sin reescribirlos. La validez de esta promesa es, en sí misma, uno de los objetivos de producto declarados (ver [`01-Product-Vision.md`](01-Product-Vision.md), "Objetivos del producto") y de la Fase 5 — Multi Builder Platform del roadmap (ver [`04-Roadmap.md`](04-Roadmap.md)).
 
 ## Qué hace posible este mapa
 

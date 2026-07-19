@@ -6,6 +6,7 @@ import {
   updateObjectTransform,
   updateObjectStyle,
   updateObjectContent,
+  updateTextStyle,
   reorderObjects,
 } from "./objectCommands.js";
 import {
@@ -242,6 +243,79 @@ describe("updateObjectContent", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("invalid_content");
+  });
+});
+
+describe("updateTextStyle", () => {
+  function projectWithText() {
+    return buildProject({
+      document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildText("text_1")])])]),
+    });
+  }
+
+  it("actualiza fontFamily/fontSize/textAlign de un TextObject", () => {
+    const result = updateTextStyle(projectWithText(), {
+      type: "updateTextStyle",
+      objectId: ObjectIdSchema.parse("text_1"),
+      textStyle: { fontFamily: "Georgia", fontSize: 24, textAlign: "center" },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.type).toBe("text");
+      if (object?.type === "text") {
+        expect(object.fontFamily).toBe("Georgia");
+        expect(object.fontSize).toBe(24);
+        expect(object.textAlign).toBe("center");
+      }
+    }
+  });
+
+  it("acepta un patch parcial (solo fontSize) sin tocar los demás campos", () => {
+    const result = updateTextStyle(projectWithText(), {
+      type: "updateTextStyle",
+      objectId: ObjectIdSchema.parse("text_1"),
+      textStyle: { fontSize: 32 },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      if (object?.type === "text") {
+        expect(object.fontSize).toBe(32);
+        expect(object.fontFamily).toBe("sans-serif");
+        expect(object.textAlign).toBe("left");
+      }
+    }
+  });
+
+  it("rechaza un fontSize resultante inválido (0 o negativo)", () => {
+    const result = updateTextStyle(projectWithText(), {
+      type: "updateTextStyle",
+      objectId: ObjectIdSchema.parse("text_1"),
+      textStyle: { fontSize: 0 },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_text_style");
+  });
+
+  it("rechaza un objectId inexistente", () => {
+    const result = updateTextStyle(projectWithText(), {
+      type: "updateTextStyle",
+      objectId: ObjectIdSchema.parse("no_existe"),
+      textStyle: { fontSize: 20 },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("object_not_found");
+  });
+
+  it("rechaza un object que no es de tipo text", () => {
+    const result = updateTextStyle(projectWithRect(), {
+      type: "updateTextStyle",
+      objectId: ObjectIdSchema.parse("rect_1"),
+      textStyle: { fontSize: 20 },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid_text_style");
   });
 });
 

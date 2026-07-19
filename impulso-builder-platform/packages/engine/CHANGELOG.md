@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.7.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
+
+### Agregado
+- Comando `updateTextStyle { objectId, textStyle: { fontFamily?, fontSize?, textAlign? } }` (`commands/objectCommands.ts`): cubre los tres campos de `TextObject` que el Inspector exponía como controles sin ningún comando que los respaldara (no-ops silenciosos, ver UX Audit 0002). Mismo criterio que `updateObjectContent` (rechaza si el object no es `type: "text"`, código de error nuevo `invalid_text_style`) y que `updateObjectStyle`/`updateObjectTransform` (merge-then-validate: fusiona el patch parcial sobre el object completo y valida el resultado entero contra `TextObjectSchema`, nunca aplica un patch a medias).
+- Separado de `updateObjectStyle` porque `fontFamily`/`fontSize`/`textAlign` son campos propios de `TextObjectSchema`, no de `StyleSchema`.
+- Adición pura a la API pública existente (un comando nuevo) — ningún comando previo cambia de comportamiento; no requiere ADR de cambio de API (regla de Stable Public API).
+- 231 tests en total (7 nuevos: 6 del reducer + 1 del pipeline completo vía `applyContentCommand`), 100%/99.73%/100%/100% de cobertura (único gap: una rama defensiva ya documentada en `objectCommands.ts`, no ejercitable en uso normal). Sin dependencias circulares (verificado con `madge`).
+
 ## [0.6.0] — Epic 4: Templates Foundation
 
 ### Agregado

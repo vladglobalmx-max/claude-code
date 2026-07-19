@@ -1,9 +1,14 @@
 import { findObjectInDocument, type Engine } from "@impulso/engine";
-import type { ObjectId, SceneObject } from "@impulso/document-schema";
+import { fromPixels, toPixels, type ObjectId, type SceneObject } from "@impulso/document-schema";
+import { evaluateNumericExpression } from "./numericExpression.js";
 
 export interface Inspector {
   destroy(): void;
 }
+
+const LIVE_PREVIEW_DEBOUNCE_MS = 300;
+const NUMERIC_EXPRESSION_HINT =
+  'Valor absoluto, o expresión relativa de un paso: +n, -n, *n, /n (ej. "+5", "*2"). Enter o clic afuera confirma.';
 
 function field(labelText: string, input: HTMLElement): HTMLElement {
   const wrapper = document.createElement("label");
@@ -15,14 +20,129 @@ function field(labelText: string, input: HTMLElement): HTMLElement {
   return wrapper;
 }
 
-function numberInput(value: number, step: number, onCommit: (value: number) => void): HTMLInputElement {
-  const input = document.createElement("input");
-  input.type = "number";
-  input.step = String(step);
-  input.value = String(value);
+function formatNumber(value: number): string {
+  return String(Math.round(value * 100) / 100);
+}
+
+/**
+ * Wiring compartido por todo campo editable "vivo": vista previa mientras se
+ * escribe (debounced, ver ADR sobre preview-then-commit — este es el
+ * equivalente para Inspector, sin gesto de puntero continuo) + confirmación
+ * inmediata al perder foco o presionar Enter (Epic 7 / Fase 7.1).
+ *
+ * `onCommit` devuelve si el Engine aceptó el cambio (`EngineResult.ok`): si
+ * lo rechaza (ej. un fontSize <= 0, una opacity fuera de [0,1]), el campo se
+ * marca inválido y NO actualiza su valor "confirmado" — un control nunca
+ * debe verse como si hubiera funcionado cuando el Engine lo rechazó.
+ */
+function attachDebouncedCommit<T>(
+  input: HTMLInputElement,
+  initial: T,
+  opts: {
+    parse: (raw: string, committed: T) => T | undefined;
+    format: (value: T) => string;
+    onCommit: (value: T) => boolean;
+    debounceMs?: number;
+  },
+): void {
+  let committed = initial;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  function setInvalid(invalid: boolean): void {
+    input.classList.toggle("inspector-field-invalid", invalid);
+    if (invalid) input.setAttribute("aria-invalid", "true");
+    else input.removeAttribute("aria-invalid");
+  }
+
+  function tryCommit(): void {
+    const parsed = opts.parse(input.value, committed);
+    if (parsed === undefined) {
+      setInvalid(true);
+      return;
+    }
+    if (Object.is(parsed, committed)) {
+      setInvalid(false);
+      input.value = opts.format(parsed);
+      return;
+    }
+    const accepted = opts.onCommit(parsed);
+    if (!accepted) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    committed = parsed;
+    input.value = opts.format(parsed);
+  }
+
+  function revertIfStillInvalid(): void {
+    if (input.classList.contains("inspector-field-invalid")) {
+      setInvalid(false);
+      input.value = opts.format(committed);
+    }
+  }
+
+  input.addEventListener("input", () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(tryCommit, opts.debounceMs ?? LIVE_PREVIEW_DEBOUNCE_MS);
+  });
   input.addEventListener("change", () => {
-    const parsed = Number(input.value);
-    if (!Number.isNaN(parsed)) onCommit(parsed);
+    if (timer) clearTimeout(timer);
+    tryCommit();
+  });
+  input.addEventListener("blur", () => {
+    if (timer) clearTimeout(timer);
+    tryCommit();
+    revertIfStillInvalid();
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      input.blur();
+    }
+  });
+}
+
+function numericField(
+  currentValue: number,
+  opts: { title?: string; unitLabel?: string; onCommit: (value: number) => boolean },
+): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "inspector-number-wrapper";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.inputMode = "decimal";
+  input.className = "inspector-number-input";
+  input.value = formatNumber(currentValue);
+  input.title = opts.title ?? NUMERIC_EXPRESSION_HINT;
+
+  attachDebouncedCommit(input, currentValue, {
+    parse: (raw, committed) => evaluateNumericExpression(committed, raw),
+    format: formatNumber,
+    onCommit: opts.onCommit,
+  });
+
+  wrapper.appendChild(input);
+  if (opts.unitLabel) {
+    wrapper.classList.add("inspector-number-wrapper--with-unit");
+    const unitEl = document.createElement("span");
+    unitEl.className = "inspector-unit";
+    unitEl.textContent = opts.unitLabel;
+    wrapper.appendChild(unitEl);
+  }
+  return wrapper;
+}
+
+function fontFamilyInput(currentValue: string, onCommit: (value: string) => boolean): HTMLInputElement {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = currentValue;
+  input.title = "Nombre de la familia tipográfica. No puede quedar vacío.";
+  attachDebouncedCommit(input, currentValue, {
+    parse: (raw) => (raw.trim().length > 0 ? raw.trim() : undefined),
+    format: (value) => value,
+    onCommit,
   });
   return input;
 }
@@ -31,6 +151,7 @@ function colorInput(value: string | undefined, onCommit: (value: string) => void
   const input = document.createElement("input");
   input.type = "color";
   input.value = value ?? "#000000";
+  input.title = "Color de relleno.";
   input.addEventListener("input", () => onCommit(input.value));
   return input;
 }
@@ -71,7 +192,10 @@ function section(title: string, fields: HTMLElement[]): HTMLElement {
 }
 
 /** Ancho/alto derivables directamente del Document Schema (sin necesitar
- * medir el node Konva, ver ADR-0010) — solo para tipos con `size` propio. */
+ * medir el node Konva, ver ADR-0010) — solo para tipos con `size` propio.
+ * Están en la unidad canónica interna (el mismo espacio numérico que
+ * `Transform.x/y`, independiente de `Page.unit`) — la conversión a la
+ * unidad activa del documento ocurre en el llamador, no aquí. */
 function derivedSize(object: SceneObject): { width: number; height: number } | undefined {
   if (object.type === "rectangle" || object.type === "ellipse" || object.type === "image") {
     return { width: object.size.width * object.transform.scaleX, height: object.size.height * object.transform.scaleY };
@@ -87,11 +211,21 @@ function derivedSize(object: SceneObject): { width: number; height: number } | u
  * objects). Con un único object, expone Transformar/Apariencia/Texto
  * (solo si aplica)/Metadata; con selección múltiple, solo Opacidad (ver
  * ADR-0010 — mostrar X/Y/Ancho/Alto "promedio" de una selección múltiple
- * confundiría más de lo que ayudaría).
+ * confundiría más de lo que ayudaría; multi-selección profesional real
+ * queda para Fase 7.4).
+ *
+ * Unidad activa (Epic 7 / Fase 7.1): siempre `page.unit` — se usa para
+ * mostrar y confirmar X/Y/Ancho/Alto. Internamente todo sigue viajando en
+ * la unidad canónica (px); la conversión ocurre una sola vez al mostrar
+ * (`fromPixels`) y una sola vez al confirmar (`toPixels`), nunca en cadena.
  */
 export function mountInspector(container: HTMLElement, engine: Engine): Inspector {
-  function dispatchTransform(objectId: ObjectId, patch: Record<string, number>): void {
-    engine.dispatch({ type: "updateObjectTransform", objectId, transform: patch });
+  function currentUnit(): "px" | "mm" | "in" {
+    return engine.getProject().document.pages[0]?.unit ?? "px";
+  }
+
+  function dispatchTransform(objectId: ObjectId, patch: Record<string, number>): boolean {
+    return engine.dispatch({ type: "updateObjectTransform", objectId, transform: patch }).ok;
   }
 
   function renderEmpty(): void {
@@ -102,20 +236,43 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
   }
 
   function renderMultiSelection(ids: readonly ObjectId[]): void {
-    const opacity = numberInput(1, 0.01, (value) => {
-      for (const id of ids) engine.dispatch({ type: "updateObjectStyle", objectId: id, style: { opacity: value } });
+    const opacity = numericField(1, {
+      onCommit: (value) => {
+        let allOk = true;
+        for (const id of ids) {
+          const result = engine.dispatch({ type: "updateObjectStyle", objectId: id, style: { opacity: value } });
+          if (!result.ok) allOk = false;
+        }
+        return allOk;
+      },
     });
     container.appendChild(section("Apariencia", [field("Opacidad", opacity)]));
   }
 
   function renderSingleSelection(object: SceneObject): void {
+    const unit = currentUnit();
     const size = derivedSize(object);
     const transformFields = [
-      field("X", numberInput(object.transform.x, 1, (v) => dispatchTransform(object.id, { x: v }))),
-      field("Y", numberInput(object.transform.y, 1, (v) => dispatchTransform(object.id, { y: v }))),
+      field(
+        "X",
+        numericField(fromPixels(object.transform.x, unit), {
+          unitLabel: unit,
+          onCommit: (v) => dispatchTransform(object.id, { x: toPixels(v, unit) }),
+        }),
+      ),
+      field(
+        "Y",
+        numericField(fromPixels(object.transform.y, unit), {
+          unitLabel: unit,
+          onCommit: (v) => dispatchTransform(object.id, { y: toPixels(v, unit) }),
+        }),
+      ),
       field(
         "Rotación",
-        numberInput(object.transform.rotation, 1, (v) => dispatchTransform(object.id, { rotation: v })),
+        numericField(object.transform.rotation, {
+          unitLabel: "°",
+          onCommit: (v) => dispatchTransform(object.id, { rotation: v }),
+        }),
       ),
     ];
     if (size) {
@@ -124,11 +281,23 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
         0,
         field(
           "Ancho",
-          numberInput(size.width, 1, (v) => dispatchTransform(object.id, { scaleX: v / (size.width / object.transform.scaleX) })),
+          numericField(fromPixels(size.width, unit), {
+            unitLabel: unit,
+            onCommit: (vDisplay) => {
+              const vPx = toPixels(vDisplay, unit);
+              return dispatchTransform(object.id, { scaleX: vPx / (size.width / object.transform.scaleX) });
+            },
+          }),
         ),
         field(
           "Alto",
-          numberInput(size.height, 1, (v) => dispatchTransform(object.id, { scaleY: v / (size.height / object.transform.scaleY) })),
+          numericField(fromPixels(size.height, unit), {
+            unitLabel: unit,
+            onCommit: (vDisplay) => {
+              const vPx = toPixels(vDisplay, unit);
+              return dispatchTransform(object.id, { scaleY: vPx / (size.height / object.transform.scaleY) });
+            },
+          }),
         ),
       );
     }
@@ -137,9 +306,9 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
     const appearanceFields = [
       field(
         "Opacidad",
-        numberInput(object.style.opacity, 0.01, (v) =>
-          engine.dispatch({ type: "updateObjectStyle", objectId: object.id, style: { opacity: v } }),
-        ),
+        numericField(object.style.opacity, {
+          onCommit: (v) => engine.dispatch({ type: "updateObjectStyle", objectId: object.id, style: { opacity: v } }).ok,
+        }),
       ),
     ];
     if (object.type !== "group") {
@@ -157,14 +326,27 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
     if (object.type === "text") {
       const contentInput = document.createElement("textarea");
       contentInput.value = object.content;
+      contentInput.title = "Contenido del texto.";
       contentInput.addEventListener("change", () => {
         engine.dispatch({ type: "updateObjectContent", objectId: object.id, content: contentInput.value });
       });
       container.appendChild(
         section("Texto", [
           field("Contenido", contentInput),
-          field("Tipografía", textInput(object.fontFamily, (v) => dispatchFontFamily(object.id, v))),
-          field("Tamaño", numberInput(object.fontSize, 1, (v) => dispatchFontSize(object.id, v))),
+          field(
+            "Tipografía",
+            fontFamilyInput(object.fontFamily, (v) =>
+              engine.dispatch({ type: "updateTextStyle", objectId: object.id, textStyle: { fontFamily: v } }).ok,
+            ),
+          ),
+          field(
+            "Tamaño",
+            numericField(object.fontSize, {
+              unitLabel: "px",
+              onCommit: (v) =>
+                engine.dispatch({ type: "updateTextStyle", objectId: object.id, textStyle: { fontSize: v } }).ok,
+            }),
+          ),
           field(
             "Alineación",
             selectInput(
@@ -174,7 +356,12 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
                 { value: "right", label: "Derecha" },
               ],
               object.textAlign,
-              (v) => dispatchTextAlign(object.id, v as "left" | "center" | "right"),
+              (v) =>
+                engine.dispatch({
+                  type: "updateTextStyle",
+                  objectId: object.id,
+                  textStyle: { textAlign: v as "left" | "center" | "right" },
+                }),
             ),
           ),
         ]),
@@ -188,24 +375,8 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
         metadata: { name: v || undefined },
       }),
     );
+    nameInput.title = "Nombre visible en el panel de Layers.";
     container.appendChild(section("Metadata", [field("Nombre", nameInput)]));
-  }
-
-  // `updateObjectStyle`/`updateObjectTransform` no cubren fontFamily/fontSize/
-  // textAlign (son campos propios de TextObject, no de Style/Transform) —
-  // hoy no existe un comando dedicado para editarlos individualmente; se
-  // documenta como deuda técnica (ver README) y, mientras tanto, se
-  // recompone el object completo vía `addObject` tras `removeObject` NO se
-  // usa aquí para no perder posición en el árbol — en su lugar, estos tres
-  // campos quedan de solo lectura hasta que exista un comando apropiado.
-  function dispatchFontFamily(_objectId: ObjectId, _value: string): void {
-    // Deliberadamente no-op — ver comentario arriba y README, "Deuda técnica".
-  }
-  function dispatchFontSize(_objectId: ObjectId, _value: number): void {
-    // Deliberadamente no-op — ver comentario arriba y README, "Deuda técnica".
-  }
-  function dispatchTextAlign(_objectId: ObjectId, _value: "left" | "center" | "right"): void {
-    // Deliberadamente no-op — ver comentario arriba y README, "Deuda técnica".
   }
 
   function render(): void {

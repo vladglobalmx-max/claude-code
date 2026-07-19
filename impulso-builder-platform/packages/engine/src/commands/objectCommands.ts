@@ -1,6 +1,7 @@
 import {
   TransformSchema,
   StyleSchema,
+  TextObjectSchema,
   type Project,
   type Document,
 } from "@impulso/document-schema";
@@ -14,6 +15,7 @@ type RemoveObjectCommand = Extract<ContentCommand, { type: "removeObject" }>;
 type UpdateObjectTransformCommand = Extract<ContentCommand, { type: "updateObjectTransform" }>;
 type UpdateObjectStyleCommand = Extract<ContentCommand, { type: "updateObjectStyle" }>;
 type UpdateObjectContentCommand = Extract<ContentCommand, { type: "updateObjectContent" }>;
+type UpdateTextStyleCommand = Extract<ContentCommand, { type: "updateTextStyle" }>;
 type ReorderObjectsCommand = Extract<ContentCommand, { type: "reorderObjects" }>;
 
 function withDocument(project: Project, document: Document): Project {
@@ -114,6 +116,33 @@ export function updateObjectContent(project: Project, command: UpdateObjectConte
   const document = updateObjectInDocument(project.document, command.objectId, (object) =>
     object.type === "text" ? { ...object, content: command.content } : object,
   );
+  return ok(withDocument(project, document));
+}
+
+/**
+ * Solo aplica a `TextObject` (fontFamily/fontSize/textAlign) — mismo
+ * criterio de rechazo que `updateObjectContent` para cualquier otro tipo,
+ * y mismo criterio de merge-then-validate que `updateObjectStyle`/
+ * `updateObjectTransform` (un `fontSize` resultante inválido, ej. 0 o
+ * negativo, se rechaza en vez de aplicarse a medias). Ver Epic 7 / Fase
+ * 7.1: antes de este comando, el Inspector exponía estos tres campos sin
+ * ningún comando que los respaldara.
+ */
+export function updateTextStyle(project: Project, command: UpdateTextStyleCommand): EngineResult<Project> {
+  const existing = findObjectInDocument(project.document, command.objectId);
+  if (!existing) {
+    return err(engineError("object_not_found", `No existe un Object con id "${command.objectId}".`));
+  }
+  if (existing.type !== "text") {
+    return err(
+      engineError("invalid_text_style", `El Object "${command.objectId}" no es de tipo "text"; no tiene estilo tipográfico.`),
+    );
+  }
+  const merged = TextObjectSchema.safeParse({ ...existing, ...command.textStyle });
+  if (!merged.success) {
+    return err(engineError("invalid_text_style", merged.error.message));
+  }
+  const document = updateObjectInDocument(project.document, command.objectId, () => merged.data);
   return ok(withDocument(project, document));
 }
 

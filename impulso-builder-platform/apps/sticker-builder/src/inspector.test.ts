@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEngine } from "@impulso/engine";
 import {
   ObjectIdSchema,
@@ -9,6 +9,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   type Project,
   type SceneObject,
+  type Unit,
 } from "@impulso/document-schema";
 import { mountInspector } from "./inspector.js";
 
@@ -62,7 +63,7 @@ function buildGroup(id: string, children: SceneObject[]): SceneObject {
   } as SceneObject;
 }
 
-function buildProject(objects: SceneObject[]): Project {
+function buildProject(objects: SceneObject[], unit: Unit = "px"): Project {
   return {
     id: ProjectIdSchema.parse("project_1"),
     moduleId: "sticker-builder",
@@ -74,7 +75,7 @@ function buildProject(objects: SceneObject[]): Project {
         {
           id: PageIdSchema.parse("page_1"),
           size: { width: 100, height: 100 },
-          unit: "px",
+          unit,
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects, metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},
@@ -97,6 +98,21 @@ function container(): HTMLDivElement {
   const div = document.createElement("div");
   document.body.appendChild(div);
   return div;
+}
+
+/** Los campos numéricos ahora son `input[type="text"]` (para aceptar
+ * expresiones como "+5"/"*2"), distinguibles por esta clase — ver
+ * Epic 7 / Fase 7.1. */
+function numberInputs(scope: ParentNode): HTMLInputElement[] {
+  return Array.from(scope.querySelectorAll("input.inspector-number-input"));
+}
+
+function sectionByLegend(scope: ParentNode, legend: string): Element {
+  const found = Array.from(scope.querySelectorAll(".inspector-section")).find(
+    (s) => s.querySelector("legend")?.textContent === legend,
+  );
+  if (!found) throw new Error(`No se encontró la sección "${legend}"`);
+  return found;
 }
 
 describe("mountInspector", () => {
@@ -128,7 +144,7 @@ describe("mountInspector", () => {
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
     mountInspector(div, engine);
 
-    const opacityInput = div.querySelector('input[type="number"]') as HTMLInputElement;
+    const opacityInput = numberInputs(div)[0]!;
     opacityInput.value = "0.5";
     opacityInput.dispatchEvent(new Event("change"));
 
@@ -136,7 +152,7 @@ describe("mountInspector", () => {
     expect(objects?.map((o) => o.style.opacity)).toEqual([0.5, 0.5]);
   });
 
-  it("con un rectangle seleccionado, muestra Transformar (con Ancho/Alto) y Apariencia (con Relleno)", () => {
+  it("con un rectangle seleccionado, muestra Transformar (con Ancho/Alto y unidad) y Apariencia (con Relleno)", () => {
     const engine = createEngine(buildProject([buildRect("a")]));
     const div = container();
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
@@ -148,14 +164,17 @@ describe("mountInspector", () => {
     );
     expect(sections).toEqual(["Transformar", "Apariencia", "Metadata"]);
 
-    const transformSection = div.querySelectorAll(".inspector-section")[0]!;
-    const fieldLabels = Array.from(transformSection.querySelectorAll(".inspector-field span")).map(
+    const transformSection = sectionByLegend(div, "Transformar");
+    const fieldLabels = Array.from(transformSection.querySelectorAll(".inspector-field > span")).map(
       (s) => s.textContent,
     );
     expect(fieldLabels).toEqual(["X", "Y", "Ancho", "Alto", "Rotación"]);
 
-    const appearanceSection = div.querySelectorAll(".inspector-section")[1]!;
-    const appearanceLabels = Array.from(appearanceSection.querySelectorAll(".inspector-field span")).map(
+    const unitLabels = Array.from(transformSection.querySelectorAll(".inspector-unit")).map((s) => s.textContent);
+    expect(unitLabels).toEqual(["px", "px", "px", "px", "°"]);
+
+    const appearanceSection = sectionByLegend(div, "Apariencia");
+    const appearanceLabels = Array.from(appearanceSection.querySelectorAll(".inspector-field > span")).map(
       (s) => s.textContent,
     );
     expect(appearanceLabels).toEqual(["Opacidad", "Relleno"]);
@@ -167,15 +186,71 @@ describe("mountInspector", () => {
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
     mountInspector(div, engine);
 
-    const appearanceSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Apariencia",
-    )!;
-    const opacityInput = appearanceSection.querySelector("input[type='number']") as HTMLInputElement;
+    const opacityInput = numberInputs(sectionByLegend(div, "Apariencia"))[0]!;
     opacityInput.value = "0.4";
     opacityInput.dispatchEvent(new Event("change"));
 
     const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
     expect(object?.style.opacity).toBe(0.4);
+  });
+
+  it("editar Y, Rotación, Ancho y Alto dispara updateObjectTransform con el patch correcto", () => {
+    const engine = createEngine(buildProject([buildRect("a")])); // x:10 y:20 size:30x40 scale:1,1
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    mountInspector(div, engine);
+
+    const [xInput, yInput, widthInput, heightInput, rotationInput] = numberInputs(
+      sectionByLegend(div, "Transformar"),
+    );
+
+    yInput!.value = "99";
+    yInput!.dispatchEvent(new Event("change"));
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.y).toBe(99);
+
+    rotationInput!.value = "45";
+    rotationInput!.dispatchEvent(new Event("change"));
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.rotation).toBe(45);
+
+    widthInput!.value = "60";
+    widthInput!.dispatchEvent(new Event("change"));
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.scaleX).toBe(2);
+
+    heightInput!.value = "20";
+    heightInput!.dispatchEvent(new Event("change"));
+    expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.scaleY).toBe(0.5);
+
+    expect(xInput).toBeDefined();
+  });
+
+  it("confirmar el mismo valor que ya está aplicado no dispara un dispatch redundante", () => {
+    const engine = createEngine(buildProject([buildRect("a")])); // x inicial: 10
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    mountInspector(div, engine);
+
+    const historyBefore = engine.getProject().document.history.entries.length;
+    const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+    xInput.value = "10"; // idéntico al valor actual
+    xInput.dispatchEvent(new Event("change"));
+
+    expect(engine.getProject().document.history.entries.length).toBe(historyBefore);
+  });
+
+  it("en selección múltiple, si algún object rechaza el cambio, el campo se marca inválido", () => {
+    const engine = createEngine(buildProject([buildRect("a"), buildRect("b")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+    mountInspector(div, engine);
+
+    const opacityInput = numberInputs(div)[0]!;
+    // Fuera de [0,1]: StyleSchema lo rechaza para ambos objects.
+    opacityInput.value = "5";
+    opacityInput.dispatchEvent(new Event("change"));
+
+    expect(opacityInput.classList.contains("inspector-field-invalid")).toBe(true);
+    const objects = engine.getProject().document.pages[0]?.layers[0]?.objects;
+    expect(objects?.map((o) => o.style.opacity)).toEqual([1, 1]);
   });
 
   it("un text con `size` explícito muestra Ancho/Alto derivados de ese tamaño", () => {
@@ -185,25 +260,93 @@ describe("mountInspector", () => {
 
     mountInspector(div, engine);
 
-    const transformSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Transformar",
-    )!;
-    const labels = Array.from(transformSection.querySelectorAll(".inspector-field span")).map((s) => s.textContent);
+    const transformSection = sectionByLegend(div, "Transformar");
+    const labels = Array.from(transformSection.querySelectorAll(".inspector-field > span")).map((s) => s.textContent);
     expect(labels).toEqual(["X", "Y", "Ancho", "Alto", "Rotación"]);
   });
 
-  it("editar X dispara updateObjectTransform", () => {
+  it("editar X con un valor absoluto dispara updateObjectTransform", () => {
     const engine = createEngine(buildProject([buildRect("a")]));
     const div = container();
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
     mountInspector(div, engine);
 
-    const xInput = div.querySelector(".inspector-section input[type='number']") as HTMLInputElement;
+    const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
     xInput.value = "99";
     xInput.dispatchEvent(new Event("change"));
 
     const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
     expect(object?.transform.x).toBe(99);
+  });
+
+  it("editar X con una expresión relativa (+5) suma sobre el valor actual", () => {
+    const engine = createEngine(buildProject([buildRect("a")])); // x inicial: 10
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    mountInspector(div, engine);
+
+    const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+    xInput.value = "+5";
+    xInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.transform.x).toBe(15);
+    expect(xInput.value).toBe("15");
+  });
+
+  it("una expresión no soportada no dispara ningún cambio y marca el campo inválido", () => {
+    const engine = createEngine(buildProject([buildRect("a")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    mountInspector(div, engine);
+
+    const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+    xInput.value = "abc";
+    xInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.transform.x).toBe(10);
+    expect(xInput.classList.contains("inspector-field-invalid")).toBe(true);
+    expect(xInput.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("un valor rechazado por el Engine (fontSize <= 0) no cambia el documento y marca el campo inválido", () => {
+    const engine = createEngine(buildProject([buildText("t1")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("t1")] });
+    mountInspector(div, engine);
+
+    const sizeInput = numberInputs(sectionByLegend(div, "Texto"))[0]!;
+    sizeInput.value = "*0";
+    sizeInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.type === "text" && object.fontSize).toBe(16);
+    expect(sizeInput.classList.contains("inspector-field-invalid")).toBe(true);
+  });
+
+  it("con unidad activa 'mm', X/Y/Ancho/Alto se muestran convertidos y se confirman de vuelta a la unidad canónica", () => {
+    // page.size/unit no importa para el transform del object: el transform
+    // vive en unidad canónica (px) independientemente de page.unit.
+    const engine = createEngine(buildProject([buildRect("a")], "mm")); // x=10px, width derivado=30px
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    mountInspector(div, engine);
+
+    const transformSection = sectionByLegend(div, "Transformar");
+    const unitLabels = Array.from(transformSection.querySelectorAll(".inspector-unit")).map((s) => s.textContent);
+    expect(unitLabels).toEqual(["mm", "mm", "mm", "mm", "°"]);
+
+    const xInput = numberInputs(transformSection)[0]!;
+    // 10px -> mm: 10 / (96/25.4) ≈ 2.65mm
+    expect(Number(xInput.value)).toBeCloseTo(2.65, 2);
+
+    xInput.value = "10"; // fijar en 10mm
+    xInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    // 10mm -> px: 10 * (96/25.4) ≈ 37.795px
+    expect(object?.transform.x).toBeCloseTo(37.795, 2);
   });
 
   it("editar el Relleno dispara updateObjectStyle", () => {
@@ -227,18 +370,14 @@ describe("mountInspector", () => {
 
     mountInspector(div, engine);
 
-    const appearanceSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Apariencia",
-    )!;
-    const appearanceLabels = Array.from(appearanceSection.querySelectorAll(".inspector-field span")).map(
+    const appearanceSection = sectionByLegend(div, "Apariencia");
+    const appearanceLabels = Array.from(appearanceSection.querySelectorAll(".inspector-field > span")).map(
       (s) => s.textContent,
     );
     expect(appearanceLabels).toEqual(["Opacidad"]);
 
-    const transformSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Transformar",
-    )!;
-    const transformLabels = Array.from(transformSection.querySelectorAll(".inspector-field span")).map(
+    const transformSection = sectionByLegend(div, "Transformar");
+    const transformLabels = Array.from(transformSection.querySelectorAll(".inspector-field > span")).map(
       (s) => s.textContent,
     );
     expect(transformLabels).toEqual(["X", "Y", "Rotación"]);
@@ -256,11 +395,12 @@ describe("mountInspector", () => {
     );
     expect(sections).toEqual(["Transformar", "Apariencia", "Texto", "Metadata"]);
 
-    const textSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Texto",
-    )!;
-    const textLabels = Array.from(textSection.querySelectorAll(".inspector-field span")).map((s) => s.textContent);
+    const textSection = sectionByLegend(div, "Texto");
+    const textLabels = Array.from(textSection.querySelectorAll(".inspector-field > span")).map((s) => s.textContent);
     expect(textLabels).toEqual(["Contenido", "Tipografía", "Tamaño", "Alineación"]);
+
+    const sizeUnit = textSection.querySelector(".inspector-unit")?.textContent;
+    expect(sizeUnit).toBe("px");
   });
 
   it("editar el Contenido de un text dispara updateObjectContent", () => {
@@ -277,38 +417,63 @@ describe("mountInspector", () => {
     expect(object?.type === "text" && object.content).toBe("Nuevo contenido");
   });
 
-  it("editar Tipografía/Tamaño/Alineación no lanza (son de solo lectura, ver deuda técnica)", () => {
+  it("editar Tipografía dispara updateTextStyle de verdad", () => {
     const engine = createEngine(buildProject([buildText("t1")]));
     const div = container();
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("t1")] });
     mountInspector(div, engine);
 
-    const fontFamilyInput = div.querySelector(".inspector-field input[type='text']") as HTMLInputElement;
-    expect(() => {
-      fontFamilyInput.value = "serif";
-      fontFamilyInput.dispatchEvent(new Event("change"));
-    }).not.toThrow();
-
-    const textSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Texto",
-    )!;
-    const sizeInput = textSection.querySelector("input[type='number']") as HTMLInputElement;
-    expect(() => {
-      sizeInput.value = "40";
-      sizeInput.dispatchEvent(new Event("change"));
-    }).not.toThrow();
-
-    const select = div.querySelector("select") as HTMLSelectElement;
-    expect(() => {
-      select.value = "center";
-      select.dispatchEvent(new Event("change"));
-    }).not.toThrow();
+    const textSection = sectionByLegend(div, "Texto");
+    const fontFamilyInput = textSection.querySelector("input[type='text']") as HTMLInputElement;
+    fontFamilyInput.value = "serif";
+    fontFamilyInput.dispatchEvent(new Event("change"));
 
     const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
-    // No cambia: dispatchFontFamily/dispatchFontSize/dispatchTextAlign son no-op deliberados.
+    expect(object?.type === "text" && object.fontFamily).toBe("serif");
+  });
+
+  it("dejar Tipografía vacía no dispara el cambio y marca el campo inválido", () => {
+    const engine = createEngine(buildProject([buildText("t1")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("t1")] });
+    mountInspector(div, engine);
+
+    const textSection = sectionByLegend(div, "Texto");
+    const fontFamilyInput = textSection.querySelector("input[type='text']") as HTMLInputElement;
+    fontFamilyInput.value = "   ";
+    fontFamilyInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
     expect(object?.type === "text" && object.fontFamily).toBe("sans-serif");
-    expect(object?.type === "text" && object.fontSize).toBe(16);
-    expect(object?.type === "text" && object.textAlign).toBe("left");
+    expect(fontFamilyInput.classList.contains("inspector-field-invalid")).toBe(true);
+  });
+
+  it("editar Tamaño dispara updateTextStyle de verdad", () => {
+    const engine = createEngine(buildProject([buildText("t1")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("t1")] });
+    mountInspector(div, engine);
+
+    const sizeInput = numberInputs(sectionByLegend(div, "Texto"))[0]!;
+    sizeInput.value = "40";
+    sizeInput.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.type === "text" && object.fontSize).toBe(40);
+  });
+
+  it("editar Alineación dispara updateTextStyle de verdad", () => {
+    const engine = createEngine(buildProject([buildText("t1")]));
+    const div = container();
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("t1")] });
+    mountInspector(div, engine);
+
+    const select = div.querySelector("select") as HTMLSelectElement;
+    select.value = "center";
+    select.dispatchEvent(new Event("change"));
+
+    const object = engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.type === "text" && object.textAlign).toBe("center");
   });
 
   it("editar el Nombre dispara updateMetadata a nivel object", () => {
@@ -317,9 +482,7 @@ describe("mountInspector", () => {
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
     mountInspector(div, engine);
 
-    const metadataSection = Array.from(div.querySelectorAll(".inspector-section")).find(
-      (s) => s.querySelector("legend")?.textContent === "Metadata",
-    )!;
+    const metadataSection = sectionByLegend(div, "Metadata");
     const nameInput = metadataSection.querySelector("input[type='text']") as HTMLInputElement;
     nameInput.value = "Mi rectángulo";
     nameInput.dispatchEvent(new Event("change"));
@@ -348,7 +511,7 @@ describe("mountInspector", () => {
 
     engine.dispatch({ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 55 } });
 
-    const xInput = div.querySelector(".inspector-section input[type='number']") as HTMLInputElement;
+    const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
     expect(xInput.value).toBe("55");
   });
 
@@ -377,5 +540,86 @@ describe("mountInspector", () => {
     // removeObject probablemente limpia la selección también, pero si no lo
     // hiciera, el Inspector debe tolerar una selección "colgante" sin lanzar.
     expect(div.querySelector(".inspector-empty")).not.toBeNull();
+  });
+
+  describe("vista previa en vivo (debounce) y confirmación con Enter", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("escribir sin confirmar dispara el cambio tras el debounce, sin esperar a 'change'", () => {
+      const engine = createEngine(buildProject([buildRect("a")]));
+      const div = container();
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+      mountInspector(div, engine);
+
+      const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+      xInput.value = "42";
+      xInput.dispatchEvent(new Event("input"));
+
+      // Antes de que venza el debounce, el documento no cambió todavía.
+      expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.x).toBe(10);
+
+      vi.advanceTimersByTime(300);
+
+      expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.x).toBe(42);
+    });
+
+    it("Enter confirma inmediatamente sin esperar el debounce", () => {
+      const engine = createEngine(buildProject([buildRect("a")]));
+      const div = container();
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+      mountInspector(div, engine);
+
+      const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+      xInput.value = "77";
+      xInput.dispatchEvent(new Event("input"));
+      xInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+      xInput.dispatchEvent(new Event("blur"));
+
+      expect(engine.getProject().document.pages[0]?.layers[0]?.objects[0]?.transform.x).toBe(77);
+    });
+
+    it("perder el foco con una expresión inválida revierte el campo al último valor confirmado", () => {
+      const engine = createEngine(buildProject([buildRect("a")]));
+      const div = container();
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+      mountInspector(div, engine);
+
+      const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+      xInput.value = "no-numero";
+      xInput.dispatchEvent(new Event("input"));
+      xInput.dispatchEvent(new Event("blur"));
+
+      expect(xInput.value).toBe("10");
+      expect(xInput.classList.contains("inspector-field-invalid")).toBe(false);
+    });
+  });
+
+  describe("accesibilidad mínima", () => {
+    it("los campos numéricos exponen un title explicando la sintaxis de expresión", () => {
+      const engine = createEngine(buildProject([buildRect("a")]));
+      const div = container();
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+      mountInspector(div, engine);
+
+      const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+      expect(xInput.title.length).toBeGreaterThan(0);
+      expect(xInput.title).toContain("+n");
+    });
+
+    it("cada campo numérico está envuelto en un <label> asociado a su texto", () => {
+      const engine = createEngine(buildProject([buildRect("a")]));
+      const div = container();
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+      mountInspector(div, engine);
+
+      const xInput = numberInputs(sectionByLegend(div, "Transformar"))[0]!;
+      expect(xInput.closest("label.inspector-field")).not.toBeNull();
+    });
   });
 });

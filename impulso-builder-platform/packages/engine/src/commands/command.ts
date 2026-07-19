@@ -13,6 +13,7 @@ import {
   StyleSchema,
   MetadataSchema,
   PointSchema,
+  TextAlignSchema,
 } from "@impulso/document-schema";
 import { EntityRefSchema } from "./entityRef.js";
 import { RESIZE_HANDLES } from "../geometry/resizeMath.js";
@@ -95,6 +96,24 @@ export const ContentCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("updateObjectContent"),
     objectId: ObjectIdSchema,
     content: z.string(),
+  }),
+
+  /**
+   * Solo aplica a `TextObject` (fontFamily/fontSize/textAlign) — separado
+   * de `updateObjectStyle` (fill/stroke/opacity, genérico a cualquier
+   * tipo) porque son campos propios de `TextObjectSchema`, no de
+   * `StyleSchema`. Ver Epic 7 / Fase 7.1 (Professional Design Experience):
+   * antes de este comando, estos tres campos existían en el Inspector sin
+   * ningún efecto real.
+   */
+  z.object({
+    type: z.literal("updateTextStyle"),
+    objectId: ObjectIdSchema,
+    textStyle: z.object({
+      fontFamily: z.string().min(1).optional(),
+      fontSize: z.number().positive().optional(),
+      textAlign: TextAlignSchema.optional(),
+    }),
   }),
 
   z.object({

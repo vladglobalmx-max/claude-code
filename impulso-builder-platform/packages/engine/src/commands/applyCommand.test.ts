@@ -276,6 +276,23 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
     }
   });
 
+  it("updateTextStyle", () => {
+    const project = buildProject({
+      document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildText("text_1")])])]),
+    });
+    const result = applyContentCommand(
+      project,
+      { type: "updateTextStyle", objectId: ObjectIdSchema.parse("text_1"), textStyle: { fontSize: 24 } },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const object = result.value.document.pages[0]?.layers[0]?.objects[0];
+      expect(object?.type === "text" && object.fontSize).toBe(24);
+      expect(result.value.document.history.entries[0]?.description).toBe('Cambiar estilo de texto de object "text_1"');
+    }
+  });
+
   it("groupObjects", () => {
     const result = applyContentCommand(
       richProject(),

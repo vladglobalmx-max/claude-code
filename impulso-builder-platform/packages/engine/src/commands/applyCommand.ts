@@ -9,6 +9,7 @@ import {
   updateObjectTransform,
   updateObjectStyle,
   updateObjectContent,
+  updateTextStyle,
   reorderObjects,
 } from "./objectCommands.js";
 import { updateMetadata } from "./metadataCommand.js";
@@ -49,6 +50,8 @@ function describeCommand(command: ContentCommand): string {
       return `Rotar object "${command.objectId}"`;
     case "updateObjectContent":
       return `Cambiar contenido de object "${command.objectId}"`;
+    case "updateTextStyle":
+      return `Cambiar estilo de texto de object "${command.objectId}"`;
     case "groupObjects":
       return `Agrupar ${command.objectIds.length} objects en "${command.group.id}"`;
     case "ungroupObject":
@@ -94,6 +97,8 @@ function runReducer(project: Project, command: ContentCommand): EngineResult<Pro
       return rotateObject(project, command);
     case "updateObjectContent":
       return updateObjectContent(project, command);
+    case "updateTextStyle":
+      return updateTextStyle(project, command);
     case "groupObjects":
       return groupObjects(project, command);
     case "ungroupObject":

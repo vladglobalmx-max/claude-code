@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.3.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
+
+### Agregado
+- `fromPixels(pixels, unit)` (`page/unitConversion.ts`): inversa de `toPixels`, de la unidad canónica interna (px) a la unidad activa del documento (`page.unit`). El Inspector la usa para mostrar X/Y/Ancho/Alto en mm/in/px sin acumular error de redondeo — la conversión ocurre una sola vez al mostrar y una sola vez al confirmar, nunca en cadena.
+- Adición pura a la API pública existente (una función nueva) — no requiere ADR de cambio de API (regla de Stable Public API).
+- 4 tests nuevos (97 en total), 100% de cobertura mantenida.
+
 ## [0.2.1] — Epic 3: Export Engine Foundation
 
 ### Agregado

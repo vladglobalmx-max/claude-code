@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.8.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
+
+### Agregado
+- `inspector.ts` reescrito: Tipografía/Tamaño/Alineación de un `TextObject` dejan de ser controles no-op (ver UX Review previa a esta fase) y disparan `updateTextStyle` (`@impulso/engine` 0.7.0) de verdad, con undo/redo y una entrada de historial por cambio.
+- X/Y/Ancho/Alto se muestran y confirman en `page.unit` (mm/in/px) vía `fromPixels`/`toPixels` (`@impulso/document-schema` 0.3.0); Rotación y Tamaño de fuente muestran su unidad (`°`/`px`) — antes ningún campo numérico indicaba su unidad.
+- Todo campo numérico acepta un valor absoluto o una expresión relativa de un paso (`+n`/`-n`/`*n`/`/n`, nunca `eval`; `numericExpression.ts`, nuevo) con vista previa mientras se escribe (debounced) y confirmación inmediata al perder foco o presionar Enter.
+- Si el Engine rechaza un valor (ej. un `fontSize` resultante ≤ 0), el campo se marca inválido (`aria-invalid`, clase `inspector-field-invalid`) y no actualiza su valor confirmado — nunca se ve como si el cambio hubiera funcionado cuando no fue así. Perder el foco con una expresión inválida revierte al último valor válido.
+- Rediseño visual del panel (`index.html`): secciones con encabezado tipo micro-label, campos con unidad visible, estado de error consistente; tooltips con atajo agregados a Deshacer/Rehacer/Guardar (cerraba la última brecha de descubribilidad de atajos en la Toolbar).
+- 275 tests en total (14 nuevos en `numericExpression.test.ts`, `inspector.test.ts` reescrito con 32 tests), cobertura de `inspector.ts` 99.1%/94.25%/100%/99.1% (único gap: una rama defensiva ya documentada, no ejercitable en uso normal).
+- UX Audit 0002 (`docs/ux-audits/0002-inspector-fase-7-1.md`).
+
+### Fuera de alcance (deliberado, ver instrucción de la épica)
+Selección múltiple avanzada, Alignment/Distribution, Smart Guides, Snapping, Grid, Rulers — quedan para Fases 7.2/7.3/7.4 de Epic 7. Sin selector de fuentes curado (Tipografía sigue siendo texto libre). Sin selector independiente de unidad (la unidad activa es siempre `page.unit`).
+
 ## [0.7.0] — Epic 5: Project Library / Workspace
 
 ### Agregado

@@ -22,3 +22,4 @@ Y se entrega siempre en el mismo formato: qué funciona muy bien, qué puede mej
 | Auditoría | Bloque | Fecha |
 |---|---|---|
 | [0001](0001-workspace.md) | Workspace (Epic 5) | 2026-07-19 |
+| [0002](0002-inspector-fase-7-1.md) | Inspector honesto (Epic 7 / Fase 7.1) | 2026-07-19 |

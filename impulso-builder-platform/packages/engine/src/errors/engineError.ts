@@ -20,6 +20,7 @@ export type EngineErrorCode =
   | "invalid_style"
   | "invalid_transform"
   | "invalid_content"
+  | "invalid_text_style"
   | "invalid_group"
   | "invalid_reorder"
   | "asset_not_found"

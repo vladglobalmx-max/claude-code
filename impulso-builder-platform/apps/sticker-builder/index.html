@@ -338,33 +338,122 @@
       }
 
       #inspector-panel {
+        overflow-x: hidden;
         overflow-y: auto;
         background: #fafaf9;
         border-left: 1px solid #d6d3d1;
-        padding: 8px;
+        padding: 12px;
+        font-size: 13px;
+        min-width: 0;
       }
       .inspector-section {
-        border: 1px solid #d6d3d1;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        padding: 8px;
+        /* Los <fieldset> tienen un `min-width: min-content` implícito en la
+           mayoría de los navegadores que ignora `flex-shrink`/el ancho del
+           contenedor — sin este reset, el contenido (ej. el <select> de
+           Alineación) fuerza al panel completo a desbordarse. */
+        min-width: 0;
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid #e7e5e4;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        padding: 4px 12px 12px;
+        background: #ffffff;
+      }
+      .inspector-section legend {
+        padding: 0 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #78716c;
       }
       .inspector-field {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 6px;
+        gap: 10px;
+        margin-top: 8px;
       }
-      .inspector-field input,
+      .inspector-field > span {
+        flex: 0 0 56px;
+        color: #57534e;
+        font-size: 12px;
+      }
       .inspector-field select,
-      .inspector-field textarea {
+      .inspector-field textarea,
+      .inspector-field input[type="text"] {
         font: inherit;
-        max-width: 60%;
+        flex: 1;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 5px 8px;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        background: #fafaf9;
+        color: #1c1917;
+      }
+      .inspector-field textarea {
+        resize: vertical;
+        min-height: 48px;
+      }
+      .inspector-field input[type="color"] {
+        flex: 1;
+        min-width: 0;
+        height: 30px;
+        padding: 2px;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        background: #fafaf9;
+        cursor: pointer;
+      }
+      .inspector-field select:focus,
+      .inspector-field textarea:focus,
+      .inspector-field input[type="text"]:focus {
+        outline: none;
+        border-color: #1c1917;
+        background: #ffffff;
+      }
+      .inspector-number-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+      }
+      .inspector-number-input {
+        font: inherit;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 5px 8px;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        background: #fafaf9;
+        color: #1c1917;
+      }
+      .inspector-number-wrapper--with-unit .inspector-number-input {
+        padding-right: 28px;
+      }
+      .inspector-number-input:focus {
+        outline: none;
+        border-color: #1c1917;
+        background: #ffffff;
+      }
+      .inspector-unit {
+        position: absolute;
+        right: 8px;
+        pointer-events: none;
+        color: #a8a29e;
+        font-size: 11px;
+      }
+      .inspector-number-input.inspector-field-invalid,
+      .inspector-field input[type="text"].inspector-field-invalid {
+        border-color: #dc2626;
+        background: #fef2f2;
       }
       .inspector-empty {
         color: #78716c;
-        padding: 8px;
+        padding: 12px 4px;
+        font-size: 13px;
       }
 
       /* Diálogo de proyecto nuevo */
@@ -612,10 +701,10 @@
         <div id="top-bar">
           <button id="new-btn" type="button">Nuevo</button>
           <span class="divider"></span>
-          <button id="undo-btn" type="button">Deshacer</button>
-          <button id="redo-btn" type="button">Rehacer</button>
+          <button id="undo-btn" type="button" title="Deshacer (Ctrl/Cmd+Z)">Deshacer</button>
+          <button id="redo-btn" type="button" title="Rehacer (Ctrl/Cmd+Shift+Z)">Rehacer</button>
           <span class="divider"></span>
-          <button id="save-btn" type="button">Guardar</button>
+          <button id="save-btn" type="button" title="Guardar (Ctrl/Cmd+S)">Guardar</button>
           <button id="back-to-workspace-btn" type="button" title="Mis proyectos (Ctrl/Cmd+O)">Mis proyectos</button>
           <span class="divider"></span>
           <button id="export-btn" type="button">Exportar</button>

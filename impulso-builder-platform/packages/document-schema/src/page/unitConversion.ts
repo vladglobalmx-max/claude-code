@@ -25,3 +25,22 @@ export function toPixels(value: number, unit: Unit): number {
       return value * (PIXELS_PER_INCH / MM_PER_INCH);
   }
 }
+
+/**
+ * Inversa de `toPixels`: de la unidad canónica interna (px — el mismo
+ * espacio numérico que usan `Transform.x/y` y los `size` de Object,
+ * independientemente de `Page.unit`) a la unidad activa del documento.
+ * Necesaria para que el Inspector (Epic 7 / Fase 7.1) muestre X/Y/Ancho/Alto
+ * en `page.unit` sin acumular error de redondeo: cada valor se convierte
+ * una sola vez al mostrarlo y una sola vez al confirmarlo, nunca en cadena.
+ */
+export function fromPixels(pixels: number, unit: Unit): number {
+  switch (unit) {
+    case "px":
+      return pixels;
+    case "in":
+      return pixels / PIXELS_PER_INCH;
+    case "mm":
+      return pixels / (PIXELS_PER_INCH / MM_PER_INCH);
+  }
+}

@@ -241,9 +241,27 @@ export function mountRulers(
     drawRuler("y", page.unit);
   }
 
+  // Las Rulers solo dependen de page.size/unit (+ zoom/scroll, ya cubiertos
+  // por `refresh()` invocado explícitamente desde afuera) — NUNCA del
+  // contenido (mover/colorear/editar un object). Redibujar en cada
+  // `projectChanged` sin filtrar sería recalcular en cada tecla escrita en
+  // el Inspector; se compara una firma mínima para saltar el trabajo
+  // cuando lo único que cambió fue contenido (Fase 7.3.5 — Beta
+  // Stabilization, "cálculos repetidos").
+  let lastSignature = "";
+  function pageSignature(): string {
+    const page = activePage(engine);
+    return page ? `${page.id}:${page.unit}:${page.size.width}:${page.size.height}` : "";
+  }
+  lastSignature = pageSignature();
+
   refresh();
   const unsubscribe = engine.subscribe((event) => {
-    if (event.type === "projectChanged") refresh();
+    if (event.type !== "projectChanged") return;
+    const signature = pageSignature();
+    if (signature === lastSignature) return;
+    lastSignature = signature;
+    refresh();
   });
 
   return { refresh, destroy: unsubscribe };
@@ -274,7 +292,13 @@ export function mountPointerIndicator(
   getZoom: () => number,
 ): PointerIndicator {
   let rafHandle: number | undefined;
-  let pending: { x: number; y: number } | null | undefined;
+  // Solo las coordenadas CRUDAS del último evento — `getBoundingClientRect()`
+  // (fuerza layout) y toda la aritmética de conversión se posponen a
+  // `flush()`, que corre como mucho una vez por frame (Fase 7.3.5 — Beta
+  // Stabilization: antes se recalculaban en CADA `pointermove`, sin
+  // esperar al siguiente frame, el cálculo repetido que el enunciado de
+  // Fase 7.3 pedía evitar).
+  let pending: { clientX: number; clientY: number } | null | undefined;
 
   function flush(): void {
     rafHandle = undefined;
@@ -286,32 +310,31 @@ export function mountPointerIndicator(
     }
     const page = activePage(engine);
     if (!page) return;
-    const x = round2(fromPixels(pending.x, page.unit));
-    const y = round2(fromPixels(pending.y, page.unit));
+    const zoom = getZoom();
+    const rect = canvasContainer.getBoundingClientRect();
+    const localX = (pending.clientX - rect.left) / zoom;
+    const localY = (pending.clientY - rect.top) / zoom;
+    const widthPx = toPixels(page.size.width, page.unit);
+    const heightPx = toPixels(page.size.height, page.unit);
+    if (localX < 0 || localY < 0 || localX > widthPx || localY > heightPx) {
+      indicator.textContent = "";
+      indicator.style.display = "none";
+      return;
+    }
+    const x = round2(fromPixels(localX, page.unit));
+    const y = round2(fromPixels(localY, page.unit));
     indicator.style.display = "";
     indicator.textContent = `X: ${x}${page.unit}  Y: ${y}${page.unit}`;
   }
 
-  function schedule(next: { x: number; y: number } | null): void {
+  function schedule(next: { clientX: number; clientY: number } | null): void {
     pending = next;
     if (rafHandle !== undefined) return;
     rafHandle = requestAnimationFrame(flush);
   }
 
   function onPointerMove(evt: PointerEvent): void {
-    const zoom = getZoom();
-    const rect = canvasContainer.getBoundingClientRect();
-    const localX = (evt.clientX - rect.left) / zoom;
-    const localY = (evt.clientY - rect.top) / zoom;
-    const page = activePage(engine);
-    if (!page) return;
-    const widthPx = toPixels(page.size.width, page.unit);
-    const heightPx = toPixels(page.size.height, page.unit);
-    if (localX < 0 || localY < 0 || localX > widthPx || localY > heightPx) {
-      schedule(null);
-      return;
-    }
-    schedule({ x: localX, y: localY });
+    schedule({ clientX: evt.clientX, clientY: evt.clientY });
   }
 
   function onPointerLeave(): void {
@@ -365,6 +388,7 @@ export function mountGridSnapControls(container: HTMLElement, engine: Engine): G
   sizeInput.min = "1";
   sizeInput.step = "1";
   sizeInput.className = "grid-snap-size";
+  sizeInput.title = "Tamaño de Grid";
   sizeInput.setAttribute("aria-label", "Tamaño de Grid");
 
   wrapper.appendChild(gridButton);
@@ -375,16 +399,23 @@ export function mountGridSnapControls(container: HTMLElement, engine: Engine): G
   function render(): void {
     const grid = activePage(engine)?.grid;
     if (!grid) return;
+    // `aria-pressed` (patrón ARIA de "toggle button") comunica el estado a
+    // tecnologías de asistencia; `aria-label` da un nombre ESTABLE (no
+    // sobrescribe el estado, que ya no depende de él) — antes, el
+    // aria-label pisaba el texto visible ("Grid: on"/"off") como nombre
+    // accesible, perdiendo el estado para lectores de pantalla (Fase 7.3.5
+    // — Beta Stabilization, Accessibility Review).
     gridButton.textContent = grid.visible ? "Grid: on" : "Grid: off";
     gridButton.classList.toggle("active", grid.visible);
-    gridButton.title = `Mostrar/ocultar Grid (G) — actualmente ${grid.visible ? "visible" : "oculto"}`;
+    gridButton.setAttribute("aria-pressed", String(grid.visible));
+    gridButton.title = grid.visible ? "Ocultar Grid (G)" : "Mostrar Grid (G)";
 
     snapButton.textContent = grid.snapEnabled ? "Snap: on" : "Snap: off";
     snapButton.classList.toggle("active", grid.snapEnabled);
-    snapButton.title = `Snap to Grid — actualmente ${grid.snapEnabled ? "activado" : "desactivado"}. Mantén Ctrl/Cmd durante un arrastre para desactivar todo snapping temporalmente.`;
+    snapButton.setAttribute("aria-pressed", String(grid.snapEnabled));
+    snapButton.title = `${grid.snapEnabled ? "Desactivar" : "Activar"} Snap to Grid. Mantén Ctrl/Cmd durante un arrastre para desactivar todo snapping temporalmente.`;
 
     if (document.activeElement !== sizeInput) sizeInput.value = String(grid.size);
-    sizeInput.title = "Tamaño de Grid";
   }
 
   gridButton.addEventListener("click", () => toggleGridVisible(engine));

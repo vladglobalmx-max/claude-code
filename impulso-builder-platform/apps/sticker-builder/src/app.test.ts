@@ -610,6 +610,19 @@ describe("mountApp", () => {
     expect(elements.layersContainer.querySelectorAll(".layer-row")).toHaveLength(1); // sin cambios: los atajos ya no escuchan
   });
 
+  it("destroy() remueve los listeners de scroll/resize de Rulers (Fase 7.3.5 — antes quedaban huérfanos en window)", () => {
+    const removeWindowSpy = vi.spyOn(window, "removeEventListener");
+    const removeViewportSpy = vi.spyOn(elements.canvasViewport, "removeEventListener");
+    const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+
+    app.destroy();
+
+    expect(removeWindowSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(removeViewportSpy).toHaveBeenCalledWith("scroll", expect.any(Function));
+    removeWindowSpy.mockRestore();
+    removeViewportSpy.mockRestore();
+  });
+
   it("sin now/generateId inyectados, usa los valores por defecto reales", () => {
     const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([]) });
 

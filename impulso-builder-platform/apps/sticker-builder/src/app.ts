@@ -463,9 +463,14 @@ export function mountApp(deps: AppDependencies): App {
 
   // Rulers reflejan el scroll nativo del viewport (no hay panning propio,
   // ver ADR-0010) y el tamaño real del viewport (resize de ventana) — ver
-  // Fase 7.3, sección 8.
-  elements.canvasViewport.addEventListener("scroll", () => rulers.refresh());
-  window.addEventListener("resize", () => rulers.refresh());
+  // Fase 7.3, sección 8. Ambos listeners se remueven en `destroy()` (Fase
+  // 7.3.5 — Beta Stabilization: sin esto, cada instancia de `App` dejaba un
+  // listener de `window` huérfano, imposible de liberar por GC mientras
+  // `window` siga vivo).
+  const onViewportScroll = () => rulers.refresh();
+  const onWindowResize = () => rulers.refresh();
+  elements.canvasViewport.addEventListener("scroll", onViewportScroll);
+  window.addEventListener("resize", onWindowResize);
 
   const newProjectDialog: NewProjectDialog = mountNewProjectDialog(elements.newProjectDialogContainer, {
     templateStore,
@@ -563,6 +568,8 @@ export function mountApp(deps: AppDependencies): App {
       rulers.destroy();
       pointerIndicator.destroy();
       gridSnapControls.destroy();
+      elements.canvasViewport.removeEventListener("scroll", onViewportScroll);
+      window.removeEventListener("resize", onWindowResize);
       runtime.renderer.destroy();
     },
   };

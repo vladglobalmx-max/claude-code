@@ -210,6 +210,14 @@
         background: #ffffff;
         border-radius: 4px;
       }
+      /* Fase 7.3.5 — Beta Stabilization (UX Polish): toda la barra de
+         herramientas (Texto/Imagen, zoom, Grid/Snap) carecía de feedback
+         `:hover` — `:not(.active)` evita que el gris de hover tape el
+         fondo oscuro de un toggle ya activo (Grid/Snap encendidos). */
+      #tools-bar button:hover:not(.active) {
+        background: #f5f5f4;
+        border-color: #a8a29e;
+      }
       .zoom-percentage {
         min-width: 3.5em;
         text-align: right;
@@ -893,9 +901,9 @@
             <div id="assets-panel"></div>
           </div>
           <div id="canvas-area">
-            <div id="ruler-corner"></div>
-            <canvas id="ruler-horizontal"></canvas>
-            <canvas id="ruler-vertical"></canvas>
+            <div id="ruler-corner" aria-hidden="true"></div>
+            <canvas id="ruler-horizontal" aria-hidden="true"></canvas>
+            <canvas id="ruler-vertical" aria-hidden="true"></canvas>
             <div id="canvas-viewport">
               <div id="canvas-runtime"></div>
               <div id="pointer-indicator" aria-hidden="true"></div>

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createEngine } from "@impulso/engine";
 import {
   PageIdSchema,
@@ -183,6 +183,18 @@ describe("mountRulers", () => {
 
     expect(() => rulers.destroy()).not.toThrow();
   });
+
+  it("NO redibuja en un projectChanged que no toca page.size/unit (Fase 7.3.5 — evita cálculo repetido)", () => {
+    const { viewport, canvasContainer, horizontal, vertical } = setupViewport();
+    const engine = createEngine(buildProject());
+    mountRulers(horizontal, vertical, viewport, canvasContainer, engine, () => 1);
+    const getContextSpy = vi.spyOn(horizontal, "getContext");
+
+    // `updatePageGrid` no toca page.size ni page.unit — no debería disparar un redibujo.
+    engine.dispatch({ type: "updatePageGrid", pageId: PageIdSchema.parse("page_1"), grid: { visible: true } });
+
+    expect(getContextSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe("mountPointerIndicator", () => {
@@ -282,6 +294,23 @@ describe("mountGridSnapControls", () => {
     expect(gridButton!.classList.contains("active")).toBe(true);
     expect(snapButton!.classList.contains("active")).toBe(false);
     expect(sizeInput.value).toBe("15");
+  });
+
+  it("expone el estado vía aria-pressed, no solo vía el aria-label (Fase 7.3.5 — Accessibility Review)", () => {
+    const container = div();
+    const engine = createEngine(buildProject({ grid: { visible: true, snapEnabled: false } }));
+
+    mountGridSnapControls(container, engine);
+
+    const [gridButton, snapButton] = Array.from(container.querySelectorAll("button"));
+    // El aria-label es un NOMBRE estable (no cambia con el estado) — el
+    // estado en sí se comunica vía aria-pressed, el patrón ARIA correcto
+    // para un botón de alternar (antes, el aria-label pisaba el texto
+    // visible "Grid: on/off" como nombre accesible, perdiendo el estado
+    // para lectores de pantalla).
+    expect(gridButton!.getAttribute("aria-pressed")).toBe("true");
+    expect(snapButton!.getAttribute("aria-pressed")).toBe("false");
+    expect(gridButton!.getAttribute("aria-label")).toBeTruthy();
   });
 
   it("clic en el botón de Grid despacha updatePageGrid({visible: !actual})", () => {

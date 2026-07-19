@@ -28,3 +28,17 @@ Toda API pública (lo exportado desde el `src/index.ts` de cada paquete) se mant
 ## UX First (desde Editor 2)
 
 En cada micro-sprint de la etapa Editor se documenta, junto con la implementación técnica, la experiencia de uso: **Flujo del usuario** (los pasos concretos que sigue), **Consistencia de interacción** (por qué el comportamiento elegido no sorprende a quien ya usa herramientas similares), **Accesibilidad** (qué funciona y qué NO funciona todavía para teclado/lectores de pantalla — con honestidad, no optimismo), y **Mejoras futuras** (qué queda pendiente y por qué no se resolvió ahora). Vive en el README del paquete/app correspondiente, junto a la explicación técnica — no en un documento aparte.
+
+## Evaluación dual: Arquitectura + UX (desde Epic 5)
+
+Toda capacidad nueva se evalúa desde **dos perspectivas**, ninguna suficiente por sí sola: que sea técnicamente correcta NO es "terminado" si la experiencia no está a la altura. Antes de implementar una interacción nueva, se analiza explícitamente:
+
+- **Número de clics** — el camino más corto razonable, no el que resultó más simple de programar.
+- **Descubribilidad** — ¿un usuario nuevo encuentra esto sin documentación externa?
+- **Consistencia** — ¿coincide con el mismo patrón ya usado en otra parte de Impulso, y con la convención de herramientas de referencia (Figma, Illustrator, Canva, Kittl)?
+- **Accesibilidad** — igual que el punto de "UX First" arriba: honestidad sobre qué funciona y qué no.
+- **Atajos de teclado** — ¿un usuario experto puede evitar el mouse para la acción frecuente?
+- **Comportamiento esperado por un usuario experto** — el que ya conoce herramientas de diseño profesionales.
+- **Comportamiento esperado por un usuario nuevo** — el que nunca usó ninguna.
+
+La vara es explícita: Impulso debe sentirse como un producto profesional (comparable a Figma/Illustrator/Canva/Kittl cuando aplique) desde su primera versión, no solo estar bien construido por dentro. Si este análisis revela una mejora de UX clara que no rompe la arquitectura ni amplía significativamente el alcance de la épica en curso, se incorpora y se documenta al cierre — no se difiere solo porque no fue pedida explícitamente.

@@ -41,7 +41,9 @@
 
 ## UX First
 
-**Qué significa:** toda funcionalidad de edición se documenta junto con su experiencia de uso — flujo del usuario, consistencia con herramientas de referencia, accesibilidad honesta (qué funciona y qué NO todavía), y mejoras futuras reconocidas explícitamente. La UX no es una capa que se agrega al final; es parte de la definición de "terminado".
+**Qué significa:** toda funcionalidad de edición se documenta junto con su experiencia de uso — flujo del usuario, consistencia con herramientas de referencia, accesibilidad honesta (qué funciona y qué NO todavía), y mejoras futuras reconocidas explícitamente. La UX no es una capa que se agrega al final; es parte de la definición de "terminado". Una implementación técnicamente correcta que no se siente profesional no está terminada.
+
+**La vara, explícita desde Epic 5:** Impulso debe sentirse comparable a herramientas profesionales (Figma, Illustrator, Canva, Kittl, cuando aplique) desde su primera versión — no solo estar bien construido por dentro. Toda interacción nueva se evalúa desde arquitectura Y UX antes de implementarse: número de clics, descubribilidad, consistencia, accesibilidad, atajos de teclado, comportamiento esperado por un usuario experto y por uno nuevo (ver `docs/ENGINEERING_STANDARDS.md`, "Evaluación dual: Arquitectura + UX"). Una mejora de UX clara que surge de este análisis se incorpora aunque no haya sido pedida explícitamente, siempre que no rompa la arquitectura ni amplíe significativamente el alcance de la épica en curso.
 
 **Ejemplos ya aplicados:**
 - Estándar permanente desde Editor 2 (`docs/ENGINEERING_STANDARDS.md`, "UX First") — cada README de módulo/app incluye estas cuatro secciones desde entonces.

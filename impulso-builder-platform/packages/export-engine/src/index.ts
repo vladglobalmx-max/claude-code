@@ -1,5 +1,6 @@
 // API pública
 export { exportProject } from "./exportProject.js";
+export type { ExportProjectDependencies } from "./exportProject.js";
 export type {
   ExportAssetResolver,
   ExportBackground,
@@ -19,7 +20,12 @@ export type { ExportErrorCode } from "./errors.js";
 export { buildSvgDocument } from "./svg/buildSvgDocument.js";
 export type { BuildSvgDocumentOptions, BuildSvgDocumentResult } from "./svg/buildSvgDocument.js";
 
-// Adaptador PNG (headless, vía @impulso/renderer-konva) — ver ADR-0012.
+// Puerto de rasterización PNG + implementación por defecto (headless, vía
+// @impulso/renderer-konva) — ver ADR-0012. Un rasterizador alternativo
+// futuro implementa `PngRasterizer` y se inyecta vía
+// `exportProject(project, resolver, options, { pngRasterizer })`.
+export type { PngRasterizer } from "./png/pngRasterizer.js";
+export { konvaPngRasterizer } from "./png/konvaPngRasterizer.js";
 export { rasterizeProjectToPng } from "./png/rasterizeProjectToPng.js";
 export type { RasterizePngResult } from "./png/rasterizeProjectToPng.js";
 

@@ -4,3 +4,7 @@ coverage/
 .turbo/
 *.tsbuildinfo
 .DS_Store
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

@@ -21,6 +21,31 @@ Esta fue la única decisión que se planteó explícitamente al usuario antes de
 
 **Decisión confirmada con el usuario:** opción A. El límite documentado (ver más abajo, "El límite Renderer / Export Engine") es que Konva se usa SOLO para esta rasterización headless — nunca para SVG, nunca leyendo el Stage interactivo del editor, nunca como fuente de verdad (que sigue siendo `Document`).
 
+### Aprobación formal y condiciones
+El usuario aprobó explícitamente la opción A ("priorizar fidelidad visual, consistencia con el editor y reutilización de código probado sobre independencia teórica en esta etapa") sujeta a 8 condiciones. Cada una quedó satisfecha así:
+
+1. **"El Stage de exportación debe estar completamente desacoplado del Stage visible del editor."** `renderPageToStage` construye su propio `Konva.Stage` sobre un `<div>` creado en memoria, nunca agregado a `document.body` — ninguna instancia ni referencia se comparte con el Stage que `createKonvaRenderer` monta en el editor.
+2. **"No debe incluir selección, handles, overlays, guías ni interactividad."** Sin `selectionLayer`; `interactive: false` en el `NodeContext` de cada node (nunca se adjuntan `attachSelectionInteractions`/`attachTransformInteractions`/`attachTextEditingInteraction`, ver `baseAttrs.ts`).
+3. **"La dependencia de Konva debe quedar acotada y documentada exclusivamente en el adaptador PNG."** Formalizada como un puerto: `png/pngRasterizer.ts` declara la interfaz `PngRasterizer` (sin Konva); `png/konvaPngRasterizer.ts` + `png/rasterizeProjectToPng.ts` son los ÚNICOS dos archivos de todo `@impulso/export-engine` que importan (transitivamente) `@impulso/renderer-konva`/`konva` — verificado con `madge --circular` (cero dependencias circulares) y por inspección: ningún archivo de `svg/`, `browser/`, `types.ts`, `errors.ts` ni `exportProject.ts` los importa.
+4. **"El núcleo del Export Engine debe continuar siendo independiente de Konva."** Sin cambios respecto al diseño original — `svg/` sigue siendo 100% Konva-free.
+5. **"SVG debe seguir generándose mediante un exportador propio basado en Document Schema."** Sin cambios — `buildSvgDocument` sigue siendo el único camino para SVG, nunca pasa por `renderPageToStage`.
+6. **"La interfaz pública debe permitir reemplazar en el futuro el rasterizador PNG sin afectar a los consumidores."** `exportProject(project, resolver, options, { pngRasterizer })` acepta un `PngRasterizer` inyectado (por defecto `konvaPngRasterizer`) — ver "Estrategia de sustitución futura" más abajo.
+7. **"Deben existir pruebas visuales o snapshots que comparen editor y PNG exportado en casos representativos."** `apps/sticker-builder/e2e/export-visual.spec.ts` (Playwright, navegador real — nuevo `@playwright/test` como devDependency del app, separado de los tests unitarios jsdom): compara píxeles del canvas interactivo del editor contra el PNG exportado en 3 casos (relleno de un rectángulo, relleno de una ellipse, fondo vacío) a 1x, repite la comparación a 2x, y verifica alpha=0 con fondo transparente. Corre con `pnpm --filter @impulso/sticker-builder test:e2e`, contra un build de producción real (`vite preview`).
+8. **"Documenta la decisión en un ADR, incluyendo el costo de esta dependencia y la estrategia de sustitución futura."** Este documento — ver las dos secciones siguientes.
+
+### Costo de la dependencia de Konva en el adaptador PNG
+- **Superficie acotada pero real**: `@impulso/export-engine` depende de `@impulso/renderer-konva` (y transitivamente de `konva`) en su `package.json` — cualquier consumidor del Export Engine que solo necesite SVG igual instala esas dependencias (no hay un `package.json` de solo-SVG separado). Se aceptó porque el paquete completo ya es liviano y todo módulo consumidor de Impulso Engine ya depende de `@impulso/renderer-konva` para su propio editor — el costo marginal real es cero para cualquier módulo que ya edite con Impulso.
+- **Portabilidad**: PNG no puede generarse en un entorno sin capacidad de canvas real (Node puro sin el paquete `canvas`, o un Worker sin OffscreenCanvas) — SVG, en cambio, sí es 100% portable (solo depende de `Blob`/`FileReader`). Este costo es inherente a producir PNG en absoluto, no específico de haber elegido Konva — cualquier alternativa (B o C evaluadas arriba) habría tenido la misma restricción.
+- **Acoplamiento a las particularidades de Konva**: paridad de fidelidad (§"Fidelidad" abajo) significa que el Export Engine hereda cualquier comportamiento específico de Konva (ej. cómo trata el pivote de rotación de una Ellipse, cómo Konva.Text hace word-wrap) — un cambio de versión de Konva que altere sutilmente ese comportamiento podría, en teoría, cambiar también el PNG exportado. Mitigado por `export-visual.spec.ts` (condición 7): cualquier divergencia real entre editor y exportación se detecta ahí, no en producción.
+
+### Estrategia de sustitución futura
+El puerto `PngRasterizer` (`rasterize(project, resolver, options): Promise<RasterizePngResult>`) es el único contrato que `exportProject` conoce. Sustituir `konvaPngRasterizer` en el futuro (ej. por un rasterizador basado en `resvg`/WASM, un servicio server-side, o una versión más nueva del propio Konva con otra API) implica:
+1. Escribir una nueva implementación de `PngRasterizer` (mismo archivo o uno nuevo en `png/`).
+2. Inyectarla vía `exportProject(project, resolver, options, { pngRasterizer: nuevoRasterizador })`, o cambiar el default en `exportProject.ts` si reemplaza a Konva por completo.
+3. Correr `export-visual.spec.ts` contra la nueva implementación — si sigue en verde, la fidelidad pixel-a-pixel con el editor está garantizada de la misma forma que hoy.
+
+Ningún cambio en `ExportOptions`, `ExportResult`, `ExportAssetResolver`, el núcleo SVG, ni ningún caller existente (`apps/sticker-builder/src/exportDialog.ts` u otro módulo futuro) sería necesario.
+
 ### Núcleo SVG: ¿generar el `d` de un Path a mano, o reutilizar `segmentsToSvgPathData`?
 `@impulso/renderer-konva` ya tenía esta función (Konva.Path también consume sintaxis `d` de SVG como su prop `data` — la traducción es literalmente la misma). Reutilizarla importando `@impulso/renderer-konva` habría acoplado el núcleo SVG (que debe ser 100% independiente de Konva) a ese paquete. Se movió `segmentsToSvgPathData` (y `toPixels`, mismo razonamiento: ambos paquetes necesitan la misma conversión física→píxeles) a `@impulso/document-schema` — el hogar natural, ya que ambas son funciones puras sobre tipos del propio Document Schema, sin ninguna dependencia de una librería de render. `renderer-konva` las re-exporta para no romper a quien ya las importaba de ahí.
 
@@ -42,6 +67,8 @@ src/
 │   ├── transformToSvgAttr.ts / styleToSvgAttrs.ts / shapeMarkup.ts / textMarkup.ts
 │   └── blobToDataUrl.ts        # embebe el binario de una Image como data URI
 ├── png/
+│   ├── pngRasterizer.ts        # interfaz PngRasterizer — el puerto, sin Konva
+│   ├── konvaPngRasterizer.ts   # implementación por defecto del puerto
 │   └── rasterizeProjectToPng.ts # ÚNICO módulo que importa Konva (vía @impulso/renderer-konva)
 └── browser/
     ├── download.ts             # triggerBrowserDownload — DOM-only, reutilizable por cualquier módulo futuro
@@ -73,6 +100,8 @@ Botón "Exportar" en la barra superior + modal nuevo (`exportDialog.ts`, mismo p
 - `@impulso/export-engine` nace en 0.1.0. `@impulso/document-schema` gana `segmentsToSvgPathData`/`toPixels` (adición pura). `@impulso/renderer-konva` gana `renderPageToStage`/`resolveActivePage` públicos (adición pura). `@impulso/sticker-builder` 0.4.0 → 0.5.0.
 - El flujo completo crear → diseñar → guardar → abrir → **exportar** queda cerrado por primera vez.
 - Un futuro módulo (Planner Builder...) reutiliza `@impulso/export-engine` sin ningún cambio — la única pieza module-specific es la UI del diálogo, que cada módulo construye a su gusto sobre la misma API.
+- `exportProject` gana una firma más (`dependencies: { pngRasterizer? }`), aditiva — ningún caller existente necesita cambiar.
+- `apps/sticker-builder` gana `@playwright/test` como devDependency real y un script `test:e2e` — primera vez que Playwright se instala como parte del proyecto (antes, la verificación en navegador real de cada épica era manual/ad-hoc, no código committeado).
 
 ## Riesgos
 - **Sin deduplicación/compresión** heredada de Asset Library — cada imagen exportada se embebe tal cual está guardada.

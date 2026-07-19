@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.1.1] — Aprobación formal del rasterizador PNG (condiciones del usuario)
+
+### Agregado
+- `PngRasterizer` (`png/pngRasterizer.ts`): interfaz/puerto de rasterización PNG, sin ninguna dependencia de Konva. `konvaPngRasterizer` (`png/konvaPngRasterizer.ts`) es la implementación por defecto, inyectada automáticamente.
+- `exportProject` acepta un cuarto parámetro opcional `dependencies: { pngRasterizer? }` — permite sustituir el rasterizador PNG en el futuro sin cambiar `ExportOptions`/`ExportResult` ni ningún caller existente.
+- 2 tests nuevos verificando la inyección (61 en total), cobertura mantenida ~99.6%.
+- Ver ADR-0012, "Aprobación formal y condiciones" — documenta las 8 condiciones bajo las que el usuario aprobó reutilizar Konva vía Stage headless para PNG, el costo aceptado de esa dependencia, y la estrategia de sustitución futura.
+
 ## [0.1.0] — Epic 3: Export Engine Foundation
 
 ### Agregado

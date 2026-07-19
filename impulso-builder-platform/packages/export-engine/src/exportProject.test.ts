@@ -41,4 +41,28 @@ describe("exportProject", () => {
     expect(result.blob.type).toBe("image/png");
     expect(result.svgString).toBeUndefined();
   });
+
+  it("format: png usa konvaPngRasterizer por defecto si no se inyecta ninguno", async () => {
+    const project = buildProject({ document: buildDocument([buildPage("page_1", [])]) });
+    const result = await exportProject(project, noopResolver, { format: "png", scale: 2, background: { type: "transparent" } });
+    expect(result.blob.type).toBe("image/png");
+  });
+
+  it("format: png acepta un pngRasterizer inyectado, sin invocar el de Konva", async () => {
+    const project = buildProject({ document: buildDocument([buildPage("page_1", [])]) });
+    const customBlob = new Blob(["custom-png-bytes"], { type: "image/png" });
+    const rasterize = vi.fn().mockResolvedValue({ blob: customBlob, width: 42, height: 24, warnings: [] });
+
+    const result = await exportProject(
+      project,
+      noopResolver,
+      { format: "png", scale: 1, background: { type: "transparent" } },
+      { pngRasterizer: { rasterize } },
+    );
+
+    expect(rasterize).toHaveBeenCalledWith(project, noopResolver, { format: "png", scale: 1, background: { type: "transparent" } });
+    expect(result.blob).toBe(customBlob);
+    expect(result.width).toBe(42);
+    expect(result.height).toBe(24);
+  });
 });

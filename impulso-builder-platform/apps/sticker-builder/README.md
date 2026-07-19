@@ -93,7 +93,10 @@ pnpm --filter @impulso/sticker-builder build      # build de producción
 pnpm --filter @impulso/sticker-builder preview    # sirve el build de producción
 pnpm --filter @impulso/sticker-builder test        # tests
 pnpm --filter @impulso/sticker-builder typecheck   # tsc --noEmit
+pnpm --filter @impulso/sticker-builder test:e2e     # Playwright, navegador real (ver e2e/, ADR-0012)
 ```
+
+`e2e/export-visual.spec.ts` compara píxeles reales entre el canvas interactivo del editor y el PNG exportado (relleno de formas, fondo, escala 2x, transparencia) — la verificación repetible de la condición de fidelidad bajo la que se aprobó reutilizar Konva para PNG (ver ADR-0012). Corre contra `vite preview`, separado de los tests unitarios (jsdom) de arriba.
 
 ## 6. UX (regla permanente "UX First")
 

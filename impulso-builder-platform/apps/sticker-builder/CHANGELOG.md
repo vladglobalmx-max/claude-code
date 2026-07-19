@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.5.1] — Pruebas visuales del rasterizador PNG (condiciones de aprobación)
+
+### Agregado
+- `@playwright/test` como devDependency real (primera vez que Playwright se instala como parte del proyecto, en vez de verificarse ad-hoc). `pnpm test:e2e` corre `e2e/export-visual.spec.ts` contra `vite preview`, en un Chromium real.
+- `e2e/export-visual.spec.ts`: compara píxeles del canvas interactivo del editor contra el PNG exportado (relleno de un rectángulo, relleno de una ellipse, fondo vacío) a 1x y 2x, y verifica alpha=0 con fondo transparente — la verificación repetible de la condición de fidelidad bajo la que se aprobó reutilizar Konva para PNG (ver ADR-0012).
+
 ## [0.5.0] — Epic 3: Export Engine Foundation
 
 ### Agregado

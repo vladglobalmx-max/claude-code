@@ -8,7 +8,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/index.ts", "src/types.ts"],
+      exclude: ["src/**/*.test.ts", "src/index.ts", "src/types.ts", "src/png/pngRasterizer.ts"],
       thresholds: {
         lines: 90,
         statements: 90,

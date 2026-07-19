@@ -32,7 +32,9 @@ packages/export-engine/
     │   ├── blobToDataUrl.ts         # Blob -> data URL (embeber una imagen)
     │   └── escapeXml.ts
     ├── png/
-    │   └── rasterizeProjectToPng.ts # ÚNICO módulo del paquete que importa Konva
+    │   ├── pngRasterizer.ts          # interfaz PngRasterizer — el puerto, sin Konva
+    │   ├── konvaPngRasterizer.ts      # implementación por defecto del puerto
+    │   └── rasterizeProjectToPng.ts   # ÚNICO módulo del paquete que importa Konva
     └── browser/
         ├── download.ts              # triggerBrowserDownload
         └── filename.ts               # sanitizeFilename
@@ -46,7 +48,10 @@ packages/export-engine/
 SVG nunca toca Konva — es un recorrido puro de `project.document` a texto. PNG SÍ reutiliza Konva, pero solo a través de `renderPageToStage` (`@impulso/renderer-konva`, función nueva de esta épica): un `Konva.Stage` desacoplado, nunca el Stage interactivo montado en el editor, sin `selectionLayer`, sin ninguna interactividad. Ambos formatos parten siempre de `Document` como única fuente de verdad — Konva se invoca de forma stateless (construir → rasterizar → destruir) en cada exportación.
 
 ### 3.2 ¿Por qué PNG reutiliza Konva en vez de un rasterizador propio?
-Reimplementar a mano el layout de texto (wrap, alineación, altura de línea) y las sombras habría duplicado lógica ya correcta y probada en el Renderer, con riesgo real de que el PNG exportado no coincidiera pixel a pixel con lo que el usuario ve en el editor. `renderPageToStage` reutiliza `createSceneNode` 1:1 — el mismo código que ya dibuja el canvas — y `stage.toCanvas({ pixelRatio })` rasteriza cada primitiva directamente a la resolución pedida (1x-4x nítido, sin ampliar un raster ya generado).
+Reimplementar a mano el layout de texto (wrap, alineación, altura de línea) y las sombras habría duplicado lógica ya correcta y probada en el Renderer, con riesgo real de que el PNG exportado no coincidiera pixel a pixel con lo que el usuario ve en el editor. `renderPageToStage` reutiliza `createSceneNode` 1:1 — el mismo código que ya dibuja el canvas — y `stage.toCanvas({ pixelRatio })` rasteriza cada primitiva directamente a la resolución pedida (1x-4x nítido, sin ampliar un raster ya generado). Esta decisión fue aprobada explícitamente por el usuario, con condiciones — ver ADR-0012.
+
+### 3.2b El puerto `PngRasterizer`: reemplazable sin afectar consumidores
+`exportProject` nunca importa Konva directamente — depende de la interfaz `PngRasterizer` (`png/pngRasterizer.ts`), con `konvaPngRasterizer` (`png/konvaPngRasterizer.ts`) como única implementación e inyectada por defecto. Un futuro rasterizador alternativo (otro motor de canvas, WASM, rendering server-side) implementa esa misma interfaz y se inyecta vía `exportProject(project, resolver, options, { pngRasterizer })` — sin cambiar `ExportOptions`, `ExportResult`, ni ningún caller existente.
 
 ### 3.3 `segmentsToSvgPathData`/`toPixels` viven en `@impulso/document-schema`, no aquí ni en `renderer-konva`
 Ambas funciones son puras sobre tipos del propio Document Schema y las necesitan tanto el Renderer (Konva.Path también consume sintaxis `d` de SVG) como este paquete — vivir en el schema evita que cualquiera de los dos dependa del otro solo para obtenerlas.

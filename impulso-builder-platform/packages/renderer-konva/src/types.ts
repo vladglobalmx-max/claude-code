@@ -1,6 +1,7 @@
 import type Konva from "konva";
 import type { AssetId, ObjectId, PageId } from "@impulso/document-schema";
 import type { Engine } from "@impulso/engine";
+import type { SnapEnvironment } from "./manipulation/smartGuides.js";
 
 /** Lo que cada nodo Konva necesita del mundo exterior: cómo avisarle al Engine de un cambio. */
 export interface NodeContext {
@@ -10,6 +11,12 @@ export interface NodeContext {
    * drag) fue rechazado por el Engine — para que quien orquesta el render
    * pueda revertir la vista al estado canónico. */
   onRejectedTransform?: () => void;
+  /** Acceso al Engine + capas Konva necesarias para Smart Guides/Snapping
+   * durante un arrastre (Epic 7 / Fase 7.3 — Assisted Placement). Ausente
+   * en llamadas que no necesitan snapping (ej. un consumidor externo que
+   * construye su propio `NodeContext` a mano) — `transformInteractions`
+   * simplemente no ofrece snapping en ese caso. */
+  snapping?: { engine: Engine; env: SnapEnvironment };
   /** Lectura de la selección actual — usada por `transformInteractions` para
    * decidir si arrastrar un object debe además seleccionarlo (ver
    * ADR-0007). Opcional y aditivo: `createSceneNode` es parte de la API
@@ -40,6 +47,14 @@ export interface KonvaRendererOptions {
    * no incluye gestión de Assets; este es el punto de extensión para cuando
    * exista. */
   resolveAssetSource?: (assetId: AssetId) => CanvasImageSource | undefined;
+  /**
+   * Zoom actual (1 = 100%), leído en cada frame de drag/resize para
+   * normalizar la tolerancia de snapping (Epic 7 / Fase 7.3 — ver
+   * `manipulation/smartGuides.ts`). El zoom es puramente CSS y vive fuera
+   * de este paquete (ver `apps/sticker-builder/zoom.ts`); por defecto
+   * `() => 1` (sin zoom) para quien no lo provea (ej. tests, Export Engine).
+   */
+  getZoom?: () => number;
 }
 
 /** El contrato que cualquier adaptador de render debe cumplir (ver ADR-0001). */

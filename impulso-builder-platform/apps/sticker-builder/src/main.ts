@@ -17,6 +17,9 @@ function isButton(el: Element): el is HTMLButtonElement {
 function isHTMLElement(el: Element): el is HTMLElement {
   return el instanceof HTMLElement;
 }
+function isCanvas(el: Element): el is HTMLCanvasElement {
+  return el instanceof HTMLCanvasElement;
+}
 
 mountShell({
   elements: {
@@ -33,7 +36,12 @@ mountShell({
       inspectorContainer: requireElement("inspector-content", isHTMLElement),
       alignmentContainer: requireElement("alignment-panel", isHTMLElement),
       toolsContainer: requireElement("tools-container", isHTMLElement),
+      gridSnapContainer: requireElement("grid-snap-container", isHTMLElement),
       zoomContainer: requireElement("zoom-container", isHTMLElement),
+      rulerHorizontal: requireElement("ruler-horizontal", isCanvas),
+      rulerVertical: requireElement("ruler-vertical", isCanvas),
+      pointerIndicator: requireElement("pointer-indicator", isHTMLElement),
+      canvasArea: requireElement("canvas-area", isHTMLElement),
       newProjectDialogContainer: requireElement("new-project-dialog-root", isHTMLElement),
       exportDialogContainer: requireElement("export-dialog-root", isHTMLElement),
       saveAsTemplateDialogContainer: requireElement("save-as-template-dialog-root", isHTMLElement),

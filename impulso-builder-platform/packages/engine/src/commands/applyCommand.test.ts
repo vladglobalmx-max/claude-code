@@ -157,6 +157,26 @@ describe("applyContentCommand — cada tipo de ContentCommand a través del pipe
     }
   });
 
+  it("updatePageGrid", () => {
+    const result = applyContentCommand(
+      richProject(),
+      { type: "updatePageGrid", pageId: PageIdSchema.parse("page_1"), grid: { visible: true, size: 20 } },
+      options(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.grid).toEqual({
+        visible: true,
+        snapEnabled: false,
+        size: 20,
+        type: "lines",
+      });
+      expect(result.value.document.history.entries[0]?.description).toBe(
+        'Cambiar configuración de grid de página "page_1"',
+      );
+    }
+  });
+
   it("removeLayer", () => {
     const result = applyContentCommand(
       richProject(),

@@ -14,6 +14,12 @@ export interface MountCanvasRuntimeOptions {
    * `imageAssets.ts`, Sticker Creation Experience), sin que el Renderer ni
    * el Engine necesiten saber que existe. */
   resolveAssetSource?: (assetId: AssetId) => CanvasImageSource | undefined;
+  /** Ver `@impulso/renderer-konva` `KonvaRendererOptions.getZoom` (Epic 7 /
+   * Fase 7.3 — Assisted Placement): normaliza la tolerancia de snapping por
+   * zoom. El zoom en sí vive en `zoom.ts`, montado DESPUÉS del runtime — se
+   * pasa como un getter (no un valor) precisamente para no depender de ese
+   * orden de montaje. */
+  getZoom?: () => number;
 }
 
 /**
@@ -31,7 +37,10 @@ export function mountCanvasRuntime(
   options: MountCanvasRuntimeOptions = {},
 ): CanvasRuntime {
   const engine = createEngine(project);
-  const renderer = createKonvaRenderer(engine, { resolveAssetSource: options.resolveAssetSource });
+  const renderer = createKonvaRenderer(engine, {
+    resolveAssetSource: options.resolveAssetSource,
+    getZoom: options.getZoom,
+  });
   renderer.mount(container);
   return { engine, renderer };
 }

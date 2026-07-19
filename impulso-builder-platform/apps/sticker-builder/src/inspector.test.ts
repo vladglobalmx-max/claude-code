@@ -76,6 +76,7 @@ function buildProject(objects: SceneObject[], unit: Unit = "px"): Project {
           id: PageIdSchema.parse("page_1"),
           size: { width: 100, height: 100 },
           unit,
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" as const },
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects, metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},

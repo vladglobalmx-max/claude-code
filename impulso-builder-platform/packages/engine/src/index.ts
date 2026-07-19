@@ -65,6 +65,24 @@ export {
   type AlignmentPatch,
 } from "./geometry/alignment.js";
 
+// Snapping (Epic 7 / Fase 7.3 — Assisted Placement) — función pura sin
+// Konva/DOM: prioridad Página > Objects > Grid, desempate determinista y
+// hysteresis vía `previousSnap`. El Renderer arma los candidatos (ver
+// `buildPageSnapCandidates`/`buildObjectSnapCandidates`), normaliza la
+// tolerancia por zoom y aplica el preview — nunca dispatcha por sí solo.
+export {
+  computeSnap,
+  buildPageSnapCandidates,
+  buildObjectSnapCandidates,
+  type SnapAxis,
+  type RefPoint,
+  type SnapCandidate,
+  type SnapGridConfig,
+  type AxisSnap,
+  type SnapResult,
+  type ComputeSnapInput,
+} from "./geometry/snapping.js";
+
 // Errores (Result pattern — ver errors/engineError.ts)
 export { engineError, ok, err, type EngineError, type EngineErrorCode, type EngineResult } from "./errors/engineError.js";
 

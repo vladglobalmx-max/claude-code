@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.4.0] — Epic 7 / Fase 7.3: Assisted Placement
+
+### Agregado
+- `GridConfigSchema` (`page/page.ts`, nuevo): `{ visible, snapEnabled, size, type }` — configuración de Grid persistente por Page. Defaults explícitos (`visible: false`, `snapEnabled: false`, `size: 10`, `type: "lines"`); `size` rechaza cero, negativo, NaN o infinito; `type` reservado para extensibilidad futura con un único valor soportado hoy.
+- `Page.grid` (nuevo campo, `GridConfigSchema.default({})`): un documento/Template anterior a esta fase se normaliza automáticamente al parsear — mismo patrón aditivo ya usado por `unit`/`layers`, sin ninguna migración de `schemaVersion`. Ver ADR-0016.
+- 8 tests nuevos en `page/page.test.ts` (documento sin `grid` recibe defaults; `grid` parcial completa los campos ausentes; `GridConfigSchema` rechaza tamaños inválidos y `type` fuera de rango).
+- Adición pura a la API pública existente — no requiere ADR de cambio de API (regla de Stable Public API).
+
 ## [0.3.0] — Epic 7 / Fase 7.1: Inspector Honesto y Profesional
 
 ### Agregado

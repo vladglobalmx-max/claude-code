@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import Konva from "konva";
 import { createEngine } from "@impulso/engine";
-import { ObjectIdSchema } from "@impulso/document-schema";
+import { ObjectIdSchema, PageIdSchema, LayerIdSchema } from "@impulso/document-schema";
 import { renderManipulationHandles } from "./handles.js";
 import { buildProject, buildDocument, buildPage, buildLayer, buildRectangle } from "../testUtils/fixtures.js";
 
@@ -56,7 +56,11 @@ function setup(
   return { engine, stage, mainLayer, selectionLayer, node, onRejected };
 }
 
-function renderHandles(env: ReturnType<typeof setup>, objectId = "rect_1") {
+function renderHandles(
+  env: ReturnType<typeof setup>,
+  objectId = "rect_1",
+  snapping?: Parameters<typeof renderManipulationHandles>[0]["snapping"],
+) {
   return renderManipulationHandles({
     objectId: ObjectIdSchema.parse(objectId),
     node: env.node,
@@ -64,7 +68,40 @@ function renderHandles(env: ReturnType<typeof setup>, objectId = "rect_1") {
     stage: env.stage,
     engine: env.engine,
     onRejected: env.onRejected,
+    snapping,
   });
+}
+
+/** Variante de `setup()` con un segundo rectangle (candidato de snap) ya
+ * medible en `mainLayer`, y un `SnapEnvironment` real (Epic 7 / Fase 7.3)
+ * listo para pasarle a `renderHandles`. */
+function setupWithSnapping(
+  overrides: Parameters<typeof setup>[0] = {},
+  second: { x: number; y: number; width: number; height: number } = { x: 100, y: 0, width: 10, height: 20 },
+) {
+  const env = setup(overrides);
+  env.engine.dispatch({
+    type: "addObject",
+    pageId: PageIdSchema.parse("page_1"),
+    layerId: LayerIdSchema.parse("layer_1"),
+    object: buildRectangle("rect_2", {
+      size: { width: second.width, height: second.height },
+      transform: { x: second.x, y: second.y, rotation: 0, scaleX: 1, scaleY: 1 },
+    }),
+  });
+  const secondNode = new Konva.Rect({
+    id: "rect_2",
+    width: second.width,
+    height: second.height,
+    x: second.x,
+    y: second.y,
+  });
+  env.mainLayer.add(secondNode);
+
+  const guidesLayer = new Konva.Layer();
+  env.stage.add(guidesLayer);
+  const snapping = { stage: env.stage, mainLayer: env.mainLayer, guidesLayer, getZoom: () => 1 };
+  return { ...env, guidesLayer, snapping };
 }
 
 function resizeHandles(selectionLayer: Konva.Layer): Konva.Rect[] {
@@ -225,6 +262,111 @@ describe("renderManipulationHandles — resize (dragmove/dragend)", () => {
     const constrained = dragBoundFunc.call(right, { x: startPos.x + 999, y: startPos.y + 5 }, {} as never);
     expect(constrained.x).toBeCloseTo(startPos.x, 5);
     expect(constrained.y).toBeCloseTo(startPos.y + 5, 5);
+  });
+});
+
+describe("renderManipulationHandles — snapping durante resize (Epic 7 / Fase 7.3)", () => {
+  it("un handle de borde ('right') snapea al borde izquierdo de otro object dentro de tolerancia", () => {
+    // rect_1: 10x20 en (0,0). rect_2: 10x20 en (205,0) -> su borde
+    // izquierdo (minX=205) no coincide con ningún candidato de página
+    // (0/50/100 para una página de 100x100) — el match solo puede venir del object.
+    const env = setupWithSnapping({}, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    right.x(200); // ancho crudo propuesto: 200 (distancia 5 del candidato en 205)
+    right.fire("dragmove", { evt: {} });
+
+    expect(env.node.scaleX()).toBeCloseTo(20.5, 10); // width 205 / intrinsicSize 10
+  });
+
+  it("el snap dibuja una guía en guidesLayer y la limpia al terminar el gesto (dragend)", () => {
+    const env = setupWithSnapping({}, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    right.x(200);
+    right.fire("dragmove", { evt: {} });
+    expect(env.guidesLayer.getChildren().length).toBeGreaterThan(0);
+
+    right.fire("dragend", { evt: {} });
+    expect(env.guidesLayer.getChildren()).toHaveLength(0);
+  });
+
+  it("el commit final (dragend) reproduce EXACTAMENTE el tamaño snapeado en preview — sin divergencia", () => {
+    const env = setupWithSnapping({}, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    right.x(200);
+    right.fire("dragmove", { evt: {} });
+    const previewScaleX = env.node.scaleX();
+    right.fire("dragend", { evt: {} });
+
+    const object = env.engine.getProject().document.pages[0]?.layers[0]?.objects[0];
+    expect(object?.transform.scaleX).toBeCloseTo(previewScaleX, 10);
+    expect(object?.transform.scaleX).toBeCloseTo(20.5, 10);
+  });
+
+  it("Ctrl/Cmd desactiva el snap temporalmente — el preview usa el tamaño crudo", () => {
+    const env = setupWithSnapping({}, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    right.x(200);
+    right.fire("dragmove", { evt: { ctrlKey: true } });
+
+    expect(env.node.scaleX()).toBeCloseTo(20, 10); // sin snap: 200/10
+    expect(env.guidesLayer.getChildren()).toHaveLength(0);
+  });
+
+  it("Shift (maintainAspectRatio) desactiva el snap para no romper la proporción bloqueada", () => {
+    const env = setupWithSnapping({}, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    right.x(200);
+    right.fire("dragmove", { evt: { shiftKey: true } });
+
+    // Sin snap: width 200/10=20 -> aspectRatio original 10/20=0.5 -> newHeight=20/0.5=400 -> scaleY=20.
+    expect(env.node.scaleX()).toBeCloseTo(20, 10);
+    expect(env.node.scaleY()).toBeCloseTo(20, 10);
+  });
+
+  it("un object rotado no snapea durante resize (fuera de alcance — ver canSnapDuringResize)", () => {
+    const env = setupWithSnapping({ transform: { rotation: 45 } }, { x: 205, y: 0, width: 10, height: 20 });
+    renderHandles(env, "rect_1", env.snapping);
+
+    const right = resizeHandles(env.selectionLayer)[RIGHT]!;
+    right.fire("dragstart");
+    const startPos = { x: right.x(), y: right.y() };
+    // Sin rotación el eje libre sería X puro; con 45° el dragBoundFunc ya
+    // no restringe a X — se fuerza igualmente un delta grande a lo largo
+    // del eje libre real para verificar que el ancho resultante NO se
+    // ajustó a ningún candidato (queda en el valor crudo).
+    const axis = right.dragBoundFunc().call(right, { x: startPos.x + 200, y: startPos.y + 200 }, {} as never);
+    right.x(axis.x);
+    right.y(axis.y);
+    right.fire("dragmove", { evt: {} });
+
+    // No debe haber dibujado ninguna guía (canSnapDuringResize === false).
+    expect(env.guidesLayer.getChildren()).toHaveLength(0);
+  });
+
+  it("sin `snapping` provisto, el resize funciona exactamente igual que antes (sin guías)", () => {
+    const env = setup();
+    renderHandles(env); // sin snapping
+
+    const bottomRight = resizeHandles(env.selectionLayer)[BOTTOM_RIGHT]!;
+    bottomRight.x(15);
+    bottomRight.y(25);
+    expect(() => bottomRight.fire("dragmove", { evt: {} })).not.toThrow();
+    expect(env.node.scaleX()).toBeCloseTo(1.5, 10);
   });
 });
 

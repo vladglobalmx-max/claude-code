@@ -42,6 +42,11 @@ export interface MountZoomOptions {
   target: HTMLElement;
   getContentSize: () => { width: number; height: number };
   initialZoom?: number;
+  /** Se invoca con el zoom final cada vez que cambia (Epic 7 / Fase 7.3 —
+   * Assisted Placement): Rulers y el Grid visual necesitan redibujarse en
+   * cada cambio de zoom, y ninguno de los dos vive dentro de este módulo
+   * (que sigue sin conocer nada de Konva ni del Engine, ver ADR-0010). */
+  onChange?: (zoom: number) => void;
 }
 
 /** Barra de zoom (parte de la Barra superior): presets 25/50/100/200%,
@@ -60,6 +65,7 @@ export function mountZoomControl(container: HTMLElement, options: MountZoomOptio
     target.style.transform = `scale(${zoom})`;
     target.style.transformOrigin = "top left";
     percentageLabel.textContent = `${Math.round(zoom * 100)}%`;
+    options.onChange?.(zoom);
   }
 
   function setZoom(next: number): void {

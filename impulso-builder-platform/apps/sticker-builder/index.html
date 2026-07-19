@@ -6,6 +6,20 @@
     <title>Impulso Sticker Builder</title>
     <link rel="icon" href="data:," />
     <style>
+      /*
+       * Tokens visuales (Epic 7 / Fase 7.3 — Assisted Placement): primer
+       * conjunto de custom properties del proyecto (antes de esta fase no
+       * existía ninguno — colores como el azul de selección seguían
+       * hardcodeados en @impulso/renderer-konva). Se define aquí, no allá,
+       * porque solo la App conoce el fondo real del canvas (blanco) sobre
+       * el que deben leerse; renderer-konva los lee vía
+       * getComputedStyle(...) con un fallback propio si no existieran (ver
+       * `manipulation/smartGuides.ts`).
+       */
+      :root {
+        --impulso-snap-guide-color: #ff2d78;
+        --impulso-grid-line-color: rgba(28, 25, 23, 0.12);
+      }
       html, body {
         margin: 0;
         height: 100%;
@@ -176,10 +190,14 @@
         border-bottom: 1px solid #d6d3d1;
       }
       #tools-container,
+      #grid-snap-container,
       #zoom-container {
         display: flex;
         align-items: center;
         gap: 6px;
+      }
+      #grid-snap-container {
+        margin-left: 12px;
       }
       #zoom-container {
         margin-left: auto;
@@ -323,7 +341,52 @@
         cursor: pointer;
       }
 
+      /* Área de canvas + reglas (Epic 7 / Fase 7.3 — Assisted Placement):
+         grid 2x2 clásico de cualquier editor de diseño — esquina, regla
+         horizontal, regla vertical, y el viewport con scroll real. */
+      #canvas-area {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        grid-template-rows: 20px 1fr;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+      /* Ocultar Rulers (atajo "R", Fase 7.3, sección 11) — colapsa la fila/columna
+         dedicada en vez de solo esconder el contenido, para que el canvas
+         recupere ese espacio. */
+      #canvas-area.rulers-hidden {
+        grid-template-columns: 0 1fr;
+        grid-template-rows: 0 1fr;
+      }
+      #canvas-area.rulers-hidden #ruler-corner,
+      #canvas-area.rulers-hidden #ruler-horizontal,
+      #canvas-area.rulers-hidden #ruler-vertical {
+        display: none;
+      }
+      #ruler-corner {
+        grid-column: 1;
+        grid-row: 1;
+        background: #f5f5f4;
+        border-right: 1px solid #d6d3d1;
+        border-bottom: 1px solid #d6d3d1;
+      }
+      #ruler-horizontal {
+        grid-column: 2;
+        grid-row: 1;
+        display: block;
+        border-bottom: 1px solid #d6d3d1;
+      }
+      #ruler-vertical {
+        grid-column: 1;
+        grid-row: 2;
+        display: block;
+        border-right: 1px solid #d6d3d1;
+      }
       #canvas-viewport {
+        grid-column: 2;
+        grid-row: 2;
+        position: relative;
         overflow: auto;
         background: #d6d3d1;
         display: flex;
@@ -332,9 +395,62 @@
         padding: 32px;
       }
       #canvas-runtime {
+        position: relative;
         display: inline-block;
         background: #ffffff;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      /* Grid visual (Fase 7.3, sección 7): un único patrón CSS repetido —
+         nunca miles de nodos — detrás del canvas Konva (primer hijo de
+         #canvas-runtime) y sin capturar eventos. */
+      .grid-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(to right, var(--impulso-grid-line-color) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--impulso-grid-line-color) 1px, transparent 1px);
+        background-repeat: repeat;
+      }
+      /* Indicador de posición del puntero (Fase 7.3, sección 9). */
+      #pointer-indicator {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        padding: 3px 8px;
+        background: rgba(28, 25, 23, 0.8);
+        color: #ffffff;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        border-radius: 4px;
+        pointer-events: none;
+        z-index: 10;
+      }
+      /* Controles de Grid/Snap (Fase 7.3, sección 10) — junto al zoom. */
+      .grid-snap-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .grid-snap-toggle {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+        border-radius: 4px;
+      }
+      .grid-snap-toggle.active {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
+      .grid-snap-size {
+        font: inherit;
+        width: 3.5em;
+        padding: 4px 6px;
+        border: 1px solid #d6d3d1;
+        border-radius: 4px;
       }
 
       #inspector-panel {
@@ -764,6 +880,7 @@
         </div>
         <div id="tools-bar">
           <div id="tools-container"></div>
+          <div id="grid-snap-container"></div>
           <div id="zoom-container"></div>
         </div>
         <div id="body">
@@ -775,8 +892,14 @@
             <div id="layers-panel"></div>
             <div id="assets-panel"></div>
           </div>
-          <div id="canvas-viewport">
-            <div id="canvas-runtime"></div>
+          <div id="canvas-area">
+            <div id="ruler-corner"></div>
+            <canvas id="ruler-horizontal"></canvas>
+            <canvas id="ruler-vertical"></canvas>
+            <div id="canvas-viewport">
+              <div id="canvas-runtime"></div>
+              <div id="pointer-indicator" aria-hidden="true"></div>
+            </div>
           </div>
           <div id="inspector-panel">
             <div id="alignment-panel"></div>

@@ -164,7 +164,7 @@ describe("createKonvaRenderer — eventos de Konva -> Engine (drag)", () => {
 
     const stage = renderer.getStage()!;
     const mainLayer = stage.getChildren()[0] as Konva.Layer;
-    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    const selectionLayer = stage.getChildren()[2] as Konva.Layer;
     const rectNode = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
 
     expect(engine.getSelection()).toEqual([]);
@@ -244,7 +244,7 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
 
     const stage = renderer.getStage()!;
     const mainLayer = stage.getChildren()[0] as Konva.Layer;
-    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    const selectionLayer = stage.getChildren()[2] as Konva.Layer;
     const rectNode = (mainLayer.getChildren()[0] as Konva.Group).getChildren()[0]!;
 
     expect(selectionLayer.getChildren()).toHaveLength(0);
@@ -271,7 +271,7 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
     stage.fire("click", { target: stage });
 
     expect(engine.getSelection()).toEqual([]);
-    const selectionLayer = stage.getChildren()[1] as Konva.Layer;
+    const selectionLayer = stage.getChildren()[2] as Konva.Layer;
     expect(selectionLayer.getChildren()).toHaveLength(0);
   });
 
@@ -325,7 +325,7 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
     nodeB!.fire("click", { evt: { shiftKey: true }, cancelBubble: false }, true);
     expect(engine.getSelection()).toEqual(["a", "b"]);
 
-    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
     expect(selectionLayer.getChildren()).toHaveLength(2);
   });
 
@@ -340,7 +340,7 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
       engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("no_existe")] }),
     ).not.toThrow();
 
-    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
     expect(selectionLayer.getChildren()).toHaveLength(0);
   });
 
@@ -349,7 +349,7 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
     const renderer = createKonvaRenderer(engine);
     renderer.mount(container());
 
-    const selectionLayer = renderer.getStage()!.getChildren()[1] as Konva.Layer;
+    const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
     expect(selectionLayer.getChildren()).toHaveLength(0);
   });
 });

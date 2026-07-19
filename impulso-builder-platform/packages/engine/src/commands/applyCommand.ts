@@ -1,7 +1,7 @@
 import { ProjectSchema, type Project, type HistoryEntry } from "@impulso/document-schema";
 import { engineError, err, type EngineResult } from "../errors/engineError.js";
 import type { ContentCommand } from "./command.js";
-import { addPage, removePage, reorderPages } from "./pageCommands.js";
+import { addPage, removePage, reorderPages, updatePageGrid } from "./pageCommands.js";
 import { addLayer, removeLayer, reorderLayers } from "./layerCommands.js";
 import {
   addObject,
@@ -26,6 +26,8 @@ function describeCommand(command: ContentCommand): string {
       return `Eliminar página "${command.pageId}"`;
     case "reorderPages":
       return "Reordenar páginas";
+    case "updatePageGrid":
+      return `Cambiar configuración de grid de página "${command.pageId}"`;
     case "addLayer":
       return `Agregar layer "${command.layer.id}"`;
     case "removeLayer":
@@ -73,6 +75,8 @@ function runReducer(project: Project, command: ContentCommand): EngineResult<Pro
       return removePage(project, command);
     case "reorderPages":
       return reorderPages(project, command);
+    case "updatePageGrid":
+      return updatePageGrid(project, command);
     case "addLayer":
       return addLayer(project, command);
     case "removeLayer":

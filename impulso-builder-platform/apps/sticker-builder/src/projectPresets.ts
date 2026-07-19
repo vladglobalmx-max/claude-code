@@ -60,6 +60,7 @@ export function createProjectFromSize(options: CreateProjectFromSizeOptions): Pr
           id: PageIdSchema.parse(`page_${generateId()}`),
           size: { width: widthMm, height: heightMm },
           unit: "mm",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
           layers: [
             {
               id: LayerIdSchema.parse(`layer_${generateId()}`),

@@ -24,6 +24,7 @@ export function buildTemplateProject(overrides: Partial<Project> = {}): Project 
           id: PageIdSchema.parse("page_1"),
           size: { width: 50, height: 50 },
           unit: "mm",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" as const },
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects: [], metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},

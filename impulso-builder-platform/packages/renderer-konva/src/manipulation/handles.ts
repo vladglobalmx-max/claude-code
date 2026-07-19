@@ -1,12 +1,16 @@
 import Konva from "konva";
-import type { ObjectId, SceneObject } from "@impulso/document-schema";
+import type { ObjectId, SceneObject, Transform } from "@impulso/document-schema";
 import type { Engine } from "@impulso/engine";
 import {
   computeResizedTransform,
   computeRotatedTransform,
   findObjectInDocument,
   RESIZE_HANDLES,
+  MIN_RESIZE_SIZE,
   type ResizeHandle,
+  type BoundingBox,
+  type RefPoint,
+  type SnapResult,
 } from "@impulso/engine";
 import {
   computeManipulationBox,
@@ -16,12 +20,102 @@ import {
   type ManipulationBox,
 } from "./boundingBox.js";
 import { cursorForHandle, ROTATE_CURSOR, DEFAULT_CURSOR } from "./cursors.js";
+import {
+  beginSnapGesture,
+  updateSnapGesture,
+  endSnapGesture,
+  type SnapEnvironment,
+  type SnapGesture,
+} from "./smartGuides.js";
 
 const HANDLE_SIZE = 8;
 const HANDLE_FILL = "#ffffff";
 const HANDLE_STROKE = "#3b82f6";
 const ROTATE_HANDLE_OFFSET = 24;
 const DEG2RAD = Math.PI / 180;
+
+/** Modificador temporal Ctrl/Cmd (Fase 7.3, sección 5) — mismo criterio que
+ * `interactions/transformInteractions.ts`. */
+function isSnapDisabledByModifier(evt: Konva.KonvaEventObject<DragEvent | MouseEvent>): boolean {
+  const native = evt.evt as MouseEvent | undefined;
+  return Boolean(native?.ctrlKey || native?.metaKey);
+}
+
+/** Snapping en resize (Fase 7.3, sección 4: "cuando la arquitectura actual
+ * permita integrarlo limpiamente") se restringe deliberadamente a objects
+ * SIN rotación y que NO sean Ellipse: son los únicos casos donde el AABB
+ * de la caja de manipulación coincide 1:1 con `transform.x/y` +
+ * `intrinsicSize * scale` (sin `originOffset` no-trivial ni conversión de
+ * pivote — ver `coordinates.ts`, Ellipse posiciona su node Konva por el
+ * CENTRO). Con rotación, cada handle de borde ya no corresponde a un único
+ * eje AABB (los 4 extremos del AABB rotado se mueven todos a la vez), y
+ * decidir qué "borde" snapear dejaría de ser una restricción limpia de
+ * puntos de referencia — encaja en la cláusula de alcance del enunciado en
+ * vez de forzar una geometría más compleja en este sprint.
+ */
+function canSnapDuringResize(object: SceneObject, box: ManipulationBox): boolean {
+  if (object.type === "ellipse") return false;
+  const normalized = ((box.rotationDegrees % 360) + 360) % 360;
+  return normalized < 0.01 || normalized > 359.99;
+}
+
+/** Qué puntos de referencia del AABB mueve cada handle — un handle de
+ * borde (no-esquina) solo mueve UN eje; el opuesto se pasa vacío (`[]`,
+ * nunca `undefined`) para que `computeSnap` no evalúe ese eje en absoluto
+ * (ver `ComputeSnapInput.eligibleRefPoints`, "resize solo pasa el borde que
+ * ese handle específico mueve"). */
+function eligibleRefPointsForHandle(handle: ResizeHandle): { x: RefPoint[]; y: RefPoint[] } {
+  const x: RefPoint[] = [];
+  const y: RefPoint[] = [];
+  if (handle.includes("left")) x.push("start");
+  if (handle.includes("right")) x.push("end");
+  if (handle.startsWith("top")) y.push("start");
+  if (handle.startsWith("bottom")) y.push("end");
+  return { x, y };
+}
+
+/**
+ * Ajusta el preview de resize (ya calculado por `computeResizedTransform`)
+ * para que el borde snapeado quede EXACTAMENTE en el valor del candidato,
+ * manteniendo fijo el ancla opuesta (mismo invariante que
+ * `computeResizedTransform` ya respeta para Shift/tamaño mínimo). Solo se
+ * invoca cuando `canSnapDuringResize` es `true` — ahí `originOffset` es
+ * siempre `{0,0}` (ver `computeManipulationBox`) y por lo tanto
+ * `minX === x`, `maxX === x + width` sin ninguna conversión adicional.
+ */
+function applySnapToResizePreview(
+  preview: Partial<Transform>,
+  result: SnapResult,
+  targetBox: BoundingBox,
+  intrinsicSize: { width: number; height: number },
+): Partial<Transform> {
+  if (!result.x && !result.y) return preview;
+  const next = { ...preview };
+
+  if (result.x) {
+    if (result.x.refPoint === "start") {
+      const newWidth = Math.max(targetBox.maxX - result.x.value, MIN_RESIZE_SIZE);
+      next.x = targetBox.maxX - newWidth;
+      next.scaleX = newWidth / intrinsicSize.width;
+    } else if (result.x.refPoint === "end") {
+      const newWidth = Math.max(result.x.value - targetBox.minX, MIN_RESIZE_SIZE);
+      next.scaleX = newWidth / intrinsicSize.width;
+    }
+  }
+
+  if (result.y) {
+    if (result.y.refPoint === "start") {
+      const newHeight = Math.max(targetBox.maxY - result.y.value, MIN_RESIZE_SIZE);
+      next.y = targetBox.maxY - newHeight;
+      next.scaleY = newHeight / intrinsicSize.height;
+    } else if (result.y.refPoint === "end") {
+      const newHeight = Math.max(result.y.value - targetBox.minY, MIN_RESIZE_SIZE);
+      next.scaleY = newHeight / intrinsicSize.height;
+    }
+  }
+
+  return next;
+}
 
 function setStageCursor(stage: Konva.Stage, cursor: string): void {
   const el = stage.container();
@@ -57,6 +151,9 @@ interface ResizeHandleParams {
   engine: Engine;
   onRejected: () => void;
   startPos: { x: number; y: number };
+  /** Ausente cuando el `NodeContext` de origen no proveyó snapping (ver
+   * `types.ts`) — el resize funciona igual, simplemente sin Smart Guides. */
+  snapping?: SnapEnvironment;
 }
 
 /**
@@ -70,9 +167,49 @@ interface ResizeHandleParams {
  * `engine.dispatch`, que internamente recalcula con la MISMA función —
  * previsualización y estado final nunca pueden divergir.
  */
+/** Invierte `computeResizedTransform` para el caso `canSnapDuringResize`
+ * (rotación 0): dado el preview YA ajustado por snap, recupera el
+ * `pointerDelta` equivalente que — pasado de nuevo por
+ * `computeResizedTransform` en `dragend`/el comando `resizeObject` —
+ * reproduce EXACTAMENTE el mismo resultado que el preview snapeado. Sin
+ * esto, el preview visual (snapeado) y el transform final que dispatcha
+ * `resizeObject` (que solo conoce `pointerDelta` crudo) podrían divergir —
+ * violaría el invariante "previsualización y estado final nunca pueden
+ * divergir" que este archivo ya documenta para el caso sin snap. */
+function pointerDeltaForSnappedPreview(
+  object: SceneObject,
+  box: ManipulationBox,
+  handle: ResizeHandle,
+  preview: Partial<Transform>,
+): { x: number; y: number } {
+  const currentWidth = box.intrinsicSize.width * object.transform.scaleX;
+  const currentHeight = box.intrinsicSize.height * object.transform.scaleY;
+  const newWidth = box.intrinsicSize.width * (preview.scaleX ?? object.transform.scaleX);
+  const newHeight = box.intrinsicSize.height * (preview.scaleY ?? object.transform.scaleY);
+  const widthDelta = newWidth - currentWidth;
+  const heightDelta = newHeight - currentHeight;
+
+  let x = 0;
+  if (handle.includes("left")) x = -widthDelta;
+  else if (handle.includes("right")) x = widthDelta;
+
+  let y = 0;
+  if (handle.startsWith("top")) y = -heightDelta;
+  else if (handle.startsWith("bottom")) y = heightDelta;
+
+  return { x, y };
+}
+
 function attachResizeHandleInteractions(rect: Konva.Rect, params: ResizeHandleParams): void {
-  const { objectId, handle, node, object, box, engine, onRejected, startPos } = params;
+  const { objectId, handle, node, object, box, engine, onRejected, startPos, snapping } = params;
   const axis = edgeAxisUnitVector(handle, box.rotationDegrees);
+  const canSnap = Boolean(snapping) && canSnapDuringResize(object, box);
+  const eligibleRefPoints = eligibleRefPointsForHandle(handle);
+  let gesture: SnapGesture | undefined;
+  // Último `pointerDelta` EQUIVALENTE al preview realmente mostrado este
+  // gesto (crudo si no hubo snap este frame, ajustado si lo hubo) — lo que
+  // `dragend` dispatcha, para que nunca diverja del preview.
+  let committedPointerDelta: { x: number; y: number } | undefined;
 
   rect.dragBoundFunc((pos) => {
     if (!axis) return pos;
@@ -82,28 +219,66 @@ function attachResizeHandleInteractions(rect: Konva.Rect, params: ResizeHandlePa
     return { x: startPos.x + t * axis.x, y: startPos.y + t * axis.y };
   });
 
+  rect.on("dragstart", () => {
+    if (!canSnap || !snapping) return;
+    const page = engine.getProject().document.pages[0];
+    if (page) gesture = beginSnapGesture(snapping, page, [objectId]);
+  });
+
   function currentPointerDelta(): { x: number; y: number } {
     return { x: rect.x() - startPos.x, y: rect.y() - startPos.y };
   }
 
   rect.on("dragmove", (evt) => {
+    const maintainAspectRatio = Boolean((evt.evt as MouseEvent | undefined)?.shiftKey);
+    const rawPointerDelta = currentPointerDelta();
     const preview = computeResizedTransform({
       transform: object.transform,
       intrinsicSize: box.intrinsicSize,
       handle,
-      pointerDelta: currentPointerDelta(),
-      maintainAspectRatio: Boolean((evt.evt as MouseEvent | undefined)?.shiftKey),
+      pointerDelta: rawPointerDelta,
+      maintainAspectRatio,
     });
-    node.setAttrs(preview);
+
+    let finalPreview = preview;
+    committedPointerDelta = rawPointerDelta;
+    // Shift (mantener proporción) ya tiene un significado establecido y
+    // ajusta AMBOS ejes a la vez — combinarlo con un snap de UN solo borde
+    // (que este módulo resuelve eje por eje, ver `applySnapToResizePreview`)
+    // rompería esa proporción. Se prioriza la convención existente: con
+    // Shift presionado, el snapping se trata como desactivado este frame.
+    if (canSnap && gesture && snapping && !maintainAspectRatio) {
+      const x = preview.x ?? object.transform.x;
+      const y = preview.y ?? object.transform.y;
+      const width = box.intrinsicSize.width * (preview.scaleX ?? object.transform.scaleX);
+      const height = box.intrinsicSize.height * (preview.scaleY ?? object.transform.scaleY);
+      const targetBox: BoundingBox = { minX: x, minY: y, maxX: x + width, maxY: y + height };
+      const disabled = isSnapDisabledByModifier(evt as Konva.KonvaEventObject<DragEvent>);
+      const result = updateSnapGesture(snapping, gesture, targetBox, { disabled, eligibleRefPoints });
+      if (result.x || result.y) {
+        finalPreview = applySnapToResizePreview(preview, result, targetBox, box.intrinsicSize);
+        committedPointerDelta = pointerDeltaForSnappedPreview(object, box, handle, finalPreview);
+      }
+    } else if (canSnap && snapping) {
+      // Shift presionado — asegurar que no quede una guía "colgada" del
+      // frame anterior (justo antes de empezar a mantener Shift a mitad
+      // de gesto).
+      endSnapGesture(snapping);
+    }
+
+    node.setAttrs(finalPreview);
     node.getLayer()?.batchDraw();
   });
 
   rect.on("dragend", (evt) => {
+    if (snapping) endSnapGesture(snapping);
+    gesture = undefined;
+
     const result = engine.dispatch({
       type: "resizeObject",
       objectId,
       handle,
-      pointerDelta: currentPointerDelta(),
+      pointerDelta: committedPointerDelta ?? currentPointerDelta(),
       intrinsicSize: box.intrinsicSize,
       maintainAspectRatio: Boolean((evt.evt as MouseEvent | undefined)?.shiftKey),
     });
@@ -165,6 +340,11 @@ export interface RenderManipulationHandlesParams {
   stage: Konva.Stage;
   engine: Engine;
   onRejected: () => void;
+  /** Smart Guides/Snapping durante resize (Epic 7 / Fase 7.3). Ausente en
+   * llamadas de test que no lo necesitan — el resize funciona igual, sin
+   * guías. La rotación NO recibe esto: el snap-to-15° de rotación ya
+   * existía antes de esta fase y no se toca (ver Fase 7.3, sección 4). */
+  snapping?: SnapEnvironment;
 }
 
 /**
@@ -176,7 +356,7 @@ export interface RenderManipulationHandlesParams {
  * ya existente desde Editor 2 (ver ADR-0008, alcance).
  */
 export function renderManipulationHandles(params: RenderManipulationHandlesParams): boolean {
-  const { objectId, node, selectionLayer, stage, engine, onRejected } = params;
+  const { objectId, node, selectionLayer, stage, engine, onRejected, snapping } = params;
   const object = findObjectInDocument(engine.getProject().document, objectId);
   if (!object) return false;
 
@@ -209,7 +389,7 @@ export function renderManipulationHandles(params: RenderManipulationHandlesParam
       strokeWidth: 1,
       draggable: true,
     });
-    attachResizeHandleInteractions(rect, { objectId, handle, node, object, box, engine, onRejected, startPos });
+    attachResizeHandleInteractions(rect, { objectId, handle, node, object, box, engine, onRejected, startPos, snapping });
     attachCursorFeedback(rect, stage, cursorForHandle(handle));
     selectionLayer.add(rect);
   }

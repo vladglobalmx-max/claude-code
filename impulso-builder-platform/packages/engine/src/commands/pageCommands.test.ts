@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PageIdSchema } from "@impulso/document-schema";
-import { addPage, removePage, reorderPages } from "./pageCommands.js";
+import { addPage, removePage, reorderPages, updatePageGrid } from "./pageCommands.js";
 import { buildProject, buildDocument, buildPage } from "../testUtils/fixtures.js";
 
 function twoPageProject() {
@@ -83,6 +83,78 @@ describe("reorderPages", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("invalid_reorder");
+    }
+  });
+});
+
+describe("updatePageGrid", () => {
+  it("aplica un patch parcial, conservando los campos no tocados", () => {
+    const project = buildProject();
+    const result = updatePageGrid(project, {
+      type: "updatePageGrid",
+      pageId: PageIdSchema.parse("page_1"),
+      grid: { visible: true },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.grid).toEqual({
+        visible: true,
+        snapEnabled: false,
+        size: 10,
+        type: "lines",
+      });
+    }
+  });
+
+  it("actualiza varios campos a la vez", () => {
+    const project = buildProject();
+    const result = updatePageGrid(project, {
+      type: "updatePageGrid",
+      pageId: PageIdSchema.parse("page_1"),
+      grid: { snapEnabled: true, size: 25 },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.grid.snapEnabled).toBe(true);
+      expect(result.value.document.pages[0]?.grid.size).toBe(25);
+    }
+  });
+
+  it("rechaza un size resultante inválido (cero, negativo, NaN o infinito) sin aplicar nada", () => {
+    const project = buildProject();
+    for (const invalidSize of [0, -5, NaN, Infinity]) {
+      const result = updatePageGrid(project, {
+        type: "updatePageGrid",
+        pageId: PageIdSchema.parse("page_1"),
+        grid: { size: invalidSize },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe("invalid_grid");
+    }
+  });
+
+  it("rechaza un pageId inexistente", () => {
+    const project = buildProject();
+    const result = updatePageGrid(project, {
+      type: "updatePageGrid",
+      pageId: PageIdSchema.parse("no_existe"),
+      grid: { visible: true },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("page_not_found");
+  });
+
+  it("no afecta otras páginas del documento", () => {
+    const project = twoPageProject();
+    const result = updatePageGrid(project, {
+      type: "updatePageGrid",
+      pageId: PageIdSchema.parse("page_1"),
+      grid: { visible: true },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.document.pages[0]?.grid.visible).toBe(true);
+      expect(result.value.document.pages[1]?.grid.visible).toBe(false);
     }
   });
 });

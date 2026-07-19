@@ -33,13 +33,14 @@ packages/renderer-konva/
     │
     ├── interactions/
     │   ├── selectionInteractions.ts   # click/Shift-click -> setSelection/toggleObjectSelection
-    │   ├── transformInteractions.ts   # dragstart (asegura selección) / dragend -> updateObjectTransform
+    │   ├── transformInteractions.ts   # dragstart/dragmove (snap preview)/dragend -> updateObjectTransform
     │   └── textEditingInteractions.ts # dblclick -> <textarea> superpuesto -> updateObjectContent
     │
     ├── manipulation/
     │   ├── boundingBox.ts      # geometría pura: pivote, tamaño intrínseco, puntos locales de cada handle
     │   ├── cursors.ts          # handle -> cursor CSS
-    │   └── handles.ts          # crea/posiciona los 8 handles de resize + 1 de rotación, cablea sus gestos
+    │   ├── handles.ts          # crea/posiciona los 8 handles de resize + 1 de rotación, cablea sus gestos (+ snap de resize, Fase 7.3)
+    │   └── smartGuides.ts      # puente Konva <-> @impulso/engine: beginSnapGesture/updateSnapGesture/endSnapGesture, dibuja guidesLayer (Fase 7.3)
     │
     ├── nodes/
     │   ├── rectangle.ts | ellipse.ts | path.ts | image.ts | text.ts | group.ts
@@ -52,7 +53,7 @@ packages/renderer-konva/
     └── testUtils/
         └── fixtures.ts          # builders de Project/Page/Layer/SceneObject para tests
 
-    (144 tests, ~99.7% de statements/lines, ~98% de branches/functions — ver "Riesgos")
+    (173 tests, ~99% de statements/lines — ver "Riesgos")
 ```
 
 ## 3. Arquitectura
@@ -112,6 +113,8 @@ El overlay de selección (Editor 2) vive en su **propio** `Konva.Layer` (`select
 
 Hasta Editor 3, `selectionLayer` se creaba con `listening: false` (nada dentro de ella necesitaba recibir eventos — el resaltado punteado es puramente visual). **Desde Editor Epic 1 la Layer entera escucha eventos** (`new Konva.Layer()`, sin la opción): los handles de resize/rotación viven ahí y necesitan recibir `dragstart`/`dragmove`/`dragend`/`mouseenter`/`mouseleave`. El contorno punteado de multi-selección y las líneas del bounding box de manipulación siguen sin ser interactivos, pero ahora por una razón distinta — cada uno fija `listening: false` en su propio node, no porque la Layer los bloquee a todos. Ver "Riesgos": este cambio se detectó tarde porque los tests con jsdom (`.fire(...)`) no lo habrían revelado nunca.
 
+**Un tercer `Konva.Layer` desde Fase 7.3** (`guidesLayer`, ver 3.9c): entre `mainLayer` y `selectionLayer` en el Stage, `listening: false` siempre — las Smart Guides son puramente visuales y nunca deben poder capturar un evento. El orden respecto de `selectionLayer` es cosmético (ambos dibujan "encima" del contenido), no funcional.
+
 ### 3.4 Reconciliación: rebuild completo del contenido (a propósito, con su costo documentado)
 
 `renderContent()` no diffea el árbol anterior contra el nuevo — destruye y reconstruye todos los nodos Konva de la página activa en cada `projectChanged`. Es la implementación más simple y correcta, elegida deliberadamente siguiendo la regla del Performance Budget ("no optimizar prematuramente, pero documentar el camino"): el costo (O(objetos de la página) por render, sin importar cuán pequeño fue el cambio real) y la estrategia de reconciliación incremental futura están documentados en [ADR-0004](../../docs/adr/0004-renderer-adapter.md#rendimiento) y en [PERFORMANCE_BUDGET.md](../../docs/PERFORMANCE_BUDGET.md). `renderSelectionOverlay()` es deliberadamente independiente de ese costo — ver 3.3b.
@@ -154,6 +157,22 @@ Ver [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el razonamiento 
 
 ### 3.9b Stage headless para exportación PNG (`offscreenRenderer.ts`, Epic 3)
 `renderPageToStage(project, options)` construye un `Konva.Stage` DESACOPLADO del editor — su `container` es un `<div>` que nunca se agrega al DOM visible, sin `selectionLayer`, con `interactive: false` en cada node (nunca se adjuntan handlers de drag/selección/edición de texto). Reutiliza `createSceneNode` 1:1: el `@impulso/export-engine` que lo invoca (para rasterizar PNG vía `stage.toCanvas({ pixelRatio })`) obtiene exactamente el mismo dibujo que ya ve el usuario en el canvas interactivo, sin reimplementar layout de texto/curvas/sombras por separado. `dispatch` en su `NodeContext` lanza si se invoca — nunca debería pasar con `interactive: false`, es una guarda de desarrollo, no un camino real. Ver ADR-0012 para el límite completo entre este paquete y el Export Engine (SVG nunca pasa por aquí).
+
+### 3.9c Smart Guides + Snapping (Epic 7 / Fase 7.3 — Assisted Placement)
+
+`manipulation/smartGuides.ts` es el puente entre `computeSnap` (`@impulso/engine`, puro) y Konva — este módulo mide (via `computeObjectBoundingBox`) y dibuja (`guidesLayer`, tercer `Konva.Layer` entre `mainLayer` y `selectionLayer`), nunca decide prioridad ni desempate.
+
+- `beginSnapGesture(env, page, excludeIds)`: snapshot al iniciar un drag/resize — mide UNA vez la caja de cada object top-level visible de la página (excluyendo el/los que se están manipulando) y arma los candidatos de Página + Objects (el de Grid se calcula analíticamente dentro de `computeSnap`, nunca se enumera).
+- `updateSnapGesture(env, gesture, targetBox, options)`: un frame del gesto — normaliza la tolerancia por zoom (`8px de pantalla / getZoom()`), llama a `computeSnap`, redibuja las guías (halo blanco + línea de color, extendida más allá de la caja del object arrastrado usando la caja del candidato emparejado) o las limpia si no hay snap.
+- `endSnapGesture(env)`: limpia `guidesLayer` incondicionalmente — las guías nunca sobreviven el gesto, con o sin snap.
+
+**Integración en `transformInteractions.ts` (move):** este módulo NO tenía `dragmove` hasta esta fase — se agregó siguiendo el mismo patrón preview-en-`dragmove`/commit-en-`dragend` que `handles.ts` ya usaba desde Editor Epic 1.
+
+**Integración en `handles.ts` (resize):** deliberadamente restringida a objects SIN rotación y que NO sean `Ellipse` (`canSnapDuringResize`) — con rotación, los 4 extremos del AABB rotado se mueven todos a la vez y "qué borde corresponde a este handle" deja de tener una única respuesta limpia (ver ADR-0016). El preview snapeado se invierte de vuelta a un `pointerDelta` equivalente (`pointerDeltaForSnappedPreview`) antes de que `dragend` despache `resizeObject`, para que preview y commit nunca diverjan — mismo invariante que ya exigía este archivo para el caso sin snap. Shift (mantener proporción) desactiva el snap ese frame: ajustar un solo eje rompería la proporción que el usuario pidió mantener.
+
+**Modificador temporal:** Ctrl/Cmd (`isSnapDisabledByModifier`) desactiva todo snapping mientras se mantiene presionado, en ambos módulos — verificado sin conflicto real con ningún atajo existente (ver ADR-0016).
+
+**Color del token visual:** `--impulso-snap-guide-color`, leído vía `getComputedStyle(stage.container())` con un fallback propio (`#ff2d78`) si el token no existe — el primer color de este paquete que NO está hardcodeado, definido en `apps/sticker-builder/index.html` (el único lugar que conoce el fondo real del canvas).
 
 ### 3.9 Grupos como una sola unidad, y edición de texto in-canvas (Sticker Creation Experience)
 

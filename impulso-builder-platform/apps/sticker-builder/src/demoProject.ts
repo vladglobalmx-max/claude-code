@@ -36,6 +36,7 @@ export function createDemoProject(): Project {
           id: PageIdSchema.parse("demo_page"),
           size: { width: 320, height: 320 },
           unit: "px",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
           layers: [
             {
               id: LayerIdSchema.parse("demo_layer"),

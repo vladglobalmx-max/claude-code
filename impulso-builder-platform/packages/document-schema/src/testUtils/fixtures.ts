@@ -25,6 +25,7 @@ export function buildMinimalDocument(): Document {
         id: PageIdSchema.parse("page_1"),
         size: { width: 100, height: 150 },
         unit: "mm",
+        grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
         layers: [
           {
             id: LayerIdSchema.parse("layer_1"),

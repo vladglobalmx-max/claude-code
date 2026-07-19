@@ -42,6 +42,7 @@ function buildExampleProject(): Project {
           id: PageIdSchema.parse("page_demo"),
           size: { width: 76, height: 76 },
           unit: "mm",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
           layers: [
             {
               id: LayerIdSchema.parse("layer_demo"),

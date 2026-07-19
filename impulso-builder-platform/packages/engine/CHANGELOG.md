@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.9.0] — Epic 7 / Fase 7.3: Assisted Placement
+
+### Agregado
+- `geometry/snapping.ts` (nuevo): `computeSnap({ targetBox, candidates, toleranceDocumentUnits, grid?, previousSnap?, eligibleRefPoints? })` — snapping puro, sin Konva ni DOM. Prioridad Página > Objects > Grid (niveles completos); desempate determinista (menor distancia → menor id de object → orden fijo de punto de referencia); hysteresis vía `previousSnap` explícito (parámetro, no estado oculto). `buildPageSnapCandidates`/`buildObjectSnapCandidates`: helpers para armar los 6 candidatos (inicio/centro/fin × X/Y) de página y de un object.
+- `updatePageGrid` (comando nuevo, `commands/pageCommands.ts`): merge-then-validate sobre `Page.grid` (`@impulso/document-schema` 0.4.0), mismo patrón que `updateObjectTransform`. Nuevo código de error `invalid_grid`. Pasa por el pipeline normal de historial/versión/validación.
+- Adición pura a la API pública existente — no requiere ADR de cambio de API (regla de Stable Public API), pero sí un ADR de arquitectura nuevo (ADR-0016) por introducir un mecanismo genuinamente nuevo.
+- 20 tests nuevos en `geometry/snapping.test.ts` + 5 en `pageCommands.test.ts` + 1 en `applyCommand.test.ts` (312 tests en total), 100% de cobertura mantenida. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.8.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
 
 ### Agregado

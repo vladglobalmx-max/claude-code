@@ -25,6 +25,9 @@ export interface KeyboardShortcutActions {
   nudge(dx: number, dy: number): void;
   bringForward(): void;
   sendBackward(): void;
+  /** Epic 7 / Fase 7.3 — Assisted Placement (atajos "G"/"R", sección 11). */
+  toggleGrid(): void;
+  toggleRulers(): void;
 }
 
 export interface MountKeyboardShortcutsOptions {
@@ -60,8 +63,12 @@ function arrowDelta(key: string, step: number): [number, number] | undefined {
 }
 
 /**
- * Instala los atajos globales de la Épica (V/T/I, Supr/Backspace,
+ * Instala los atajos globales de la Épica (V/T/I/G/R, Supr/Backspace,
  * Ctrl/Cmd+D/G/Shift+G/Z/Shift+Z/S/O/A, Escape, flechas +/- Shift, Ctrl/Cmd+[/]).
+ * "G" (sin Ctrl/Cmd) alterna Grid visible; "R" alterna Rulers — Epic 7 /
+ * Fase 7.3 (Assisted Placement). No chocan con Ctrl/Cmd+G (Agrupar) ni
+ * Ctrl/Cmd+Shift+G (Desagrupar): esas ramas ya retornan antes de llegar
+ * aquí abajo.
  * Ignora por completo cualquier evento cuyo `target` sea un campo editable
  * (input, textarea, contentEditable) — así no compite con el renombrado
  * inline del panel de capas, los campos del Inspector, ni el `<textarea>`
@@ -152,6 +159,14 @@ export function mountKeyboardShortcuts(
     }
     if (lower === "i") {
       actions.imageTool();
+      return;
+    }
+    if (lower === "g") {
+      actions.toggleGrid();
+      return;
+    }
+    if (lower === "r") {
+      actions.toggleRulers();
       return;
     }
 

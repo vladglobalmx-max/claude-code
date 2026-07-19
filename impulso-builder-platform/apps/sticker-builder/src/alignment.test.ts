@@ -43,6 +43,7 @@ function buildProject(objects: SceneObject[], pageSize = { width: 300, height: 3
           id: PageIdSchema.parse("page_1"),
           size: pageSize,
           unit,
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" as const },
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects, metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},

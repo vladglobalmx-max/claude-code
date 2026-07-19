@@ -42,8 +42,16 @@ export function resolveActivePage(project: Project, pageId?: Page["id"]): Page |
 export function createKonvaRenderer(engine: Engine, options: KonvaRendererOptions = {}): RendererAdapter {
   let stage: Konva.Stage | null = null;
   let mainLayer: Konva.Layer | null = null;
+  // Epic 7 / Fase 7.3 (Assisted Placement): capa dedicada a Smart Guides,
+  // entre `mainLayer` (contenido) y `selectionLayer` (handles) — las guías
+  // deben dibujarse sobre el contenido pero nunca deben poder capturar un
+  // evento (`listening: false` en cada nodo que agrega `smartGuides.ts`),
+  // así que el orden respecto de `selectionLayer` es cosmético, no
+  // funcional. Nunca persiste nada ni forma parte del documento.
+  let guidesLayer: Konva.Layer | null = null;
   let selectionLayer: Konva.Layer | null = null;
   let unsubscribe: Unsubscribe | null = null;
+  const getZoom = options.getZoom ?? (() => 1);
 
   function renderSelectionOverlay(): void {
     // Guarda defensiva de tipos: ambos call sites (fin de renderContent, y
@@ -52,7 +60,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     // mount/destroy — no hay un camino conocido para ejercitar esta rama
     // hoy. Se mantiene por seguridad ante un futuro refactor, no por un
     // caso real observado.
-    if (!stage || !mainLayer || !selectionLayer) return;
+    if (!stage || !mainLayer || !guidesLayer || !selectionLayer) return;
     selectionLayer.destroyChildren();
 
     const selection = engine.getSelection();
@@ -73,6 +81,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
           stage,
           engine,
           onRejected: renderContent,
+          snapping: { stage, mainLayer, guidesLayer, getZoom },
         })
       ) {
         selectionLayer.batchDraw();
@@ -102,7 +111,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
   }
 
   function renderContent(): void {
-    if (!stage || !mainLayer || !selectionLayer) return;
+    if (!stage || !mainLayer || !guidesLayer || !selectionLayer) return;
 
     const project = engine.getProject();
     const page = resolveActivePage(project, options.pageId);
@@ -127,6 +136,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
       resolveAssetSource: options.resolveAssetSource,
       onRejectedTransform: renderContent,
       getSelection: engine.getSelection,
+      snapping: { engine, env: { stage, mainLayer, guidesLayer, getZoom } },
     };
 
     for (const layer of page.layers) {
@@ -151,6 +161,9 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     mount(container: HTMLDivElement): void {
       stage = new Konva.Stage({ container, width: 1, height: 1 });
       mainLayer = new Konva.Layer();
+      // Ver comentario junto a la declaración de `guidesLayer` — capa
+      // dedicada a Smart Guides, nunca interactiva.
+      guidesLayer = new Konva.Layer({ listening: false });
       // A partir de EDITOR EPIC 1, `selectionLayer` SÍ escucha eventos: los
       // handles de resize/rotación (`manipulation/handles.ts`) viven aquí y
       // necesitan recibir drag/mouseenter/mouseleave. El resaltado simple de
@@ -159,6 +172,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
       // en el propio node, no porque la Layer entera lo bloquee.
       selectionLayer = new Konva.Layer();
       stage.add(mainLayer);
+      stage.add(guidesLayer);
       stage.add(selectionLayer);
 
       // Click en el Stage que no llegó a ningún object (los objects
@@ -183,6 +197,7 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
       stage?.destroy();
       stage = null;
       mainLayer = null;
+      guidesLayer = null;
       selectionLayer = null;
     },
 

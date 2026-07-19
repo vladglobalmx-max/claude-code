@@ -19,6 +19,17 @@ import { mountKeyboardShortcuts, type KeyboardShortcuts } from "./keyboardShortc
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
 import { mountExportDialog, type ExportDialog } from "./exportDialog.js";
 import { mountSaveAsTemplateDialog, type SaveAsTemplateDialog } from "./saveAsTemplateDialog.js";
+import {
+  mountGridOverlay,
+  mountRulers,
+  mountPointerIndicator,
+  mountGridSnapControls,
+  toggleGridVisible,
+  type GridOverlay,
+  type Rulers,
+  type PointerIndicator,
+  type GridSnapControls,
+} from "./assistedPlacement.js";
 
 const DUPLICATE_OFFSET = 20;
 /** Qué módulo de Impulso Platform es este — usado para filtrar Templates
@@ -53,7 +64,15 @@ export interface AppElements {
   inspectorContainer: HTMLElement;
   alignmentContainer: HTMLElement;
   toolsContainer: HTMLElement;
+  /** Epic 7 / Fase 7.3 — Assisted Placement: controles de Grid/Snap,
+   * ubicados junto al zoom (ver `assistedPlacement.ts`, "UX y
+   * descubribilidad"). */
+  gridSnapContainer: HTMLElement;
   zoomContainer: HTMLElement;
+  rulerHorizontal: HTMLCanvasElement;
+  rulerVertical: HTMLCanvasElement;
+  pointerIndicator: HTMLElement;
+  canvasArea: HTMLElement;
   newProjectDialogContainer: HTMLElement;
   exportDialogContainer: HTMLElement;
   saveAsTemplateDialogContainer: HTMLElement;
@@ -164,8 +183,16 @@ export function mountApp(deps: AppDependencies): App {
     generateThumbnail: createThumbnailGenerator({ resolve: () => Promise.resolve(undefined) }),
   });
 
+  // Referencia adelantada: `zoomController` se construye más abajo (necesita
+  // `runtime.engine` para "Ajustar a pantalla"), pero el runtime necesita un
+  // getter de zoom DESDE su montaje (Epic 7 / Fase 7.3 — normaliza la
+  // tolerancia de snapping). El closure solo se invoca durante un drag, muy
+  // posterior al montaje, así que para entonces `zoomController` ya existe.
+  let zoomController: ZoomController;
+
   let runtime: CanvasRuntime = mountCanvasRuntime(elements.canvasContainer, deps.initialProject ?? createDemoProject(), {
     resolveAssetSource: resolvedCache.resolve,
+    getZoom: () => zoomController.getZoom(),
   });
   let toolsController = createToolsController({ engine: runtime.engine, binaryStore, resolvedCache, now, generateId });
   let layersPanel: LayersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
@@ -173,6 +200,31 @@ export function mountApp(deps: AppDependencies): App {
   let assetsPanel: AssetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
   let alignmentController = createAlignmentController(runtime.engine, runtime.renderer);
   let alignmentPanel: AlignmentPanel = mountAlignmentPanel(elements.alignmentContainer, runtime.engine, alignmentController);
+
+  // Epic 7 / Fase 7.3 — Assisted Placement: Grid visual, Rulers, indicador
+  // de puntero y controles de Grid/Snap. Todos leen el zoom vía el mismo
+  // getter adelantado (`zoomController` ya existe para cuando el usuario
+  // interactúa; no así durante el primer render síncrono de cada uno, que
+  // solo necesita el valor INICIAL — 100%, antes de que exista ningún
+  // control real — de ahí el `?? 1` de respaldo).
+  const getZoom = () => zoomController?.getZoom() ?? 1;
+  let gridOverlay: GridOverlay = mountGridOverlay(elements.canvasContainer, runtime.engine, getZoom);
+  let rulers: Rulers = mountRulers(
+    elements.rulerHorizontal,
+    elements.rulerVertical,
+    elements.canvasViewport,
+    elements.canvasContainer,
+    runtime.engine,
+    getZoom,
+  );
+  let pointerIndicator: PointerIndicator = mountPointerIndicator(
+    elements.pointerIndicator,
+    elements.canvasViewport,
+    elements.canvasContainer,
+    runtime.engine,
+    getZoom,
+  );
+  let gridSnapControls: GridSnapControls = mountGridSnapControls(elements.gridSnapContainer, runtime.engine);
 
   function setStatus(message: string): void {
     elements.statusElement.textContent = message;
@@ -224,16 +276,40 @@ export function mountApp(deps: AppDependencies): App {
     inspector.destroy();
     assetsPanel.destroy();
     alignmentPanel.destroy();
+    gridOverlay.destroy();
+    rulers.destroy();
+    pointerIndicator.destroy();
+    gridSnapControls.destroy();
     runtime.renderer.destroy();
     resolvedCache.clear();
     await preloadDocumentAssets(project.document, binaryStore, resolvedCache);
-    runtime = mountCanvasRuntime(elements.canvasContainer, project, { resolveAssetSource: resolvedCache.resolve });
+    runtime = mountCanvasRuntime(elements.canvasContainer, project, {
+      resolveAssetSource: resolvedCache.resolve,
+      getZoom,
+    });
     toolsController = createToolsController({ engine: runtime.engine, binaryStore, resolvedCache, now, generateId });
     layersPanel = mountLayersPanel(elements.layersContainer, runtime.engine);
     inspector = mountInspector(elements.inspectorContainer, runtime.engine);
     assetsPanel = mountAssetsPanel(elements.assetsContainer, runtime.engine, toolsController, resolvedCache);
     alignmentController = createAlignmentController(runtime.engine, runtime.renderer);
     alignmentPanel = mountAlignmentPanel(elements.alignmentContainer, runtime.engine, alignmentController);
+    gridOverlay = mountGridOverlay(elements.canvasContainer, runtime.engine, getZoom);
+    rulers = mountRulers(
+      elements.rulerHorizontal,
+      elements.rulerVertical,
+      elements.canvasViewport,
+      elements.canvasContainer,
+      runtime.engine,
+      getZoom,
+    );
+    pointerIndicator = mountPointerIndicator(
+      elements.pointerIndicator,
+      elements.canvasViewport,
+      elements.canvasContainer,
+      runtime.engine,
+      getZoom,
+    );
+    gridSnapControls = mountGridSnapControls(elements.gridSnapContainer, runtime.engine);
     unsubscribeEngine = subscribeToEngine();
     zoomController.setZoom(1);
   }
@@ -372,14 +448,24 @@ export function mountApp(deps: AppDependencies): App {
   elements.tabAssetsButton.addEventListener("click", showAssetsTab);
   showLayersTab();
 
-  const zoomController: ZoomController = mountZoomControl(elements.zoomContainer, {
+  zoomController = mountZoomControl(elements.zoomContainer, {
     viewport: elements.canvasViewport,
     target: elements.canvasContainer,
     getContentSize: () => {
       const page = runtime.engine.getProject().document.pages[0];
       return { width: page?.size.width ?? 0, height: page?.size.height ?? 0 };
     },
+    onChange: (zoom) => {
+      gridOverlay.onZoomChange(zoom);
+      rulers.refresh();
+    },
   });
+
+  // Rulers reflejan el scroll nativo del viewport (no hay panning propio,
+  // ver ADR-0010) y el tamaño real del viewport (resize de ventana) — ver
+  // Fase 7.3, sección 8.
+  elements.canvasViewport.addEventListener("scroll", () => rulers.refresh());
+  window.addEventListener("resize", () => rulers.refresh());
 
   const newProjectDialog: NewProjectDialog = mountNewProjectDialog(elements.newProjectDialogContainer, {
     templateStore,
@@ -455,6 +541,8 @@ export function mountApp(deps: AppDependencies): App {
     nudge,
     bringForward: () => reorderSelected(1),
     sendBackward: () => reorderSelected(-1),
+    toggleGrid: () => toggleGridVisible(runtime.engine),
+    toggleRulers: () => elements.canvasArea.classList.toggle("rulers-hidden"),
   }, { target: deps.keyboardTarget });
 
   return {
@@ -471,6 +559,10 @@ export function mountApp(deps: AppDependencies): App {
       inspector.destroy();
       assetsPanel.destroy();
       alignmentPanel.destroy();
+      gridOverlay.destroy();
+      rulers.destroy();
+      pointerIndicator.destroy();
+      gridSnapControls.destroy();
       runtime.renderer.destroy();
     },
   };

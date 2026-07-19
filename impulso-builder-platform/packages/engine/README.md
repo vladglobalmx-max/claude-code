@@ -31,7 +31,7 @@ packages/engine/
     │   ├── entityRef.ts            # EntityRef: a qué nivel apunta un updateMetadata
     │   ├── command.ts              # EngineCommand (Zod) — Content vs Selection
     │   ├── permutation.ts          # helper: validar que un "reorder" es una permutación válida
-    │   ├── pageCommands.ts         # addPage / removePage / reorderPages
+    │   ├── pageCommands.ts         # addPage / removePage / reorderPages / updatePageGrid
     │   ├── layerCommands.ts        # addLayer / removeLayer / reorderLayers
     │   ├── objectCommands.ts       # addObject / removeObject / updateObjectTransform|Style|Content / reorderObjects
     │   ├── resizeObjectCommand.ts  # resizeObject — delega en geometry/resizeMath.ts + updateObjectTransform
@@ -45,7 +45,10 @@ packages/engine/
     ├── geometry/
     │   ├── resizeMath.ts           # computeResizedTransform — función pura, sin Project ni dispatch
     │   ├── rotateMath.ts           # computeRotatedTransform — función pura, sin Project ni dispatch
-    │   └── composeTransform.ts     # composeChildTransformIntoParent — hornea el transform de un Group en su hijo
+    │   ├── composeTransform.ts     # composeChildTransformIntoParent — hornea el transform de un Group en su hijo
+    │   ├── boundingBox.ts          # computeRotatedBoundingBox / unionBoundingBox (Fase 7.2)
+    │   ├── alignment.ts            # alignLeft/Right/... / distributeHorizontal/Vertical (Fase 7.2)
+    │   └── snapping.ts             # computeSnap / buildPageSnapCandidates / buildObjectSnapCandidates (Fase 7.3)
     │
     ├── cloning/
     │   └── cloneSceneObject.ts     # cloneSceneObjectWithNewIds — clona con ids frescos (no un comando)
@@ -66,7 +69,7 @@ packages/engine/
     └── testUtils/
         └── fixtures.ts             # builders de Project/Document/Page/Layer/Object para tests
 
-    (218 tests, 100% de cobertura)
+    (312 tests, 100% de cobertura)
 ```
 
 ## 3. Arquitectura
@@ -177,6 +180,25 @@ Todas devuelven `AlignmentPatch[]` (`{ objectId, transform: Partial<{x, y}> }`),
 
 **Quién mide el tamaño real de cada object:** este paquete nunca lo hace — recibe `AlignmentTarget[]` ya armado (con la caja de cada object ya calculada) desde quien orquesta la operación. En Sticker Builder, `apps/sticker-builder/alignment.ts` obtiene esas cajas vía `computeObjectBoundingBox` (`@impulso/renderer-konva`), que sigue midiendo con Konva (único camino correcto para texto sin `size` explícito o un Group anidado, ver ADR-0008) y le aplica `computeRotatedBoundingBox` de aquí. Ver ADR-0015 para el razonamiento completo de esta separación.
 
+### 3.14 Snapping: prioridad, desempate y hysteresis, sin Konva ni DOM (Epic 7 / Fase 7.3)
+
+`geometry/snapping.ts` es la matemática de Assisted Placement — Smart Guides, snap a página/objects/grid. Función pura: `computeSnap(input): SnapResult` evalúa X e Y de forma independiente (`evaluateAxis`).
+
+**Modelo de prioridad**: Página > Objects > Grid, evaluados en niveles completos — si algo del nivel "Página" calza dentro de tolerancia, ni siquiera se miran los candidatos de Objects. El candidato de Grid nunca se enumera (sería infinito): se calcula analíticamente (`Math.round(valor / size) * size`) solo si ningún nivel anterior calzó.
+
+**Desempate determinista** cuando compiten varios candidatos dentro del MISMO nivel: menor distancia gana; empate exacto → menor id de object (comparación de string); empate → orden fijo de punto de referencia (`"start" < "center" < "end"`, la posición de cada uno en `RefPoint`). Nunca hay ambigüedad ni dependencia del orden de iteración.
+
+**Hysteresis** (evitar jitter en micro-movimientos): `previousSnap` es un parámetro explícito, no estado oculto — quien orquesta el gesto (`renderer-konva`) guarda el `SnapResult` del frame anterior y lo pasa de vuelta. Si el mismo `refPoint` sigue dentro de tolerancia × `hysteresisMultiplier` (default 1.5, mayor que la tolerancia de entrada), se reengancha sin re-evaluar prioridades desde cero — solo se recalcula el `delta` (la posición pudo cambiar dentro del gesto).
+
+**Tolerancia**: se recibe ya normalizada por zoom, en espacio canónico (`toleranceDocumentUnits`) — quien llama calcula `toleranciaPantalla / zoom` antes de invocar (ver `renderer-konva`, `manipulation/smartGuides.ts`). Este módulo no sabe qué es "zoom".
+
+**`eligibleRefPoints`**: restringe qué puntos de referencia del target participan por eje — usado por resize (un handle de borde solo mueve UN punto de referencia; pasar `[]`, nunca `undefined`, para el eje que ese handle no toca, o `computeSnap` evaluaría los 3 default). Move no restringe nada (los 3 son válidos).
+
+- `buildPageSnapCandidates(pageWidth, pageHeight)`: los 6 candidatos de página (inicio/centro/fin × X/Y), en espacio canónico — quien llama convierte con `toPixels` si `page.unit !== "px"`.
+- `buildObjectSnapCandidates(objectId, box)`: los 6 candidatos de un object a partir de su `BoundingBox` ya medido (ver `computeObjectBoundingBox`, §3.13).
+
+**Quién mide/dibuja**: igual que Alignment, este módulo nunca toca Konva ni el DOM. `renderer-konva` mide (vía `computeObjectBoundingBox`), arma los candidatos, llama a `computeSnap` en cada `dragmove`, y dibuja las Smart Guides resultantes — ver su propio README y ADR-0016 para el contrato completo.
+
 ### 3.4 Versionado e historial
 
 Cada `ContentCommand` exitoso incrementa `document.documentVersion` y agrega una `HistoryEntry` a `document.history.entries` (descripción legible, ids `documentVersionBefore`/`After`) — es la bitácora persistida que Foundation 1 ya modeló. **Excepción:** `updateMetadata` con `target.level: "project"` no toca `document` en absoluto (solo renombra el Project en sí), así que no incrementa versión ni agrega historial — sí actualiza `project.metadata.updatedAt`.
@@ -264,6 +286,33 @@ if (patches.length > 0) {
 }
 ```
 
+### Snapping: candidatos de página + objects, con hysteresis entre frames
+
+```ts
+import { computeSnap, buildPageSnapCandidates, buildObjectSnapCandidates } from "@impulso/engine";
+
+// Snapshot al iniciar el gesto (una sola vez, no en cada pointermove).
+const candidates = [
+  ...buildPageSnapCandidates(320, 320), // página 320x320 canónico px
+  ...buildObjectSnapCandidates(ObjectIdSchema.parse("badge"), { minX: 60, minY: 60, maxX: 260, maxY: 260 }),
+];
+
+let previousSnap; // undefined al iniciar el gesto
+
+// En cada dragmove: `targetBox` ya con el delta crudo del puntero aplicado.
+const result = computeSnap({
+  targetBox: { minX: 95, minY: 145, maxX: 235, maxY: 185 },
+  candidates,
+  toleranceDocumentUnits: 8 / zoom, // 8px de pantalla, normalizado por el zoom actual
+  grid: { size: 10, snapEnabled: true },
+  previousSnap,
+});
+previousSnap = result; // se pasa de vuelta en el siguiente frame — habilita hysteresis
+
+if (result.x) node.x(node.x() + result.x.delta);
+if (result.y) node.y(node.y() + result.y.delta);
+```
+
 ### Inyectar `clock` e ids para tests determinísticos
 
 ```ts
@@ -286,6 +335,7 @@ const engine = createEngine(myProject, {
 6. **`groupObjects`/`ungroupObject` solo soportan un nivel de anidamiento** (hijos directos de una Layer) — agrupar objects ya anidados en otro group, o desagrupar un group anidado en otro group, se rechaza explícitamente con `invalid_group` en vez de intentarlo. Documentado, no un descuido (ver §3.9).
 7. **Alignment/Distribution no consideran objects dentro de un `group`** (solo top-level) — consistente con que un Group ya se trata como una unidad indivisible en el resto del producto, no una limitación nueva de esta fase (Epic 7 / Fase 7.2, ver ADR-0015).
 8. **Sin caché de bounding boxes entre operaciones sucesivas de Alignment** — cada operación remide desde cero vía `computeObjectBoundingBox` (ver `PERFORMANCE_BUDGET.md`, fila 18); aceptable a la escala actual de selección típica.
+9. **`computeSnap` no sabe nada de rotación por sí solo** — recibe `targetBox` ya como AABB (potencialmente de un object rotado, vía `computeRotatedBoundingBox`), pero decidir qué ajuste es "seguro" invertir de vuelta a un `pointerDelta` de resize para un object rotado es responsabilidad de quien llama (`renderer-konva`), no de este módulo — y esa pieza deliberadamente NO se construyó para objects rotados en Fase 7.3 (ver ADR-0016, Riesgos).
 
 ## 6. Posibles mejoras futuras
 

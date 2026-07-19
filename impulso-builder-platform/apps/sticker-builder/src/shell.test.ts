@@ -41,7 +41,12 @@ function buildEditorElements(): AppElements {
     inspectorContainer: div(),
     alignmentContainer: div(),
     toolsContainer: div(),
+    gridSnapContainer: div(),
     zoomContainer: div(),
+    rulerHorizontal: document.createElement("canvas"),
+    rulerVertical: document.createElement("canvas"),
+    pointerIndicator: div(),
+    canvasArea: div(),
     newProjectDialogContainer: div(),
     exportDialogContainer: div(),
     saveAsTemplateDialogContainer: div(),
@@ -141,7 +146,10 @@ describe("mountShell", () => {
     (elements.workspaceContainer.querySelector(".workspace-card-open") as HTMLButtonElement).click();
 
     await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
-    expect(elements.editor.canvasContainer.children).toHaveLength(1);
+    // 2 hijos esperados por runtime (no 4): el `.grid-overlay` de Fase 7.3
+    // (Assisted Placement) + el wrapper que Konva genera — si el runtime
+    // anterior hubiera quedado montado además del nuevo, serían 4.
+    expect(elements.editor.canvasContainer.children).toHaveLength(2);
   });
 
   it("abrir un segundo proyecto mientras el editor ya está abierto destruye la instancia anterior antes de montar la nueva", async () => {
@@ -158,13 +166,13 @@ describe("mountShell", () => {
     const cards = () => Array.from(elements.workspaceContainer.querySelectorAll(".workspace-card-open")) as HTMLButtonElement[];
     cards()[0]!.click();
     await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
-    expect(elements.editor.canvasContainer.children).toHaveLength(1);
+    expect(elements.editor.canvasContainer.children).toHaveLength(2);
 
     // Sin pasar por "Mis proyectos": la tarjeta de la Workspace sigue en el
     // DOM (solo oculta) — clic directo en la segunda debe destruir la
     // instancia anterior del editor antes de montar la nueva.
     cards()[1]!.click();
-    await vi.waitFor(() => expect(elements.editor.canvasContainer.children).toHaveLength(1));
+    await vi.waitFor(() => expect(elements.editor.canvasContainer.children).toHaveLength(2));
   });
 
   it("migra transparentemente el proyecto legado de localStorage al ProjectStore al arrancar", async () => {

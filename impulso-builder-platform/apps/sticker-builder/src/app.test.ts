@@ -61,6 +61,7 @@ function buildProject(objects: SceneObject[]): Project {
           id: PageIdSchema.parse("page_1"),
           size: { width: 200, height: 200 },
           unit: "px",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects, metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},
@@ -87,10 +88,15 @@ function buildElements(): AppElements {
   const inspectorContainer = document.createElement("div");
   const alignmentContainer = document.createElement("div");
   const toolsContainer = document.createElement("div");
+  const gridSnapContainer = document.createElement("div");
   const zoomContainer = document.createElement("div");
   const newProjectDialogContainer = document.createElement("div");
   const exportDialogContainer = document.createElement("div");
   const saveAsTemplateDialogContainer = document.createElement("div");
+  const rulerHorizontal = document.createElement("canvas");
+  const rulerVertical = document.createElement("canvas");
+  const pointerIndicator = document.createElement("div");
+  const canvasArea = document.createElement("div");
 
   function button(): HTMLButtonElement {
     return document.createElement("button");
@@ -105,11 +111,16 @@ function buildElements(): AppElements {
     inspectorContainer,
     alignmentContainer,
     toolsContainer,
+    gridSnapContainer,
     zoomContainer,
     newProjectDialogContainer,
     exportDialogContainer,
     saveAsTemplateDialogContainer,
     statusElement,
+    rulerHorizontal,
+    rulerVertical,
+    pointerIndicator,
+    canvasArea,
   );
   canvasViewport.appendChild(canvasContainer);
   document.body.appendChild(root);
@@ -124,7 +135,12 @@ function buildElements(): AppElements {
     inspectorContainer,
     alignmentContainer,
     toolsContainer,
+    gridSnapContainer,
     zoomContainer,
+    rulerHorizontal,
+    rulerVertical,
+    pointerIndicator,
+    canvasArea,
     newProjectDialogContainer,
     exportDialogContainer,
     saveAsTemplateDialogContainer,

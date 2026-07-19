@@ -84,6 +84,7 @@ export function buildPage(id: string, layers: Layer[] = [], overrides: Partial<P
     id: PageIdSchema.parse(id),
     size: { width: 100, height: 100 },
     unit: "px",
+    grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
     layers,
     metadata: { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW },
     pluginData: {},

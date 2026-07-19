@@ -19,6 +19,8 @@ function fakeActions(): KeyboardShortcutActions {
     nudge: vi.fn(),
     bringForward: vi.fn(),
     sendBackward: vi.fn(),
+    toggleGrid: vi.fn(),
+    toggleRulers: vi.fn(),
   };
 }
 
@@ -44,6 +46,23 @@ describe("mountKeyboardShortcuts", () => {
     expect(actions.selectTool).toHaveBeenCalledOnce();
     expect(actions.textTool).toHaveBeenCalledOnce();
     expect(actions.imageTool).toHaveBeenCalledOnce();
+  });
+
+  it("G (sin Ctrl/Cmd) alterna Grid; R alterna Rulers (Epic 7 / Fase 7.3)", () => {
+    mountKeyboardShortcuts(actions);
+    press({ key: "g" });
+    press({ key: "R" }); // mayúscula también funciona
+
+    expect(actions.toggleGrid).toHaveBeenCalledOnce();
+    expect(actions.toggleRulers).toHaveBeenCalledOnce();
+  });
+
+  it("Ctrl/Cmd+G sigue agrupando (no choca con el atajo de Grid sin modificador)", () => {
+    mountKeyboardShortcuts(actions);
+    press({ key: "g", ctrlKey: true });
+
+    expect(actions.groupSelected).toHaveBeenCalledOnce();
+    expect(actions.toggleGrid).not.toHaveBeenCalled();
   });
 
   it("Delete y Backspace llaman a deleteSelected", () => {

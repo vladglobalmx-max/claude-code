@@ -23,6 +23,7 @@ export type EngineErrorCode =
   | "invalid_text_style"
   | "invalid_group"
   | "invalid_reorder"
+  | "invalid_grid"
   | "asset_not_found"
   | "duplicate_asset_id"
   | "cannot_remove_last_page"

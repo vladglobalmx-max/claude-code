@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.10.0] — Epic 7 / Fase 7.3: Assisted Placement
+
+### Agregado
+- `assistedPlacement.ts` (nuevo): Grid visual (CSS, `.grid-overlay`, detrás del canvas — nunca miles de nodos, el intervalo visual se adapta al zoom sin tocar `grid.size` real), Rulers (dos `<canvas>` DOM, DPR-aware, reflejan `page.unit`/zoom/scroll nativo del viewport), indicador de posición del puntero (`aria-hidden`, throttled vía `requestAnimationFrame`, sin `aria-live`), y controles de Grid/Snap (junto al zoom, no en el Inspector).
+- Smart Guides + Snapping durante drag/resize: reutiliza `computeSnap` (`@impulso/engine` 0.9.0) y el `guidesLayer` (`@impulso/renderer-konva` 0.8.0) — snap a página/objects/grid con tolerancia normalizada por zoom, hysteresis contra jitter, Ctrl/Cmd para desactivar temporalmente.
+- `updatePageGrid` expuesto en la UI: botones "Grid"/"Snap" y campo de tamaño (dispatcha en `change`, no por tecla) — un comando por intención de usuario, nunca uno por tick.
+- Atajos nuevos "G" (mostrar/ocultar Grid) y "R" (mostrar/ocultar Rulers), sin modificador — verificados sin conflicto con ningún atajo existente.
+- Token visual `--impulso-snap-guide-color`/`--impulso-grid-line-color` (`index.html`) — primer sistema de tokens CSS del proyecto.
+- 323 tests en total (24 nuevos en `assistedPlacement.test.ts` + ajustes en `shell.test.ts`/`app.test.ts` por el nuevo `.grid-overlay`), cobertura mantenida (98.73% statements). 4 tests de Chromium/Playwright nuevos (`e2e/assisted-placement.spec.ts`): Grid/Snap toggle, Rulers, indicador de puntero, y un drag real con snap verificado por muestreo de píxeles.
+- UX Audit 0004 (`docs/ux-audits/0004-assisted-placement-fase-7-3.md`).
+
+### Fuera de alcance (deliberado, ver ADR-0016 e instrucción de la épica)
+Selección múltiple profesional, resize/rotate de una selección conjunta, guías manuales arrastrables, márgenes, columnas, layouts automáticos, constraints — quedan para Fase 7.4 o fases futuras de Assisted Placement. Snapping de resize no cubre objects rotados ni Ellipse (ver Technical Debt/ADR-0016).
+
 ## [0.9.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
 
 ### Agregado

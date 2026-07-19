@@ -54,6 +54,7 @@ function buildProject(): Project {
           id: PageIdSchema.parse("page_1"),
           size: { width: 100, height: 100 },
           unit: "px",
+          grid: { visible: false, snapEnabled: false, size: 10, type: "lines" },
           layers: [{ id: LayerIdSchema.parse("layer_1"), objects: [buildRect("rect_1")], metadata, pluginData: {}, customProperties: {} }],
           metadata,
           pluginData: {},

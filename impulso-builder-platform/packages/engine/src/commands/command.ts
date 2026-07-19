@@ -14,6 +14,7 @@ import {
   MetadataSchema,
   PointSchema,
   TextAlignSchema,
+  GridConfigSchema,
 } from "@impulso/document-schema";
 import { EntityRefSchema } from "./entityRef.js";
 import { RESIZE_HANDLES } from "../geometry/resizeMath.js";
@@ -32,6 +33,17 @@ export const ContentCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("addPage"), page: PageSchema, index: z.number().int().nonnegative().optional() }),
   z.object({ type: z.literal("removePage"), pageId: PageIdSchema }),
   z.object({ type: z.literal("reorderPages"), pageIds: z.array(PageIdSchema) }),
+  /**
+   * Configuración de Grid por Page (Epic 7 / Fase 7.3 — Assisted
+   * Placement). Separado de `updateMetadata` porque `grid` no es parte de
+   * `Metadata` — es un campo propio de `Page`, mismo criterio que
+   * `updateTextStyle` está separado de `updateObjectStyle`.
+   */
+  z.object({
+    type: z.literal("updatePageGrid"),
+    pageId: PageIdSchema,
+    grid: GridConfigSchema.partial(),
+  }),
 
   z.object({
     type: z.literal("addLayer"),

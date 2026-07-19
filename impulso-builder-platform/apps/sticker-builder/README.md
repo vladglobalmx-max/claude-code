@@ -34,11 +34,13 @@ apps/sticker-builder/
     ├── zoom.ts                     # zoom vía CSS transform: presets, Ajustar a pantalla, rueda + Ctrl/Cmd
     ├── layersPanel.ts              # Sidebar izquierda (tab Capas): reordenar, expandir/colapsar, renombrar, ocultar, bloquear
     ├── inspector.ts                # Sidebar derecha: Transformar/Apariencia/Texto/Metadata según la selección
+    ├── alignment.ts                # sección "Alineación" del Inspector + controller (dispatchBatch), Fase 7.2
+    ├── assistedPlacement.ts        # Grid visual, Rulers, indicador de puntero, controles Grid/Snap, Fase 7.3
     ├── keyboardShortcuts.ts        # mapa de atajos -> acciones, desacoplado del Engine
     └── testing/
         └── fakeCanvasContext.ts    # stub de canvas 2D para tests (jsdom no implementa uno real)
 
-    (202 tests, ~99.2%/94%/95%/~99.2% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
+    (323 tests, 98.73%/92.08%/93.03%/98.73% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
 ```
 
 ## 3. Decisiones clave (ver ADR-0010/ADR-0011/ADR-0012 para el detalle completo)

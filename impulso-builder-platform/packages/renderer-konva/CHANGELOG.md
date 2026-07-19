@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.8.0] — Epic 7 / Fase 7.3: Assisted Placement
+
+### Agregado
+- `manipulation/smartGuides.ts` (nuevo): puente Konva ↔ `computeSnap` (`@impulso/engine` 0.9.0) — `beginSnapGesture`/`updateSnapGesture`/`endSnapGesture`. Dibuja Smart Guides en un tercer `Konva.Layer` (`guidesLayer`, siempre `listening: false`), entre `mainLayer` y `selectionLayer`.
+- `transformInteractions.ts` (move) gana `dragmove` por primera vez — snapping en vivo siguiendo el mismo patrón preview/commit que `handles.ts` ya usaba desde Editor Epic 1.
+- `handles.ts` (resize) gana snapping — restringido a objects sin rotación y que no sean `Ellipse` (`canSnapDuringResize`); el preview snapeado se invierte a un `pointerDelta` equivalente antes de `dragend`, para que preview y commit nunca diverjan. Shift (mantener proporción) desactiva el snap ese frame.
+- Ctrl/Cmd desactiva todo snapping mientras se mantiene presionado (move y resize), sin conflicto con ningún atajo existente.
+- `KonvaRendererOptions.getZoom` (nuevo, opcional): normaliza la tolerancia de snap por el zoom CSS actual — `() => 1` por defecto.
+- Token visual `--impulso-snap-guide-color` (leído vía `getComputedStyle`, con fallback propio) — primer color de este paquete que no está hardcodeado.
+- Adición pura a la API pública existente — no requiere ADR de cambio de API (regla de Stable Public API); el razonamiento de diseño completo vive en ADR-0016.
+- 24 tests nuevos (173 en total): `manipulation/smartGuides.test.ts` (11), snapping en `interactions/transformInteractions.test.ts` (6) y `manipulation/handles.test.ts` (7). Sin dependencias circulares (verificado con `madge`).
+
 ## [0.7.0] — Epic 7 / Fase 7.2: Batch Operations + Alignment
 
 ### Agregado

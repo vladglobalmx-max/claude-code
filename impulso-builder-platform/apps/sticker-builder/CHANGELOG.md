@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.7.0] — Epic 5: Project Library / Workspace
+
+### Agregado
+- App Workspace-first (`shell.ts`, nuevo): la app aterriza en "Mis proyectos" (`workspace.ts`, nuevo) — el editor (`app.ts`) se monta solo al abrir un proyecto existente o crear uno (Template o Personalizado). "Mis proyectos" reemplaza al botón "Abrir"; Ctrl/Cmd+O ahora navega a la Workspace en vez de cargar el slot único legado.
+- Workspace: grilla de proyectos con miniatura, nombre editable inline, "Editado [fecha]", Abrir/"Duplicar proyecto"/Eliminar (con confirmación), ordenados por última edición. "Nuevo proyecto" reutiliza la galería de Templates existente.
+- Se apoya en `@impulso/project-library` (paquete nuevo, ver ADR-0014): `ProjectStore` (IndexedDB + memoria, contract-tested), `duplicateProject`.
+- Migración transparente de una sola vez (`workspaceMigration.ts`, nuevo) del slot único legado de `localStorage` hacia el `ProjectStore` nuevo, incorporando la migración de imágenes embebidas (Epic 2) de paso.
+- "Guardar" ahora persiste en `ProjectStore` con un thumbnail (reutilizando `createThumbnailGenerator`, Epic 4) — un fallo generando la miniatura nunca bloquea el guardado del proyecto en sí.
+- `persistence.ts`: `saveProjectLocally` eliminado (sin llamadores tras esta épica).
+- 253 tests en total (20 archivos), cobertura agregada 98.7%/92.83%/93.01%/98.7%.
+
+### Fuera de alcance (deliberado)
+Sin autosave, sin búsqueda/carpetas/colecciones en la Workspace, sin papelera de reciclaje, sin deduplicación de binarios de Asset al duplicar un proyecto — ver ADR-0014.
+
 ## [0.6.0] — Epic 4: Templates Foundation
 
 ### Agregado

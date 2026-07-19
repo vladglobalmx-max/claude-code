@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ObjectIdSchema,
-  AssetIdSchema,
   PageIdSchema,
   DocumentIdSchema,
   LayerIdSchema,
@@ -10,8 +9,8 @@ import {
   type Project,
   type SceneObject,
 } from "@impulso/document-schema";
-import { createMemoryAssetStore } from "@impulso/asset-library";
 import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template-library";
+import { createMemoryProjectStore } from "@impulso/project-library";
 import { mountApp, moveIndexBy, type AppElements } from "./app.js";
 import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
 import { createProjectFromSize } from "./projectPresets.js";
@@ -33,21 +32,6 @@ async function preSeedBuiltIns(store: TemplateStore, now: string): Promise<void>
 
 const NOW = "2026-07-18T00:00:00.000Z";
 const metadata = { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW };
-
-class FakeImage {
-  onload: (() => void) | null = null;
-  onerror: (() => void) | null = null;
-  naturalWidth = 20;
-  naturalHeight = 20;
-  private _src = "";
-  get src() {
-    return this._src;
-  }
-  set src(value: string) {
-    this._src = value;
-    queueMicrotask(() => this.onload?.());
-  }
-}
 
 function buildRect(id: string, overrides: Partial<SceneObject> = {}): SceneObject {
   return {
@@ -145,7 +129,7 @@ function buildElements(): AppElements {
     undoButton: button(),
     redoButton: button(),
     saveButton: button(),
-    openButton: button(),
+    backToWorkspaceButton: button(),
     exportButton: button(),
     saveAsTemplateButton: button(),
     duplicateButton: button(),
@@ -159,28 +143,6 @@ function buildElements(): AppElements {
 function idGeneratorFrom(ids: string[]): () => string {
   let index = 0;
   return () => ids[index++]!;
-}
-
-class FakeStorage implements Storage {
-  private store = new Map<string, string>();
-  get length() {
-    return this.store.size;
-  }
-  clear(): void {
-    this.store.clear();
-  }
-  getItem(key: string): string | null {
-    return this.store.get(key) ?? null;
-  }
-  key(index: number): string | null {
-    return Array.from(this.store.keys())[index] ?? null;
-  }
-  removeItem(key: string): void {
-    this.store.delete(key);
-  }
-  setItem(key: string, value: string): void {
-    this.store.set(key, value);
-  }
 }
 
 function ids(...values: string[]) {
@@ -269,80 +231,58 @@ describe("mountApp", () => {
     expect(elements.statusElement.textContent).toBe("No hay nada para rehacer.");
   });
 
-  it("Guardar/Abrir persisten y restauran el Project vía Storage", async () => {
-    const storage = new FakeStorage();
-    const app = mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
-
-    elements.saveButton.click();
-    expect(elements.statusElement.textContent).toBe("Documento guardado localmente.");
-
-    app.getRuntime().engine.dispatch({ type: "removeObject", objectId: ObjectIdSchema.parse("a") });
-    expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(0);
-
-    elements.openButton.click();
-    await vi.waitFor(() => {
-      expect(elements.statusElement.textContent).toBe("Documento cargado.");
-    });
-    expect(app.getRuntime().engine.getProject().document.pages[0]?.layers[0]?.objects).toHaveLength(1);
-  });
-
-  it("Abrir sin ningún documento guardado muestra un status informativo", async () => {
-    const storage = new FakeStorage();
-    mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
-
-    elements.openButton.click();
-    await vi.waitFor(() => {
-      expect(elements.statusElement.textContent).toBe("No hay ningún documento guardado todavía.");
-    });
-  });
-
-  it("Abrir un documento corrupto muestra el error sin lanzar", async () => {
-    const storage = new FakeStorage();
-    storage.setItem("impulso:sticker-builder:project", "{ esto no es JSON válido");
-    mountApp({ elements, keyboardTarget, storage, initialProject: buildProject([buildRect("a")]), now: () => NOW });
-
-    elements.openButton.click();
-    await vi.waitFor(() => {
-      expect(elements.statusElement.textContent).toMatch(/No se pudo abrir/);
-    });
-  });
-
-  it("Abrir un documento guardado con imágenes legacy (formato embebido de EPIC 1) las migra a la Biblioteca de Assets y vuelve a guardar", async () => {
-    vi.stubGlobal("Image", FakeImage);
-    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:mock"), revokeObjectURL: vi.fn() });
-    const storage = new FakeStorage();
-    const legacyDataUrl = `data:image/png;base64,${btoa("contenido")}`;
-    const legacyImage: SceneObject = {
-      id: ObjectIdSchema.parse("img_1"),
-      type: "image",
-      assetId: AssetIdSchema.parse("asset_legacy"),
-      transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
-      size: { width: 20, height: 20 },
-      style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
-      metadata,
-      pluginData: {},
-      customProperties: { impulsoImageDataUrl: legacyDataUrl },
-    } as SceneObject;
-    storage.setItem(
-      "impulso:sticker-builder:project",
-      JSON.stringify(buildProject([legacyImage])),
-    );
-    mountApp({
+  it("Guardar persiste el Project en el ProjectStore con un thumbnail (ver ADR-0014)", async () => {
+    const projectStore = createMemoryProjectStore();
+    const generateThumbnail = vi.fn().mockResolvedValue(new Blob(["png"], { type: "image/png" }));
+    const app = mountApp({
       elements,
       keyboardTarget,
-      storage,
-      binaryStore: createMemoryAssetStore(),
-      initialProject: buildProject([]),
+      projectStore,
+      generateThumbnail,
+      initialProject: buildProject([buildRect("a")]),
       now: () => NOW,
     });
 
-    elements.openButton.click();
+    elements.saveButton.click();
     await vi.waitFor(() => {
-      expect(elements.statusElement.textContent).toMatch(/se migraron 1 imagen/);
+      expect(elements.statusElement.textContent).toBe("Documento guardado.");
     });
 
-    const resaved = JSON.parse(storage.getItem("impulso:sticker-builder:project")!);
-    expect(resaved.document.assets).toHaveLength(1);
+    const projectId = app.getRuntime().engine.getProject().id;
+    expect(await projectStore.getProject(projectId)).toEqual(app.getRuntime().engine.getProject());
+    expect((await projectStore.getDescriptor(projectId))?.thumbnail?.type).toBe("image/png");
+  });
+
+  it("un fallo generando el thumbnail no bloquea el guardado del Project", async () => {
+    const projectStore = createMemoryProjectStore();
+    const generateThumbnail = vi.fn().mockRejectedValue(new Error("fallo de rasterización"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const app = mountApp({
+      elements,
+      keyboardTarget,
+      projectStore,
+      generateThumbnail,
+      initialProject: buildProject([buildRect("a")]),
+      now: () => NOW,
+    });
+
+    elements.saveButton.click();
+    await vi.waitFor(() => {
+      expect(elements.statusElement.textContent).toBe("Documento guardado.");
+    });
+
+    const projectId = app.getRuntime().engine.getProject().id;
+    expect(await projectStore.getProject(projectId)).toBeDefined();
+    consoleError.mockRestore();
+  });
+
+  it("el botón 'Mis proyectos' llama a onBackToWorkspace", () => {
+    const onBackToWorkspace = vi.fn();
+    mountApp({ elements, keyboardTarget, onBackToWorkspace, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+
+    elements.backToWorkspaceButton.click();
+
+    expect(onBackToWorkspace).toHaveBeenCalledOnce();
   });
 
   it("el botón 'Nuevo' abre el diálogo, y crear (Personalizado) reemplaza el Project actual", async () => {
@@ -560,19 +500,23 @@ describe("mountApp", () => {
       ]);
     });
 
-    it("Ctrl/Cmd+Z / Shift+Z deshacen/rehacen; Ctrl/Cmd+S guarda; Delete elimina; Ctrl/Cmd+D duplica; Ctrl/Cmd+G/Shift+G agrupan/desagrupan", () => {
-      const storage = new FakeStorage();
+    it("Ctrl/Cmd+Z / Shift+Z deshacen/rehacen; Ctrl/Cmd+S guarda; Delete elimina; Ctrl/Cmd+D duplica; Ctrl/Cmd+G/Shift+G agrupan/desagrupan; Ctrl/Cmd+O navega a la Workspace", async () => {
+      const onBackToWorkspace = vi.fn();
       const app = mountApp({
         elements,
         keyboardTarget,
-        storage,
+        onBackToWorkspace,
+        projectStore: createMemoryProjectStore(),
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
         initialProject: buildProject([buildRect("a"), buildRect("b")]),
         now: () => NOW,
         generateId: idGeneratorFrom(["dup1", "group1"]),
       });
 
       keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
-      expect(elements.statusElement.textContent).toBe("Documento guardado localmente.");
+      await vi.waitFor(() => {
+        expect(elements.statusElement.textContent).toBe("Documento guardado.");
+      });
 
       app.getRuntime().engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
       keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "d", ctrlKey: true }));
@@ -599,6 +543,7 @@ describe("mountApp", () => {
       keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete" }));
 
       keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "o", ctrlKey: true }));
+      expect(onBackToWorkspace).toHaveBeenCalledOnce();
     });
   });
 

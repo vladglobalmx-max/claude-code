@@ -1,20 +1,15 @@
-import { serializeProject, deserializeProject, type Project } from "@impulso/document-schema";
+import { deserializeProject, type Project } from "@impulso/document-schema";
 
 /**
- * Persistence local (Milestone 1 — Impulso Alpha). Ver
- * `docs/adr/0009-local-persistence-alpha.md` para el razonamiento completo:
- * por qué vive aquí (app), no en `@impulso/engine` ni en un paquete nuevo,
- * y por qué `localStorage` (un solo slot) en vez de IndexedDB/multi-documento.
- *
- * `serializeProject`/`deserializeProject` (Foundation 1) ya hacen todo el
- * trabajo real — validación Zod y migración de `schemaVersion` incluidas.
- * Este módulo solo los conecta con el Storage del navegador.
+ * Slot único legado de `localStorage` (Milestone 1 — Impulso Alpha, ver
+ * ADR-0009). Desde Epic 5 (Project Library / Workspace, ver ADR-0014) la
+ * app ya no guarda nada aquí — `@impulso/project-library` reemplaza este
+ * mecanismo por completo. Este módulo sobrevive únicamente como la fuente
+ * de la migración transparente y de una sola vez hacia el `ProjectStore`
+ * nuevo (`workspaceMigration.ts`): de ahí que solo exponga lectura/borrado,
+ * nunca escritura — nada vuelve a escribir en este slot.
  */
 const STORAGE_KEY = "impulso:sticker-builder:project";
-
-export function saveProjectLocally(project: Project, storage: Storage = localStorage): void {
-  storage.setItem(STORAGE_KEY, serializeProject(project));
-}
 
 export function hasLocalProject(storage: Storage = localStorage): boolean {
   return storage.getItem(STORAGE_KEY) !== null;

@@ -14,6 +14,116 @@
         font-size: 14px;
         color: #1c1917;
       }
+      /* Workspace ("Mis proyectos") — pantalla de aterrizaje, ver ADR-0014 */
+      #workspace-screen {
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+      #workspace-container {
+        height: 100%;
+      }
+      .workspace-screen {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+        box-sizing: border-box;
+      }
+      .workspace-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .workspace-header h1 {
+        font-size: 1.4em;
+        margin: 0;
+      }
+      .workspace-new-btn {
+        font: inherit;
+        padding: 8px 16px;
+        cursor: pointer;
+        border: none;
+        background: #1c1917;
+        color: #ffffff;
+        border-radius: 6px;
+      }
+      .workspace-error {
+        color: #b91c1c;
+      }
+      .workspace-empty {
+        color: #57534e;
+      }
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .workspace-card {
+        border: 1px solid #d6d3d1;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .workspace-card-thumbnail {
+        width: 100%;
+        height: 140px;
+        object-fit: contain;
+        background: #f5f5f4;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .workspace-card-name-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .workspace-card-name {
+        font-weight: 600;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      .workspace-card-name-input {
+        font: inherit;
+        font-weight: 600;
+        flex: 1;
+        min-width: 0;
+      }
+      .workspace-card-rename {
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 0.9em;
+        padding: 2px 4px;
+      }
+      .workspace-card-updated {
+        font-size: 0.8em;
+        color: #78716c;
+      }
+      .workspace-card-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: auto;
+      }
+      .workspace-card-actions button {
+        font: inherit;
+        font-size: 0.85em;
+        padding: 4px 8px;
+        cursor: pointer;
+        border: 1px solid #d6d3d1;
+        background: #f5f5f4;
+        border-radius: 4px;
+      }
+      .workspace-card-delete {
+        color: #b91c1c;
+      }
+
       #app {
         display: grid;
         grid-template-rows: auto auto 1fr;
@@ -494,47 +604,52 @@
     </style>
   </head>
   <body>
-    <div id="app">
-      <div id="top-bar">
-        <button id="new-btn" type="button">Nuevo</button>
-        <span class="divider"></span>
-        <button id="undo-btn" type="button">Deshacer</button>
-        <button id="redo-btn" type="button">Rehacer</button>
-        <span class="divider"></span>
-        <button id="save-btn" type="button">Guardar</button>
-        <button id="open-btn" type="button">Abrir</button>
-        <span class="divider"></span>
-        <button id="export-btn" type="button">Exportar</button>
-        <button id="save-as-template-btn" type="button">Guardar como plantilla</button>
-        <span class="divider"></span>
-        <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
-        <button id="delete-btn" type="button" title="Eliminar (Supr)">Eliminar</button>
-        <button id="group-btn" type="button" title="Agrupar (Ctrl/Cmd+G)">Agrupar</button>
-        <button id="ungroup-btn" type="button" title="Desagrupar (Ctrl/Cmd+Shift+G)">Desagrupar</button>
-        <span id="toolbar-status"></span>
-      </div>
-      <div id="tools-bar">
-        <div id="tools-container"></div>
-        <div id="zoom-container"></div>
-      </div>
-      <div id="body">
-        <div id="sidebar-left">
-          <div class="sidebar-tabs">
-            <button id="tab-layers" type="button" class="sidebar-tab">Capas</button>
-            <button id="tab-assets" type="button" class="sidebar-tab">Assets</button>
-          </div>
-          <div id="layers-panel"></div>
-          <div id="assets-panel"></div>
-        </div>
-        <div id="canvas-viewport">
-          <div id="canvas-runtime"></div>
-        </div>
-        <div id="inspector-panel"></div>
-      </div>
+    <div id="workspace-screen">
+      <div id="workspace-container"></div>
     </div>
-    <div id="new-project-dialog-root"></div>
-    <div id="export-dialog-root"></div>
-    <div id="save-as-template-dialog-root"></div>
+    <div id="editor-screen" style="display: none">
+      <div id="app">
+        <div id="top-bar">
+          <button id="new-btn" type="button">Nuevo</button>
+          <span class="divider"></span>
+          <button id="undo-btn" type="button">Deshacer</button>
+          <button id="redo-btn" type="button">Rehacer</button>
+          <span class="divider"></span>
+          <button id="save-btn" type="button">Guardar</button>
+          <button id="back-to-workspace-btn" type="button" title="Mis proyectos (Ctrl/Cmd+O)">Mis proyectos</button>
+          <span class="divider"></span>
+          <button id="export-btn" type="button">Exportar</button>
+          <button id="save-as-template-btn" type="button">Guardar como plantilla</button>
+          <span class="divider"></span>
+          <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
+          <button id="delete-btn" type="button" title="Eliminar (Supr)">Eliminar</button>
+          <button id="group-btn" type="button" title="Agrupar (Ctrl/Cmd+G)">Agrupar</button>
+          <button id="ungroup-btn" type="button" title="Desagrupar (Ctrl/Cmd+Shift+G)">Desagrupar</button>
+          <span id="toolbar-status"></span>
+        </div>
+        <div id="tools-bar">
+          <div id="tools-container"></div>
+          <div id="zoom-container"></div>
+        </div>
+        <div id="body">
+          <div id="sidebar-left">
+            <div class="sidebar-tabs">
+              <button id="tab-layers" type="button" class="sidebar-tab">Capas</button>
+              <button id="tab-assets" type="button" class="sidebar-tab">Assets</button>
+            </div>
+            <div id="layers-panel"></div>
+            <div id="assets-panel"></div>
+          </div>
+          <div id="canvas-viewport">
+            <div id="canvas-runtime"></div>
+          </div>
+          <div id="inspector-panel"></div>
+        </div>
+      </div>
+      <div id="new-project-dialog-root"></div>
+      <div id="export-dialog-root"></div>
+      <div id="save-as-template-dialog-root"></div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

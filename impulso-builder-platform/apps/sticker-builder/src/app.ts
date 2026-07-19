@@ -2,14 +2,13 @@ import { ObjectIdSchema, type ObjectId, type Project } from "@impulso/document-s
 import { findObjectInDocument, cloneSceneObjectWithNewIds } from "@impulso/engine";
 import { createIndexedDbAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import { createIndexedDbTemplateStore, type TemplateStore } from "@impulso/template-library";
+import { createIndexedDbProjectStore, type ProjectStore } from "@impulso/project-library";
 import { exportProject, type ExportAssetResolver } from "@impulso/export-engine";
 import type { CanvasRuntime } from "./bootstrap.js";
 import { mountCanvasRuntime } from "./bootstrap.js";
 import { createDemoProject } from "./demoProject.js";
-import { saveProjectLocally, loadProjectLocally } from "./persistence.js";
 import { createResolvedAssetCache, preloadDocumentAssets, type ResolvedAssetCache } from "./assetResolution.js";
-import { migrateLegacyEmbeddedImages } from "./legacyMigration.js";
-import { seedBuiltInTemplates } from "./builtInTemplates.js";
+import { createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
 import { mountLayersPanel, type LayersPanel } from "./layersPanel.js";
 import { mountInspector, type Inspector } from "./inspector.js";
 import { mountAssetsPanel, type AssetsPanel } from "./assetsPanel.js";
@@ -21,13 +20,18 @@ import { mountExportDialog, type ExportDialog } from "./exportDialog.js";
 import { mountSaveAsTemplateDialog, type SaveAsTemplateDialog } from "./saveAsTemplateDialog.js";
 
 const DUPLICATE_OFFSET = 20;
-const MODULE_ID = "sticker-builder";
+/** Qué módulo de Impulso Platform es este — usado para filtrar Templates
+ * (ver ADR-0013) y proyectos de la Workspace (ver ADR-0014). Exportado
+ * para que `shell.ts`/`workspace.ts` lo reutilicen sin duplicarlo. */
+export const MODULE_ID = "sticker-builder";
 
 /** Genera el thumbnail de un Project llamando a `exportProject`
  * (`@impulso/export-engine`) — Templates no depende de Export Engine (ver
  * ADR-0013); esta función es el único puente entre ambos, y vive en la
- * app, no en ninguno de los dos paquetes. */
-function createThumbnailGenerator(resolver: ExportAssetResolver): (project: Project) => Promise<Blob> {
+ * app, no en ninguno de los dos paquetes. Exportada para que
+ * `workspace.ts` construya su propio sembrador de built-in sin duplicar
+ * este puente. */
+export function createThumbnailGenerator(resolver: ExportAssetResolver): (project: Project) => Promise<Blob> {
   return async (project) => {
     const result = await exportProject(project, resolver, { format: "png", scale: 1, background: { type: "solid", color: "#ffffff" } });
     return result.blob;
@@ -55,7 +59,10 @@ export interface AppElements {
   undoButton: HTMLButtonElement;
   redoButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
-  openButton: HTMLButtonElement;
+  /** Reemplaza al antiguo "Abrir" (slot único legado, ver ADR-0009) — navega
+   * de vuelta a la Workspace ("Mis proyectos", ver ADR-0014), desde donde se
+   * elige qué proyecto abrir. */
+  backToWorkspaceButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
   saveAsTemplateButton: HTMLButtonElement;
   duplicateButton: HTMLButtonElement;
@@ -67,8 +74,6 @@ export interface AppElements {
 
 export interface AppDependencies {
   elements: AppElements;
-  /** Inyectable para tests; por defecto `localStorage` real. */
-  storage?: Storage;
   /** Inyectable para tests (ej. `createMemoryAssetStore()` de
    * `@impulso/asset-library`, sin depender de IndexedDB); por defecto
    * `createIndexedDbAssetStore()`. */
@@ -77,6 +82,21 @@ export interface AppDependencies {
    * `@impulso/template-library`, sin depender de IndexedDB); por defecto
    * `createIndexedDbTemplateStore()`. */
   templateStore?: TemplateStore;
+  /** Inyectable para tests (ej. `createMemoryProjectStore()` de
+   * `@impulso/project-library`, sin depender de IndexedDB); por defecto
+   * `createIndexedDbProjectStore()`. "Guardar" persiste aquí (ver ADR-0014) —
+   * ya no en el slot único legado de `localStorage`. */
+  projectStore?: ProjectStore;
+  /** Genera el thumbnail que "Guardar" y "Guardar como plantilla" adjuntan
+   * al proyecto — inyectable para evitar la rasterización real de Konva en
+   * tests (jsdom no implementa `HTMLCanvasElement.toBlob`); por defecto
+   * `createThumbnailGenerator(...)` sobre `@impulso/export-engine`. */
+  generateThumbnail?: (project: Project) => Promise<Blob>;
+  /** Se llama al hacer clic en "Mis proyectos" o presionar Ctrl/Cmd+O — la
+   * shell decide qué hacer (destruir esta instancia y volver a mostrar la
+   * Workspace, ver `shell.ts`). Sin valor por defecto: en un `mountApp()`
+   * de test que no lo inyecta, simplemente no navega a ningún lado. */
+  onBackToWorkspace?: () => void;
   /** Dónde escuchan los atajos de teclado (ver `keyboardShortcuts.ts`); por
    * defecto `window`. Inyectable en tests para que instancias de `App`
    * montadas en tests distintos no compartan el mismo listener global. */
@@ -107,21 +127,26 @@ export function moveIndexBy(ids: readonly ObjectId[], id: ObjectId, delta: numbe
 }
 
 /**
- * Orquestador central de la Sticker Creation Experience: cablea el
+ * Orquestador del editor (la pantalla que se muestra DESPUÉS de elegir un
+ * proyecto en la Workspace, ver `shell.ts`/ADR-0014): cablea el
  * `CanvasRuntime` (bootstrap.ts) con el panel de capas, el Inspector, el
  * zoom, las herramientas Texto/Imagen, los atajos de teclado y el diálogo
  * de proyecto nuevo — sin que ninguno de ellos conozca a los demás
- * directamente. Reemplaza a `toolbar.ts` (Milestone 1): mismo patrón de
- * "Nuevo"/"Abrir" (destruir el runtime completo y montar uno nuevo, ver
- * ADR-0009), extendido con precarga de imágenes embebidas antes de volver
- * a montar. Ver ADR-0010.
+ * directamente. "Nuevo" (dentro del editor) sigue destruyendo el runtime y
+ * montando uno nuevo con `remount` (mismo patrón desde ADR-0009); "Mis
+ * proyectos" no remonta nada aquí — delega en `deps.onBackToWorkspace`, que
+ * la shell resuelve destruyendo esta instancia completa (`App.destroy()`)
+ * y volviendo a mostrar la Workspace. Ver ADR-0010 (Sticker Creation
+ * Experience) y ADR-0014 (Project Library / Workspace).
  */
 export function mountApp(deps: AppDependencies): App {
-  const { elements, storage } = deps;
+  const { elements } = deps;
   const now = deps.now ?? (() => new Date().toISOString());
   const generateId = deps.generateId ?? (() => crypto.randomUUID());
   const binaryStore = deps.binaryStore ?? createIndexedDbAssetStore();
   const templateStore = deps.templateStore ?? createIndexedDbTemplateStore();
+  const projectStore = deps.projectStore ?? createIndexedDbProjectStore();
+  const generateThumbnail = deps.generateThumbnail ?? createThumbnailGenerator({ resolve: (assetId) => binaryStore.get(assetId) });
   const resolvedCache: ResolvedAssetCache = createResolvedAssetCache();
 
   // Sembrado perezoso (recién al primer "Nuevo" real, ver el listener de
@@ -129,16 +154,13 @@ export function mountApp(deps: AppDependencies): App {
   // store por defecto es real IndexedDB: tocarlo incondicionalmente en
   // cada `mountApp()` rompería cualquier test que no inyecte un
   // `templateStore` en memoria (jsdom no implementa `indexedDB` en
-  // absoluto). Ver ADR-0013.
-  let builtInTemplatesSeeded = false;
-  async function ensureBuiltInTemplatesSeeded(): Promise<void> {
-    if (builtInTemplatesSeeded) return;
-    builtInTemplatesSeeded = true;
-    await seedBuiltInTemplates(templateStore, {
-      now: now(),
-      generateThumbnail: createThumbnailGenerator({ resolve: () => Promise.resolve(undefined) }),
-    });
-  }
+  // absoluto). Ver ADR-0013. `workspace.ts` tiene su propia instancia del
+  // mismo seeder para su propio botón "Nuevo proyecto" (ver ADR-0014) —
+  // inofensivo: `seedBuiltInTemplates` es idempotente por id de catálogo.
+  const builtInTemplatesSeeder = createLazyBuiltInTemplateSeeder(templateStore, {
+    now,
+    generateThumbnail: createThumbnailGenerator({ resolve: () => Promise.resolve(undefined) }),
+  });
 
   let runtime: CanvasRuntime = mountCanvasRuntime(elements.canvasContainer, deps.initialProject ?? createDemoProject(), {
     resolveAssetSource: resolvedCache.resolve,
@@ -209,30 +231,24 @@ export function mountApp(deps: AppDependencies): App {
     zoomController.setZoom(1);
   }
 
-  function doSave(): void {
-    saveProjectLocally(runtime.engine.getProject(), storage);
-    setStatus("Documento guardado localmente.");
-  }
-
-  async function doOpen(): Promise<void> {
-    let loaded: Project | null;
+  /** Persiste en `projectStore` (Workspace, ver ADR-0014) con un thumbnail
+   * fresco. Un fallo generando el thumbnail NUNCA bloquea el guardado del
+   * proyecto en sí — lo importante (el propio Project) igual se guarda,
+   * conservando el thumbnail anterior (`ProjectStore.save` es "sticky": ver
+   * `@impulso/project-library`). */
+  async function doSave(): Promise<void> {
+    const project = runtime.engine.getProject();
+    let thumbnail: Blob | undefined;
     try {
-      loaded = loadProjectLocally(storage);
+      thumbnail = await generateThumbnail(project);
     } catch (error) {
-      setStatus(`No se pudo abrir el documento guardado: ${(error as Error).message}`);
-      return;
+      console.error("No se pudo generar la miniatura al guardar:", error);
     }
-    if (!loaded) {
-      setStatus("No hay ningún documento guardado todavía.");
-      return;
-    }
-    const { project: migrated, migratedCount } = await migrateLegacyEmbeddedImages(loaded, binaryStore, { now: now() });
-    await remount(migrated);
-    if (migratedCount > 0) {
-      saveProjectLocally(migrated, storage);
-      setStatus(`Documento cargado (se migraron ${migratedCount} imagen(es) a la Biblioteca de Assets).`);
-    } else {
-      setStatus("Documento cargado.");
+    try {
+      await projectStore.save(project, thumbnail);
+      setStatus("Documento guardado.");
+    } catch (error) {
+      setStatus(`No se pudo guardar: ${(error as Error).message}`);
     }
   }
 
@@ -377,22 +393,16 @@ export function mountApp(deps: AppDependencies): App {
     getProject: () => runtime.engine.getProject(),
     templateStore,
     moduleId: MODULE_ID,
-    generateThumbnail: createThumbnailGenerator({ resolve: (assetId) => binaryStore.get(assetId) }),
+    generateThumbnail,
     now,
     generateId,
     onSaved: () => setStatus("Plantilla guardada."),
   });
 
   elements.newButton.addEventListener("click", () => {
-    // Si sembrar los built-in falla (cuota agotada, un fallo real de
-    // rasterización), el diálogo igual debe abrir — el usuario siempre
-    // puede seguir creando un proyecto "Personalizado" aunque la galería
-    // de Templates incorporados no se haya podido preparar esta sesión.
-    void ensureBuiltInTemplatesSeeded()
-      .catch((error: unknown) => {
-        console.error("No se pudieron sembrar los Templates incorporados:", error);
-      })
-      .then(() => newProjectDialog.open());
+    // `ensureSeeded()` nunca lanza (ver `createLazyBuiltInTemplateSeeder`)
+    // — el diálogo siempre abre, aunque sembrar los built-in haya fallado.
+    void builtInTemplatesSeeder.ensureSeeded().then(() => newProjectDialog.open());
   });
   elements.exportButton.addEventListener("click", () => exportDialog.open());
   elements.saveAsTemplateButton.addEventListener("click", () => saveAsTemplateDialog.open());
@@ -404,8 +414,8 @@ export function mountApp(deps: AppDependencies): App {
     const result = runtime.engine.redo();
     setStatus(result.ok ? "Rehecho." : "No hay nada para rehacer.");
   });
-  elements.saveButton.addEventListener("click", doSave);
-  elements.openButton.addEventListener("click", () => void doOpen());
+  elements.saveButton.addEventListener("click", () => void doSave());
+  elements.backToWorkspaceButton.addEventListener("click", () => deps.onBackToWorkspace?.());
   elements.duplicateButton.addEventListener("click", duplicateSelected);
   elements.deleteButton.addEventListener("click", deleteSelected);
   elements.groupButton.addEventListener("click", groupSelected);
@@ -431,8 +441,8 @@ export function mountApp(deps: AppDependencies): App {
       const result = runtime.engine.redo();
       setStatus(result.ok ? "Rehecho." : "No hay nada para rehacer.");
     },
-    save: doSave,
-    open: () => void doOpen(),
+    save: () => void doSave(),
+    goToWorkspace: () => deps.onBackToWorkspace?.(),
     selectAll,
     escape,
     nudge,

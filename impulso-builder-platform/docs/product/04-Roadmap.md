@@ -22,7 +22,7 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) para el detalle complet
 
 - **Interfaz de edición real**: Toolbar y Sidebar/Inspector con diseño (no botones HTML sin estilo) — panel de propiedades (color, opacidad, tipografía), lista de capas. Primer uso real que justificaría empezar el pilar **Design System** (ver [`03-Architecture-Map.md`](03-Architecture-Map.md)).
 - ~~**Asset Library, primera versión**: subir/gestionar imágenes propias, en vez de solo el contenido de demostración~~ — construida antes de lo previsto, en Epic 2 (`packages/asset-library`), ver [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md).
-- **Múltiples documentos**: reemplazar el slot único de `localStorage` (Alpha) por una gestión real de varios proyectos guardados localmente (IndexedDB), con lista, nombres y miniaturas.
+- ~~**Múltiples documentos**: reemplazar el slot único de `localStorage` (Alpha) por una gestión real de varios proyectos guardados localmente (IndexedDB), con lista, nombres y miniaturas~~ — construida antes de lo previsto, en Epic 5 (`packages/project-library`, Workspace), ver [`../adr/0014-project-library-workspace.md`](../adr/0014-project-library-workspace.md).
 - **Especificación de producto para Sticker Builder**: tamaño físico, forma, sangrado y material del sticker — lo que hoy solo existe como concepto en `../ARCHITECTURE.md`.
 - ~~**Export Engine, primera versión**: PNG y SVG como mínimo~~ — construida antes de lo previsto, en Epic 3 (`packages/export-engine`), ver [`../adr/0012-export-engine.md`](../adr/0012-export-engine.md).
 - **Zoom y Pan** — hoy el canvas se corta si el documento excede el tamaño de la ventana; sin esto, un documento de tamaño real no es utilizable.

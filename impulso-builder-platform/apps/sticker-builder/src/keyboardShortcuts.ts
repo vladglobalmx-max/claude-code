@@ -16,7 +16,10 @@ export interface KeyboardShortcutActions {
   undo(): void;
   redo(): void;
   save(): void;
-  open(): void;
+  /** Ctrl/Cmd+O ahora navega a la Workspace ("Mis proyectos") en vez de
+   * cargar el slot único legado de `localStorage` (ver ADR-0014) — abrir
+   * un proyecto distinto siempre pasa primero por elegir cuál. */
+  goToWorkspace(): void;
   selectAll(): void;
   escape(): void;
   nudge(dx: number, dy: number): void;
@@ -110,7 +113,7 @@ export function mountKeyboardShortcuts(
     }
     if (meta && lower === "o") {
       keyboardEvent.preventDefault();
-      actions.open();
+      actions.goToWorkspace();
       return;
     }
     if (meta && lower === "a") {

@@ -13,7 +13,7 @@ function fakeActions(): KeyboardShortcutActions {
     undo: vi.fn(),
     redo: vi.fn(),
     save: vi.fn(),
-    open: vi.fn(),
+    goToWorkspace: vi.fn(),
     selectAll: vi.fn(),
     escape: vi.fn(),
     nudge: vi.fn(),
@@ -82,12 +82,12 @@ describe("mountKeyboardShortcuts", () => {
     expect(actions.undo).toHaveBeenCalledOnce();
   });
 
-  it("Ctrl/Cmd+S guarda; Ctrl/Cmd+O abre", () => {
+  it("Ctrl/Cmd+S guarda; Ctrl/Cmd+O navega a la Workspace", () => {
     mountKeyboardShortcuts(actions);
     press({ key: "s", ctrlKey: true });
     press({ key: "o", metaKey: true });
     expect(actions.save).toHaveBeenCalledOnce();
-    expect(actions.open).toHaveBeenCalledOnce();
+    expect(actions.goToWorkspace).toHaveBeenCalledOnce();
   });
 
   it("Ctrl/Cmd+A selecciona todo", () => {

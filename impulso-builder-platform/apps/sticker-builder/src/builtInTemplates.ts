@@ -77,3 +77,38 @@ export async function seedBuiltInTemplates(store: TemplateStore, options: SeedBu
     );
   }
 }
+
+export interface LazyBuiltInTemplateSeeder {
+  /** Siembra los built-in a lo sumo una vez por instancia — nunca lanza:
+   * un fallo (cuota agotada, error de rasterización) se registra y se
+   * traga, para que quien llame pueda seguir con su flujo (abrir la
+   * galería de Templates) sin importar si sembrar tuvo éxito. */
+  ensureSeeded(): Promise<void>;
+}
+
+/**
+ * Envuelve `seedBuiltInTemplates` en el patrón "perezoso, una sola vez,
+ * nunca lanza" que tanto `workspace.ts` como `app.ts` necesitan antes de
+ * abrir su propia galería de "Nuevo proyecto" — cada mount tiene su propia
+ * instancia (su propio flag `seeded`), pero eso es inofensivo: el segundo
+ * intento simplemente encuentra los 3 built-in ya sembrados en el store y
+ * no hace nada (ver `seedBuiltInTemplates`, idempotente por `id` de
+ * catálogo).
+ */
+export function createLazyBuiltInTemplateSeeder(
+  store: TemplateStore,
+  options: { now: () => string; generateThumbnail: (project: Project) => Promise<Blob> },
+): LazyBuiltInTemplateSeeder {
+  let seeded = false;
+  return {
+    async ensureSeeded() {
+      if (seeded) return;
+      seeded = true;
+      try {
+        await seedBuiltInTemplates(store, { now: options.now(), generateThumbnail: options.generateThumbnail });
+      } catch (error) {
+        console.error("No se pudieron sembrar los Templates incorporados:", error);
+      }
+    },
+  };
+}

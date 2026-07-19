@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -25,6 +25,8 @@ Impulso Platform
 │
 ├── Templates                   (✅ construido — Epic 4, ver ADR-0013; único punto de entrada para crear proyectos nuevos)
 │
+├── Project Library             (✅ construido — Epic 5, ver ADR-0014; Workspace, administración de múltiples proyectos)
+│
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)
       ├── Planner Builder          ⏳ planeado
@@ -36,7 +38,7 @@ Impulso Platform
       └── futuros módulos          ⏳ sin definir todavía
 ```
 
-**Sobre la forma de este árbol:** Impulso Engine, Shared Services, Design System, AI Engine, Asset Library, Export Engine y Templates son **pilares hermanos** de la plataforma — cada uno una capacidad transversal que cualquier Module puede consumir. Los Modules, a su vez, también son **hermanos entre sí**: Sticker Builder, Planner Builder, Coloring Book Builder y el resto **no dependen unos de otros** — cada uno consume los pilares de la plataforma de forma independiente. La plataforma crece agregando pilares y módulos en paralelo, nunca encadenando uno sobre otro.
+**Sobre la forma de este árbol:** Impulso Engine, Shared Services, Design System, AI Engine, Asset Library, Export Engine, Templates y Project Library son **pilares hermanos** de la plataforma — cada uno una capacidad transversal que cualquier Module puede consumir. Los Modules, a su vez, también son **hermanos entre sí**: Sticker Builder, Planner Builder, Coloring Book Builder y el resto **no dependen unos de otros** — cada uno consume los pilares de la plataforma de forma independiente. La plataforma crece agregando pilares y módulos en paralelo, nunca encadenando uno sobre otro.
 
 ## Vista por capas técnicas (dentro del pilar "Impulso Engine")
 
@@ -88,6 +90,12 @@ Cualquier capacidad de inteligencia artificial de la plataforma (generación de 
 ### Templates (✅ construido — Epic 4)
 
 `packages/template-library`: catálogo de plataforma de puntos de partida para crear un proyecto nuevo, reutilizable por cualquier módulo. Un Template es un `Project` completo (Document Schema, sin cambios) envuelto en metadatos de catálogo (`TemplateDescriptor`, liviano y siempre listable) — el contenido pesado (`TemplateContent`: el `Project` + una miniatura opaca) se carga bajo demanda. Depende únicamente de `@impulso/document-schema` y `@impulso/engine` — nunca de `@impulso/export-engine` ni de Konva; la generación de miniaturas vive exclusivamente en código de aplicación. Es, desde esta épica, el único punto de entrada para crear un proyecto nuevo en Sticker Builder — reemplaza por completo el concepto anterior de "preset" específico de un módulo. Ver [ADR-0013](../adr/0013-templates-foundation.md).
+
+### Project Library (✅ construido — Epic 5)
+
+`packages/project-library`: administra múltiples proyectos guardados — la base de la pantalla "Mis proyectos" (Workspace), reutilizable por cualquier módulo. A diferencia de un Template, un `Project` ya es su propio descriptor de catálogo (`id`/`moduleId`/`metadata.name`/timestamps) — el `ProjectStore` solo separa ese descriptor liviano del contenido pesado (el `Project` completo). Depende de `@impulso/document-schema` + `@impulso/engine` + `@impulso/storage-kit` (nuevo, ver abajo) — nunca de `@impulso/export-engine`. Desde esta épica, la app aterriza en la Workspace (Workspace-first) y el editor se monta solo al abrir/crear un proyecto. Ver [ADR-0014](../adr/0014-project-library-workspace.md).
+
+`packages/storage-kit` (nuevo, infraestructura interna, no un pilar de producto): andamiaje genérico de IndexedDB, compartido entre Asset Library, Template Library y Project Library — extraído recién con el tercer consumidor real de la misma duplicación (ver ADR-0014).
 
 ### Modules — consumidores de la plataforma
 

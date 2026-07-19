@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { saveProjectLocally, loadProjectLocally, hasLocalProject, clearLocalProject } from "./persistence.js";
+import { serializeProject } from "@impulso/document-schema";
+import { loadProjectLocally, hasLocalProject, clearLocalProject } from "./persistence.js";
 import { createDemoProject } from "./demoProject.js";
+
+const STORAGE_KEY = "impulso:sticker-builder:project";
 
 /** Storage en memoria, aislado entre tests — evita depender del
  * `localStorage` global de jsdom (compartido entre casos si no se limpia). */
@@ -18,7 +21,7 @@ function fakeStorage(): Storage {
   };
 }
 
-describe("persistence local", () => {
+describe("persistence local (slot legado, ver ADR-0014)", () => {
   it("hasLocalProject es false cuando no se guardó nada todavía", () => {
     expect(hasLocalProject(fakeStorage())).toBe(false);
   });
@@ -27,11 +30,10 @@ describe("persistence local", () => {
     expect(loadProjectLocally(fakeStorage())).toBeNull();
   });
 
-  it("guarda y recupera un Project sin pérdida de datos", () => {
+  it("lee un Project ya guardado en el slot legado sin pérdida de datos", () => {
     const storage = fakeStorage();
     const project = createDemoProject();
-
-    saveProjectLocally(project, storage);
+    storage.setItem(STORAGE_KEY, serializeProject(project));
 
     expect(hasLocalProject(storage)).toBe(true);
     expect(loadProjectLocally(storage)).toEqual(project);
@@ -39,7 +41,7 @@ describe("persistence local", () => {
 
   it("clearLocalProject elimina lo guardado", () => {
     const storage = fakeStorage();
-    saveProjectLocally(createDemoProject(), storage);
+    storage.setItem(STORAGE_KEY, serializeProject(createDemoProject()));
 
     clearLocalProject(storage);
 
@@ -47,22 +49,9 @@ describe("persistence local", () => {
     expect(loadProjectLocally(storage)).toBeNull();
   });
 
-  it("un guardado posterior sobrescribe el anterior (un solo slot)", () => {
-    const storage = fakeStorage();
-    const first = createDemoProject();
-    const second = { ...createDemoProject(), metadata: { ...first.metadata, name: "Segundo documento" } };
-
-    saveProjectLocally(first, storage);
-    saveProjectLocally(second, storage);
-
-    const loaded = loadProjectLocally(storage);
-    expect(loaded?.metadata.name).toBe("Segundo documento");
-    expect(loaded).toEqual(second);
-  });
-
   it("propaga el error si lo guardado no es un Project válido (storage corrupto)", () => {
     const storage = fakeStorage();
-    storage.setItem("impulso:sticker-builder:project", "{ esto no es JSON válido de Project");
+    storage.setItem(STORAGE_KEY, "{ esto no es JSON válido de Project");
 
     expect(() => loadProjectLocally(storage)).toThrow();
   });
@@ -70,8 +59,7 @@ describe("persistence local", () => {
   it("usa localStorage real por defecto cuando no se inyecta storage", () => {
     localStorage.clear();
     const project = createDemoProject();
-
-    saveProjectLocally(project);
+    localStorage.setItem(STORAGE_KEY, serializeProject(project));
 
     expect(hasLocalProject()).toBe(true);
     expect(loadProjectLocally()).toEqual(project);

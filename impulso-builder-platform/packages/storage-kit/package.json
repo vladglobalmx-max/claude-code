@@ -1,8 +1,8 @@
 {
-  "name": "@impulso/template-library",
-  "version": "0.1.1",
+  "name": "@impulso/storage-kit",
+  "version": "0.1.0",
   "private": true,
-  "description": "Templates Foundation oficial de Impulso Platform: catálogo de plantillas reutilizable por cualquier módulo (Sticker Builder, Planner Builder, Coloring Book Builder...). Un Template es un Project completo + metadata de catálogo, independiente del módulo que lo consuma.",
+  "description": "Andamiaje genérico de almacenamiento (IndexedDB) reutilizado por los pilares de plataforma de Impulso (Asset Library, Template Library, Project Library). Sin lógica específica de ningún dominio.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,11 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@impulso/document-schema": "workspace:*",
-    "@impulso/engine": "workspace:*",
-    "@impulso/storage-kit": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@vitest/coverage-v8": "^2.0.5",
     "fake-indexeddb": "^6.0.0",

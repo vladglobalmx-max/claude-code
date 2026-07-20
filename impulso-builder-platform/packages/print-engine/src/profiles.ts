@@ -29,12 +29,26 @@ export interface PrintProfileDefaults {
   cutPath: CutPathSpec;
   background: PrintJob["background"];
   imposition: ImpositionSpec;
+  /** Política cuando `cutPath.offset !== 0` sobre un `PathObject` cerrado
+   * (Fase 9.3, sección 14) — no hay una solución geométrica de offset
+   * confiable para curvas arbitrarias sin una dependencia pesada nueva
+   * (deliberadamente no agregada). `"warn"` es el default de los perfiles
+   * de producción: exporta el path SIN offset pero deja constancia. */
+  offsetUnsupportedPolicy: "block" | "warn" | "use-original";
 }
 
 const NO_BLEED: BleedSpec = { top: 0, right: 0, bottom: 0, left: 0, unit: "mm" };
 const NO_SAFE_AREA: SafeAreaSpec = { enabled: false, margin: 0, unit: "mm" };
-const NO_CROP_MARKS: CropMarksSpec = { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm" };
-const NO_CUT_PATH: CutPathSpec = { mode: "none", source: "auto", offset: 0, unit: "mm" };
+const NO_CROP_MARKS: CropMarksSpec = { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" };
+const NO_CUT_PATH: CutPathSpec = {
+  mode: "none",
+  source: { type: "auto" },
+  offset: 0,
+  unit: "mm",
+  stroke: 0,
+  color: "#ff00ff",
+  logicalLayerName: "CutContour",
+};
 const NO_IMPOSITION: ImpositionSpec = {
   enabled: false,
   sheet: { width: 0, height: 0, unit: "mm" },
@@ -51,7 +65,16 @@ const NO_IMPOSITION: ImpositionSpec = {
  * pequeña (sección 7 del enunciado). */
 const STANDARD_BLEED: BleedSpec = { top: 3, right: 3, bottom: 3, left: 3, unit: "mm" };
 const STANDARD_SAFE_AREA: SafeAreaSpec = { enabled: true, margin: 3, unit: "mm" };
-const STANDARD_CROP_MARKS: CropMarksSpec = { enabled: true, length: 5, offset: 3, strokeWidth: 0.25, unit: "mm" };
+const STANDARD_CROP_MARKS: CropMarksSpec = { enabled: true, length: 5, offset: 3, strokeWidth: 0.25, unit: "mm", color: "#000000" };
+const STANDARD_CUT_PATH: CutPathSpec = {
+  mode: "die-cut",
+  source: { type: "auto" },
+  offset: 0,
+  unit: "mm",
+  stroke: 0.25,
+  color: "#ff00ff",
+  logicalLayerName: "DieCut",
+};
 
 export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
   "digital-png": {
@@ -66,6 +89,7 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
     cutPath: NO_CUT_PATH,
     background: { type: "transparent" },
     imposition: NO_IMPOSITION,
+    offsetUnsupportedPolicy: "warn",
   },
   "print-pdf": {
     id: "print-pdf",
@@ -79,6 +103,7 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
     cutPath: NO_CUT_PATH,
     background: { type: "solid", color: "#ffffff" },
     imposition: NO_IMPOSITION,
+    offsetUnsupportedPolicy: "warn",
   },
   "sticker-sheet": {
     id: "sticker-sheet",
@@ -89,7 +114,7 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
     bleed: STANDARD_BLEED,
     safeArea: STANDARD_SAFE_AREA,
     cropMarks: STANDARD_CROP_MARKS,
-    cutPath: { mode: "die-cut", source: "auto", offset: 0, unit: "mm" },
+    cutPath: STANDARD_CUT_PATH,
     background: { type: "solid", color: "#ffffff" },
     imposition: {
       enabled: true,
@@ -102,6 +127,7 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
       marginY: 10,
       orientation: "portrait",
     },
+    offsetUnsupportedPolicy: "warn",
   },
   "web-preview": {
     id: "web-preview",
@@ -115,5 +141,6 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
     cutPath: NO_CUT_PATH,
     background: { type: "solid", color: "#ffffff" },
     imposition: NO_IMPOSITION,
+    offsetUnsupportedPolicy: "warn",
   },
 };

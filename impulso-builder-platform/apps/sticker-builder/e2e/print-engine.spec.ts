@@ -2,17 +2,23 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Verificación en Chromium real del pipeline de `@impulso/print-engine`
- * (Epic 9 / Fase 9.2, ver ADR-0022 y sección 21 del enunciado de la fase)
- * — visita el harness temporal (`print-engine-harness.html` /
- * `src/printEngineHarness.ts`, ver comentarios ahí) que ejercita Konva
- * real, `HTMLCanvasElement`/`Image`/`createImageBitmap` reales y
- * `pdf-lib` real, sin ningún mock — a diferencia de los tests unitarios
- * jsdom del paquete, que mockean la rasterización para aislar la
- * orquestación.
+ * (Epic 9 / Fases 9.2-9.3, ver ADR-0022/ADR-0023 y sección 21/29 del
+ * enunciado de cada fase) — visita el harness temporal
+ * (`print-engine-harness.html` / `src/printEngineHarness.ts`, ver
+ * comentarios ahí) que ejercita Konva real, `HTMLCanvasElement`/`Image`/
+ * `createImageBitmap` reales y `pdf-lib` real, sin ningún mock — a
+ * diferencia de los tests unitarios jsdom del paquete, que mockean la
+ * rasterización para aislar la orquestación.
+ *
+ * 27 escenarios en total: los 12 de Fase 9.2 (raster/PDF/PNG base) más los
+ * 15 de Fase 9.3 (marcas de corte, safe area, cut paths — sección 29) —
+ * el harness los expone todos bajo la misma estructura `{ pass, ... }`,
+ * así que este único test los verifica genéricamente sin necesitar
+ * conocer sus nombres.
  *
  * Este harness no es una ruta de producto — no hay ningún flujo real que
  * navegue aquí. Se retira o se transforma en la UI real de exportación a
- * producción durante la Fase 9.4.
+ * producción durante una fase futura.
  */
 
 interface ScenarioResult {
@@ -26,7 +32,7 @@ interface HarnessOutput {
   results: Record<string, ScenarioResult>;
 }
 
-test("los 12 escenarios de verificación en Chromium de Fase 9.2 pasan con el pipeline real (sin mocks)", async ({ page }) => {
+test("los 27 escenarios de verificación en Chromium de Fases 9.2/9.3 pasan con el pipeline real (sin mocks)", async ({ page }) => {
   await page.goto("/print-engine-harness.html");
 
   await page.waitForFunction(() => (window as unknown as { __printEngineHarnessResults?: unknown }).__printEngineHarnessResults !== undefined, {

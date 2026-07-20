@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Print Engine — preview técnico (Epic 9 / Fase 9.3)</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 16px;
+      }
+      #preview-controls fieldset {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+      }
+      #preview-canvas-wrapper {
+        overflow: auto;
+        border: 1px solid #999;
+        display: inline-block;
+        max-width: 100%;
+      }
+      #content-canvas-slot canvas {
+        display: block;
+      }
+      .overlay-stroke {
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+      .mediabox rect {
+        stroke: #999;
+      }
+      .bleedbox rect {
+        stroke: #e67e22;
+      }
+      .trimbox rect {
+        stroke: #2ecc71;
+      }
+      .safearea rect {
+        stroke: #3498db;
+      }
+      .cropmark-line {
+        stroke: #000;
+      }
+      .cutpath-path {
+        stroke: #ff00ff;
+      }
+      #preview-summary {
+        margin-top: 12px;
+        max-width: 640px;
+      }
+      #preview-summary dt {
+        font-weight: bold;
+      }
+      #preview-summary dd {
+        margin: 0 0 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Preview técnico TEMPORAL de Epic 9 / Fase 9.3 (ver ADR-0023, sección
+      22-23 del enunciado de la fase) — visualiza MediaBox/BleedBox/
+      TrimBox/Safe Area/Crop Marks/Cut Path sobre el contenido REAL
+      renderizado (Konva real, Canvas real), usando la MISMA geometría
+      pura que los exportadores. No es el flujo final de exportación de 7
+      pasos — es exclusivamente el punto de entrada que
+      `e2e/print-preview.spec.ts` visita directamente. Ninguna ruta de
+      producto lo referencia. Se retira o se transforma en la UI real
+      durante una fase futura.
+    -->
+    <h1>Print Engine — preview técnico (Fase 9.3)</h1>
+    <div id="preview-root">cargando…</div>
+    <script type="module" src="/src/printPreviewHarness.ts"></script>
+  </body>
+</html>

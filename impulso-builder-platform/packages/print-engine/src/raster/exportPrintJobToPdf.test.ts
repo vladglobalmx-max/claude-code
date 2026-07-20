@@ -4,8 +4,10 @@ import { AssetIdSchema } from "@impulso/document-schema";
 import type { ExportAssetResolver } from "@impulso/export-engine";
 import type { FontChecker } from "../preflight/fonts.js";
 import type { ImageDimensionsProbe } from "../preflight/imageProbe.js";
-import type { PdfBackend, PdfBackendDocument } from "../pdf/pdfBackend.js";
-import { buildDocument, buildImage, buildImageAsset, buildLayer, buildPage, buildPrintJobFor, buildProject } from "../testUtils/fixtures.js";
+import type { AddRasterPageOptions, PdfBackend, PdfBackendDocument } from "../pdf/pdfBackend.js";
+import { buildDocument, buildEllipse, buildGroup, buildImage, buildImageAsset, buildLayer, buildPage, buildPath, buildPrintJobFor, buildProject, buildRectangle } from "../testUtils/fixtures.js";
+import { computePdfPageBoxes } from "../pdf/pageBoxes.js";
+import { countImageDrawOperations, getPageContentText, splitIntoTopLevelBlocks } from "../testUtils/pdfContentInspection.js";
 
 let renderPageToStageMock: ReturnType<typeof vi.fn>;
 let resolveActivePageMock: ReturnType<typeof vi.fn>;
@@ -259,7 +261,7 @@ describe("exportPrintJobToPdf", () => {
     const printJob = buildPrintJobFor(project);
     const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
 
-    const addRasterPage = vi.fn(async () => undefined);
+    const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
     const save = vi.fn(async () => new Uint8Array([1, 2, 3]));
     const fakeDocument: PdfBackendDocument = { addRasterPage, save };
     const createDocument = vi.fn(() => fakeDocument);
@@ -395,5 +397,193 @@ describe("exportPrintJobToPdf", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  describe("crop marks + cut path (Fase 9.3)", () => {
+    const DIE_LINE_METADATA = { tags: [], visible: true, locked: false, createdAt: NOW(), updatedAt: NOW() as string, role: "die-line" };
+
+    it("sin marcas (perfil digital-png): addRasterPage recibe cropMarks vacío y cutPath undefined", async () => {
+      const page = buildPage("page_1", [], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "digital-png");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+
+      await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
+
+      expect(addRasterPage).toHaveBeenCalledTimes(1);
+      const options = addRasterPage.mock.calls[0]![0];
+      expect(options.cropMarks).toEqual([]);
+      expect(options.cutPath).toBeUndefined();
+    });
+
+    it("con marcas (perfil print-pdf, default): addRasterPage recibe exactamente 8 segmentos de marca", async () => {
+      const page = buildPage("page_1", [], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "print-pdf");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+
+      await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
+
+      const options = addRasterPage.mock.calls[0]![0];
+      expect(options.cropMarks).toHaveLength(8);
+    });
+
+    it("el raster de contenido se posiciona en el offset del BleedBox (no en 0,0) cuando hay espacio de marcas", async () => {
+      const page = buildPage("page_1", [], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "print-pdf");
+      const boxes = computePdfPageBoxes(printJob);
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+
+      await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
+
+      const options = addRasterPage.mock.calls[0]![0];
+      expect(options.imageX).toBeCloseTo(boxes.bleedBox.x, 6);
+      expect(options.imageY).toBeCloseTo(boxes.bleedBox.y, 6);
+      expect(options.imageWidthPt).toBeCloseTo(boxes.bleedBox.width, 6);
+      expect(options.imageHeightPt).toBeCloseTo(boxes.bleedBox.height, 6);
+      expect(options.imageX).toBeGreaterThan(0); // hay espacio de marcas en el perfil print-pdf
+    });
+
+    it("cutPath.mode 'die-cut' con un único die-line rectangle detectado automáticamente: dibuja un path vectorial cerrado real", async () => {
+      const dieLine = buildRectangle("die_1", {
+        transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+        size: { width: 40, height: 40 },
+        metadata: DIE_LINE_METADATA,
+      });
+      const page = buildPage("page_1", [buildLayer("layer_1", [dieLine])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const result = await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW });
+      const bytes = await readBlobBytes(result.blob);
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      const blocks = splitIntoTopLevelBlocks(text);
+      const cutPathBlock = blocks.at(-1)!;
+      expect(cutPathBlock).toContain("h"); // cierre de path vectorial
+      expect(countImageDrawOperations(text)).toBe(1); // el raster de contenido sigue siendo una sola imagen
+    });
+
+    it("cutPath.mode != 'none' pero SIN ningún die-line en la página: Preflight bloquea con cut_path_missing", async () => {
+      const page = buildPage("page_1", [], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      await expect(
+        exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW }),
+      ).rejects.toMatchObject({ code: "preflight-blocked", preflightIssues: [expect.objectContaining({ code: "cut_path_missing" })] });
+    });
+
+    it("cutPath.mode != 'none' con MÚLTIPLES die-lines candidatos: Preflight bloquea con cut_path_multiple_candidates", async () => {
+      const dieLine1 = buildRectangle("die_1", { metadata: DIE_LINE_METADATA });
+      const dieLine2 = buildRectangle("die_2", { metadata: DIE_LINE_METADATA });
+      const page = buildPage("page_1", [buildLayer("layer_1", [dieLine1, dieLine2])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      await expect(
+        exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW }),
+      ).rejects.toMatchObject({ code: "preflight-blocked", preflightIssues: [expect.objectContaining({ code: "cut_path_multiple_candidates" })] });
+    });
+
+    it("die-line anidado dentro de un group también se detecta y se dibuja correctamente", async () => {
+      const dieLine = buildRectangle("die_1", { size: { width: 20, height: 20 }, metadata: DIE_LINE_METADATA });
+      const group = buildGroup("group_1", [dieLine], { transform: { x: 10, y: 10, rotation: 0, scaleX: 1, scaleY: 1 } });
+      const page = buildPage("page_1", [buildLayer("layer_1", [group])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const result = await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW });
+      expect(result.format).toBe("pdf");
+    });
+
+    it("die-line Ellipse: dibuja un path vectorial cerrado (aproximado con curvas bezier)", async () => {
+      const dieLine = buildEllipse("die_1", {
+        transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+        size: { width: 40, height: 40 },
+        metadata: DIE_LINE_METADATA,
+      });
+      const page = buildPage("page_1", [buildLayer("layer_1", [dieLine])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const result = await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW });
+      const bytes = await readBlobBytes(result.blob);
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      const blocks = splitIntoTopLevelBlocks(text);
+      const cutPathBlock = blocks.at(-1)!;
+      expect(cutPathBlock).toMatch(/ c\n/); // curvas bezier de la elipse aproximada
+      expect(cutPathBlock).toContain("h"); // cierre de path vectorial
+    });
+
+    it("die-line Path cerrado: dibuja el path vectorial tal cual, sin aproximarlo", async () => {
+      const dieLine = buildPath("die_1", {
+        transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+        segments: [
+          { type: "moveTo", point: { x: 0, y: 0 } },
+          { type: "lineTo", point: { x: 40, y: 0 } },
+          { type: "lineTo", point: { x: 40, y: 40 } },
+          { type: "lineTo", point: { x: 0, y: 40 } },
+        ],
+        closed: true,
+        metadata: DIE_LINE_METADATA,
+      });
+      const page = buildPage("page_1", [buildLayer("layer_1", [dieLine])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const result = await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW });
+      const bytes = await readBlobBytes(result.blob);
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      const blocks = splitIntoTopLevelBlocks(text);
+      const cutPathBlock = blocks.at(-1)!;
+      expect(cutPathBlock).toContain("h"); // cierre de path vectorial
+      expect(countImageDrawOperations(text)).toBe(1); // el path cerrado no toca el raster de contenido
+    });
+
+    it("multipágina: cada página resuelve y dibuja SU PROPIO die-line, nunca el de la página 1", async () => {
+      const dieLine1 = buildRectangle("die_1", { transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 40, height: 40 }, metadata: DIE_LINE_METADATA });
+      const dieLine2 = buildEllipse("die_2", { transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 40, height: 40 }, metadata: DIE_LINE_METADATA });
+      const page1 = buildPage("page_1", [buildLayer("layer_1", [dieLine1])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const page2 = buildPage("page_2", [buildLayer("layer_1", [dieLine2])], { size: { width: 50, height: 50 }, unit: "mm" });
+      const project = buildProject({ document: buildDocument([page1, page2]) });
+      const printJob = buildPrintJobFor(project, "sticker-sheet");
+      // `buildPrintJobFor` solo apunta a la primera página por defecto — el
+      // job debe incluir ambas para ejercer el multipágina.
+      printJob.pageIds = [page1.id, page2.id];
+      const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+
+      const result = await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW });
+      expect(result.pageCount).toBe(2);
+      const bytes = await readBlobBytes(result.blob);
+      const reloaded = await PDFDocument.load(bytes);
+
+      const textPage1 = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      const cutPathBlockPage1 = splitIntoTopLevelBlocks(textPage1).at(-1)!;
+      expect(cutPathBlockPage1).toContain("h");
+      expect(cutPathBlockPage1).not.toMatch(/ c\n/); // página 1: rectangle, solo líneas rectas
+
+      const textPage2 = getPageContentText(reloaded, reloaded.getPages()[1]!);
+      const cutPathBlockPage2 = splitIntoTopLevelBlocks(textPage2).at(-1)!;
+      expect(cutPathBlockPage2).toMatch(/ c\n/); // página 2: ellipse, curvas bezier
+    });
   });
 });

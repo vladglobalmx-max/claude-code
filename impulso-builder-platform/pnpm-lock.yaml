@@ -169,6 +169,9 @@ importers:
       '@impulso/document-schema':
         specifier: workspace:*
         version: link:../document-schema
+      '@impulso/engine':
+        specifier: workspace:*
+        version: link:../engine
       '@impulso/export-engine':
         specifier: workspace:*
         version: link:../export-engine

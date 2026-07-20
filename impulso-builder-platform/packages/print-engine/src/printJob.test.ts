@@ -46,7 +46,15 @@ describe("createPrintJob — defaults por perfil", () => {
   it("'sticker-sheet' es PDF con imposición habilitada y cutPath die-cut automático", () => {
     const job = createPrintJob({ documentId, pageIds, dimensions, profile: "sticker-sheet", now: () => NOW });
     expect(job.imposition.enabled).toBe(true);
-    expect(job.cutPath).toEqual({ mode: "die-cut", source: "auto", offset: 0, unit: "mm" });
+    expect(job.cutPath).toEqual({
+      mode: "die-cut",
+      source: { type: "auto" },
+      offset: 0,
+      unit: "mm",
+      stroke: 0.25,
+      color: "#ff00ff",
+      logicalLayerName: "DieCut",
+    });
   });
 
   it("'web-preview' es PNG a 72 PPI con fondo sólido blanco", () => {

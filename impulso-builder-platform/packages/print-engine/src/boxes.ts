@@ -39,6 +39,22 @@ export interface PrintBoxes {
    * `bleed.left` ya normalizados a `trim.unit`) — para saber dónde
    * empieza el contenido dentro del canvas de sangrado. */
   trimOffsetWithinBleed: { x: number; y: number };
+  /** Offset del SafeAreaBox respecto al TrimBox (Fase 9.3) — siempre
+   * `{x: margin, y: margin}` en `unit`, o `{0,0}` si `safeArea.enabled` es
+   * `false` (en cuyo caso `safeArea` también coincide con `trim`, nunca se
+   * usa sin chequear `enabled` primero). */
+  safeAreaOffsetWithinTrim: { x: number; y: number };
+  /** Sangrado por lado, ya normalizado a `unit` (Fase 9.3) — necesario
+   * para que `computeCropMarksGeometry` sepa cuánto sangrado hay en CADA
+   * lado (puede ser asimétrico) sin tener que volver a convertir
+   * `BleedSpec` por su cuenta. */
+  bleedPerSide: { top: number; right: number; bottom: number; left: number };
+  /** Offset del BleedBox respecto a la esquina superior-izquierda del
+   * MediaBox (Fase 9.3) — el raster de contenido (que cubre exactamente
+   * el BleedBox) se posiciona en este offset dentro del canvas final de
+   * PNG, o dentro de la página de PDF; nunca se escala. `{0,0}` cuando
+   * `MediaBox === BleedBox` (sin marcas). */
+  bleedOffsetWithinMedia: { x: number; y: number };
 }
 
 function normalize(value: number, from: Unit, to: Unit): number {
@@ -105,5 +121,8 @@ export function computeBoxes(
     safeArea: safeAreaSize,
     trimOffsetWithinMedia: { x: mediaExpansionLeft, y: mediaExpansionTop },
     trimOffsetWithinBleed: { x: bleedLeft, y: bleedTop },
+    safeAreaOffsetWithinTrim: { x: marginPx, y: marginPx },
+    bleedPerSide: { top: bleedTop, right: bleedRight, bottom: bleedBottom, left: bleedLeft },
+    bleedOffsetWithinMedia: { x: mediaExpansionLeft - bleedLeft, y: mediaExpansionTop - bleedTop },
   };
 }

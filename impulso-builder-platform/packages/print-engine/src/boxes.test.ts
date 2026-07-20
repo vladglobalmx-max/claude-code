@@ -5,7 +5,7 @@ import type { BleedSpec, CropMarksSpec, PhysicalSize } from "./types.js";
 const TRIM_A4: PhysicalSize = { width: 210, height: 297, unit: "mm" };
 const NO_BLEED: BleedSpec = { top: 0, right: 0, bottom: 0, left: 0, unit: "mm" };
 const NO_SAFE = { enabled: false, margin: 0, unit: "mm" as const };
-const NO_MARKS: CropMarksSpec = { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm" };
+const NO_MARKS: CropMarksSpec = { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" };
 
 describe("computeBoxes — TrimBox", () => {
   it("TrimBox es exactamente PrintJob.dimensions, sin cambios", () => {
@@ -87,7 +87,7 @@ describe("computeBoxes — MediaBox", () => {
 
   it("con crop marks, MediaBox crece más allá del BleedBox por offset+length en cada lado", () => {
     const bleed: BleedSpec = { top: 3, right: 3, bottom: 3, left: 3, unit: "mm" };
-    const marks: CropMarksSpec = { enabled: true, length: 5, offset: 3, strokeWidth: 0.25, unit: "mm" };
+    const marks: CropMarksSpec = { enabled: true, length: 5, offset: 3, strokeWidth: 0.25, unit: "mm", color: "#000000" };
     const boxes = computeBoxes(TRIM_A4, bleed, NO_SAFE, marks);
     // cropMarkStartDistance(3,3) = 3 (offset == bleed) + length 5 = 8 por lado.
     expect(boxes.media).toEqual({ width: 210 + 2 * 8, height: 297 + 2 * 8, unit: "mm" });
@@ -95,7 +95,7 @@ describe("computeBoxes — MediaBox", () => {
   });
 
   it("crop marks nunca invaden el TrimBox: MediaBox siempre >= TrimBox en ambos ejes", () => {
-    const marks: CropMarksSpec = { enabled: true, length: 5, offset: 2, strokeWidth: 0.25, unit: "mm" };
+    const marks: CropMarksSpec = { enabled: true, length: 5, offset: 2, strokeWidth: 0.25, unit: "mm", color: "#000000" };
     const boxes = computeBoxes(TRIM_A4, NO_BLEED, NO_SAFE, marks);
     expect(boxes.media.width).toBeGreaterThanOrEqual(boxes.trim.width);
     expect(boxes.media.height).toBeGreaterThanOrEqual(boxes.trim.height);
@@ -104,7 +104,7 @@ describe("computeBoxes — MediaBox", () => {
   it("MediaBox nunca es más chico que BleedBox, con o sin marcas", () => {
     const bleed: BleedSpec = { top: 3, right: 3, bottom: 3, left: 3, unit: "mm" };
     for (const marksEnabled of [true, false]) {
-      const marks: CropMarksSpec = { enabled: marksEnabled, length: 5, offset: 1, strokeWidth: 0.25, unit: "mm" };
+      const marks: CropMarksSpec = { enabled: marksEnabled, length: 5, offset: 1, strokeWidth: 0.25, unit: "mm", color: "#000000" };
       const boxes = computeBoxes(TRIM_A4, bleed, NO_SAFE, marks);
       expect(boxes.media.width).toBeGreaterThanOrEqual(boxes.bleed.width);
       expect(boxes.media.height).toBeGreaterThanOrEqual(boxes.bleed.height);
@@ -113,9 +113,23 @@ describe("computeBoxes — MediaBox", () => {
 
   it("trimOffsetWithinMedia posiciona correctamente el trim dentro del media (bleed asimétrico + marcas)", () => {
     const bleed: BleedSpec = { top: 2, right: 5, bottom: 3, left: 1, unit: "mm" };
-    const marks: CropMarksSpec = { enabled: true, length: 4, offset: 2, strokeWidth: 0.25, unit: "mm" };
+    const marks: CropMarksSpec = { enabled: true, length: 4, offset: 2, strokeWidth: 0.25, unit: "mm", color: "#000000" };
     const boxes = computeBoxes(TRIM_A4, bleed, NO_SAFE, marks);
     // left: max(1,2)+4 = 6; top: max(2,2)+4 = 6
     expect(boxes.trimOffsetWithinMedia).toEqual({ x: 6, y: 6 });
+  });
+
+  it("bleedOffsetWithinMedia es {0,0} sin marcas (BleedBox pegado a la esquina del MediaBox)", () => {
+    const bleed: BleedSpec = { top: 3, right: 3, bottom: 3, left: 3, unit: "mm" };
+    const boxes = computeBoxes(TRIM_A4, bleed, NO_SAFE, NO_MARKS);
+    expect(boxes.bleedOffsetWithinMedia).toEqual({ x: 0, y: 0 });
+  });
+
+  it("bleedOffsetWithinMedia refleja solo el espacio de marcas (no el bleed) por lado", () => {
+    const bleed: BleedSpec = { top: 2, right: 5, bottom: 3, left: 1, unit: "mm" };
+    const marks: CropMarksSpec = { enabled: true, length: 4, offset: 2, strokeWidth: 0.25, unit: "mm", color: "#000000" };
+    const boxes = computeBoxes(TRIM_A4, bleed, NO_SAFE, marks);
+    // trimOffsetWithinMedia (6,6) - trimOffsetWithinBleed (bleedLeft=1, bleedTop=2) = (5,4).
+    expect(boxes.bleedOffsetWithinMedia).toEqual({ x: 5, y: 4 });
   });
 });

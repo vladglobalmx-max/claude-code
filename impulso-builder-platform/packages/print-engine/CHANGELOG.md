@@ -2,6 +2,41 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.3.0] — Epic 9 / Fase 9.3: Marks, Safe Area & Cut Paths
+
+### Agregado
+- `marks/cropMarksGeometry.ts`: `computeCropMarksGeometry` — geometría pura de 8 segmentos (2 por esquina) en espacio físico de `MediaBox`, siempre fuera del `BleedBox`, nunca invade el `TrimBox`, considera bleed asimétrico.
+- `boxes.ts`/`pdf/pageBoxes.ts`: `computeBoxes`/`computePdfPageBoxes` expandidos para calcular el espacio real de marcas (`bleedOffsetWithinMedia`, `safeAreaOffsetWithinTrim`, `bleedPerSide`) — `MediaBox` deja de igualar `BleedBox` cuando hay marcas activas.
+- `safearea/safeAreaRect.ts` + `safearea/safeAreaCheck.ts`: `computeSafeAreaCanonicalRect` (rect en px canónico, `undefined` si deshabilitado) + `checkSafeAreaInvasions` (política conservadora: todo object visible participa salvo die-lines/ocultos; `locked` no excluye; un `group` cuenta como una unidad; un object fuera del TrimBox nunca genera el issue).
+- `cutpath/affine.ts`: módulo afín 2D puro (`applyAffine`/`composeAffine`/`composeAncestorChain`/`pivotOf`/`affineFromTransform`) + detección de similitud vs. shear (`isSimilarityTransform`/`decomposeSimilarity`), verificada contra las convenciones de pivote ya existentes en `renderer-konva`.
+- `cutpath/objectTraversal.ts` + `cutpath/dieLineDetection.ts`: `traverseObjects`/`findObjectById` + `resolveDieLineSource` — busca objects con `metadata.role === "die-line"` a cualquier profundidad; nunca elige el primer candidato en silencio ante cero o múltiples resultados.
+- `cutpath/cutGeometry.ts`: `normalizeCutGeometry` — `RectangleCutGeometry`/`EllipseCutGeometry`/`ClosedPathCutGeometry` uniforme en espacio global; Rectangle bajo shear real degrada exacto a 4 esquinas (`ClosedPath`); Ellipse bajo shear real bloquea (`transform-unsupported`) en vez de aproximar; Path abierto bloquea (`open-path`); tipo no soportado bloquea (`unsupported-object-type`).
+- `cutpath/cutGeometryOffset.ts`: `applyCutGeometryOffset` — exacto para Rectangle/Ellipse (con validación de colapso); `"unsupported"` honesto (nunca simulado desplazando el stroke) para un Path cerrado arbitrario con offset != 0.
+- `cutpath/cutGeometryToSegments.ts`: `cutGeometryToPathSegments` — uniforma cualquier `CutGeometry` a `PathSegment[]` (bezier kappa estándar 0.5522847498307936 para Ellipse), el único punto de conversión que necesita el backend PDF.
+- `pdf/color.ts`: `parseHexColor` — el cut path/marcas exigen RGB hex real para el vector PDF (más estricto que el `Style.color` genérico del Document Schema).
+- `pdf/canonicalToPdfPoints.ts` + `raster/canonicalToRasterPoints.ts`: conversiones canónico/físico → puntos PDF / píxeles de raster, reutilizadas por ambos exportadores para que PDF y PNG representen la MISMA geometría.
+- `raster/composeCanvasOverlays.ts`: `createMediaCanvasWithContent` (canvas de `MediaBox` con el contenido compuesto en su offset, sin escalarlo) + `drawLineSegmentOnCanvas`/`drawPathSegmentsOnCanvas` (Canvas2D real) — un cut path SIEMPRE se cierra incondicionalmente (invariante del propio `CutGeometry`).
+- `pdf/pdfBackend.ts`/`pdf/pdfLibBackend.ts`: `AddRasterPageOptions` extendido con `cropMarks?`/`cutPath?` opcionales (dentro de la MISMA llamada, nunca nuevas primitivas de dibujo independientes) — dibujados vía `drawSvgPath` real, después del raster de imagen.
+- `raster/exportPrintJobToPdf.ts`/`raster/exportPrintJobToPng.ts`: componen marcas/cut path reales cuando el perfil los activa; `needsOverlayComposition` evita crear un segundo canvas cuando no hace falta (sección 25, performance).
+- `preflight/`: 15 códigos nuevos (`crop_marks_invalid`, `crop_marks_outside_media_box`, `crop_marks_overlap_trim`, `insufficient_mark_space`, `safe_area_invalid`, `object_crosses_safe_area`, `cut_path_missing`, `cut_path_multiple_candidates`, `cut_path_unsupported_object`, `cut_path_open`, `cut_path_invalid_geometry`, `cut_path_offset_unsupported`, `cut_path_collapsed`, `cut_path_outside_media_box`, `cut_path_transform_unsupported`), orden determinista (job-level primero, luego por página).
+- `types.ts`: `CropMarksSpec` gana `color`; `CutPathSpec` restructurado (`CutPathSource` discriminado, `stroke`, `color`, `logicalLayerName`); `PrintJob.offsetUnsupportedPolicy` (`"block"|"warn"|"use-original"`).
+- Preview técnico mínimo (temporal, no producto): `apps/sticker-builder/print-preview-harness.html` + `src/printPreviewHarness.ts` — reutiliza las mismas funciones puras públicas que los exportadores, toggles accesibles por capa, resumen textual, zoom puramente visual, inmutabilidad verificada.
+- Verificación en Chromium real: 15 escenarios nuevos sumados a los 12 de Fase 9.2 (27 en total, `e2e/print-engine.spec.ts`) + 4 tests del preview técnico (`e2e/print-preview.spec.ts`).
+- 333 tests propios (183 → 333); cobertura ≥90%/90%/90%/85% mantenida.
+- [ADR-0023](../../docs/adr/0023-print-engine-marks-safearea-cutpaths.md): documenta el modelo completo de marcas/safe area/cut paths y sus límites honestos.
+
+### Corregido (bugs reales encontrados durante esta fase)
+- `pdf-lib`: `page.drawSvgPath` aplica SIEMPRE una matriz `cm` interna de `scale(1,-1)` — un número crudo del content stream NO es la posición final renderizada (descubierto decodificando bytes reales de un PDF generado). Corregido con un helper `negateY` en producción; los tests usan composición real de matrices PDF (`testUtils/pdfContentInspection.ts`) en vez de comparar contra números crudos.
+- `drawPathSegmentsOnCanvas` (compositor PNG) solo cerraba el path cuando encontraba un segmento `{ type: "close" }` explícito, pero un `ClosedPathCutGeometry` derivado de un `PathObject` sin ese segmento literal quedaba ABIERTO en el PNG mientras el backend PDF (que fuerza el cierre siempre) lo dibujaba correctamente CERRADO — la misma geometría debía verse igual en ambos formatos. Corregido cerrando el path incondicionalmente (un cut path siempre es una figura cerrada).
+- Dos escenarios de verificación en Chromium (no de producción) tenían asunciones/cálculos incorrectos: el escenario de sangrado de Fase 9.2 asumía que el pixel `(0,0)` del PNG era la esquina del `BleedBox`, asunción rota por el nuevo default de marcas activas en "print-pdf"; un escenario nuevo de cut path en PNG tenía un cálculo de píxel incompleto (faltaba sumar el offset canónico del sangrado antes de escalar). Ambos corregidos.
+- Tres tests que antes asertaban el `render-failed` DEFENSIVO de los exportadores (die-line ausente/múltiple) pasaron a asertar `preflight-blocked` una vez wireados los nuevos chequeos — confirmando que esos chequeos defensivos quedaron correctamente inalcanzables en el flujo normal (mismo patrón de ADR-0022).
+
+### Hallazgo documentado (no es un bug de esta fase)
+- `e2e/assisted-placement.spec.ts`'s test de Smart Guides sigue fallando — confirmado sin relación con marcas/safe area/cut paths (corrido antes y después de todo el trabajo de esta fase); no investigado ni corregido aquí, ver Technical Debt.
+
+### Fuera de alcance (deliberado — fases futuras de la misma épica, cada una con su propia autorización)
+Optional Content Group real para el cut path, offset geométrico de un Path cerrado arbitrario, aproximación de Ellipse bajo shear, imposición, repetición en hojas, grid de producción, Production Preview definitivo, flujo completo de UI de exportación, nesting, integración con RIP, Spot Colors certificados, perfiles ICC, CMYK.
+
 ## [0.2.0] — Epic 9 / Fase 9.2: Raster Pipeline & PDF Backend
 
 ### Agregado

@@ -65,6 +65,7 @@
 | 20 | Soporte de *shear*/skew en el Document Schema, para que el resize de una selección múltiple con members rotados sea geométricamente exacto en todos los casos (ver Technical Debt, ADR-0017) | Fase 7.4 (Professional Multi Selection) | Editor |
 | 21 | Señal visual/tooltip cuando el handle de rotación fue recortado por cercanía a un borde (ADR-0018) — hoy se ve idéntico a un handle sin recortar, solo más cerca del object | Fase 7.4 (Professional Multi Selection) | Editor |
 | 22 | Indicación textual ("N objects seleccionados") en algún punto visible de la UI durante una selección múltiple — hoy solo se infiere contando filas `.selected` en Capas | Fase 7.4 (Professional Multi Selection) | Editor |
+| 23 | La UI real de exportación a producción (Fase 9.4) necesita: toggles de visibilidad para MediaBox/BleedBox/TrimBox/Safe Area/Crop Marks/Cut Path (ya prototipados en el preview técnico de Fase 9.3, `printPreviewHarness.ts`, pero como harness dev, no producto); selector de kiss-cut/die-cut; indicación clara de que el color del cut path es visual/RGB, nunca un Spot Color certificado; superficie para los 15 códigos nuevos de Preflight de Fase 9.3 (hoy solo consumibles programáticamente vía `PreflightIssue[]`) | Fase 9.3 (Marks, Safe Area & Cut Paths) | Editor / Export |
 
 ---
 
@@ -75,6 +76,7 @@ La práctica de UX Audits nació con Epic 5 — los siguientes bloques, ya const
 - **Editor** — el Inspector de un object individual (UX Audit 0002) y la sección de Alineación (UX Audit 0003) ya están auditados; Toolbar, Canvas Runtime y manipulación de un solo object (resize/rotate) siguen sin auditoría formal.
 - **Export** (diálogo de exportación PNG/SVG) — Epic 3.
 - **Templates** (galería de "Nuevo proyecto", "Guardar como plantilla") — Epic 4.
+- **Print Engine** (marcas de corte, safe area, cut paths, Epic 9 / Fases 9.1-9.3) — sin UI de producto todavía, solo harnesses temporales de verificación (`print-engine-harness.html`/`print-preview-harness.html`); una UX Audit formal recién tiene sentido cuando exista la UI real de exportación de Fase 9.4.
 
 ## Cómo se usa este documento
 

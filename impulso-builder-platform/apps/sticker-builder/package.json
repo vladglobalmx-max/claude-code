@@ -1,6 +1,6 @@
 {
   "name": "@impulso/sticker-builder",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "description": "Editor de Sticker Builder. Primer módulo construido sobre Impulso Engine + el Renderer Konva.",
   "type": "module",

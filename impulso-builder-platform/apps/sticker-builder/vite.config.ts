@@ -17,6 +17,9 @@ export default defineConfig({
         // producto lo referencia — se retira o se transforma en la UI
         // final de exportación a producción durante la Fase 9.4.
         printEngineHarness: resolve(__dirname, "print-engine-harness.html"),
+        // Preview técnico temporal de Fase 9.3 (ver ADR-0023, sección 22) —
+        // mismo estatus que el harness de arriba: sin ruta de producto.
+        printPreviewHarness: resolve(__dirname, "print-preview-harness.html"),
       },
     },
   },

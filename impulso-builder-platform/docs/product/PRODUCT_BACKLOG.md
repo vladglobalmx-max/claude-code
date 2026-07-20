@@ -8,12 +8,13 @@
 
 **Resuelto.** Ver [ADR-0019](../adr/0019-autosave-save-coordinator.md) (Autosave & Save Coordinator) y [ADR-0020](../adr/0020-project-recovery.md) (Project Recovery). El riesgo de mayor impacto detectado en la plataforma (UX Audit 0001 — pérdida silenciosa de trabajo no guardado) queda cerrado: autosave con debounce, indicador de estado honesto, salida segura del editor, `beforeunload` como última línea de defensa, y recovery ante cierres inesperados. El riesgo de complejidad anticipado (regenerar el thumbnail en cada autosave) se aceptó conscientemente en vez de resolverse con una cadencia separada — ver `docs/PERFORMANCE_BUDGET.md` fila 19 para el razonamiento y qué haría falta medir antes de separarlo.
 
-## PDF Print-Ready (línea de corte + sangrado)
+## PDF Print-Ready (línea de corte + sangrado) — en construcción (Epic 9)
 
-- **Valor:** Es la capacidad que distingue a Impulso de un editor gráfico genérico — el caso de uso comercial central (imprimir un sticker real). Ya está en el Roadmap desde Fase 0.
-- **Prioridad:** Alta — es la única capacidad de esta lista con una razón de negocio ya validada desde el inicio del proyecto (no una especulación).
-- **Dependencias:** Export Engine (`packages/export-engine`) ya construido; necesita un nuevo formato de exportación (PDF) y una capa de ensamblado de línea de corte/sangrado sobre el Document Schema.
-- **Complejidad:** Alta. Requiere validar contra especificaciones reales de imprenta, offsetting de polígonos (Clipper o similar) para la línea de corte, y probablemente una librería de ensamblado de PDF nueva en el navegador.
+**En progreso, no resuelto todavía.** El motor real ya existe: `packages/print-engine` (Fases 9.1-9.3, ver [ADR-0021](../adr/0021-print-engine-foundation.md)/[ADR-0022](../adr/0022-print-engine-raster-pipeline.md)/[ADR-0023](../adr/0023-print-engine-marks-safearea-cutpaths.md)) produce PDF aplanado de alta resolución con boxes físicos correctos (Trim/Bleed/Media/Crop), marcas de corte vectoriales reales, safe area verificable, y cut paths (kiss-cut/die-cut V1, offset exacto para Rectangle/Ellipse). El offsetting de polígonos SÍ se necesitó, pero se resolvió sin una dependencia nueva como Clipper — exacto para Rectangle/Ellipse, honestamente no soportado (nunca simulado) para un Path cerrado arbitrario.
+- **Lo que falta para considerarlo completo:** imposición/repetición en hojas, Production Preview definitivo, y — lo más visible para un usuario — **ninguna UI real de exportación a producción todavía** (Fase 9.4). Hoy solo existen harnesses temporales de verificación en Chromium, no una pantalla de producto.
+- **Prioridad:** Alta — sigue siendo la única capacidad de esta lista con razón de negocio validada desde el inicio; la falta de UI real es lo único que impide que un usuario real la use hoy.
+- **Dependencias:** Export Engine (`packages/export-engine`, ya construido) + Print Engine (`packages/print-engine`, Fases 9.1-9.3 ya construidas) — Fase 9.4 necesita ambos para construir el flujo de UI real.
+- **Complejidad:** La parte de motor (validada contra especificaciones reales de boxes/unidades/PPI) ya está resuelta; lo que queda (Fase 9.4) es principalmente UI/UX — imposición y Production Preview siguen siendo complejidad Alta, la UI de exportación en sí es Media.
 
 ## Cloud Sync / Cuentas
 

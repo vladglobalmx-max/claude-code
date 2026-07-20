@@ -3,7 +3,7 @@ import { ObjectIdSchema, AssetIdSchema } from "@impulso/document-schema";
 import { runPreflight } from "./runPreflight.js";
 import type { FontChecker } from "./fonts.js";
 import type { ImageDimensionsProbe } from "./imageProbe.js";
-import { buildDocument, buildImage, buildImageAsset, buildLayer, buildPage, buildPrintJobFor, buildProject, buildText } from "../testUtils/fixtures.js";
+import { buildDocument, buildEllipse, buildImage, buildImageAsset, buildLayer, buildPage, buildPrintJobFor, buildProject, buildRectangle, buildText, NOW as FIXTURE_NOW } from "../testUtils/fixtures.js";
 
 function noopResolver(blobs: Record<string, Blob | undefined> = {}) {
   return { resolve: async (assetId: string) => blobs[assetId] };
@@ -306,7 +306,11 @@ describe("runPreflight — orden determinista", () => {
     const image1 = buildImage("obj_1", { assetId: AssetIdSchema.parse("asset_fantasma_1") });
     const image2 = buildImage("obj_2", { assetId: AssetIdSchema.parse("asset_fantasma_2") });
     const project = buildProject({ document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [image1, image2])])]) });
-    const printJob = buildPrintJobFor(project);
+    // Safe area desactivado deliberadamente — este test verifica el orden
+    // determinista de `asset_reference_missing`, no la interacción con el
+    // chequeo de safe area de Fase 9.3 (que también evaluaría estos mismos
+    // objects, dado que el perfil "print-pdf" lo activa por defecto).
+    const printJob = buildPrintJobFor(project, "print-pdf", { safeArea: { enabled: false, margin: 0, unit: "mm" } });
 
     const resultA = await runPreflight(project, printJob, { resolver: noopResolver(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
     const resultB = await runPreflight(project, printJob, { resolver: noopResolver(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
@@ -352,6 +356,50 @@ describe("runPreflight — hasBlockingErrors", () => {
     expect(result.issues.some((i) => i.severity === "warning")).toBe(true);
     expect(result.issues.some((i) => i.severity === "error")).toBe(true);
     expect(result.hasBlockingErrors).toBe(true);
+  });
+});
+
+describe("runPreflight — integración de marks/safe-area/cut-path (Fase 9.3)", () => {
+  const DIE_LINE_METADATA = { tags: [], visible: true, locked: false, createdAt: FIXTURE_NOW, updatedAt: FIXTURE_NOW, role: "die-line" as const };
+
+  it("issues job-level (crop marks) aparecen ANTES que issues de página (safe area) — orden documentado en runPreflight.ts", async () => {
+    // Rect plano (sin metadata.role) que invade el safe area — separado
+    // del die-line, porque un die-line está excluido del chequeo de safe
+    // area (sección 9) y no debe confundirse con "el object que invade".
+    const invader = buildRectangle("rect_1", { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 500, height: 500 } });
+    const dieLine = buildRectangle("die_1", { transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 40, height: 40 }, metadata: DIE_LINE_METADATA });
+    const page = buildPage("page_1", [buildLayer("layer_1", [invader, dieLine])], { size: { width: 50, height: 50 }, unit: "mm" });
+    const project = buildProject({ document: buildDocument([page]) });
+    const printJob = buildPrintJobFor(project, "sticker-sheet", {
+      cropMarks: { enabled: true, length: -1, offset: 3, strokeWidth: 0.25, unit: "mm", color: "#000000" }, // length inválido: crop_marks_invalid
+    });
+
+    const result = await runPreflight(project, printJob, { resolver: noopResolver(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+
+    const codes = result.issues.map((issue) => issue.code);
+    expect(codes).toContain("crop_marks_invalid");
+    expect(codes).toContain("object_crosses_safe_area");
+    expect(codes.indexOf("crop_marks_invalid")).toBeLessThan(codes.indexOf("object_crosses_safe_area"));
+  });
+
+  it("multipágina: cada página resuelve su propio safe-area/cut-path, con el pageId correcto — nunca reutiliza el de la página 1", async () => {
+    const invaderPage1 = buildRectangle("rect_1", { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 500, height: 500 } });
+    const dieLinePage1 = buildRectangle("die_1", { transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 }, size: { width: 40, height: 40 }, metadata: DIE_LINE_METADATA });
+    const dieLinePage2a = buildRectangle("die_2a", { metadata: DIE_LINE_METADATA });
+    const dieLinePage2b = buildEllipse("die_2b", { metadata: DIE_LINE_METADATA }); // 2 candidatos: multiple_candidates SOLO en página 2
+
+    const page1 = buildPage("page_1", [buildLayer("layer_1", [invaderPage1, dieLinePage1])], { size: { width: 50, height: 50 }, unit: "mm" });
+    const page2 = buildPage("page_2", [buildLayer("layer_1", [dieLinePage2a, dieLinePage2b])], { size: { width: 50, height: 50 }, unit: "mm" });
+    const project = buildProject({ document: buildDocument([page1, page2]) });
+    const printJob = buildPrintJobFor(project, "sticker-sheet");
+    printJob.pageIds = [page1.id, page2.id];
+
+    const result = await runPreflight(project, printJob, { resolver: noopResolver(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+
+    expect(result.issues.some((i) => i.code === "object_crosses_safe_area" && i.pageId === page1.id)).toBe(true);
+    expect(result.issues.some((i) => i.code === "object_crosses_safe_area" && i.pageId === page2.id)).toBe(false);
+    expect(result.issues.some((i) => i.code === "cut_path_multiple_candidates" && i.pageId === page2.id)).toBe(true);
+    expect(result.issues.some((i) => i.code === "cut_path_multiple_candidates" && i.pageId === page1.id)).toBe(false);
   });
 });
 

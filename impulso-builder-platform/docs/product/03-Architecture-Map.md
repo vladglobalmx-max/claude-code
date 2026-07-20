@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library**, **Print Engine** (en construcción — Fase 9.2 de 5, ver ADR-0021/ADR-0022) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library**, **Print Engine** (en construcción — Fase 9.3 de 5, ver ADR-0021/ADR-0022/ADR-0023) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -27,7 +27,7 @@ Impulso Platform
 │
 ├── Project Library             (✅ construido — Epic 5, ver ADR-0014; Workspace, administración de múltiples proyectos)
 │
-├── Print Engine                (🚧 en construcción — Epic 9 / Fase 9.2 de 5, ver ADR-0021/ADR-0022; modelo de PrintJob/unidades/boxes/Preflight + pipeline real de raster físico/PNG multipágina/PDF aplanado de alta resolución con backend `pdf-lib` encapsulado; sin marcas de corte/safe area visual/imposición/UI de exportación todavía)
+├── Print Engine                (🚧 en construcción — Epic 9 / Fase 9.3 de 5, ver ADR-0021/ADR-0022/ADR-0023; modelo de PrintJob/unidades/boxes/Preflight + pipeline real de raster físico/PNG multipágina/PDF aplanado de alta resolución con backend `pdf-lib` encapsulado + marcas de corte/safe area/cut paths reales; sin imposición/Production Preview/UI de exportación final todavía)
 │
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)

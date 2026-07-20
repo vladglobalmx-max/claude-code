@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.14.0] — Epic 9 / Fase 9.3: Print Engine — Marks, Safe Area & Cut Paths (verificación, no producto)
+
+### Agregado
+- `printEngineHarness.ts`: 15 escenarios nuevos (sección 29 del enunciado de Fase 9.3) sumados a los 12 de Fase 9.2 — 27 en total, mismo harness (`print-engine-harness.html`, `e2e/print-engine.spec.ts`), sin ningún mock. Cubren: `MediaBox` > `TrimBox` con marcas reales; marcas que nunca invaden el trim (lectura de píxeles real); Safe Area byte-idéntica al archivo final; die-line Ellipse; die-line ausente del raster aplanado (lectura de píxeles); cut path como vector real en el content stream del PDF; PNG incluye/excluye el cut path según configuración; path abierto y múltiples die-lines bloquean con el código exacto; offset de Rectangle preserva dimensiones físicas exactas; offset no soportado sobre Path genera el warning esperado; multipágina preserva overlays independientes por página; inmutabilidad/sin dirty-state con overlays activos; cancelación durante la composición de overlays limpia igual que antes.
+- `print-preview-harness.html` + `src/printPreviewHarness.ts` + `e2e/print-preview.spec.ts` — segundo harness **temporal**, no de producto: preview técnico mínimo que renderiza contenido real y compone los 6 overlays (MediaBox/BleedBox/TrimBox/Safe Area/Crop Marks/Cut Path) reutilizando exactamente las mismas funciones puras públicas que los exportadores — nunca una reimplementación aproximada. Toggles por capa accesibles (`label`+`aria-controls`), resumen textual equivalente al canvas (marcado `aria-hidden`), zoom puramente visual vía CSS. 4 tests E2E.
+- `vite.config.ts`: tercera entrada de build (`rollupOptions.input.printPreviewHarness`) — ninguna pantalla del producto navega a ella.
+
+### Corregido
+- Dos escenarios de verificación (no de producción) tenían asunciones/cálculos rotos, detectados al correr la suite completa en un navegador real: el escenario de sangrado de Fase 9.2 asumía que el pixel `(0,0)` del PNG era la esquina del `BleedBox` (asunción rota por el nuevo default de marcas activas en "print-pdf" — corregido desactivando marcas explícitamente, isolando el intento original del test); un escenario nuevo de cut path en PNG tenía un cálculo de píxel incompleto (corregido replicando la fórmula exacta de `canonicalPointToRasterPoint`).
+
+### Hallazgo documentado (no es un bug de esta fase)
+- `e2e/assisted-placement.spec.ts`'s test de Smart Guides sigue fallando — confirmado corriendo la suite E2E completa antes y después de todo el trabajo de esta fase; sin relación con marcas/safe area/cut paths, no investigado ni corregido aquí (ver Technical Debt).
+
+### Nota
+Ningún flujo de usuario de este app cambió — Epic 9 / Fase 9.3 no toca ninguna pantalla existente. Ambos harnesses son código de verificación temporal, explícitamente documentados como tal en el propio HTML/TS y en ADR-0023.
+
 ## [0.13.0] — Epic 9 / Fase 9.2: Print Engine — Raster Pipeline & PDF Backend (verificación, no producto)
 
 ### Agregado

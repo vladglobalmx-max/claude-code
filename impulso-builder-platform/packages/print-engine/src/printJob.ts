@@ -21,6 +21,7 @@ export interface CreatePrintJobOverrides {
   safeArea?: SafeAreaSpec;
   cropMarks?: CropMarksSpec;
   cutPath?: CutPathSpec;
+  offsetUnsupportedPolicy?: "block" | "warn" | "use-original";
   imposition?: ImpositionSpec;
   background?: PrintJob["background"];
   name?: string;
@@ -69,6 +70,7 @@ export function createPrintJob(options: CreatePrintJobOptions): PrintJob {
     safeArea: overrides.safeArea ?? defaults.safeArea,
     cropMarks: overrides.cropMarks ?? defaults.cropMarks,
     cutPath: overrides.cutPath ?? defaults.cutPath,
+    offsetUnsupportedPolicy: overrides.offsetUnsupportedPolicy ?? defaults.offsetUnsupportedPolicy,
     imposition: overrides.imposition ?? defaults.imposition,
     background: overrides.background ?? defaults.background,
     metadata: { name: overrides.name, createdAt: options.now() },

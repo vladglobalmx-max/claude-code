@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { pdfLibBackend } from "./pdfLibBackend.js";
 import type { AddRasterPageOptions } from "./pdfBackend.js";
+import {
+  applyPdfMatrix,
+  countImageDrawOperations,
+  extractComposedMatrix,
+  getPageContentText,
+  splitIntoTopLevelBlocks,
+} from "../testUtils/pdfContentInspection.js";
 
 // PNG 1x1 transparente real (no un placeholder inventado) — pdf-lib
 // parsea de verdad el formato PNG al incrustarlo, así que un byte array
@@ -122,5 +129,114 @@ describe("pdfLibBackend", () => {
     const reloadedB = await PDFDocument.load(bytesB);
     expect(reloadedA.getPageCount()).toBe(1);
     expect(reloadedB.getPageCount()).toBe(0);
+  });
+
+  describe("cropMarks/cutPath — overlays vectoriales (Fase 9.3)", () => {
+    it("sin cropMarks ni cutPath: el content stream no tiene ningún operador de línea/trazo vectorial extra", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await doc.addRasterPage(baseRasterPageOptions());
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(text).not.toMatch(/\bRG\b/); // ningún color de trazo (stroke) fijado
+    });
+
+    it("una marca de corte se dibuja como línea vectorial real (operador 'l'), con las coordenadas exactas", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await doc.addRasterPage(
+        baseRasterPageOptions({
+          cropMarks: [{ from: { x: 10, y: 190 }, to: { x: 10, y: 170 }, strokeWidthPt: 1, colorHex: "#000000" }],
+        }),
+      );
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(text).toContain("10 190 m");
+      expect(text).toContain("10 170 l");
+    });
+
+    it("varias marcas de corte se dibujan todas, en el orden dado", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await doc.addRasterPage(
+        baseRasterPageOptions({
+          cropMarks: [
+            { from: { x: 0, y: 0 }, to: { x: 5, y: 0 }, strokeWidthPt: 1, colorHex: "#000000" },
+            { from: { x: 0, y: 10 }, to: { x: 5, y: 10 }, strokeWidthPt: 1, colorHex: "#000000" },
+          ],
+        }),
+      );
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(text).toContain("0 0 m");
+      expect(text).toContain("5 0 l");
+      expect(text).toContain("0 10 m");
+      expect(text).toContain("5 10 l");
+    });
+
+    it("un cut path (rectángulo como 4 esquinas) se dibuja como path vectorial cerrado, en la posición correcta", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await doc.addRasterPage(
+        baseRasterPageOptions({
+          cutPath: {
+            segments: [
+              { type: "moveTo", point: { x: 20, y: 20 } },
+              { type: "lineTo", point: { x: 80, y: 20 } },
+              { type: "lineTo", point: { x: 80, y: 80 } },
+              { type: "lineTo", point: { x: 20, y: 80 } },
+              { type: "close" },
+            ],
+            strokeWidthPt: 0.5,
+            colorHex: "#ff00ff",
+          },
+        }),
+      );
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      // El bloque de dibujo del cut path (el ÚLTIMO `q...Q`, ya que se
+      // dibuja después del raster) tiene su PROPIA matriz `cm` acumulada
+      // desde cero — nunca se debe componer junto con la del bloque de la
+      // imagen (que tiene su propia escala, sin relación). El content
+      // stream muestra las coordenadas CRUDAS (negadas por `negateY`,
+      // antes de que esa matriz las revierta al renderizar) — se compone
+      // la matriz real del bloque y se aplica al primer punto del path
+      // para obtener su posición ABSOLUTA final, que debe coincidir con
+      // la pedida (20,20).
+      const cutPathBlock = splitIntoTopLevelBlocks(text).at(-1)!;
+      const matrix = extractComposedMatrix(cutPathBlock);
+      const moveToMatch = /(-?[\d.]+) (-?[\d.]+) m/.exec(cutPathBlock);
+      expect(moveToMatch).not.toBeNull();
+      const rawPoint = { x: Number(moveToMatch![1]), y: Number(moveToMatch![2]) };
+      const finalPoint = applyPdfMatrix(matrix, rawPoint);
+      expect(finalPoint.x).toBeCloseTo(20, 6);
+      expect(finalPoint.y).toBeCloseTo(20, 6);
+      expect(cutPathBlock).toContain("h"); // cierre de path (h == closePath en PDF)
+    });
+
+    it("el raster de contenido sigue incrustándose exactamente una vez, con o sin overlays", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await doc.addRasterPage(
+        baseRasterPageOptions({
+          cropMarks: [{ from: { x: 0, y: 0 }, to: { x: 5, y: 0 }, strokeWidthPt: 1, colorHex: "#000000" }],
+          cutPath: { segments: [{ type: "moveTo", point: { x: 1, y: 1 } }, { type: "close" }], strokeWidthPt: 0.5, colorHex: "#ff00ff" },
+        }),
+      );
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(countImageDrawOperations(text)).toBe(1);
+    });
+
+    it("un color hex inválido no lanza — dibuja en negro (respaldo) en vez de fallar toda la exportación", async () => {
+      const doc = pdfLibBackend.createDocument();
+      await expect(
+        doc.addRasterPage(
+          baseRasterPageOptions({
+            cropMarks: [{ from: { x: 0, y: 0 }, to: { x: 5, y: 0 }, strokeWidthPt: 1, colorHex: "not-a-color" }],
+          }),
+        ),
+      ).resolves.toBeUndefined();
+    });
   });
 });

@@ -3,6 +3,7 @@ import type { ExportAssetResolver } from "@impulso/export-engine";
 import type { FontChecker } from "../preflight/fonts.js";
 import type { ImageDimensionsProbe } from "../preflight/imageProbe.js";
 import { buildPrintJobFor } from "../testUtils/fixtures.js";
+import { createFakeCanvasContext2D } from "../testUtils/fakeCanvasContext2D.js";
 import {
   goldenForAsymmetricBleed,
   goldenImage,
@@ -73,6 +74,11 @@ describe("fixtures canónicos del pipeline de raster (sección 22)", () => {
     resolveActivePageMock = vi.fn((project, pageId) => project.document.pages.find((p: { id: unknown }) => p.id === pageId));
     vi.stubGlobal("Image", FakeImage);
     vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:x"), revokeObjectURL: vi.fn() });
+    // jsdom no implementa un contexto 2D real ni `toBlob` — necesario
+    // porque el perfil por defecto ("print-pdf") tiene `cropMarks.enabled`,
+    // así que `exportPrintJobToPng` compone un canvas de MediaBox real.
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(createFakeCanvasContext2D() as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((cb) => cb(new Blob(["png"], { type: "image/png" })));
   });
 
   afterEach(() => {

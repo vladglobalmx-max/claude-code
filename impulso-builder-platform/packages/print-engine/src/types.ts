@@ -36,19 +36,38 @@ export interface CropMarksSpec {
   offset: number;
   strokeWidth: number;
   unit: Unit;
+  /** Color visual de la marca (string libre, mismo criterio que
+   * `Style.stroke`/`fill` en `@impulso/document-schema` — sin formato
+   * forzado). Fase 9.3, sección 3. */
+  color: string;
 }
 
 export type CutPathMode = "none" | "kiss-cut" | "die-cut";
 
+/**
+ * "auto" busca objects con `metadata.role === "die-line"` en la página
+ * activa, recursivamente (incluye dentro de `group`, Fase 9.3, sección
+ * 11); "object" selecciona explícitamente un object por id — reservado
+ * para cuando la UI lo ofrezca, ya soportado por el modelo desde el día
+ * uno (discriminated union preferido sobre strings paralelos ambiguos).
+ */
+export type CutPathSource = { type: "auto" } | { type: "object"; objectId: string };
+
 export interface CutPathSpec {
   mode: CutPathMode;
-  /** "auto" busca objects con `metadata.role === "die-line"` en la página
-   * activa (Fase 9.3); "manual" reserva la selección explícita de un
-   * object para cuando la UI la ofrezca — sin implementación de detección
-   * automática todavía en Fase 9.1. */
-  source: "auto" | "manual";
+  source: CutPathSource;
   offset: number;
   unit: Unit;
+  /** Grosor físico de la línea de corte vectorial (Fase 9.3, sección 18) —
+   * mismo `unit` que `offset`. */
+  stroke: number;
+  /** Color visual (RGB), NUNCA un Spot Color certificado — ver sección 17
+   * del enunciado y el ADR de Cut Paths. */
+  color: string;
+  /** Nombre lógico de capa/grupo de salida (ej. "KissCut"/"DieCut"/
+   * "CutContour") — metadata de intención, no garantiza un Optional
+   * Content Group real en el PDF (sección 16). */
+  logicalLayerName: string;
 }
 
 export type PrintOutputFormat = "pdf" | "png";
@@ -99,6 +118,11 @@ export interface PrintJob {
   safeArea: SafeAreaSpec;
   cropMarks: CropMarksSpec;
   cutPath: CutPathSpec;
+  /** Política cuando `cutPath.offset !== 0` sobre un `PathObject` cerrado
+   * no tiene una solución de offset confiable (Fase 9.3, sección 14) —
+   * resuelta al perfil en `createPrintJob`, nunca inferida en Preflight ni
+   * en el exportador. */
+  offsetUnsupportedPolicy: "block" | "warn" | "use-original";
   imposition: ImpositionSpec;
   background: { type: "transparent" } | { type: "solid"; color: string };
   metadata: { name?: string; createdAt: string };

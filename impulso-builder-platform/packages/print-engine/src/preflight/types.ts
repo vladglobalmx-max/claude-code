@@ -3,11 +3,10 @@ import type { ObjectId, PageId } from "@impulso/document-schema";
 export type PreflightSeverity = "error" | "warning" | "info";
 
 /**
- * Códigos de Fase 9.1 (estructural) — deliberadamente NO incluye
- * `cut_path_invalid`/`cut_path_open` (Fase 9.3), `safe_area_invasion`
- * (Fase 9.3), `background_not_covering_bleed` (Fase 9.3, depende del
- * pipeline de render), `transparency_unsupported` (Fase 9.2, depende del
- * backend PDF), ni `imposition_does_not_fit` (Fase 9.4) — cada uno se
+ * Códigos de Fase 9.1 (estructural) + Fase 9.3 (marcas de corte, safe
+ * area, cut paths — ver ADR-0023). Deliberadamente NO incluye
+ * `background_not_covering_bleed` (depende del pipeline de render, no
+ * decidido todavía) ni `imposition_does_not_fit` (Fase 9.4) — cada uno se
  * agrega en su propia fase, sobre esta misma estructura de `PreflightIssue`.
  */
 export type PreflightCode =
@@ -23,7 +22,25 @@ export type PreflightCode =
   | "resolution_insufficient"
   | "resolution_borderline"
   | "font_unavailable"
-  | "font_verification_uncertain";
+  | "font_verification_uncertain"
+  // Crop marks (Fase 9.3, sección 20).
+  | "crop_marks_invalid"
+  | "crop_marks_outside_media_box"
+  | "crop_marks_overlap_trim"
+  | "insufficient_mark_space"
+  // Safe area (Fase 9.3, sección 20).
+  | "safe_area_invalid"
+  | "object_crosses_safe_area"
+  // Cut paths (Fase 9.3, sección 20).
+  | "cut_path_missing"
+  | "cut_path_multiple_candidates"
+  | "cut_path_unsupported_object"
+  | "cut_path_open"
+  | "cut_path_invalid_geometry"
+  | "cut_path_offset_unsupported"
+  | "cut_path_collapsed"
+  | "cut_path_outside_media_box"
+  | "cut_path_transform_unsupported";
 
 export interface PreflightIssue {
   code: PreflightCode;

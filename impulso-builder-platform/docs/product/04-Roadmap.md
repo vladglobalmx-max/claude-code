@@ -32,11 +32,11 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) y ADR-0001 a ADR-0009 p
 - Pan del canvas mediante scroll nativo del contenedor, sin una herramienta dedicada de arrastre (Espacio/click central) como la de herramientas de referencia.
 - Especificación de producto para Sticker Builder (sangrado, material) — sigue siendo, hasta hoy, solo un concepto en `../ARCHITECTURE.md`, sin UI real.
 
-## Fase 3 — Print Production ⏳ Planeada
+## Fase 3 — Print Production 🚧 En construcción (motor real, sin UI de producto todavía)
 
 **Objetivo:** primer lanzamiento con ambición comercial real para el caso de uso central de Sticker Builder — un archivo listo para imprenta, no solo para pantalla.
 
-- **PDF print-ready completo**: línea de corte y sangrado ensamblados correctamente, validado contra especificaciones reales de imprenta (ver `PRODUCT_BACKLOG.md`).
+- **PDF print-ready completo**: `packages/print-engine` (Epic 9 / Fases 9.1-9.3, ver ADR-0021/ADR-0022/ADR-0023) ya produce PDF aplanado de alta resolución con boxes físicos correctos, marcas de corte vectoriales reales, safe area verificable y cut paths (kiss-cut/die-cut V1) — el motor está construido y verificado en Chromium real. Falta: imposición/repetición en hojas, Production Preview definitivo, y la UI de exportación real (Fase 9.4, hoy solo harnesses temporales de verificación) — ver `PRODUCT_BACKLOG.md`.
 - **Rendimiento validado con documentos grandes**: la meta declarada del proyecto ("miles de objetos sin degradar la experiencia") deja de ser un objetivo documentado en `PERFORMANCE_BUDGET.md` y pasa a medirse con documentos reales de ese tamaño.
 - **Persistencia robusta**: manejo explícito de cuota de almacenamiento agotada.
 

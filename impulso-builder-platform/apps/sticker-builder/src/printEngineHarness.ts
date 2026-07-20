@@ -35,10 +35,16 @@ import {
   browserFontChecker,
   browserImageDimensionsProbe,
   computePdfPageBoxes,
+  computeBoxes,
+  computeCropMarksGeometry,
+  resolveDieLineSource,
+  normalizeCutGeometry,
+  applyCutGeometryOffset,
+  physicalToPixels,
   type PrintJob,
   type PrintProfileId,
 } from "@impulso/print-engine";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFArray, PDFName, PDFStream, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 
 const NOW = "2026-07-20T00:00:00.000Z";
 const baseMetadata = { tags: [], visible: true, locked: false, createdAt: NOW, updatedAt: NOW };
@@ -106,6 +112,30 @@ async function readPixel(blob: Blob, x: number, y: number): Promise<{ r: number;
   ctx.drawImage(bitmap, 0, 0);
   const [r, g, b, a] = ctx.getImageData(x, y, 1, 1).data;
   return { r: r!, g: g!, b: b!, a: a! };
+}
+
+/** Texto crudo (operadores PDF) del content stream de una página, leído de
+ * un PDF REAL ya guardado/recargado — misma técnica mínima que usa la
+ * propia suite de `@impulso/print-engine` (`testUtils/pdfContentInspection.ts`,
+ * Fase 9.3 sección 30) para confirmar que algo se dibujó como VECTOR real,
+ * nunca como parte del raster incrustado — usa solo API pública de
+ * `pdf-lib`, sin duplicar la composición de matrices (eso ya está
+ * exhaustivamente cubierto por los tests jsdom del paquete). */
+function getPdfPageContentText(doc: PDFDocument, pageIndex: number): string {
+  const page = doc.getPages()[pageIndex]!;
+  const contentsRef = page.node.get(PDFName.of("Contents"));
+  const resolved = doc.context.lookup(contentsRef);
+  const decodeOne = (ref: unknown): string => {
+    const stream = doc.context.lookup(ref as never, PDFStream);
+    if (!(stream instanceof PDFRawStream)) throw new Error("content stream inesperado (no PDFRawStream)");
+    return new TextDecoder("utf-8").decode(decodePDFRawStream(stream).decode());
+  };
+  if (resolved instanceof PDFArray) {
+    const parts: string[] = [];
+    for (let i = 0; i < resolved.size(); i++) parts.push(decodeOne(resolved.get(i)));
+    return parts.join("\n");
+  }
+  return decodeOne(contentsRef);
 }
 
 type ScenarioResult = Record<string, unknown>;
@@ -189,7 +219,16 @@ async function scenario4_bleedContainsRealGeometry(): Promise<ScenarioResult> {
     customProperties: {},
   };
   const project = buildProject({ width: 100, height: 100, unit: "px" }, [bleedRect]);
-  const printJob = buildPrintJobFor(project, "print-pdf", { resolution: { targetPpi: 96 }, background: { type: "solid", color: "#ffff00" } });
+  // Marcas de corte desactivadas deliberadamente (Fase 9.3 cambió el
+  // default de "print-pdf" a `cropMarks.enabled: true`) — este escenario
+  // verifica el sangrado, no el espacio de marcas: con marcas activas, el
+  // canvas final es del tamaño de MediaBox y el pixel (0,0) cae en el
+  // margen transparente de marcas, no en la esquina del BleedBox.
+  const printJob = buildPrintJobFor(project, "print-pdf", {
+    resolution: { targetPpi: 96 },
+    background: { type: "solid", color: "#ffff00" },
+    cropMarks: { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" },
+  });
   const result = await exportPrintJobToPng({
     project,
     printJob,
@@ -447,6 +486,552 @@ async function scenario11And12_projectImmutableAndNoDirtyState(): Promise<Scenar
   };
 }
 
+// ---------------------------------------------------------------------
+// Fase 9.3 (Marks, Safe Area & Cut Paths) — sección 29: 15 escenarios de
+// verificación en Chromium real, sobre el pipeline REAL (Konva real,
+// Canvas real, pdf-lib real) — ninguno mockeado, igual que los 12
+// escenarios de Fase 9.2 de arriba.
+// ---------------------------------------------------------------------
+
+function dieLineMetadata(): SceneObject["metadata"] {
+  return { ...baseMetadata, role: "die-line" };
+}
+
+async function scenario13_bleedMarksMediaBoxLargerThanTrim(): Promise<ScenarioResult> {
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, []);
+  const printJob = buildPrintJobFor(project, "print-pdf"); // bleed 3mm + marcas activadas por defecto
+  const boxes = computePdfPageBoxes(printJob);
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const bytes = new Uint8Array(await result.blob.arrayBuffer());
+  const reloaded = await PDFDocument.load(bytes);
+  const page = reloaded.getPages()[0]!;
+  const mediaBox = page.getMediaBox();
+  const trimBox = page.getTrimBox();
+  return {
+    mediaWidthPt: mediaBox.width,
+    trimWidthPt: trimBox.width,
+    expectedMediaWidthPt: boxes.mediaWidthPt,
+    pass: mediaBox.width > trimBox.width && Math.abs(mediaBox.width - boxes.mediaWidthPt) < 0.01,
+  };
+}
+
+async function scenario14_marksNeverInvadeTrimRealPixels(): Promise<ScenarioResult> {
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, []);
+  const printJob = buildPrintJobFor(project, "print-pdf"); // fondo blanco sólido, marcas negras por defecto
+  const result = await exportPrintJobToPng({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const page = result.pages[0]!;
+
+  const physicalBoxes = computeBoxes(printJob.dimensions, printJob.bleed, printJob.safeArea, printJob.cropMarks);
+  const segments = computeCropMarksGeometry(physicalBoxes, printJob.cropMarks);
+  const targetPpi = printJob.resolution.targetPpi;
+  const firstMark = segments[0]!;
+  const markMidX = Math.round(physicalToPixels((firstMark.from.x + firstMark.to.x) / 2, firstMark.unit, targetPpi));
+  const markMidY = Math.round(physicalToPixels((firstMark.from.y + firstMark.to.y) / 2, firstMark.unit, targetPpi));
+
+  const markPixel = await readPixel(page.blob, markMidX, markMidY);
+  const centerPixel = await readPixel(page.blob, Math.round(page.widthPx / 2), Math.round(page.heightPx / 2));
+
+  return {
+    markPixel,
+    centerPixel,
+    pass: markPixel.r < 50 && markPixel.g < 50 && markPixel.b < 50 && centerPixel.r > 200 && centerPixel.g > 200 && centerPixel.b > 200,
+  };
+}
+
+async function scenario15_safeAreaNeverLeaksIntoFinalRaster(): Promise<ScenarioResult> {
+  const buildJob = (safeAreaEnabled: boolean) => {
+    const project = buildProject({ width: 50, height: 50, unit: "mm" }, []);
+    const printJob = buildPrintJobFor(project, "print-pdf", { safeArea: { enabled: safeAreaEnabled, margin: 3, unit: "mm" } });
+    return { project, printJob };
+  };
+  const enabled = buildJob(true);
+  const disabled = buildJob(false);
+
+  const exportOnce = async ({ project, printJob }: { project: Project; printJob: PrintJob }) =>
+    exportPrintJobToPng({
+      project,
+      printJob,
+      resolver: noopResolver,
+      projectName: "harness",
+      fontChecker: browserFontChecker,
+      imageProbe: browserImageDimensionsProbe,
+      now: () => NOW,
+    });
+
+  const resultEnabled = await exportOnce(enabled);
+  const resultDisabled = await exportOnce(disabled);
+  const bytesEnabled = new Uint8Array(await resultEnabled.pages[0]!.blob.arrayBuffer());
+  const bytesDisabled = new Uint8Array(await resultDisabled.pages[0]!.blob.arrayBuffer());
+
+  const identical = bytesEnabled.length === bytesDisabled.length && bytesEnabled.every((b, i) => b === bytesDisabled[i]);
+  return { byteLengthEnabled: bytesEnabled.length, byteLengthDisabled: bytesDisabled.length, pass: identical };
+}
+
+async function scenario16_ellipseDieLineExportsSuccessfully(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "ellipse",
+    transform: { x: 20, y: 20, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 140, height: 140 },
+    style: { ...baseStyle, fill: "transparent" },
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet"); // cutPath.mode "die-cut", source auto
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  return { format: result.format, pageCount: result.pageCount, pass: result.format === "pdf" && result.pageCount === 1 };
+}
+
+async function scenario17_dieLineAbsentFromFlattenedRaster(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 10, y: 10, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 30, height: 30 },
+    cornerRadius: 0,
+    style: { ...baseStyle, fill: "#ff0000" }, // rojo bien distinto del fondo, para detectar visualmente si se coló en el raster
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "px" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "digital-png", { background: { type: "solid", color: "#00ff00" } });
+  const result = await exportPrintJobToPng({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const pixel = await readPixel(result.pages[0]!.blob, 25, 25); // centro del die-line
+  return { pixel, pass: pixel.g > 200 && pixel.r < 50 }; // fondo verde, NUNCA el rojo del die-line
+}
+
+async function scenario18_cutPathAppearsAsRealPdfVector(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet", { cropMarks: { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" } });
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const bytes = new Uint8Array(await result.blob.arrayBuffer());
+  const reloaded = await PDFDocument.load(bytes);
+  const text = getPdfPageContentText(reloaded, 0);
+  const imageDrawCount = (text.match(/\bDo\b/g) ?? []).length;
+  const hasStroke = /\bS\b/.test(text);
+  return { imageDrawCount, hasStroke, pass: imageDrawCount === 1 && hasStroke };
+}
+
+async function scenario19_pngCutPathIncludedOrExcludedPerConfig(): Promise<ScenarioResult> {
+  const buildDieLineProject = () => {
+    const dieLine: SceneObject = {
+      id: ObjectIdSchema.parse(nextId("obj")),
+      type: "rectangle",
+      transform: { x: 10, y: 10, rotation: 0, scaleX: 1, scaleY: 1 },
+      size: { width: 30, height: 30 },
+      cornerRadius: 0,
+      style: baseStyle,
+      metadata: dieLineMetadata(),
+      pluginData: {},
+      customProperties: {},
+    };
+    return buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  };
+
+  const withCutPathProject = buildDieLineProject();
+  const withCutPathJob = buildPrintJobFor(withCutPathProject, "sticker-sheet");
+  const withoutCutPathProject = buildDieLineProject();
+  const withoutCutPathJob = buildPrintJobFor(withoutCutPathProject, "sticker-sheet", {
+    cutPath: { mode: "none", source: { type: "auto" }, offset: 0, unit: "mm", stroke: 0.25, color: "#ff00ff", logicalLayerName: "DieCut" },
+  });
+
+  const exportAndSamplePoint = async (project: Project, printJob: PrintJob) => {
+    const result = await exportPrintJobToPng({
+      project,
+      printJob,
+      resolver: noopResolver,
+      projectName: "harness",
+      fontChecker: browserFontChecker,
+      imageProbe: browserImageDimensionsProbe,
+      now: () => NOW,
+    });
+    const page = result.pages[0]!;
+    // Punto sobre el borde IZQUIERDO del die-line (10,10)-(40,40) canónico —
+    // el trazo del cut path pasa exactamente por ahí cuando está activo.
+    // Réplica de `canonicalPointToRasterPoint`: hay que sumar el offset
+    // canónico del sangrado (TrimBox dentro del BleedBox ya rasterizado)
+    // ANTES de escalar — el punto (10,10) del die-line es relativo al
+    // TrimBox, no a la esquina del canvas.
+    const targetPpi = printJob.resolution.targetPpi;
+    const boxes = computeBoxes(printJob.dimensions, printJob.bleed, printJob.safeArea, printJob.cropMarks);
+    const offsetXPx = Math.round(physicalToPixels(boxes.bleedOffsetWithinMedia.x, boxes.trim.unit, targetPpi));
+    const offsetYPx = Math.round(physicalToPixels(boxes.bleedOffsetWithinMedia.y, boxes.trim.unit, targetPpi));
+    const bleedCanonicalX = physicalToPixels(printJob.bleed.left, printJob.bleed.unit, 96);
+    const bleedCanonicalY = physicalToPixels(printJob.bleed.top, printJob.bleed.unit, 96);
+    const canonicalScale = targetPpi / 96;
+    const x = offsetXPx + Math.round((bleedCanonicalX + 10) * canonicalScale);
+    const y = offsetYPx + Math.round((bleedCanonicalY + 25) * canonicalScale);
+    return readPixel(page.blob, x, y);
+  };
+
+  const pixelWith = await exportAndSamplePoint(withCutPathProject, withCutPathJob);
+  const pixelWithout = await exportAndSamplePoint(withoutCutPathProject, withoutCutPathJob);
+  const differs = pixelWith.r !== pixelWithout.r || pixelWith.g !== pixelWithout.g || pixelWith.b !== pixelWithout.b;
+
+  return { pixelWith, pixelWithout, pass: differs };
+}
+
+async function scenario20_openPathBlocksExport(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "path",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    segments: [
+      { type: "moveTo", point: { x: 0, y: 0 } },
+      { type: "lineTo", point: { x: 10, y: 0 } },
+      { type: "lineTo", point: { x: 10, y: 10 } },
+    ],
+    closed: false,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet");
+  let code: string | undefined;
+  let issueCode: string | undefined;
+  try {
+    await exportPrintJobToPdf({
+      project,
+      printJob,
+      resolver: noopResolver,
+      projectName: "harness",
+      fontChecker: browserFontChecker,
+      imageProbe: browserImageDimensionsProbe,
+      now: () => NOW,
+    });
+  } catch (error) {
+    code = (error as { code?: string }).code;
+    issueCode = (error as { preflightIssues?: Array<{ code: string }> }).preflightIssues?.find((i) => i.code === "cut_path_open")?.code;
+  }
+  return { code, issueCode, pass: code === "preflight-blocked" && issueCode === "cut_path_open" };
+}
+
+async function scenario21_multipleDieLinesBlockExport(): Promise<ScenarioResult> {
+  const dieLine1: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 10, height: 10 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const dieLine2: SceneObject = { ...dieLine1, id: ObjectIdSchema.parse(nextId("obj")) };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine1, dieLine2]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet");
+  let code: string | undefined;
+  let issueCode: string | undefined;
+  try {
+    await exportPrintJobToPdf({
+      project,
+      printJob,
+      resolver: noopResolver,
+      projectName: "harness",
+      fontChecker: browserFontChecker,
+      imageProbe: browserImageDimensionsProbe,
+      now: () => NOW,
+    });
+  } catch (error) {
+    code = (error as { code?: string }).code;
+    issueCode = (error as { preflightIssues?: Array<{ code: string }> }).preflightIssues?.find((i) => i.code === "cut_path_multiple_candidates")?.code;
+  }
+  return { code, issueCode, pass: code === "preflight-blocked" && issueCode === "cut_path_multiple_candidates" };
+}
+
+async function scenario22_rectOffsetPreservesExactPhysicalDimensions(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const offsetMm = 5;
+  const printJob = buildPrintJobFor(project, "sticker-sheet", {
+    cutPath: { mode: "die-cut", source: { type: "auto" }, offset: offsetMm, unit: "mm", stroke: 0.25, color: "#ff00ff", logicalLayerName: "DieCut" },
+  });
+
+  const page = project.document.pages[0]!;
+  const resolution = resolveDieLineSource(page, printJob.cutPath.source);
+  if (resolution.status !== "found") return { pass: false, reason: resolution.status };
+  const geometryResult = normalizeCutGeometry(resolution.candidate);
+  if (!geometryResult.ok) return { pass: false, reason: geometryResult.reason };
+  const offsetPx = physicalToPixels(offsetMm, "mm", 96); // canónico: 96dpi-equivalente
+  const offsetResult = applyCutGeometryOffset(geometryResult.geometry, offsetPx);
+  if (offsetResult.status !== "ok" || offsetResult.geometry.type !== "rectangle") return { pass: false, offsetResult };
+
+  const expectedWidth = 40 + 2 * offsetPx;
+  const widthMatches = Math.abs(offsetResult.geometry.width - expectedWidth) < 0.01;
+
+  // Confirma también que el pipeline REAL (Konva/pdf-lib reales) exporta sin error con esta configuración.
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+
+  return { expectedWidth, actualWidth: offsetResult.geometry.width, exportFormat: result.format, pass: widthMatches && result.format === "pdf" };
+}
+
+async function scenario23_unsupportedPathOffsetGeneratesExpectedIssue(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "path",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    segments: [
+      { type: "moveTo", point: { x: 0, y: 0 } },
+      { type: "lineTo", point: { x: 30, y: 0 } },
+      { type: "lineTo", point: { x: 30, y: 30 } },
+      { type: "lineTo", point: { x: 0, y: 30 } },
+    ],
+    closed: true,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet", {
+    cutPath: { mode: "die-cut", source: { type: "auto" }, offset: 3, unit: "mm", stroke: 0.25, color: "#ff00ff", logicalLayerName: "DieCut" },
+    offsetUnsupportedPolicy: "warn",
+  });
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const hasIssue = result.warnings.some((w) => w.code === "cut_path_offset_unsupported");
+  return { warningCodes: result.warnings.map((w) => w.code), pass: hasIssue };
+}
+
+async function scenario24_multipagePreservesPerPageOverlays(): Promise<ScenarioResult> {
+  const rectDieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const ellipseDieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "ellipse",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    style: { ...baseStyle, fill: "transparent" },
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [rectDieLine]);
+  const page2Id = PageIdSchema.parse(nextId("page"));
+  const page2Layer = LayerIdSchema.parse(nextId("layer"));
+  project.document.pages.push({ ...project.document.pages[0]!, id: page2Id, layers: [{ id: page2Layer, objects: [ellipseDieLine], metadata: baseMetadata, pluginData: {}, customProperties: {} }] });
+
+  const printJob = buildPrintJobFor(project, "sticker-sheet", {
+    cropMarks: { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" },
+  });
+  printJob.pageIds = [project.document.pages[0]!.id, page2Id];
+
+  const result = await exportPrintJobToPdf({
+    project,
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const bytes = new Uint8Array(await result.blob.arrayBuffer());
+  const reloaded = await PDFDocument.load(bytes);
+  const page1Text = getPdfPageContentText(reloaded, 0);
+  const page2Text = getPdfPageContentText(reloaded, 1);
+  const page1HasBezier = /\bc\b/.test(page1Text);
+  const page2HasBezier = /\bc\b/.test(page2Text);
+
+  return {
+    pageCount: result.pageCount,
+    page1HasBezier,
+    page2HasBezier,
+    pass: result.pageCount === 2 && !page1HasBezier && page2HasBezier,
+  };
+}
+
+async function scenario25And26_projectImmutableAndNoDirtyStateWithOverlays(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const invader: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 10, height: 10 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: baseMetadata,
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine, invader]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet"); // marks + safeArea + cutPath, todos activos
+
+  const engine = createEngine(project);
+  let projectChangedCount = 0;
+  const unsubscribe = engine.subscribe((event) => {
+    if (event.type === "projectChanged") projectChangedCount += 1;
+  });
+
+  const before = JSON.stringify(engine.getProject());
+  await exportPrintJobToPng({
+    project: engine.getProject(),
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  await exportPrintJobToPdf({
+    project: engine.getProject(),
+    printJob,
+    resolver: noopResolver,
+    projectName: "harness",
+    fontChecker: browserFontChecker,
+    imageProbe: browserImageDimensionsProbe,
+    now: () => NOW,
+  });
+  const after = JSON.stringify(engine.getProject());
+  unsubscribe();
+
+  return {
+    projectUnchanged: before === after,
+    projectChangedEventCount: projectChangedCount,
+    pass: before === after && projectChangedCount === 0,
+  };
+}
+
+async function scenario27_cancellationDuringOverlayStageCleansUp(): Promise<ScenarioResult> {
+  const dieLine: SceneObject = {
+    id: ObjectIdSchema.parse(nextId("obj")),
+    type: "rectangle",
+    transform: { x: 5, y: 5, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 40, height: 40 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: dieLineMetadata(),
+    pluginData: {},
+    customProperties: {},
+  };
+  const project = buildProject({ width: 50, height: 50, unit: "mm" }, [dieLine]);
+  const printJob = buildPrintJobFor(project, "sticker-sheet"); // marks + cutPath activos: ejercita la composición de overlays
+  const controller = new AbortController();
+  let threw: string | undefined;
+  let code: string | undefined;
+  try {
+    await exportPrintJobToPng({
+      project,
+      printJob,
+      resolver: noopResolver,
+      projectName: "harness",
+      fontChecker: browserFontChecker,
+      imageProbe: browserImageDimensionsProbe,
+      now: () => NOW,
+      signal: controller.signal,
+      onProgress: (event) => {
+        if (event.stage === "encoding-page") controller.abort();
+      },
+    });
+    threw = "no-throw";
+  } catch (error) {
+    threw = "threw";
+    code = (error as { code?: string }).code;
+  }
+  return { threw, code, pass: threw === "threw" && code === "aborted" };
+}
+
 async function run(): Promise<void> {
   const scenarios: Array<[string, () => Promise<ScenarioResult>]> = [
     ["1_pngDimensions_100mm_300ppi", scenario1_pngDimensions],
@@ -460,6 +1045,21 @@ async function run(): Promise<void> {
     ["9_fontDetectionIsCoherentSignalNeverAbsolute", scenario9_fontDetectionIsCoherentSignalNeverAbsolute],
     ["10_missingAssetNeverSubstituted", scenario10_missingAssetNeverSubstituted],
     ["11And12_projectImmutableAndNoDirtyState", scenario11And12_projectImmutableAndNoDirtyState],
+    // Fase 9.3 (Marks, Safe Area & Cut Paths) — sección 29, 15 escenarios.
+    ["13_bleedMarksMediaBoxLargerThanTrim", scenario13_bleedMarksMediaBoxLargerThanTrim],
+    ["14_marksNeverInvadeTrimRealPixels", scenario14_marksNeverInvadeTrimRealPixels],
+    ["15_safeAreaNeverLeaksIntoFinalRaster", scenario15_safeAreaNeverLeaksIntoFinalRaster],
+    ["16_ellipseDieLineExportsSuccessfully", scenario16_ellipseDieLineExportsSuccessfully],
+    ["17_dieLineAbsentFromFlattenedRaster", scenario17_dieLineAbsentFromFlattenedRaster],
+    ["18_cutPathAppearsAsRealPdfVector", scenario18_cutPathAppearsAsRealPdfVector],
+    ["19_pngCutPathIncludedOrExcludedPerConfig", scenario19_pngCutPathIncludedOrExcludedPerConfig],
+    ["20_openPathBlocksExport", scenario20_openPathBlocksExport],
+    ["21_multipleDieLinesBlockExport", scenario21_multipleDieLinesBlockExport],
+    ["22_rectOffsetPreservesExactPhysicalDimensions", scenario22_rectOffsetPreservesExactPhysicalDimensions],
+    ["23_unsupportedPathOffsetGeneratesExpectedIssue", scenario23_unsupportedPathOffsetGeneratesExpectedIssue],
+    ["24_multipagePreservesPerPageOverlays", scenario24_multipagePreservesPerPageOverlays],
+    ["25And26_projectImmutableAndNoDirtyStateWithOverlays", scenario25And26_projectImmutableAndNoDirtyStateWithOverlays],
+    ["27_cancellationDuringOverlayStageCleansUp", scenario27_cancellationDuringOverlayStageCleansUp],
   ];
 
   const results: Record<string, ScenarioResult | { error: string }> = {};

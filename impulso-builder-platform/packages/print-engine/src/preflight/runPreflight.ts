@@ -6,6 +6,9 @@ import { estimateMemoryBytes, type MemoryEstimateInput } from "../memory.js";
 import type { PrintJob } from "../types.js";
 import { browserFontChecker, type FontChecker } from "./fonts.js";
 import { browserImageDimensionsProbe, type ImageDimensionsProbe } from "./imageProbe.js";
+import { checkCropMarksConfig, checkCropMarksGeometry } from "./cropMarksChecks.js";
+import { checkSafeAreaConfig, checkSafeAreaForPage } from "./safeAreaChecks.js";
+import { checkCutPathForPage } from "./cutPathChecks.js";
 import type { PreflightIssue, PreflightResult } from "./types.js";
 
 export interface RunPreflightOptions {
@@ -125,6 +128,17 @@ export async function runPreflight(
 
   const warnBelowPpi = printJob.resolution.warnBelowPpi ?? printJob.resolution.targetPpi * (2 / 3);
 
+  // Crop marks y safe area son configuración a nivel de JOB (no dependen
+  // del contenido de una página en particular) — se validan una sola vez.
+  // La geometría de marcas solo se verifica si la configuración ya es
+  // válida (sección 3-5 del enunciado de Fase 9.3, ver ADR-0023).
+  const cropMarksConfigIssues = checkCropMarksConfig(printJob);
+  issues.push(...cropMarksConfigIssues);
+  if (cropMarksConfigIssues.length === 0) {
+    issues.push(...checkCropMarksGeometry(printJob));
+  }
+  issues.push(...checkSafeAreaConfig(printJob));
+
   for (const pageId of printJob.pageIds) {
     const page = findPage(project, pageId);
     if (!page) {
@@ -137,6 +151,12 @@ export async function runPreflight(
       });
       continue;
     }
+
+    // Safe area (invasión por object) y cut path SÍ dependen del
+    // contenido de cada página — se recalculan por página, nunca se
+    // reutiliza el resultado de la primera (sección 24, multipágina).
+    issues.push(...checkSafeAreaForPage(page, pageId, printJob));
+    issues.push(...checkCutPathForPage(page, pageId, printJob));
 
     let visibleObjectCount = 0;
     for (const layer of page.layers) {

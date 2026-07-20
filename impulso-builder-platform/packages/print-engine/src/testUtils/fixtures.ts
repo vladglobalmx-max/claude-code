@@ -15,6 +15,9 @@ import {
   type ImageObject,
   type ImageAsset,
   type GroupObject,
+  type RectangleObject,
+  type EllipseObject,
+  type PathObject,
 } from "@impulso/document-schema";
 import { createPrintJob } from "../printJob.js";
 import type { PrintJob, PrintProfileId } from "../types.js";
@@ -34,6 +37,55 @@ export function buildText(id: string, overrides: Partial<TextObject> = {}): Text
     fontWeight: 400,
     textAlign: "left",
     lineHeight: 1.2,
+    style: baseStyle,
+    metadata: baseMetadata,
+    pluginData: {},
+    customProperties: {},
+    ...overrides,
+  };
+}
+
+export function buildRectangle(id: string, overrides: Partial<RectangleObject> = {}): RectangleObject {
+  return {
+    id: ObjectIdSchema.parse(id),
+    type: "rectangle",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 10, height: 10 },
+    cornerRadius: 0,
+    style: baseStyle,
+    metadata: baseMetadata,
+    pluginData: {},
+    customProperties: {},
+    ...overrides,
+  };
+}
+
+export function buildEllipse(id: string, overrides: Partial<EllipseObject> = {}): EllipseObject {
+  return {
+    id: ObjectIdSchema.parse(id),
+    type: "ellipse",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    size: { width: 20, height: 10 },
+    style: baseStyle,
+    metadata: baseMetadata,
+    pluginData: {},
+    customProperties: {},
+    ...overrides,
+  };
+}
+
+export function buildPath(id: string, overrides: Partial<PathObject> = {}): PathObject {
+  return {
+    id: ObjectIdSchema.parse(id),
+    type: "path",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    segments: [
+      { type: "moveTo", point: { x: 0, y: 0 } },
+      { type: "lineTo", point: { x: 10, y: 0 } },
+      { type: "lineTo", point: { x: 10, y: 10 } },
+      { type: "lineTo", point: { x: 0, y: 10 } },
+    ],
+    closed: true,
     style: baseStyle,
     metadata: baseMetadata,
     pluginData: {},

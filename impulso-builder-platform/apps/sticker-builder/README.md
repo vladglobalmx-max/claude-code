@@ -43,7 +43,7 @@ apps/sticker-builder/
     └── testing/
         └── fakeCanvasContext.ts    # stub de canvas 2D para tests (jsdom no implementa uno real)
 
-    (347 tests unitarios + 13 e2e en Chromium real, ver §4)
+    (357 tests unitarios + 13 e2e en Chromium real, ver §4)
 ```
 
 ## 3. Decisiones clave (ver ADR-0010/ADR-0011/ADR-0012 para el detalle completo)

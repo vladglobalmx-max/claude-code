@@ -24,3 +24,5 @@ Y se entrega siempre en el mismo formato: qué funciona muy bien, qué puede mej
 | [0001](0001-workspace.md) | Workspace (Epic 5) | 2026-07-19 |
 | [0002](0002-inspector-fase-7-1.md) | Inspector honesto (Epic 7 / Fase 7.1) | 2026-07-19 |
 | [0003](0003-alignment-fase-7-2.md) | Batch Operations + Alignment (Epic 7 / Fase 7.2) | 2026-07-19 |
+| [0004](0004-assisted-placement-fase-7-3.md) | Assisted Placement (Epic 7 / Fase 7.3) | 2026-07-19 |
+| [0005](0005-multi-selection-fase-7-4.md) | Professional Multi Selection (Epic 7 / Fase 7.4) | 2026-07-20 |

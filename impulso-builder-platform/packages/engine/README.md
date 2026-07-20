@@ -48,7 +48,8 @@ packages/engine/
     │   ├── composeTransform.ts     # composeChildTransformIntoParent — hornea el transform de un Group en su hijo
     │   ├── boundingBox.ts          # computeRotatedBoundingBox / unionBoundingBox (Fase 7.2)
     │   ├── alignment.ts            # alignLeft/Right/... / distributeHorizontal/Vertical (Fase 7.2)
-    │   └── snapping.ts             # computeSnap / buildPageSnapCandidates / buildObjectSnapCandidates (Fase 7.3)
+    │   ├── snapping.ts             # computeSnap / buildPageSnapCandidates / buildObjectSnapCandidates (Fase 7.3)
+    │   └── groupTransform.ts       # translateGroupMembers / computeGroupResize / computeGroupRotation (Fase 7.4)
     │
     ├── cloning/
     │   └── cloneSceneObject.ts     # cloneSceneObjectWithNewIds — clona con ids frescos (no un comando)
@@ -69,7 +70,7 @@ packages/engine/
     └── testUtils/
         └── fixtures.ts             # builders de Project/Document/Page/Layer/Object para tests
 
-    (312 tests, 100% de cobertura)
+    (327 tests, 100% de cobertura)
 ```
 
 ## 3. Arquitectura
@@ -198,6 +199,26 @@ Todas devuelven `AlignmentPatch[]` (`{ objectId, transform: Partial<{x, y}> }`),
 - `buildObjectSnapCandidates(objectId, box)`: los 6 candidatos de un object a partir de su `BoundingBox` ya medido (ver `computeObjectBoundingBox`, §3.13).
 
 **Quién mide/dibuja**: igual que Alignment, este módulo nunca toca Konva ni el DOM. `renderer-konva` mide (vía `computeObjectBoundingBox`), arma los candidatos, llama a `computeSnap` en cada `dragmove`, y dibuja las Smart Guides resultantes — ver su propio README y ADR-0016 para el contrato completo.
+
+### 3.15 Transformaciones grupales: mover/redimensionar/rotar 2+ objects como una unidad (Epic 7 / Fase 7.4)
+
+`geometry/groupTransform.ts` es la matemática de Professional Multi Selection (ver ADR-0017) — el mismo estilo que Alignment/Snapping: funciones puras, sin Konva ni DOM, que reciben un snapshot y devuelven patches de `Transform` listos para `updateObjectTransform`.
+
+**`GroupMember { objectId, box: BoundingBox, transform: Transform }`** es el snapshot inicial de un member, capturado UNA sola vez al empezar el gesto (quien llama mide `box` vía `computeObjectBoundingBox`, §3.13). Las tres funciones de este módulo (`translateGroupMembers`, `computeGroupResize`, `computeGroupRotation`) toman siempre este mismo snapshot como base — nunca el resultado del frame anterior, evitando drift acumulativo de punto flotante a lo largo de un gesto largo.
+
+**Traducción y rotación son exactas.** `translateGroupMembers(members, delta)` traslada cada member por el mismo delta — la traslación conmuta con la rotación (mismo argumento que ya documentaba `AlignmentTarget`, §3.13), así que ningún member necesita tratamiento especial sin importar su propia rotación. `computeGroupRotation({members, center, deltaRotationDegrees})` rota cada member alrededor de un centro común (fijo, el de la caja envolvente inicial) y suma el mismo delta a su rotación propia — una rotación pura siempre conmuta consigo misma, exacta sin importar la rotación previa de cada member.
+
+**Resize es exacto para rotación 0 o resize uniforme; una aproximación documentada en el resto de casos.** `computeGroupResize({members, unionBoxInitial, handle, pointerDelta, maintainAspectRatio?})`: calcula un factor de escala por eje (`scaleFactorX`/`scaleFactorY`) a partir de cuánto cambia el ancho/alto de la caja conjunta, con el ancla en el borde/esquina opuesto al handle arrastrado (igual que el resize individual, §3.8). Para cada member:
+- su **posición** (el pivote, un punto) se escala respecto del ancla — geométricamente exacto sin importar la rotación del member, porque es solo álgebra de vectores;
+- su **`scaleX`/`scaleY` propio** se multiplica por el factor del eje correspondiente del grupo, sin decantarlo por su propia rotación.
+
+Esto es exacto cuando el member no está rotado o el resize es uniforme (`scaleFactorX === scaleFactorY`, donde una escala uniforme siempre conmuta con cualquier rotación sin producir shear). Para un member ROTADO con un resize NO-uniforme, escalar su tamaño así es una aproximación deliberada: una transformación verdaderamente exacta de un rectángulo rotado bajo un factor no-uniforme requeriría *shear* (inclinación), un campo que `Transform` no tiene (solo `scaleX`/`scaleY`/`rotation`) — añadirlo sería un cambio de schema amplio, fuera del alcance de esta fase (ver ADR-0017, "Alternativas evaluadas"). La rotación de cada member **nunca cambia** por un resize de grupo, sin importar el caso.
+
+**Clamps deterministas**, mismo criterio que el resize individual: `MIN_RESIZE_SIZE` (reexportado de `resizeMath.ts`) para el ancho/alto de la caja del grupo; si el ancho/alto INICIAL de esa caja ya es ~0 (members superpuestos de tamaño casi nulo), el factor de escala de ese eje se fija en 1 (solo se permite mover, no seguir escalando) en vez de dividir por casi-cero y producir `NaN`/`Infinity`.
+
+**Sin comandos ni cambios de schema nuevos.** Un gesto de grupo se traduce, al soltar, en N comandos `updateObjectTransform` (uno por member cuyo patch cambió de verdad respecto de su snapshot, tolerancia `1e-6` igual que Alignment) aplicados con un único `dispatchBatch` (§3.12) — una sola entrada de historial por gesto, sin importar cuántos objects mueva. Mismo patrón que ya usa Alignment.
+
+**Quién mide/aplica**: `renderer-konva/manipulation/groupHandles.ts` mide la caja de cada member (vía `computeObjectBoundingBox`), construye el snapshot `GroupMember[]` una sola vez al iniciar el gesto, aplica los patches directamente a los nodes Konva durante el preview (sin `dispatch`), y construye/despacha los comandos finales al soltar — ver su propio README y ADR-0017 para el contrato completo.
 
 ### 3.4 Versionado e historial
 
@@ -336,6 +357,8 @@ const engine = createEngine(myProject, {
 7. **Alignment/Distribution no consideran objects dentro de un `group`** (solo top-level) — consistente con que un Group ya se trata como una unidad indivisible en el resto del producto, no una limitación nueva de esta fase (Epic 7 / Fase 7.2, ver ADR-0015).
 8. **Sin caché de bounding boxes entre operaciones sucesivas de Alignment** — cada operación remide desde cero vía `computeObjectBoundingBox` (ver `PERFORMANCE_BUDGET.md`, fila 18); aceptable a la escala actual de selección típica.
 9. **`computeSnap` no sabe nada de rotación por sí solo** — recibe `targetBox` ya como AABB (potencialmente de un object rotado, vía `computeRotatedBoundingBox`), pero decidir qué ajuste es "seguro" invertir de vuelta a un `pointerDelta` de resize para un object rotado es responsabilidad de quien llama (`renderer-konva`), no de este módulo — y esa pieza deliberadamente NO se construyó para objects rotados en Fase 7.3 (ver ADR-0016, Riesgos).
+10. **`computeGroupResize` no es una transformación afín exacta para members ROTADOS bajo un resize NO-uniforme** (Fase 7.4) — multiplica el `scaleX`/`scaleY` propio del member por el factor de eje del grupo sin decantarlo por su rotación, en vez de aplicar un *shear* verdadero (que `Transform` no puede representar, ver ADR-0017). Exacto para rotación 0 o resize uniforme; una aproximación determinista y documentada en el resto de casos — nunca produce `NaN`/degenerado, pero tampoco es pixel-perfecto ahí.
+11. **`groupTransform.ts` no considera objects dentro de un `group`** (solo top-level) — mismo criterio ya aceptado para Alignment (Riesgo 7) y Snapping, no una limitación nueva de esta fase.
 
 ## 6. Posibles mejoras futuras
 
@@ -345,5 +368,5 @@ const engine = createEngine(myProject, {
 - Un modo de undo/redo basado en patches en vez de snapshots completos (ver Riesgo 1).
 - Índice `objectId -> ruta` para acelerar las operaciones sobre objetos en documentos grandes (ver Riesgo 2).
 - Middleware/interceptores de `dispatch` (por ejemplo, para que un plugin valide un comando antes de que llegue al reducer) — no se construyó porque Foundation 2 no incluye todavía el sistema de Plugins.
-- Manipulación visual conjunta de una selección múltiple (mover/redimensionar/rotar como una unidad, con una sola caja envolvente manipulable) — `dispatchBatch` ya está listo para soportarlo; falta la UX de Fase 7.4 (Multi Selection).
+- Un campo de *shear*/skew en `Transform` permitiría que `computeGroupResize` fuera geométricamente exacto también para members rotados con resize no-uniforme (ver Riesgo 10) — cambio de schema deliberadamente fuera de alcance de Fase 7.4.
 - Reutilizar `computeRotatedBoundingBox`/`computeObjectBoundingBox` para Smart Guides/Snapping (Fase 7.3) — la matemática de bounding boxes ya existe, falta la lógica de snap en sí.

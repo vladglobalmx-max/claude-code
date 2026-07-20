@@ -1,10 +1,10 @@
 import Konva from "konva";
-import type { Page, Project } from "@impulso/document-schema";
-import type { Engine } from "@impulso/engine";
-import type { Unsubscribe } from "@impulso/engine";
+import type { ObjectId, Page, Project } from "@impulso/document-schema";
+import { findObjectInDocument, type Engine, type Unsubscribe } from "@impulso/engine";
 import { toPixels } from "./unit.js";
 import { createSceneNode } from "./nodes/sceneNode.js";
 import { renderManipulationHandles } from "./manipulation/handles.js";
+import { renderSharedManipulationHandles, type GroupGestureHooks } from "./manipulation/groupHandles.js";
 import type { KonvaRendererOptions, NodeContext, RendererAdapter } from "./types.js";
 
 /** Color fijo del indicador de selección — Editor 2 no incluye todavía un
@@ -53,6 +53,65 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
   let unsubscribe: Unsubscribe | null = null;
   const getZoom = options.getZoom ?? (() => 1);
 
+  // Epic 7 / Fase 7.4 (Professional Multi Selection) — referencia al gesto
+  // grupal (mover/redimensionar/rotar 2+ objects) actualmente en curso, si
+  // hay uno. `cancelActiveManipulation()` (ver `types.ts`) la usa para que
+  // Escape pueda cancelar un gesto en curso ANTES de limpiar la selección.
+  let activeGroupCancel: (() => void) | undefined;
+  const groupGestureHooks: GroupGestureHooks = {
+    notifyGestureStart: (cancel) => {
+      activeGroupCancel = cancel;
+    },
+    notifyGestureEnd: () => {
+      activeGroupCancel = undefined;
+    },
+  };
+
+  function drawSimpleSelectionRect(objectId: ObjectId): void {
+    if (!mainLayer || !selectionLayer) return;
+    const node = mainLayer.findOne(`#${objectId}`);
+    if (!node) return; // ver ADR-0006, Riesgos: no debería pasar tras pruneSelection, pero no se asume.
+    const box = node.getClientRect({ relativeTo: mainLayer });
+    selectionLayer.add(
+      new Konva.Rect({
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+        stroke: SELECTION_STROKE_COLOR,
+        strokeWidth: 2,
+        dash: [6, 4],
+        listening: false,
+      }),
+    );
+  }
+
+  /**
+   * Restaura `draggable` de cada object top-level de la página activa a su
+   * valor natural (`!locked`) — necesario porque la caja compartida
+   * (`groupHandles.ts`) fuerza `draggable(false)` en cada member
+   * transformable mientras la selección es 2+ (para que el drag nativo de
+   * Konva no compita con el de la caja compartida, ver ADR-0017), y
+   * `mainLayer` NO se reconstruye en cada cambio de selección (solo en
+   * `projectChanged`) — sin este paso, un object dejaría de ser arrastrable
+   * individualmente para siempre después de haber pasado por una selección
+   * múltiple. Se llama incondicionalmente al principio de cada
+   * `renderSelectionOverlay()`, sin importar el tamaño de la selección
+   * actual o anterior — barato (solo escrituras de atributo) y siempre
+   * correcto sin necesitar recordar el historial de selecciones.
+   */
+  function restoreIndividualDraggableState(): void {
+    if (!mainLayer) return;
+    const page = resolveActivePage(engine.getProject(), options.pageId);
+    if (!page) return;
+    for (const layer of page.layers) {
+      for (const object of layer.objects) {
+        const node = mainLayer.findOne(`#${object.id}`);
+        node?.draggable(!object.metadata.locked);
+      }
+    }
+  }
+
   function renderSelectionOverlay(): void {
     // Guarda defensiva de tipos: ambos call sites (fin de renderContent, y
     // el callback de "selectionChanged" mientras la suscripción está
@@ -62,51 +121,70 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     // caso real observado.
     if (!stage || !mainLayer || !guidesLayer || !selectionLayer) return;
     selectionLayer.destroyChildren();
+    restoreIndividualDraggableState();
 
     const selection = engine.getSelection();
+    const snapping = { stage, mainLayer, guidesLayer, getZoom };
 
     // Exactamente UN object seleccionado: caja de manipulación completa
     // (bounding box + 8 handles de resize + handle de rotación, ver
-    // ADR-0008 / EDITOR EPIC 1). Multi-selección conserva el resaltado
-    // simple de Editor 2 — mover/redimensionar varios objects a la vez
-    // queda fuera de alcance de este épico.
+    // ADR-0008 / EDITOR EPIC 1).
     if (selection.length === 1) {
       const node = mainLayer.findOne(`#${selection[0]}`);
-      if (
-        node &&
-        renderManipulationHandles({
-          objectId: selection[0]!,
-          node,
-          selectionLayer,
-          stage,
-          engine,
-          onRejected: renderContent,
-          snapping: { stage, mainLayer, guidesLayer, getZoom },
-        })
-      ) {
+      if (node && renderManipulationHandles({ objectId: selection[0]!, node, selectionLayer, stage, engine, onRejected: renderContent, snapping })) {
         selectionLayer.batchDraw();
         return;
       }
     }
 
-    for (const objectId of selection) {
-      const node = mainLayer.findOne(`#${objectId}`);
-      if (!node) continue; // ver ADR-0006, Riesgos: no debería pasar tras pruneSelection, pero no se asume.
-      const box = node.getClientRect({ relativeTo: mainLayer });
-      selectionLayer.add(
-        new Konva.Rect({
-          x: box.x,
-          y: box.y,
-          width: box.width,
-          height: box.height,
-          stroke: SELECTION_STROKE_COLOR,
-          strokeWidth: 2,
-          dash: [6, 4],
-          listening: false,
-        }),
-      );
+    if (selection.length > 1) {
+      // Epic 7 / Fase 7.4 — política de objects bloqueados: un object
+      // bloqueado nunca es transformable (ni individualmente ni como parte
+      // de un grupo), pero conserva su propio indicador de selección
+      // individual en paralelo a la caja compartida del subconjunto
+      // transformable (ver ADR-0017, "Riesgos y casos límite").
+      const project = engine.getProject();
+      const transformableIds: ObjectId[] = [];
+      const lockedIds: ObjectId[] = [];
+      for (const objectId of selection) {
+        const object = findObjectInDocument(project.document, objectId);
+        (object?.metadata.locked ? lockedIds : transformableIds).push(objectId);
+      }
+
+      for (const objectId of lockedIds) drawSimpleSelectionRect(objectId);
+
+      if (transformableIds.length >= 2) {
+        const drew = renderSharedManipulationHandles({
+          transformableIds,
+          mainLayer,
+          selectionLayer,
+          stage,
+          engine,
+          onNeedsRefresh: renderContent,
+          hooks: groupGestureHooks,
+          snapping,
+        });
+        if (drew) {
+          selectionLayer.batchDraw();
+          return;
+        }
+      } else if (transformableIds.length === 1) {
+        const node = mainLayer.findOne(`#${transformableIds[0]}`);
+        if (node && renderManipulationHandles({ objectId: transformableIds[0]!, node, selectionLayer, stage, engine, onRejected: renderContent, snapping })) {
+          selectionLayer.batchDraw();
+          return;
+        }
+      }
+
+      // Ningún camino anterior pudo dibujar handles (ej. algún node no se
+      // encontró) — se cae al resaltado simple para el subconjunto
+      // transformable, igual que el comportamiento de Editor 2.
+      for (const objectId of transformableIds) drawSimpleSelectionRect(objectId);
+      selectionLayer.batchDraw();
+      return;
     }
 
+    for (const objectId of selection) drawSimpleSelectionRect(objectId);
     selectionLayer.batchDraw();
   }
 
@@ -192,6 +270,13 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     },
 
     destroy(): void {
+      // Un gesto grupal activo (mover/redimensionar/rotar) no debe dejar un
+      // preview visual ni un listener de `blur`/`pointercancel` huérfano si
+      // el editor se destruye a mitad de gesto (Fase 7.4, sección 7:
+      // "destrucción del editor sin dejar estado visual inconsistente") —
+      // cancelarlo primero limpia esos listeners vía el mismo camino que
+      // Escape ya usa.
+      activeGroupCancel?.();
       unsubscribe?.();
       unsubscribe = null;
       stage?.destroy();
@@ -202,5 +287,12 @@ export function createKonvaRenderer(engine: Engine, options: KonvaRendererOption
     },
 
     getStage: () => stage,
+
+    cancelActiveManipulation(): boolean {
+      const cancel = activeGroupCancel;
+      if (!cancel) return false;
+      cancel();
+      return true;
+    },
   };
 }

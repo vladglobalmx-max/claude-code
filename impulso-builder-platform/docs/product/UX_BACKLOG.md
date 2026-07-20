@@ -20,6 +20,8 @@
 | 10 | Mencionar en el tooltip de "Snap" la jerarquía Página > Objects > Grid, no solo el modificador temporal (Ctrl/Cmd) | UX Audit 0004 | Editor |
 | 11 | Estado `:hover` en los botones de ícono del panel de Capas (👁/🔒) y de Assets — hoy solo el propio `.layer-row` tiene hover, no sus botones internos | Fase 7.3.5 (Beta Stabilization) | Editor |
 | 12 | Asociar los campos "Ancho (mm)"/"Alto (mm)" del diálogo "Nuevo proyecto" (personalizado) a su input con `<label for>` o `aria-label` — hoy son solo nodos de texto sueltos, sin asociación programática | Fase 7.3.5 (Beta Stabilization) | Editor |
+| 13 | `title` en el candado de un object bloqueado que forma parte de una selección múltiple, explicando por qué quedó fuera de la caja compartida | UX Audit 0005 | Editor |
+| 14 | Contador breve ("N objects seleccionados") en el Inspector cuando la selección es 2+ | UX Audit 0005 | Editor |
 
 ## Medium (más que un quick win, sin requerir una épica completa)
 
@@ -57,9 +59,12 @@
 | 14 | Guías manuales arrastrables (guides), márgenes y columnas — excluidos explícitamente del alcance de Fase 7.3, quedan para una fase futura de Assisted Placement | UX Audit 0004 | Editor |
 | 15 | Snapping/Smart Guides considerando objects dentro de un `group` (hoy solo top-level, mismo gap pendiente que Alignment) | UX Audit 0004 | Editor |
 | 16 | **[Prioridad alta]** Herramienta para insertar un Rectangle/Ellipse nuevo desde el toolbar — hoy no existe ningún camino de UI para crearlos (ver Technical Debt) | Fase 7.3.5 (Beta Stabilization) | Editor |
-| 17 | Handle de rotación inalcanzable cuando el object está a menos de 24px del borde superior de la página (ver Technical Debt, severidad alta) — requiere decidir si el Stage debería tener margen para handles | Fase 7.3.5 (Beta Stabilization) | Editor |
+| 17 | ~~Handle de rotación inalcanzable cuando el object está a menos de 24px del borde superior de la página~~ — **resuelto en Fase 7.4** (`clampPointToStageBounds`, ADR-0018) | Fase 7.3.5 (Beta Stabilization) | Editor |
 | 18 | Incluir `size` explícito al insertar un `TextObject` desde el toolbar, para que Ancho/Alto aparezcan en el Inspector igual que en cualquier otro tipo de object | Fase 7.3.5 (Beta Stabilization) | Editor |
 | 19 | Unificar el sistema de iconografía (emoji en Capas, SVG inline en Alineación, texto plano en Grid/Snap/Zoom) — depende de que exista un Design System (ver Technical Debt, "pilares no construidos") | Fase 7.3.5 (Beta Stabilization) | Plataforma completa |
+| 20 | Soporte de *shear*/skew en el Document Schema, para que el resize de una selección múltiple con members rotados sea geométricamente exacto en todos los casos (ver Technical Debt, ADR-0017) | Fase 7.4 (Professional Multi Selection) | Editor |
+| 21 | Señal visual/tooltip cuando el handle de rotación fue recortado por cercanía a un borde (ADR-0018) — hoy se ve idéntico a un handle sin recortar, solo más cerca del object | Fase 7.4 (Professional Multi Selection) | Editor |
+| 22 | Indicación textual ("N objects seleccionados") en algún punto visible de la UI durante una selección múltiple — hoy solo se infiere contando filas `.selected` en Capas | Fase 7.4 (Professional Multi Selection) | Editor |
 
 ---
 

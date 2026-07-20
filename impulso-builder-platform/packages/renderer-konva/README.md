@@ -40,7 +40,9 @@ packages/renderer-konva/
     │   ├── boundingBox.ts      # geometría pura: pivote, tamaño intrínseco, puntos locales de cada handle
     │   ├── cursors.ts          # handle -> cursor CSS
     │   ├── handles.ts          # crea/posiciona los 8 handles de resize + 1 de rotación, cablea sus gestos (+ snap de resize, Fase 7.3)
-    │   └── smartGuides.ts      # puente Konva <-> @impulso/engine: beginSnapGesture/updateSnapGesture/endSnapGesture, dibuja guidesLayer (Fase 7.3)
+    │   ├── smartGuides.ts      # puente Konva <-> @impulso/engine: beginSnapGesture/updateSnapGesture/endSnapGesture, dibuja guidesLayer (Fase 7.3)
+    │   ├── groupHandles.ts     # caja compartida + handles para 2+ objects: mover/redimensionar/rotar como una unidad (Fase 7.4)
+    │   └── interactiveBounds.ts # clampPointToStageBounds — recorta el handle de rotación contra los límites del Stage (Fase 7.4, ADR-0018)
     │
     ├── nodes/
     │   ├── rectangle.ts | ellipse.ts | path.ts | image.ts | text.ts | group.ts
@@ -53,7 +55,7 @@ packages/renderer-konva/
     └── testUtils/
         └── fixtures.ts          # builders de Project/Page/Layer/SceneObject para tests
 
-    (173 tests, ~99% de statements/lines — ver "Riesgos")
+    (213 tests, ~99% de statements/lines — ver "Riesgos")
 ```
 
 ## 3. Arquitectura
@@ -153,7 +155,27 @@ Ver [ADR-0008](../../docs/adr/0008-manipulation-system.md) para el razonamiento 
 
 **Cursor feedback (`manipulation/cursors.ts`):** `mouseenter`/`mouseleave` sobre cada handle fijan/limpian `stage.container().style.cursor` (`nwse-resize`, `nesw-resize`, `ns-resize`, `ew-resize` según el handle; `grab` para el de rotación). Es CSS puro sobre el contenedor del Stage, sin ninguna dependencia nueva.
 
-**Single- vs multi-selección:** `renderSelectionOverlay()` solo dibuja la caja de manipulación completa cuando `engine.getSelection()` tiene EXACTAMENTE un id. Con 0 o 2+ ids seleccionados, se conserva el resaltado simple de Editor 2 (un `Konva.Rect` punteado por object) — mover/redimensionar varios objects a la vez queda fuera de alcance de este épico.
+**Single- vs multi-selección:** `renderSelectionOverlay()` dibuja la caja de manipulación completa cuando hay EXACTAMENTE un object transformable seleccionado. Con 2+ objects transformables, dibuja la caja compartida de `groupHandles.ts` (ver §3.9d, Epic 7 / Fase 7.4) — el resaltado simple de Editor 2 (un `Konva.Rect` punteado) se conserva únicamente para objects bloqueados dentro de una selección múltiple, o como último recurso si algo impide dibujar handles.
+
+**Objects bloqueados:** desde Fase 7.4, un `object.metadata.locked` nunca expone handles de resize/rotación — ni en la selección individual (`renderManipulationHandles` devuelve `true` habiendo dibujado solo el contorno) ni en la grupal (excluido del subconjunto transformable). Antes de esta fase, los 8 Rect de resize + el Circle de rotación eran `draggable: true` incondicionalmente sin importar `locked` — un gap preexistente cerrado al formalizar la política para el caso grupal.
+
+### 3.9d Manipulación grupal: caja compartida, sesión efímera, cancelación (Epic 7 / Fase 7.4 — Professional Multi Selection)
+
+Ver [ADR-0017](../../docs/adr/0017-professional-multi-selection.md) para el razonamiento de diseño completo. `manipulation/groupHandles.ts` es el hermano de `handles.ts` para 2+ objects: mismo estilo visual (reexporta `HANDLE_SIZE`/`HANDLE_FILL`/`HANDLE_STROKE`/`ROTATE_HANDLE_OFFSET` de `handles.ts`), mismo invariante preview/commit (la matemática vive en `@impulso/engine geometry/groupTransform.ts`, nunca en este archivo).
+
+**Ciclo de vida de un gesto grupal (mover, redimensionar o rotar):**
+1. **Iniciar** (`dragstart` de la caja compartida o de un handle): se captura el snapshot inicial — `GroupMember[]` (`{objectId, box, transform}`, medido UNA vez vía `computeObjectBoundingBox`) y, si aplica, un `SnapGesture` (`beginSnapGesture`, excluyendo TODA la selección como candidato de snap, no solo el member arrastrado). Se registra la cancelación externa (`hooks.notifyGestureStart`) y los listeners de `blur`/`pointercancel` (`attachCancellableGesture`).
+2. **Durante** (`dragmove`): la función pura correspondiente (`translateGroupMembers`/`computeGroupResize`/`computeGroupRotation`) recalcula SIEMPRE desde el snapshot inicial + el delta de ESTE frame — nunca desde el resultado del frame anterior (evita drift acumulativo). Los patches resultantes se aplican directamente a los nodes Konva de cada member vía `setAttrs` (convertidos a coordenadas Konva con `toKonvaXY`, respetando la asimetría de pivote de `Ellipse`), con un solo `batchDraw()` por frame — nunca se vuelve a medir Konva durante el gesto (verificado con smoke tests de performance, `manipulation/groupHandles.performance.test.ts`).
+3. **Terminar, con cambio real** (`dragend`): se comparan los patches finales contra el snapshot inicial (tolerancia `1e-6`, mismo criterio que Alignment); si algo cambió, se construyen los comandos `updateObjectTransform` correspondientes y se aplican con un único `engine.dispatchBatch()` — el `projectChanged` resultante ya dispara su propio re-render completo, así que este módulo no necesita hacer nada más.
+4. **Terminar, sin cambio real o cancelado** (`dragend` tras Escape/`blur`/`pointercancel`, o un gesto que termina exactamente donde empezó): se invoca `onNeedsRefresh` (en `renderer.ts`, literalmente `renderContent` — el mismo callback que ya se reutilizaba para un `dispatch` rechazado) para descartar el preview visual y redibujar desde el Project real, que nunca fue tocado.
+
+**Reenvío de drag desde el cuerpo de un member** (sección 9 del enunciado de producto: "arrastrar la caja o cualquiera de los objects seleccionados"): mientras la selección es 2+, cada member transformable pasa a `draggable: false` (para que el drag nativo de Konva no compita con el de la caja compartida) y gana un listener de `mousedown` que llama a `sharedBox.startDrag()` — la API pública de Konva pensada exactamente para "iniciar un drag desde el evento de otro nodo". Un `click` (sin arrastre real) sobre ese member sigue reseleccionándolo individualmente, sin cambios: Konva solo emite `dragstart`/`dragmove` si el puntero se mueve más allá de su umbral interno.
+
+**Cancelación externa** (`RendererAdapter.cancelActiveManipulation()`, nuevo): `renderer.ts` guarda la función de cancelación del gesto activo (si hay uno) vía `hooks.notifyGestureStart`/`notifyGestureEnd`. `apps/sticker-builder`'s `Escape` la invoca ANTES de limpiar la selección — verificado empíricamente que `Konva.Node.stopDrag()` invocado desde un handler de `blur`/`pointercancel`/cancelación externa completa correctamente un gesto iniciado con `startDrag()` (dispara `dragend` de forma síncrona), permitiendo reutilizar la misma ruta de "descartar preview" sin duplicar lógica.
+
+**Snapping durante resize de grupo, sin la restricción de rotación del caso individual:** `canSnapDuringResize` (handles.ts) restringe el snap a objects sin rotación porque su AABB individual solo coincide con sus ejes locales en ese caso. La caja envolvente de un GRUPO, en cambio, siempre es un AABB puro por definición — sin importar la rotación de cada member — así que `groupHandles.ts` ofrece snapping durante resize sin ninguna restricción de rotación, una mejora deliberada respecto del caso individual (ver ADR-0017).
+
+**Handle de rotación cerca de un borde:** ambos sistemas (`handles.ts` y `groupHandles.ts`) usan la misma función (`manipulation/interactiveBounds.ts`, `clampPointToStageBounds`) para recortar el offset del handle de rotación contra los límites interactivos del Stage — ver ADR-0018.
 
 ### 3.9b Stage headless para exportación PNG (`offscreenRenderer.ts`, Epic 3)
 `renderPageToStage(project, options)` construye un `Konva.Stage` DESACOPLADO del editor — su `container` es un `<div>` que nunca se agrega al DOM visible, sin `selectionLayer`, con `interactive: false` en cada node (nunca se adjuntan handlers de drag/selección/edición de texto). Reutiliza `createSceneNode` 1:1: el `@impulso/export-engine` que lo invoca (para rasterizar PNG vía `stage.toCanvas({ pixelRatio })`) obtiene exactamente el mismo dibujo que ya ve el usuario en el canvas interactivo, sin reimplementar layout de texto/curvas/sombras por separado. `dispatch` en su `NodeContext` lanza si se invoca — nunca debería pasar con `interactive: false`, es una guarda de desarrollo, no un camino real. Ver ADR-0012 para el límite completo entre este paquete y el Export Engine (SVG nunca pasa por aquí).
@@ -273,7 +295,7 @@ El modelo de selección (click reemplaza, Shift-click alterna, click-vacío limp
 
 ### Mejoras futuras
 - Navegación de selección por teclado y **mover/redimensionar/rotar con teclado** una vez seleccionado — el Engine ya soporta esto sin cambios (`updateObjectTransform`/`resizeObject`/`rotateObject` no les importa si el llamador fue un gesto de puntero o una tecla).
-- Mover o redimensionar una selección múltiple completa a la vez (hoy solo aplica al único object seleccionado).
+- ~~Mover o redimensionar una selección múltiple completa a la vez~~ — construido en Epic 7 / Fase 7.4 (Professional Multi Selection, ver §3.9d y ADR-0017).
 - Límites de arrastre / guías / snapping a otros objects o a los bordes de la página — explícitamente fuera de alcance de este sprint.
 - Una lista accesible fuera de pantalla (ARIA) que permita mover/redimensionar/rotar objects sin depender del canvas, despachando los mismos comandos del Engine.
 - Cursor CSS que rote junto con el object (hoy es siempre la orientación nominal del handle) — requeriría generar un cursor SVG a medida por ángulo.
@@ -289,7 +311,8 @@ Ver la sección "Riesgos" y "Compatibilidad futura" de [ADR-0004](../../docs/adr
 - `fontStyle` de Konva.Text solo distingue "bold"/"normal" — el `fontWeight` numérico (100-900) del Document Schema se aproxima con un umbral.
 - No hay API todavía para cambiar la página activa dinámicamente (`options.pageId` es fijo por instancia de renderer).
 - No hay selección por marquee/rubber-band, movimiento por teclado, ni límites/guías/snapping de arrastre (ver "Accesibilidad"/"Mejoras futuras" arriba).
-- **El handle de rotación puede renderizarse fuera del área visible del Stage** si el object seleccionado está muy cerca del borde superior de la página (el handle se dibuja `ROTATE_HANDLE_OFFSET` píxeles arriba de la caja) — en ese caso queda inalcanzable con el puntero en un navegador real, aunque la lógica de rotación en sí (verificada con tests que disparan los eventos directamente) es correcta. Detectado durante la verificación manual de este épico; no se resolvió por requerir que `handles.ts` conociera los límites del Stage (acoplamiento nuevo, fuera del alcance ya construido) para clampar o reposicionar el handle — documentado como limitación conocida, no arreglado.
+- ~~El handle de rotación puede renderizarse fuera del área visible del Stage si el object está muy cerca del borde superior~~ — corregido en Epic 7 / Fase 7.4 (`manipulation/interactiveBounds.ts`, `clampPointToStageBounds`, ver ADR-0018): el offset del handle se recorta dinámicamente contra los límites interactivos del Stage, para cualquier ángulo, tanto en selección individual como múltiple. Limitación residual documentada en el propio ADR: si el object/la selección está ENTERAMENTE fuera del Stage, no hay ninguna distancia que recortar.
+- **`computeGroupResize` (Fase 7.4) no es una transformación afín exacta para members rotados bajo un resize no-uniforme** — ver README/ADR de `@impulso/engine`, sección "Riesgos detectados" #10, y ADR-0017.
 - **`intrinsicSize` para un `Konva.Group` se aproxima con `getClientRect({ skipTransform: true })`**, no con `getSelfRect()` (que `Group` no implementa) — funciona para los casos probados, pero no se verificó exhaustivamente contra un Group con hijos rotados/anidados a varios niveles.
 - **Los tests con jsdom (`node.fire(...)`) no habrían detectado el bug real encontrado durante la verificación en navegador**: hasta antes de esta corrección, `selectionLayer` se creaba con `listening: false` a nivel de Layer completa (heredado de Editor 2, cuando solo contenía overlays decorativos) — esto bloqueaba SILENCIOSAMENTE todos los eventos reales de puntero sobre los handles nuevos, sin que ningún test (que dispara eventos directamente sobre el node, sin pasar por el hit-graph de Konva ni por el árbol DOM real) lo hiciera fallar. Se detectó solo con Playwright contra un Chromium real. Lección para futuros sprints: un test que solo llama `.fire(evento)` prueba la RESPUESTA a un evento, no si ese evento llegaría a ese node en un navegador real — ambas verificaciones siguen siendo necesarias.
 - **No se construyó "entrar a un grupo" con doble-click** para seleccionar/editar un hijo individual sin desagrupar primero (ver 3.9) — documentado como mejora futura, no un descuido.

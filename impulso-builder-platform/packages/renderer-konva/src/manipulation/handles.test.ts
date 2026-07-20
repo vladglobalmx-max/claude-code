@@ -155,6 +155,69 @@ describe("renderManipulationHandles — estructura", () => {
     for (const rect of resizeHandles(env.selectionLayer)) expect(rect.draggable()).toBe(true);
     expect(rotateHandle(env.selectionLayer).draggable()).toBe(true);
   });
+
+  it("ADR-0018: el handle de rotación se recorta contra los límites del Stage cuando el object está pegado al borde superior, en vez de quedar en Y negativa (invisible/inalcanzable)", () => {
+    // El fixture por defecto ya coloca el object en y=0 (pegado al borde
+    // superior) — antes de ADR-0018 esto producía un handle en Y=-24
+    // (fuera del Stage de 200x200, el bug de severidad alta de Fase 7.3.5).
+    const env = setup();
+    renderHandles(env);
+    const handle = rotateHandle(env.selectionLayer);
+
+    expect(handle.y()).toBeGreaterThanOrEqual(0);
+    // Sin espacio hacia arriba (topCenter ya está en Y=0), el recorte lo deja
+    // sobre el propio borde superior del object, nunca oculto/fuera de rango.
+    expect(handle.y()).toBe(0);
+  });
+
+  it("ADR-0018: con espacio suficiente debajo del borde superior, el offset completo de 24px no se recorta", () => {
+    const env = setup({ transform: { y: 50 } });
+    renderHandles(env);
+    const handle = rotateHandle(env.selectionLayer);
+
+    expect(handle.y()).toBe(50 - 24);
+  });
+
+  it("un object bloqueado conserva su contorno de selección pero no expone handles de resize/rotación (Fase 7.4 — política de objects bloqueados)", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [
+            buildLayer("layer_1", [
+              buildRectangle("rect_1", {
+                size: { width: 10, height: 20 },
+                transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+                metadata: { tags: [], visible: true, locked: true, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+              }),
+            ]),
+          ]),
+        ]),
+      }),
+    );
+    const stage = new Konva.Stage({ container: container(), width: 200, height: 200 });
+    const mainLayer = new Konva.Layer();
+    const selectionLayer = new Konva.Layer();
+    stage.add(mainLayer);
+    stage.add(selectionLayer);
+    const node = new Konva.Rect({ id: "rect_1", width: 10, height: 20, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 });
+    mainLayer.add(node);
+
+    const result = renderManipulationHandles({
+      objectId: ObjectIdSchema.parse("rect_1"),
+      node,
+      selectionLayer,
+      stage,
+      engine,
+      onRejected: vi.fn(),
+    });
+
+    expect(result).toBe(true);
+    // Solo el contorno (1 Line) — sin la "vara" del handle de rotación, sin
+    // los 8 Rect de resize, sin el Circle de rotación.
+    expect(selectionLayer.getChildren()).toHaveLength(1);
+    expect(selectionLayer.getChildren()[0]).toBeInstanceOf(Konva.Line);
+    expect(resizeHandles(selectionLayer)).toHaveLength(0);
+  });
 });
 
 describe("renderManipulationHandles — resize (dragmove/dragend)", () => {

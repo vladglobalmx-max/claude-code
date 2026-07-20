@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.10.0] — Epic 7 / Fase 7.4: Professional Multi Selection
+
+### Agregado
+- `geometry/groupTransform.ts` (nuevo): matemática pura de transformaciones grupales — `translateGroupMembers`, `computeGroupResize`, `computeGroupRotation`, `computeGroupUnionBox`. Ninguna depende de Konva; todas parten de un snapshot `GroupMember[]` (`{objectId, box, transform}`) capturado una sola vez al iniciar el gesto, nunca del resultado del frame anterior (evita drift acumulativo, ver ADR-0017).
+  - Traslación y rotación de grupo son **exactas** — la traslación conmuta con la rotación (mismo argumento que ya documentaba `AlignmentTarget`) y la rotación pura siempre conmuta consigo misma, sin importar la rotación previa de cada member.
+  - Resize de grupo escala la posición de cada member (un punto, exacto sin importar rotación) y multiplica su `scaleX`/`scaleY` propio por el factor del eje correspondiente del grupo — exacto para members sin rotación o resize uniforme; una aproximación deliberada y documentada (sin shear, el schema no lo soporta) para members rotados con resize no-uniforme.
+  - Clamps deterministas: `MIN_RESIZE_SIZE` a nivel de grupo, factor de escala fijado en 1 si la caja inicial de ese eje es ~0 (evita división por casi-cero / `NaN`/`Infinity`).
+- **Ningún comando ni cambio de schema nuevo** — un gesto de grupo se traduce en N `updateObjectTransform` aplicados con el `dispatchBatch` ya existente (Fase 7.2): una sola entrada de historial por gesto, sin importar cuántos objects mueva. Mismo patrón que ya usa `alignment.ts`.
+- Adición pura a la API pública existente — no requiere ADR de cambio de API (regla de Stable Public API), pero sí un ADR de arquitectura nuevo (ADR-0017).
+- 327 tests en total (15 nuevos en `geometry/groupTransform.test.ts`), 100% de cobertura mantenida. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.9.0] — Epic 7 / Fase 7.3: Assisted Placement
 
 ### Agregado

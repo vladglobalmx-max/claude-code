@@ -394,20 +394,35 @@ export function mountApp(deps: AppDependencies): App {
     runtime.engine.dispatch({ type: "setSelection", objectIds: topLevelIds() });
   }
 
+  /**
+   * Epic 7 / Fase 7.4 (Professional Multi Selection): Escape cancela un
+   * gesto de manipulación grupal en curso (mover/redimensionar/rotar 2+
+   * objects) ANTES de limpiar la selección — solo si no había ninguno
+   * activo, procede a `clearSelection` como hasta ahora.
+   */
   function escape(): void {
+    if (runtime.renderer.cancelActiveManipulation()) return;
     runtime.engine.dispatch({ type: "clearSelection" });
   }
 
+  /**
+   * Un solo `dispatchBatch` para toda la selección (Epic 7 / Fase 7.4):
+   * antes de esta fase, cada object nudgeado generaba su propia entrada de
+   * historial — un solo Ctrl/Cmd+Z deshacía solo el ÚLTIMO object movido,
+   * no el nudge completo. Reutiliza el mismo primitivo que ya usa
+   * Alignment/el resto de operaciones grupales, sin ningún comando nuevo.
+   */
   function nudge(dx: number, dy: number): void {
-    for (const id of runtime.engine.getSelection()) {
-      const object = findObjectInDocument(runtime.engine.getProject().document, id);
-      if (!object) continue;
-      runtime.engine.dispatch({
-        type: "updateObjectTransform",
-        objectId: id,
+    const commands = runtime.engine
+      .getSelection()
+      .map((id) => findObjectInDocument(runtime.engine.getProject().document, id))
+      .filter((object): object is NonNullable<typeof object> => object !== undefined)
+      .map((object) => ({
+        type: "updateObjectTransform" as const,
+        objectId: object.id,
         transform: { x: object.transform.x + dx, y: object.transform.y + dy },
-      });
-    }
+      }));
+    runtime.engine.dispatchBatch(commands, { label: "Mover con teclado" });
   }
 
   function reorderSelected(delta: number): void {

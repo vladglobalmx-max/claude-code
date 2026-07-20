@@ -325,8 +325,112 @@ describe("createKonvaRenderer — selección (Editor 2)", () => {
     nodeB!.fire("click", { evt: { shiftKey: true }, cancelBubble: false }, true);
     expect(engine.getSelection()).toEqual(["a", "b"]);
 
+    // Epic 7 / Fase 7.4 (Professional Multi Selection): 2+ objects ya no
+    // dibujan un rectángulo punteado por object — dibujan UNA caja
+    // envolvente compartida + 8 handles de resize + 1 handle de rotación
+    // (1 Rect + 8 Rect + 1 Line + 1 Circle = 11), mismo conteo que
+    // `handles.test.ts` ya verifica para la selección de un solo object.
     const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
-    expect(selectionLayer.getChildren()).toHaveLength(2);
+    expect(selectionLayer.getChildren()).toHaveLength(11);
+  });
+
+  it("Fase 7.4 — un object bloqueado dentro de una selección múltiple conserva su rectángulo individual, fuera de la caja compartida de los transformables", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [
+            buildLayer("layer_1", [
+              buildRectangle("a", { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+              buildRectangle("b", { transform: { x: 30, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+              buildRectangle("c", {
+                transform: { x: 60, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+                metadata: {
+                  tags: [],
+                  visible: true,
+                  locked: true,
+                  createdAt: "2024-01-01T00:00:00.000Z",
+                  updatedAt: "2024-01-01T00:00:00.000Z",
+                },
+              }),
+            ]),
+          ]),
+        ]),
+      }),
+    );
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b"), ObjectIdSchema.parse("c")] });
+
+    const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
+    const children = selectionLayer.getChildren();
+    // 11 de la caja compartida (a+b transformables) + 1 rectángulo punteado
+    // individual para "c" (bloqueado).
+    expect(children).toHaveLength(12);
+    expect(children.filter((n) => n instanceof Konva.Circle)).toHaveLength(1); // solo 1 handle de rotación (del grupo)
+
+    const mainLayer = renderer.getStage()!.getChildren()[0] as Konva.Layer;
+    const nodeC = mainLayer.findOne("#c")!;
+    expect(nodeC.draggable()).toBe(false);
+  });
+
+  it("Fase 7.4 — un object deja de ser individualmente draggable mientras es parte de una selección de 2+, y lo recupera al reducirse a 1", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [
+            buildLayer("layer_1", [
+              buildRectangle("a", { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+              buildRectangle("b", { transform: { x: 30, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+            ]),
+          ]),
+        ]),
+      }),
+    );
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+    const mainLayer = renderer.getStage()!.getChildren()[0] as Konva.Layer;
+    const nodeA = mainLayer.findOne("#a")!;
+
+    expect(nodeA.draggable()).toBe(true);
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+    expect(nodeA.draggable()).toBe(false);
+
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
+    expect(nodeA.draggable()).toBe(true);
+  });
+
+  it("Fase 7.4 — cancelActiveManipulation() devuelve false sin gesto activo, y true (descartando el preview) durante uno", () => {
+    const engine = createEngine(
+      buildProject({
+        document: buildDocument([
+          buildPage("page_1", [
+            buildLayer("layer_1", [
+              buildRectangle("a", { transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+              buildRectangle("b", { transform: { x: 30, y: 0, rotation: 0, scaleX: 1, scaleY: 1 } }),
+            ]),
+          ]),
+        ]),
+      }),
+    );
+    const renderer = createKonvaRenderer(engine);
+    renderer.mount(container());
+
+    expect(renderer.cancelActiveManipulation()).toBe(false);
+
+    engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+    const selectionLayer = renderer.getStage()!.getChildren()[2] as Konva.Layer;
+    const sharedBox = selectionLayer.getChildren()[0] as Konva.Rect;
+    const before = engine.getProject();
+
+    sharedBox.startDrag();
+    expect(sharedBox.isDragging()).toBe(true);
+
+    expect(renderer.cancelActiveManipulation()).toBe(true);
+    expect(sharedBox.isDragging()).toBe(false);
+    expect(engine.getProject()).toBe(before);
+    // Ya no hay ningún gesto activo que cancelar de nuevo.
+    expect(renderer.cancelActiveManipulation()).toBe(false);
   });
 
   it("un id seleccionado que no corresponde a ningún nodo actual se ignora sin lanzar", () => {

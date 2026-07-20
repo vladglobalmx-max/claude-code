@@ -475,6 +475,30 @@ describe("mountApp", () => {
       expect(object?.transform.x).toBe(11);
     });
 
+    it("Fase 7.4: las flechas con 2+ objects seleccionados los mueve a todos y genera UNA sola entrada de historial (un solo Undo revierte ambos)", () => {
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        initialProject: buildProject([buildRect("a"), buildRect("b")]),
+        now: () => NOW,
+      });
+      const engine = app.getRuntime().engine;
+      engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a"), ObjectIdSchema.parse("b")] });
+      const historyBefore = engine.getProject().document.history.entries.length;
+
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+
+      const objects = engine.getProject().document.pages[0]!.layers[0]!.objects;
+      expect(objects.find((o) => o.id === "a")?.transform.x).toBe(11);
+      expect(objects.find((o) => o.id === "b")?.transform.x).toBe(11);
+      expect(engine.getProject().document.history.entries.length).toBe(historyBefore + 1);
+
+      engine.undo();
+      const afterUndo = engine.getProject().document.pages[0]!.layers[0]!.objects;
+      expect(afterUndo.find((o) => o.id === "a")?.transform.x).toBe(10);
+      expect(afterUndo.find((o) => o.id === "b")?.transform.x).toBe(10);
+    });
+
     it("Ctrl/Cmd+] adelanta la capa seleccionada; Ctrl/Cmd+[ la retrasa", () => {
       const app = mountApp({
         elements,

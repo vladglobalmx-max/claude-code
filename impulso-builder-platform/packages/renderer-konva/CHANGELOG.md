@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.9.0] — Epic 7 / Fase 7.4: Professional Multi Selection
+
+### Agregado
+- `manipulation/groupHandles.ts` (nuevo): caja envolvente compartida + 8 handles de resize + 1 handle de rotación para 2+ objects seleccionados — reemplaza el resaltado punteado simple de Editor 2 cuando hay 2+ objects **transformables** (no bloqueados). Mismo invariante preview/commit que `handles.ts`: el preview mueve directamente los nodes Konva de cada member (sin `dispatch`), y el commit usa la MISMA matemática pura (`@impulso/engine` 0.10.0) para construir los patches finales — preview y estado final nunca pueden divergir.
+  - **Movimiento**: arrastrar la caja compartida traduce todos los members por el mismo delta; arrastrar el CUERPO de cualquier member ya seleccionado reenvía el gesto a la caja compartida vía `Konva.Node.startDrag()` (API pública de Konva pensada para esto) — cada member deja de ser individualmente `draggable` mientras la selección es 2+ (`renderer.ts` restaura ese estado al bajar a 0/1).
+  - **Resize**: los 8 handles escalan el grupo desde el ancla opuesta; a diferencia del resize individual, el snapping funciona SIN restricción de rotación (la caja envolvente del grupo siempre es un AABB puro).
+  - **Rotación**: gira todo el grupo alrededor del centro de su caja envolvente inicial; conserva únicamente el snap angular existente (15° vía Shift), sin Smart Guides angulares.
+  - **Sesión efímera**: snapshot inicial capturado una sola vez (`initialMembers`); un gesto sin cambio neto (no-op) o cancelado (Escape/`blur`/`pointercancel`) nunca dispatcha ni deja preview visual — se descarta con un re-render completo desde el Project real, reutilizando el mismo callback `onRejected`/`onNeedsRefresh` que ya existía para un `dispatch` rechazado.
+  - **Política de objects bloqueados**: nunca forman parte del subconjunto transformable (ni individual ni grupal); conservan su propio indicador de selección simple en paralelo a la caja compartida del resto. Esto también cierra un gap preexistente: los handles de resize/rotación de un solo object ahora se ocultan si ese object está bloqueado (antes eran `draggable: true` incondicionalmente).
+- `manipulation/interactiveBounds.ts` (nuevo): `clampPointToStageBounds` — recorte de rayo contra rectángulo que mantiene el handle de rotación siempre dentro del área interactiva del Stage, para cualquier ángulo (ver ADR-0018, corrige el bug de severidad alta detectado en Fase 7.3.5). Usado tanto por `handles.ts` (selección individual) como por `groupHandles.ts` (selección múltiple) — mismo comportamiento en ambos casos.
+- `RendererAdapter.cancelActiveManipulation()` (nuevo): cancela el gesto grupal activo, si hay uno — usado por `apps/sticker-builder`'s `Escape` para cancelar una manipulación en curso antes de limpiar la selección.
+- `handles.ts`/`cursors.ts` exportan ahora `HANDLE_SIZE`/`HANDLE_FILL`/`HANDLE_STROKE`/`ROTATE_HANDLE_OFFSET`/`isSnapDisabledByModifier`/`eligibleRefPointsForHandle` — reutilizados por `groupHandles.ts` para que ambos sistemas compartan el mismo estilo visual y las mismas reglas de snapping por handle.
+- Adición pura a la API pública existente (incluyendo el método nuevo de `RendererAdapter`) — no requiere ADR de cambio de API (regla de Stable Public API), pero sí dos ADR de arquitectura nuevos (ADR-0017, ADR-0018).
+- 213 tests en total (40 nuevos: 23 en `manipulation/groupHandles.test.ts`, 8 en `manipulation/interactiveBounds.test.ts`, 3 en `manipulation/groupHandles.performance.test.ts`, 3 en `manipulation/handles.test.ts`, 3 en `renderer.test.ts`). Verificado además en Chromium real (`e2e/multi-selection.spec.ts`): reenvío de drag vía `startDrag()`, cancelación real por `Escape` con blur/pointercancel, y atomicidad de Undo — mecanismos que dependen de gestos de puntero reales, no observables desde jsdom. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.8.0] — Epic 7 / Fase 7.3: Assisted Placement
 
 ### Agregado

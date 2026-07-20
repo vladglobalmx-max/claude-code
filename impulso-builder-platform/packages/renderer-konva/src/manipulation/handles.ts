@@ -20,6 +20,7 @@ import {
   type ManipulationBox,
 } from "./boundingBox.js";
 import { cursorForHandle, ROTATE_CURSOR, DEFAULT_CURSOR } from "./cursors.js";
+import { clampPointToStageBounds } from "./interactiveBounds.js";
 import {
   beginSnapGesture,
   updateSnapGesture,
@@ -28,15 +29,20 @@ import {
   type SnapGesture,
 } from "./smartGuides.js";
 
-const HANDLE_SIZE = 8;
-const HANDLE_FILL = "#ffffff";
-const HANDLE_STROKE = "#3b82f6";
-const ROTATE_HANDLE_OFFSET = 24;
+// Exportadas (Epic 7 / Fase 7.4 — Professional Multi Selection): la caja
+// compartida de `groupHandles.ts` necesita el MISMO estilo visual y el
+// MISMO offset de rotación que la caja de un solo object — para que ambas
+// se sientan como el mismo sistema, no dos paralelos (ver ADR-0017).
+export const HANDLE_SIZE = 8;
+export const HANDLE_FILL = "#ffffff";
+export const HANDLE_STROKE = "#3b82f6";
+export const ROTATE_HANDLE_OFFSET = 24;
 const DEG2RAD = Math.PI / 180;
 
 /** Modificador temporal Ctrl/Cmd (Fase 7.3, sección 5) — mismo criterio que
- * `interactions/transformInteractions.ts`. */
-function isSnapDisabledByModifier(evt: Konva.KonvaEventObject<DragEvent | MouseEvent>): boolean {
+ * `interactions/transformInteractions.ts`. Exportada: `groupHandles.ts` la
+ * reutiliza sin duplicarla. */
+export function isSnapDisabledByModifier(evt: Konva.KonvaEventObject<DragEvent | MouseEvent>): boolean {
   const native = evt.evt as MouseEvent | undefined;
   return Boolean(native?.ctrlKey || native?.metaKey);
 }
@@ -63,8 +69,11 @@ function canSnapDuringResize(object: SceneObject, box: ManipulationBox): boolean
  * borde (no-esquina) solo mueve UN eje; el opuesto se pasa vacío (`[]`,
  * nunca `undefined`) para que `computeSnap` no evalúe ese eje en absoluto
  * (ver `ComputeSnapInput.eligibleRefPoints`, "resize solo pasa el borde que
- * ese handle específico mueve"). */
-function eligibleRefPointsForHandle(handle: ResizeHandle): { x: RefPoint[]; y: RefPoint[] } {
+ * ese handle específico mueve"). Exportada: el resize de grupo
+ * (`groupHandles.ts`) usa exactamente la misma regla — a diferencia del
+ * caso individual, el AABB del GRUPO nunca está rotado, así que esta regla
+ * aplica sin ninguna restricción adicional (ver ADR-0017, sección 6). */
+export function eligibleRefPointsForHandle(handle: ResizeHandle): { x: RefPoint[]; y: RefPoint[] } {
   const x: RefPoint[] = [];
   const y: RefPoint[] = [];
   if (handle.includes("left")) x.push("start");
@@ -375,6 +384,16 @@ export function renderManipulationHandles(params: RenderManipulationHandlesParam
     }),
   );
 
+  // Epic 7 / Fase 7.4 (Professional Multi Selection) — política de objects
+  // bloqueados: un object bloqueado puede seguir seleccionado/inspeccionado
+  // (por eso el contorno de arriba SIEMPRE se dibuja), pero nunca es
+  // transformable — no se ofrecen handles de resize/rotación. Antes de esta
+  // fase, los Rects de resize/rotación eran `draggable: true`
+  // incondicionalmente, sin importar `object.metadata.locked` — un gap
+  // preexistente que esta fase cierra al formalizar la política, no un
+  // rediseño amplio del sistema de manipulación.
+  if (object.metadata.locked) return true;
+
   for (const handle of RESIZE_HANDLES) {
     const startPos = localToParent(box, localHandlePoint(box, handle));
     const rect = new Konva.Rect({
@@ -395,7 +414,17 @@ export function renderManipulationHandles(params: RenderManipulationHandlesParam
   }
 
   const topCenter = localToParent(box, localHandlePoint(box, "top"));
-  const rotatePoint = localToParent(box, localRotateHandlePoint(box, ROTATE_HANDLE_OFFSET));
+  const rotatePointDesired = localToParent(box, localRotateHandlePoint(box, ROTATE_HANDLE_OFFSET));
+  // ADR-0018: recorta el offset del handle de rotación contra los límites
+  // interactivos del Stage (nunca lo oculta) — mismo recorte que usa la
+  // caja compartida de multi-selección (ver `groupHandles.ts`), para que
+  // ambos casos se comporten idénticamente cerca de un borde.
+  const rotatePoint = clampPointToStageBounds(
+    topCenter,
+    rotatePointDesired,
+    { width: stage.width(), height: stage.height() },
+    HANDLE_SIZE / 2,
+  );
   selectionLayer.add(
     new Konva.Line({
       points: [topCenter.x, topCenter.y, rotatePoint.x, rotatePoint.y],

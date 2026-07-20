@@ -211,8 +211,11 @@ function derivedSize(object: SceneObject): { width: number; height: number } | u
  * objects). Con un único object, expone Transformar/Apariencia/Texto
  * (solo si aplica)/Metadata; con selección múltiple, solo Opacidad (ver
  * ADR-0010 — mostrar X/Y/Ancho/Alto "promedio" de una selección múltiple
- * confundiría más de lo que ayudaría; multi-selección profesional real
- * queda para Fase 7.4).
+ * confundiría más de lo que ayudaría). Epic 7 / Fase 7.4 (Professional
+ * Multi Selection) ya resuelve la manipulación EN EL CANVAS (mover/
+ * redimensionar/rotar 2+ objects como una unidad, ver ADR-0017) — el
+ * Inspector deliberadamente sigue sin mostrar X/Y/Ancho/Alto agregados por
+ * el mismo motivo de siempre, no por una limitación pendiente.
  *
  * Unidad activa (Epic 7 / Fase 7.1): siempre `page.unit` — se usa para
  * mostrar y confirmar X/Y/Ancho/Alto. Internamente todo sigue viajando en

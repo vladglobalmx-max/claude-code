@@ -65,4 +65,15 @@ export interface RendererAdapter {
    * avanzados — expuesto a propósito: este paquete ES el adaptador Konva,
    * no tiene sentido esconder Konva de quien lo importa explícitamente. */
   getStage(): Konva.Stage | null;
+  /**
+   * Cancela el gesto de manipulación grupal activo (mover/redimensionar/
+   * rotar 2+ objects — Epic 7 / Fase 7.4), si hay uno en curso: descarta el
+   * preview visual sin dispatchar nada y sin crear historial. Devuelve
+   * `true` si había un gesto activo que cancelar, `false` en caso
+   * contrario. `apps/sticker-builder`'s `Escape` lo llama PRIMERO — solo si
+   * devuelve `false` procede a limpiar la selección (ver
+   * `keyboardShortcuts.ts`, sección 9 del enunciado de producto: "Escape
+   * cancela manipulación activa o limpia selección según contexto").
+   */
+  cancelActiveManipulation(): boolean;
 }

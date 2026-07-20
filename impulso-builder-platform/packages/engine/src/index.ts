@@ -65,6 +65,24 @@ export {
   type AlignmentPatch,
 } from "./geometry/alignment.js";
 
+// Transformaciones grupales (Epic 7 / Fase 7.4 — Professional Multi
+// Selection) — mover/redimensionar/rotar 2+ objects como una unidad
+// coherente. Funciones puras, sin Konva; el Renderer las usa para
+// previsualizar en vivo (sin dispatch) y para construir los N comandos
+// `updateObjectTransform` que se aplican con un único `dispatchBatch` al
+// soltar — una sola entrada de historial por gesto, sin importar cuántos
+// objects mueva.
+export {
+  translateGroupMembers,
+  computeGroupResize,
+  computeGroupRotation,
+  computeGroupUnionBox,
+  type GroupMember,
+  type GroupTransformPatch,
+  type GroupResizeInput,
+  type GroupRotationInput,
+} from "./geometry/groupTransform.js";
+
 // Snapping (Epic 7 / Fase 7.3 — Assisted Placement) — función pura sin
 // Konva/DOM: prioridad Página > Objects > Grid, desempate determinista y
 // hysteresis vía `previousSnap`. El Renderer arma los candidatos (ver

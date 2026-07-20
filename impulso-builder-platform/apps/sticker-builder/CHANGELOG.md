@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.11.0] — Epic 7 / Fase 7.4: Professional Multi Selection
+
+### Agregado
+- Mover/redimensionar/rotar 2+ objects seleccionados se siente como una sola manipulación coherente (caja envolvente compartida + handles compartidos, `@impulso/renderer-konva` 0.9.0) — reemplaza el resaltado punteado simple por object que existía desde Editor 2. Arrastrar el cuerpo de cualquier object ya seleccionado, o la propia caja, mueve todo el conjunto; los 8 handles redimensionan el grupo preservando la posición/rotación relativa de cada member; el handle superior rota todo el grupo alrededor del centro de su caja envolvente.
+- Un solo gesto produce una sola entrada de historial (un solo `Ctrl/Cmd+Z` revierte el movimiento/resize/rotación completos de todos los objects) — reutiliza `dispatchBatch` (sin comandos nuevos).
+- `Escape` ahora cancela un gesto de manipulación grupal en curso (descarta el preview, sin dispatch) antes de limpiar la selección — antes solo limpiaba la selección.
+- Snapping/Smart Guides funcionan durante el movimiento grupal (excluyendo la propia selección como candidato) y durante el resize grupal (sin la restricción de rotación que aplica al resize individual, porque la caja del grupo siempre es un AABB puro); la rotación grupal conserva el snap de 15° vía Shift.
+- Política de objects bloqueados: un object bloqueado nunca es transformable (individual ni en grupo), pero conserva su propio indicador de selección para poder inspeccionarlo.
+- **Bug corregido (severidad alta, detectado en Fase 7.3.5)**: el handle de rotación ya no queda fuera del área interactiva del canvas cuando el object/la selección está pegado al borde superior de la página — se recorta dinámicamente contra los límites del Stage en vez de dibujarse en coordenadas negativas (ver ADR-0018 en `@impulso/renderer-konva`). Aplica tanto a selección individual como múltiple.
+- `nudge` (mover con flechas) ahora dispatcha un solo `dispatchBatch` para toda la selección — antes generaba una entrada de historial POR object movido, así que un solo `Ctrl/Cmd+Z` después de mover 3 objects con las flechas solo revertía el último.
+- Adición pura de UX/comportamiento — no requiere ADR de cambio de API. Ver ADR-0017/ADR-0018 (`@impulso/renderer-konva`) para el razonamiento de arquitectura completo.
+- 327 tests en total (2 nuevos: atomicidad de `nudge` grupal, cableado de `Escape`→cancelación), más `e2e/multi-selection.spec.ts` (2 tests nuevos en Chromium real) verificando el reenvío de drag y la cancelación real. Sin dependencias circulares (verificado con `madge`).
+
 ## [0.10.0] — Epic 7 / Fase 7.3: Assisted Placement
 
 ### Agregado

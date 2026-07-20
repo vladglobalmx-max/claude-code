@@ -25,9 +25,9 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) y ADR-0001 a ADR-0009 p
 - Export Engine: PNG y SVG (Epic 3).
 - Templates: galería de puntos de partida + Templates propios guardados por el usuario (Epic 4).
 - Project Library / Workspace: administrar múltiples proyectos, ya no un solo slot de guardado (Epic 5).
+- Autosave, Recovery & Project Safety: guardado automático, indicador de estado, salida segura del editor, recuperación ante cierres inesperados (Epic 8).
 
 **Gaps todavía abiertos dentro de esta fase** (ver `UX_BACKLOG.md`/`05-Technical-Debt.md` para el detalle):
-- Autosave (hoy guardado explícito — ver `PRODUCT_BACKLOG.md`).
 - Accesibilidad de navegación por teclado (mover un object seleccionado, navegar grillas de tarjetas) — el Engine ya lo soporta sin cambios, es trabajo de UI pendiente.
 - Pan del canvas mediante scroll nativo del contenedor, sin una herramienta dedicada de arrastre (Espacio/click central) como la de herramientas de referencia.
 - Especificación de producto para Sticker Builder (sangrado, material) — sigue siendo, hasta hoy, solo un concepto en `../ARCHITECTURE.md`, sin UI real.

@@ -1,6 +1,8 @@
 # What should we build next?
 
 > Recomendación de una sola épica, entregada al cierre de Epic 6 (Platform Consolidation). Basada en `docs/platform/STATE_001.md` (auditoría completa), `docs/product/UX_BACKLOG.md`, `docs/product/PRODUCT_BACKLOG.md` y `docs/product/04-Roadmap.md`.
+>
+> **Estado: construida.** Epic 8 (Autosave, Recovery & Project Safety) implementó esta recomendación — ver [ADR-0019](docs/adr/0019-autosave-save-coordinator.md)/[ADR-0020](docs/adr/0020-project-recovery.md). Este documento se conserva como registro histórico de la recomendación original (incluye la evaluación de alternativas descartadas: PDF Print-Ready, segundo módulo real), no como una recomendación pendiente.
 
 ## Recomendación: Autosave
 

@@ -29,7 +29,7 @@
 |---|---|---|---|
 | 1 | Reemplazar `window.confirm()` de "Eliminar proyecto" por un diálogo con el mismo overlay ya usado en el resto de la app — consistencia visual, espacio para mostrar contexto | UX Audit 0001 | Workspace |
 | 2 | Navegación por teclado básica de las grillas de tarjetas: tarjeta alcanzable con Tab, activable con Enter — mismo gap presente tanto en la Workspace como en la galería de "Nuevo proyecto" (Templates) | UX Audit 0001 + STATE_001 §5 | Workspace + Templates |
-| 3 | Aviso de cambios sin guardar al salir del editor (Ctrl/Cmd+O, botón "Mis proyectos", cerrar la pestaña) — el hallazgo de mayor impacto detectado hasta la fecha en toda la plataforma | UX Audit 0001 + STATE_001 §10 | Editor / Workspace |
+| 3 | ~~Aviso de cambios sin guardar al salir del editor~~ — **resuelto en Epic 8** (diálogo con foco atrapado + `beforeunload`, ver ADR-0019) | UX Audit 0001 + STATE_001 §10 | Editor / Workspace |
 | 4 | Unificar la ubicación visual de las 4 acciones de una tarjeta de proyecto (Renombrar vive separado de Duplicar/Eliminar/Abrir) | UX Audit 0001 | Workspace |
 | 5 | Detección de `Document.assets` huérfanos: eliminar un Asset no valida si algún `ImageObject` todavía lo referencia (hoy degrada a placeholder silenciosamente) | README `apps/sticker-builder`, §7 | Editor / Assets |
 | 6 | Indicador de progreso al precargar Assets de un documento con muchas imágenes (`preloadDocumentAssets` resuelve todo de una vez, sin carga perezosa ni progresiva) | README `apps/sticker-builder`, §7 | Editor |
@@ -43,7 +43,7 @@
 
 | # | Ítem | Origen | Bloque |
 |---|---|---|---|
-| 1 | Autosave — resuelve de raíz el riesgo de pérdida silenciosa de trabajo (ver Medium #3) | UX Audit 0001 + Technical Debt | Editor / Workspace |
+| 1 | ~~Autosave~~ — **resuelto en Epic 8** (ver ADR-0019/ADR-0020) | UX Audit 0001 + Technical Debt | Editor / Workspace |
 | 2 | Búsqueda/filtro/orden visible en la Workspace, cuando el volumen de proyectos por usuario lo justifique | UX Audit 0001 | Workspace |
 | 3 | Miniaturas más ricas para proyectos con poco contenido (hoy casi indistinguibles entre sí a simple vista) | UX Audit 0001 | Workspace / Templates |
 | 4 | Patrón "Recientes" separado de "Todos los proyectos" (estilo Figma home) si el catálogo por usuario crece | UX Audit 0001 | Workspace |
@@ -51,7 +51,7 @@
 | 6 | "Entrar" a un Group con doble-click para seleccionar/editar un hijo individual sin desagrupar primero | README `renderer-konva`/`sticker-builder` | Editor |
 | 7 | Selección por marquee/rubber-band, movimiento por teclado del canvas, límites/guías/snapping de arrastre | README `renderer-konva`, §6 | Editor |
 | 8 | Un modo de herramienta persistente (hoy Texto/Imagen insertan de inmediato, sin "armar" un modo de colocación) | README `apps/sticker-builder`, §7 | Editor |
-| 9 | Manejo explícito de cuota de almacenamiento agotada, con mensaje claro en vez de fallar silenciosamente | README `apps/sticker-builder`/`asset-library`, varios | Editor / Workspace / Assets |
+| 9 | ~~Manejo explícito de cuota de almacenamiento agotada~~ — **resuelto para guardado de Project en Epic 8** (`QuotaExceededError` → mensaje accionable, ver ADR-0019); sigue pendiente para Asset Library | README `apps/sticker-builder`/`asset-library`, varios | Editor / Workspace / Assets |
 | 10 | Onboarding: la primera vez que alguien abre la app sin contexto previo, debe entender qué hacer sin documentación externa (ya en el Roadmap como criterio de v1.0/Commercial Platform) | Roadmap | Plataforma completa |
 | 11 | Selector de fuentes curado (lista de fuentes reales disponibles, con previsualización) en vez de texto libre en el campo Tipografía del Inspector | UX Audit 0002 | Editor |
 | 12 | Vista previa en vivo al pasar el mouse sobre un botón de Alineación (ghost/outline de dónde quedaría cada object) | UX Audit 0003 | Editor |

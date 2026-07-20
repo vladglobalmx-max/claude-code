@@ -67,6 +67,42 @@
       .workspace-empty {
         color: #57534e;
       }
+      .workspace-recovery-banner {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .workspace-recovery-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        border-radius: 6px;
+        background: #fefce8;
+        border: 1px solid #fde047;
+        color: #713f12;
+      }
+      .workspace-recovery-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .workspace-recovery-actions button {
+        font: inherit;
+        padding: 4px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #ca8a04;
+        background: #ffffff;
+        color: #713f12;
+      }
+      .workspace-recovery-recover {
+        background: #ca8a04 !important;
+        color: #ffffff !important;
+      }
       .workspace-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -178,6 +214,111 @@
         margin-left: auto;
         font-size: 0.85em;
         color: #a8a29e;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      /* Epic 8 — Autosave, Recovery & Project Safety: indicador de estado
+         de guardado (ver `app.ts` -> `renderSaveState`). Nunca solo color
+         (siempre incluye texto, sección 6). */
+      .save-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+      }
+      .save-status-clean {
+        color: #a3e635;
+        border-color: #3f6212;
+        background: #1a2e05;
+      }
+      .save-status-dirty {
+        color: #d6d3d1;
+        border-color: #57534e;
+        background: #292524;
+      }
+      .save-status-saving {
+        color: #93c5fd;
+        border-color: #1e3a5f;
+        background: #0f2436;
+      }
+      .save-status-error {
+        color: #fca5a5;
+        border-color: #7f1d1d;
+        background: #2c1010;
+      }
+      .save-status-recovered {
+        color: #fde68a;
+        border-color: #78350f;
+        background: #2c1c05;
+      }
+      .save-status-retry {
+        font: inherit;
+        padding: 1px 8px;
+        cursor: pointer;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        background: transparent;
+        color: inherit;
+      }
+      .unsaved-changes-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .unsaved-changes-dialog {
+        background: #ffffff;
+        color: #1c1917;
+        padding: 20px 24px;
+        border-radius: 8px;
+        max-width: 420px;
+        width: 90%;
+      }
+      .unsaved-changes-dialog h2 {
+        margin: 0 0 8px;
+        font-size: 1.1em;
+      }
+      .unsaved-changes-dialog p {
+        margin: 0 0 16px;
+        color: #44403c;
+      }
+      .unsaved-changes-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .unsaved-changes-dialog-actions button {
+        font: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+      }
+      .unsaved-changes-dialog-stay {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
+      .unsaved-changes-dialog-discard {
+        color: #b91c1c;
+        border-color: #b91c1c;
       }
 
       /* Barra de herramientas: Texto/Imagen + Zoom */
@@ -875,6 +1016,8 @@
           <button id="redo-btn" type="button" title="Rehacer (Ctrl/Cmd+Shift+Z)">Rehacer</button>
           <span class="divider"></span>
           <button id="save-btn" type="button" title="Guardar (Ctrl/Cmd+S)">Guardar</button>
+          <span id="save-status" class="save-status save-status-clean"></span>
+          <span id="save-status-announcer" class="sr-only" aria-live="polite"></span>
           <button id="back-to-workspace-btn" type="button" title="Mis proyectos (Ctrl/Cmd+O)">Mis proyectos</button>
           <span class="divider"></span>
           <button id="export-btn" type="button">Exportar</button>
@@ -918,6 +1061,7 @@
       <div id="new-project-dialog-root"></div>
       <div id="export-dialog-root"></div>
       <div id="save-as-template-dialog-root"></div>
+      <div id="unsaved-changes-dialog-root"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

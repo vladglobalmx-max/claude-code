@@ -57,6 +57,9 @@ mountShell({
       groupButton: requireElement("group-btn", isButton),
       ungroupButton: requireElement("ungroup-btn", isButton),
       statusElement: requireElement("toolbar-status", isHTMLElement),
+      saveStatusElement: requireElement("save-status", isHTMLElement),
+      saveStatusAnnouncer: requireElement("save-status-announcer", isHTMLElement),
+      unsavedChangesDialogContainer: requireElement("unsaved-changes-dialog-root", isHTMLElement),
     },
   },
 });

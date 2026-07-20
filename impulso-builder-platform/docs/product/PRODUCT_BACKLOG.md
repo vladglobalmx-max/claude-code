@@ -4,12 +4,9 @@
 
 ---
 
-## Autosave
+## ~~Autosave~~ — Construido en Epic 8
 
-- **Valor:** Elimina el riesgo de mayor impacto detectado en la plataforma hasta la fecha (UX Audit 0001 — pérdida silenciosa de trabajo no guardado). Alinea a Impulso con el comportamiento esperado de cualquier herramienta profesional de referencia.
-- **Prioridad:** Alta.
-- **Dependencias:** Ninguna arquitectónica — `ProjectStore.save()` ya existe y es idempotente. Requiere decidir estrategia de debounce y manejo de conflictos con guardado manual explícito.
-- **Complejidad:** Media. El riesgo no es el guardado en sí, sino evitar regenerar el thumbnail (rasterización PNG completa) en cada autosave — probablemente requiere separar "guardar el Project" de "regenerar el thumbnail" con una cadencia distinta.
+**Resuelto.** Ver [ADR-0019](../adr/0019-autosave-save-coordinator.md) (Autosave & Save Coordinator) y [ADR-0020](../adr/0020-project-recovery.md) (Project Recovery). El riesgo de mayor impacto detectado en la plataforma (UX Audit 0001 — pérdida silenciosa de trabajo no guardado) queda cerrado: autosave con debounce, indicador de estado honesto, salida segura del editor, `beforeunload` como última línea de defensa, y recovery ante cierres inesperados. El riesgo de complejidad anticipado (regenerar el thumbnail en cada autosave) se aceptó conscientemente en vez de resolverse con una cadencia separada — ver `docs/PERFORMANCE_BUDGET.md` fila 19 para el razonamiento y qué haría falta medir antes de separarlo.
 
 ## PDF Print-Ready (línea de corte + sangrado)
 

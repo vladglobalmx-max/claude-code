@@ -1,11 +1,12 @@
 import type { Project, ProjectId } from "@impulso/document-schema";
 import { deriveDescriptor } from "../deriveDescriptor.js";
-import type { ProjectDescriptor, ProjectStore } from "../types.js";
+import type { ProjectDescriptor, ProjectRecoveryEntry, ProjectStore } from "../types.js";
 
 /** Implementación en memoria de `ProjectStore` — para tests o entornos sin IndexedDB. */
 export function createMemoryProjectStore(): ProjectStore {
   const descriptors = new Map<ProjectId, ProjectDescriptor>();
   const projects = new Map<ProjectId, Project>();
+  const recoveries = new Map<ProjectId, ProjectRecoveryEntry>();
 
   return {
     async listDescriptors(filter) {
@@ -27,10 +28,24 @@ export function createMemoryProjectStore(): ProjectStore {
     async delete(id) {
       descriptors.delete(id);
       projects.delete(id);
+      recoveries.delete(id);
     },
     async clear() {
       descriptors.clear();
       projects.clear();
+      recoveries.clear();
+    },
+    async saveRecovery(project, savedAt) {
+      recoveries.set(project.id, { projectId: project.id, project, savedAt });
+    },
+    async getRecovery(id) {
+      return recoveries.get(id);
+    },
+    async clearRecovery(id) {
+      recoveries.delete(id);
+    },
+    async listRecoveries() {
+      return Array.from(recoveries.values());
     },
   };
 }

@@ -16,6 +16,14 @@ const executablePath =
  * "reutilizar Konva vía Stage headless"). No corren en el pipeline de
  * `test` normal — `pnpm test:e2e` los ejecuta aparte, contra un build de
  * producción servido por `vite preview`.
+ *
+ * Epic 8 (Autosave, Recovery & Project Safety), sección 17: `vite preview`
+ * sirve lo que ya esté en `dist/` — nada lo reconstruye por su cuenta. El
+ * incidente detectado en Fase 7.4 (E2E corriendo contra un build viejo, sin
+ * que nada lo advirtiera) se debió exactamente a esto. Por eso el script
+ * `test:e2e` (`package.json`) es `"vite build && playwright test"`, nunca
+ * `"playwright test"` a secas — un build fresco es una precondición del
+ * comando, no un paso manual que alguien pueda olvidar.
  */
 export default defineConfig({
   testDir: "./e2e",

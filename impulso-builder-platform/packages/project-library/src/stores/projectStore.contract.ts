@@ -149,4 +149,83 @@ export function testProjectStoreContract(name: string, createStore: () => Projec
     expect((await store.getDescriptor(pid("project_1")))?.name).toBe("Uno");
     expect((await store.getDescriptor(pid("project_2")))?.name).toBe("Dos");
   });
+
+  // Epic 8 — Autosave, Recovery & Project Safety.
+  it(`${name}: getRecovery()/listRecoveries() sin nada guardado devuelven vacío`, async () => {
+    const store = await createStore();
+    expect(await store.getRecovery(pid("project_no_existe"))).toBeUndefined();
+    expect(await store.listRecoveries()).toEqual([]);
+  });
+
+  it(`${name}: saveRecovery() + getRecovery() devuelve el Project y el timestamp guardados`, async () => {
+    const store = await createStore();
+    const project = buildWorkspaceProject("project_1");
+
+    await store.saveRecovery(project, "2026-07-20T10:00:00.000Z");
+
+    expect(await store.getRecovery(pid("project_1"))).toEqual({
+      projectId: pid("project_1"),
+      project,
+      savedAt: "2026-07-20T10:00:00.000Z",
+    });
+  });
+
+  it(`${name}: saveRecovery() de un Project SIN descriptor/contenido guardado igual funciona (Project nuevo no persistido)`, async () => {
+    const store = await createStore();
+    const project = buildWorkspaceProject("project_nuevo");
+
+    await store.saveRecovery(project, "2026-07-20T10:00:00.000Z");
+
+    expect(await store.getDescriptor(pid("project_nuevo"))).toBeUndefined();
+    expect(await store.getRecovery(pid("project_nuevo"))).toMatchObject({ projectId: pid("project_nuevo") });
+  });
+
+  it(`${name}: saveRecovery() sobre el mismo id reemplaza la entrada anterior (nunca acumula)`, async () => {
+    const store = await createStore();
+    await store.saveRecovery(buildWorkspaceProject("project_1"), "2026-07-20T10:00:00.000Z");
+    await store.saveRecovery(buildWorkspaceProject("project_1"), "2026-07-20T10:05:00.000Z");
+
+    expect(await store.listRecoveries()).toHaveLength(1);
+    expect((await store.getRecovery(pid("project_1")))?.savedAt).toBe("2026-07-20T10:05:00.000Z");
+  });
+
+  it(`${name}: clearRecovery() remueve la entrada; de un id inexistente no lanza`, async () => {
+    const store = await createStore();
+    await store.saveRecovery(buildWorkspaceProject("project_1"), "2026-07-20T10:00:00.000Z");
+
+    await store.clearRecovery(pid("project_1"));
+    expect(await store.getRecovery(pid("project_1"))).toBeUndefined();
+    await expect(store.clearRecovery(pid("project_no_existe"))).resolves.not.toThrow();
+  });
+
+  it(`${name}: delete() de un Project también borra su recovery asociado`, async () => {
+    const store = await createStore();
+    await store.save(buildWorkspaceProject("project_1"));
+    await store.saveRecovery(buildWorkspaceProject("project_1"), "2026-07-20T10:00:00.000Z");
+
+    await store.delete(pid("project_1"));
+
+    expect(await store.getRecovery(pid("project_1"))).toBeUndefined();
+  });
+
+  it(`${name}: clear() vacía también las recoveries`, async () => {
+    const store = await createStore();
+    await store.saveRecovery(buildWorkspaceProject("project_1"), "2026-07-20T10:00:00.000Z");
+
+    await store.clear();
+
+    expect(await store.listRecoveries()).toEqual([]);
+  });
+
+  it(`${name}: recovery y Project guardado son independientes entre sí (guardar uno no toca al otro)`, async () => {
+    const store = await createStore();
+    await store.save(buildWorkspaceProject("project_1", { metadata: { tags: [], visible: true, locked: false, createdAt: NOW_A, updatedAt: NOW_A, name: "Guardado" } }));
+    await store.saveRecovery(
+      buildWorkspaceProject("project_1", { metadata: { tags: [], visible: true, locked: false, createdAt: NOW_A, updatedAt: NOW_A, name: "En progreso" } }),
+      "2026-07-20T10:00:00.000Z",
+    );
+
+    expect((await store.getProject(pid("project_1")))?.metadata.name).toBe("Guardado");
+    expect((await store.getRecovery(pid("project_1")))?.project.metadata.name).toBe("En progreso");
+  });
 }

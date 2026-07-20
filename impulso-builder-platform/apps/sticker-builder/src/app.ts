@@ -2,11 +2,18 @@ import { ObjectIdSchema, type ObjectId, type Project } from "@impulso/document-s
 import { findObjectInDocument, cloneSceneObjectWithNewIds } from "@impulso/engine";
 import { createIndexedDbAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import { createIndexedDbTemplateStore, type TemplateStore } from "@impulso/template-library";
-import { createIndexedDbProjectStore, type ProjectStore } from "@impulso/project-library";
+import {
+  createIndexedDbProjectStore,
+  createProjectSaveCoordinator,
+  type ProjectStore,
+  type ProjectSaveCoordinator,
+  type SaveState,
+} from "@impulso/project-library";
 import { exportProject, type ExportAssetResolver } from "@impulso/export-engine";
 import type { CanvasRuntime } from "./bootstrap.js";
 import { mountCanvasRuntime } from "./bootstrap.js";
 import { createDemoProject } from "./demoProject.js";
+import { mountUnsavedChangesDialog, type UnsavedChangesDialog } from "./unsavedChangesDialog.js";
 import { createResolvedAssetCache, preloadDocumentAssets, type ResolvedAssetCache } from "./assetResolution.js";
 import { createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
 import { mountLayersPanel, type LayersPanel } from "./layersPanel.js";
@@ -91,6 +98,18 @@ export interface AppElements {
   groupButton: HTMLButtonElement;
   ungroupButton: HTMLButtonElement;
   statusElement: HTMLElement;
+  /** Epic 8 — Autosave, Recovery & Project Safety: indicador persistente de
+   * Guardado/Cambios sin guardar/Guardando…/Error al guardar/Recuperado,
+   * ubicado junto al botón Guardar (ver `saveCoordinator.ts` y sección 6
+   * del enunciado de producto). Distinto de `statusElement` (mensajes
+   * transitorios como "Deshecho."). */
+  saveStatusElement: HTMLElement;
+  /** Región oculta visualmente (`aria-live="polite"`) que solo se actualiza
+   * en transiciones que vale la pena anunciar (error/recuperado/guardado
+   * confirmado) — nunca en cada "Guardando…"/"Cambios sin guardar", que
+   * ocurren con demasiada frecuencia (sección 19). */
+  saveStatusAnnouncer: HTMLElement;
+  unsavedChangesDialogContainer: HTMLElement;
 }
 
 export interface AppDependencies {
@@ -125,10 +144,36 @@ export interface AppDependencies {
   initialProject?: Project;
   now?: () => string;
   generateId?: () => string;
+  /** `true` si `initialProject` todavía no existe en `projectStore` (Project
+   * nuevo, o creado desde un Template — ver Epic 8, sección 3): hace que el
+   * `ProjectSaveCoordinator` arranque en `"dirty"` en vez de `"clean"`, para
+   * que el primer autosave lo persista sin esperar un cambio adicional del
+   * usuario. Por defecto `false` (Project existente ya persistido, ver
+   * `workspace.ts`). */
+  isNewProject?: boolean;
 }
 
 export interface App {
   getRuntime(): CanvasRuntime;
+  /**
+   * Epic 8, sección 8 ("Salir del editor"): intenta dejar el Project actual
+   * en un estado seguro para abandonarlo — flushea cualquier guardado
+   * pendiente y, si falla, ofrece Reintentar/Permanecer/Salir sin guardar
+   * mediante `unsavedChangesDialog` (nunca `window.confirm`). Devuelve
+   * `true` si es seguro proceder a destruir/reemplazar esta instancia,
+   * `false` si el usuario eligió permanecer en el editor.
+   */
+  requestClose(): Promise<boolean>;
+  /**
+   * Epic 8, sección 9 (`beforeunload` como última línea de defensa): `true`
+   * mientras el `ProjectSaveCoordinator` no esté en `"clean"` — cualquier
+   * otro estado (`"dirty"`, `"saving"`, `"error"`, `"recovered"`) significa
+   * que la revisión más reciente todavía no terminó de persistirse con
+   * éxito. `shell.ts`/`main.ts` la usan para decidir si de verdad hace
+   * falta advertir al cerrar/recargar la pestaña — nunca si ya está
+   * `"clean"` (sección 9: no advertir si no hay cambios reales).
+   */
+  hasUnsavedChanges(): boolean;
   destroy(): void;
 }
 
@@ -226,6 +271,120 @@ export function mountApp(deps: AppDependencies): App {
   );
   let gridSnapControls: GridSnapControls = mountGridSnapControls(elements.gridSnapContainer, runtime.engine);
 
+  /**
+   * Epic 8 — Autosave, Recovery & Project Safety. Escribe el recovery ANTES
+   * de intentar el guardado principal (para que un fallo a mitad del
+   * guardado principal deje igual un recovery reciente) y lo limpia
+   * DESPUÉS de un guardado principal exitoso — nunca al revés. Un fallo
+   * escribiendo/limpiando el recovery o generando el thumbnail se registra
+   * pero nunca hace fallar el guardado en sí — lo único indispensable es
+   * `projectStore.save`, la única llamada de esta función cuyo error se
+   * propaga al `ProjectSaveCoordinator` (ver sección 15: un fallo del
+   * thumbnail no debe marcar todo el Project como sin guardar).
+   */
+  async function persistProject(project: Project): Promise<void> {
+    try {
+      await projectStore.saveRecovery(project, now());
+    } catch (error) {
+      console.error("[Epic 8] No se pudo escribir el recovery:", error);
+    }
+    let thumbnail: Blob | undefined;
+    try {
+      thumbnail = await generateThumbnail(project);
+    } catch (error) {
+      console.error("No se pudo generar la miniatura al guardar:", error);
+    }
+    await projectStore.save(project, thumbnail);
+    try {
+      await projectStore.clearRecovery(project.id);
+    } catch (error) {
+      console.error("[Epic 8] No se pudo limpiar el recovery:", error);
+    }
+  }
+
+  let saveCoordinator: ProjectSaveCoordinator = createProjectSaveCoordinator({
+    persist: persistProject,
+    getProject: () => runtime.engine.getProject(),
+    initialStatus: deps.isNewProject ? "dirty" : "clean",
+    // Camino rápido e independiente de recovery (Epic 8, sección 10): NO
+    // pasa por thumbnail ni limpia nada — solo `persistProject` (el
+    // guardado principal) tiene permiso para limpiar el recovery.
+    persistRecovery: (project) => projectStore.saveRecovery(project, now()),
+  });
+
+  const unsavedChangesDialog: UnsavedChangesDialog = mountUnsavedChangesDialog(elements.unsavedChangesDialogContainer);
+
+  const SAVE_STATUS_LABELS: Record<SaveState["status"], string> = {
+    clean: "Guardado",
+    dirty: "Cambios sin guardar",
+    saving: "Guardando…",
+    error: "Error al guardar",
+    recovered: "Recuperado",
+  };
+
+  let previousSaveStatus: SaveState["status"] | undefined;
+
+  /**
+   * Refleja el estado del `ProjectSaveCoordinator` en la UI (sección 6/19):
+   * el indicador visual se actualiza en CADA transición (para que quien
+   * mira la pantalla siempre vea el estado real, nunca "Guardado" antes de
+   * tiempo), pero el anuncio a lectores de pantalla (`saveStatusAnnouncer`,
+   * oculto visualmente) solo se actualiza al entrar a "error"/"recovered",
+   * o al llegar a "clean" tras haber estado sucio — nunca por
+   * "dirty"/"saving", que ocurren con demasiada frecuencia como para
+   * anunciarlos sin generar ruido.
+   */
+  function renderSaveState(state: SaveState): void {
+    elements.saveStatusElement.textContent = "";
+    elements.saveStatusElement.className = `save-status save-status-${state.status}`;
+    const label = document.createElement("span");
+    label.className = "save-status-label";
+    label.textContent = SAVE_STATUS_LABELS[state.status];
+    elements.saveStatusElement.appendChild(label);
+
+    if (state.status === "error") {
+      const retryButton = document.createElement("button");
+      retryButton.type = "button";
+      retryButton.className = "save-status-retry";
+      retryButton.textContent = "Reintentar";
+      retryButton.addEventListener("click", () => void saveCoordinator.flush());
+      elements.saveStatusElement.appendChild(retryButton);
+    }
+
+    const shouldAnnounce =
+      state.status === "error" ||
+      state.status === "recovered" ||
+      (state.status === "clean" && previousSaveStatus !== undefined && previousSaveStatus !== "clean");
+    if (shouldAnnounce) {
+      elements.saveStatusAnnouncer.textContent =
+        state.status === "error" ? (state.message ?? SAVE_STATUS_LABELS.error) : SAVE_STATUS_LABELS[state.status];
+    }
+    previousSaveStatus = state.status;
+  }
+
+  let unsubscribeSaveCoordinator = saveCoordinator.subscribe(renderSaveState);
+  renderSaveState(saveCoordinator.getState());
+
+  /**
+   * Epic 8, sección 8 ("Salir del editor"): intenta dejar el Project actual
+   * en un estado seguro para abandonarlo. Si `flush()` falla, ofrece
+   * Reintentar/Permanecer/Salir sin guardar mediante un diálogo propio
+   * (nunca `window.confirm`) — nunca abandona en silencio. Si no había
+   * cambios pendientes, `flush()` resuelve `{ ok: true }` de inmediato sin
+   * mostrar ningún diálogo (no hay advertencia innecesaria).
+   */
+  async function safeToProceed(): Promise<boolean> {
+    for (;;) {
+      const outcome = await saveCoordinator.flush();
+      if (outcome.ok) return true;
+      const message = saveCoordinator.getState().message ?? "No se pudieron guardar los cambios.";
+      const choice = await unsavedChangesDialog.open(message);
+      if (choice === "retry") continue;
+      if (choice === "discard") return true;
+      return false;
+    }
+  }
+
   function setStatus(message: string): void {
     elements.statusElement.textContent = message;
   }
@@ -261,6 +420,7 @@ export function mountApp(deps: AppDependencies): App {
     return runtime.engine.subscribe((event) => {
       if (event.type === "historyChanged") updateUndoRedoButtons();
       if (event.type === "selectionChanged" || event.type === "projectChanged") updateSelectionDependentButtons();
+      if (event.type === "projectChanged") saveCoordinator.notifyChange();
     });
   }
 
@@ -310,29 +470,34 @@ export function mountApp(deps: AppDependencies): App {
       getZoom,
     );
     gridSnapControls = mountGridSnapControls(elements.gridSnapContainer, runtime.engine);
+    // El `Project` que llega aquí SIEMPRE es distinto/nuevo (único call site:
+    // el diálogo "Nuevo" del propio editor, ver `newButton` más abajo) — el
+    // coordinator anterior pertenece al Project que se está reemplazando, así
+    // que se destruye y se reconstruye desde cero en "dirty" (Epic 8, sección
+    // 3: un Project nuevo cuenta como sucio desde su primer instante).
+    unsubscribeSaveCoordinator();
+    saveCoordinator.destroy();
+    saveCoordinator = createProjectSaveCoordinator({
+      persist: persistProject,
+      getProject: () => runtime.engine.getProject(),
+      initialStatus: "dirty",
+      persistRecovery: (project) => projectStore.saveRecovery(project, now()),
+    });
+    unsubscribeSaveCoordinator = saveCoordinator.subscribe(renderSaveState);
+    renderSaveState(saveCoordinator.getState());
     unsubscribeEngine = subscribeToEngine();
     zoomController.setZoom(1);
   }
 
-  /** Persiste en `projectStore` (Workspace, ver ADR-0014) con un thumbnail
-   * fresco. Un fallo generando el thumbnail NUNCA bloquea el guardado del
-   * proyecto en sí — lo importante (el propio Project) igual se guarda,
-   * conservando el thumbnail anterior (`ProjectStore.save` es "sticky": ver
-   * `@impulso/project-library`). */
+  /** Guardado manual (Epic 8, sección 7): delega enteramente en el
+   * `ProjectSaveCoordinator` — cancela/absorbe cualquier debounce
+   * pendiente, espera cualquier guardado ya en curso, y persiste la
+   * revisión más reciente. Mantiene el mensaje transitorio existente en
+   * `statusElement` (el indicador persistente de `saveStatusElement` ya
+   * refleja el resultado en detalle). */
   async function doSave(): Promise<void> {
-    const project = runtime.engine.getProject();
-    let thumbnail: Blob | undefined;
-    try {
-      thumbnail = await generateThumbnail(project);
-    } catch (error) {
-      console.error("No se pudo generar la miniatura al guardar:", error);
-    }
-    try {
-      await projectStore.save(project, thumbnail);
-      setStatus("Documento guardado.");
-    } catch (error) {
-      setStatus(`No se pudo guardar: ${(error as Error).message}`);
-    }
+    const outcome = await saveCoordinator.flush();
+    setStatus(outcome.ok ? "Documento guardado." : (saveCoordinator.getState().message ?? "No se pudo guardar el proyecto."));
   }
 
   function deleteSelected(): void {
@@ -513,9 +678,16 @@ export function mountApp(deps: AppDependencies): App {
   });
 
   elements.newButton.addEventListener("click", () => {
+    // Epic 8, sección 8: "Nuevo" reemplaza el Project actual (ver
+    // `remount()`) — antes de siquiera ofrecer elegir una plantilla, hay
+    // que dejar el Project actual en un estado seguro para abandonarlo.
     // `ensureSeeded()` nunca lanza (ver `createLazyBuiltInTemplateSeeder`)
     // — el diálogo siempre abre, aunque sembrar los built-in haya fallado.
-    void builtInTemplatesSeeder.ensureSeeded().then(() => newProjectDialog.open());
+    void (async () => {
+      if (!(await safeToProceed())) return;
+      await builtInTemplatesSeeder.ensureSeeded();
+      newProjectDialog.open();
+    })();
   });
   elements.exportButton.addEventListener("click", () => exportDialog.open());
   elements.saveAsTemplateButton.addEventListener("click", () => saveAsTemplateDialog.open());
@@ -567,8 +739,13 @@ export function mountApp(deps: AppDependencies): App {
 
   return {
     getRuntime: () => runtime,
+    requestClose: () => safeToProceed(),
+    hasUnsavedChanges: () => saveCoordinator.getState().status !== "clean",
     destroy: () => {
       unsubscribeEngine();
+      unsubscribeSaveCoordinator();
+      saveCoordinator.destroy();
+      unsavedChangesDialog.destroy();
       keyboardShortcuts.destroy();
       zoomController.destroy();
       toolButtons.destroy();

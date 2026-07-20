@@ -36,11 +36,14 @@ apps/sticker-builder/
     ├── inspector.ts                # Sidebar derecha: Transformar/Apariencia/Texto/Metadata según la selección
     ├── alignment.ts                # sección "Alineación" del Inspector + controller (dispatchBatch), Fase 7.2
     ├── assistedPlacement.ts        # Grid visual, Rulers, indicador de puntero, controles Grid/Snap, Fase 7.3
+    ├── workspace.ts                # "Mis proyectos": grilla de proyectos + banner de recovery (Epic 8, ver ADR-0020)
+    ├── shell.ts                    # orquestador de nivel superior: Workspace-first, montar/destruir el editor, beforeunload (Epic 8)
+    ├── unsavedChangesDialog.ts     # diálogo de salida con cambios sin guardar (foco atrapado), Epic 8, ver ADR-0019
     ├── keyboardShortcuts.ts        # mapa de atajos -> acciones, desacoplado del Engine
     └── testing/
         └── fakeCanvasContext.ts    # stub de canvas 2D para tests (jsdom no implementa uno real)
 
-    (323 tests, 98.73%/92.08%/93.03%/98.73% de cobertura — y verificado además en un Chromium real vía Playwright, ver §4)
+    (347 tests unitarios + 13 e2e en Chromium real, ver §4)
 ```
 
 ## 3. Decisiones clave (ver ADR-0010/ADR-0011/ADR-0012 para el detalle completo)
@@ -98,7 +101,7 @@ pnpm --filter @impulso/sticker-builder typecheck   # tsc --noEmit
 pnpm --filter @impulso/sticker-builder test:e2e     # Playwright, navegador real (ver e2e/, ADR-0012)
 ```
 
-`e2e/export-visual.spec.ts` compara píxeles reales entre el canvas interactivo del editor y el PNG exportado (relleno de formas, fondo, escala 2x, transparencia) — la verificación repetible de la condición de fidelidad bajo la que se aprobó reutilizar Konva para PNG (ver ADR-0012). Corre contra `vite preview`, separado de los tests unitarios (jsdom) de arriba.
+`e2e/export-visual.spec.ts` compara píxeles reales entre el canvas interactivo del editor y el PNG exportado (relleno de formas, fondo, escala 2x, transparencia) — la verificación repetible de la condición de fidelidad bajo la que se aprobó reutilizar Konva para PNG (ver ADR-0012). `e2e/autosave-recovery.spec.ts` (Epic 8) verifica el indicador de guardado sin intervención manual, salida sin advertencias tras un autosave, Guardar manual, y recuperación desde el banner de la Workspace tras recargar antes del autosave principal — con IndexedDB real, no jsdom. `test:e2e` corre `vite build` antes de `playwright test` (nunca contra un `dist/` desactualizado — incidente detectado y corregido en Epic 8, ver ADR-0019).
 
 ## 6. UX (regla permanente "UX First")
 
@@ -129,7 +132,7 @@ Todos los controles de la barra superior/herramientas son elementos `<button>`/`
 
 ## 7. Riesgos y limitaciones conocidas
 
-Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md)/[ADR-0013](../../docs/adr/0013-templates-foundation.md)/[ADR-0014](../../docs/adr/0014-project-library-workspace.md) para el detalle completo. En resumen:
+Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](../../docs/adr/0011-asset-library.md)/[ADR-0012](../../docs/adr/0012-export-engine.md)/[ADR-0013](../../docs/adr/0013-templates-foundation.md)/[ADR-0014](../../docs/adr/0014-project-library-workspace.md)/[ADR-0019](../../docs/adr/0019-autosave-save-coordinator.md)/[ADR-0020](../../docs/adr/0020-project-recovery.md) para el detalle completo. En resumen:
 
 - **Sin PDF print-ready ni línea de corte/sangrado** al exportar — solo PNG/SVG en esta versión (v1.0 futuro).
 - **Exportar SVG no detecta fuentes no disponibles** en el visor que abra el archivo, ni reproduce el ajuste automático de línea de un `TextObject` con caja de wrap (solo saltos de línea explícitos).
@@ -141,6 +144,8 @@ Ver [ADR-0010](../../docs/adr/0010-sticker-creation-experience.md)/[ADR-0011](..
 - **Sin "entrar" a un Group**: siempre se selecciona/edita como una unidad completa.
 - **El `<textarea>` de edición de texto in-canvas** no garantiza pixel-match exacto con el `Konva.Text` renderizado (diferencias de fuente/kerning entre el navegador y Konva).
 - **Sin modo de herramienta persistente**: Texto/Imagen insertan de inmediato, no "arman" un modo de colocación.
-- **Sin autosave**: "Guardar" persiste en `@impulso/project-library` (Workspace, ver ADR-0014) de forma explícita — salir del editor sin guardar descarta cambios sin aviso (ver `docs/ux-audits/0001-workspace.md`, hallazgo de mayor impacto detectado en la plataforma; y `docs/product/PRODUCT_BACKLOG.md`, "Autosave"). El slot único legado de `localStorage` de Milestone 1/ADR-0009 fue reemplazado en Epic 5 — se conserva únicamente como origen de la migración transparente de una sola vez.
-- **El historial de undo/redo no sobrevive a Guardar/salir de la Workspace/recargar** (heredado de ADR-0009, sigue vigente tras Epic 5: el historial es efímero por instancia del Engine, no se serializa).
+- ~~Sin autosave~~ — **resuelto en Epic 8** (ver ADR-0019): autosave con debounce, indicador de estado, salida segura del editor y recovery ante cierres inesperados. El slot único legado de `localStorage` de Milestone 1/ADR-0009 fue reemplazado en Epic 5 — se conserva únicamente como origen de la migración transparente de una sola vez.
+- **El historial de undo/redo no sobrevive a Guardar/salir de la Workspace/recargar** (heredado de ADR-0009, sigue vigente: el historial es efímero por instancia del Engine, no se serializa — el recovery de Epic 8 tampoco lo persiste, ver ADR-0020).
+- **El recovery (Epic 8) es una única entrada por proyecto, no un historial de versiones** — un cierre inesperado bien antes del autosave rápido (~400ms) todavía podría perder la edición más reciente (ver ADR-0020).
+- **La cuota de IndexedDB agotada** ya se detecta y traduce a un mensaje accionable, pero la app no ofrece ninguna forma de liberar espacio por sí misma más allá de sugerir exportar como respaldo.
 - **La UI asume una sola Page/Layer**: el Document Schema soporta múltiples, pero el panel de capas y el Inspector no las exponen todavía.

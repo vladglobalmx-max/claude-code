@@ -64,8 +64,21 @@ export function mountShell(options: MountShellOptions): Shell {
     editorScreen.style.display = "";
   }
 
-  function openEditor(project: Project): void {
-    currentApp?.destroy();
+  /**
+   * Epic 8, sección 8 ("Salir del editor"): abrir un Project distinto (o
+   * crear uno nuevo) desde la Workspace reemplaza la instancia de `App`
+   * anterior — antes de destruirla, se le da la oportunidad de dejar sus
+   * propios cambios en un estado seguro (`App.requestClose()`: flushea el
+   * guardado pendiente y, si falla, ofrece Reintentar/Permanecer/Salir sin
+   * guardar). Si el usuario elige permanecer, `openEditor` no hace nada —
+   * la Workspace nunca llega a mostrarse y el editor anterior sigue vivo.
+   */
+  async function openEditor(project: Project, meta?: { isNew?: boolean }): Promise<void> {
+    if (currentApp) {
+      const canClose = await currentApp.requestClose();
+      if (!canClose) return;
+      currentApp.destroy();
+    }
     showEditor();
     currentApp = mountApp({
       elements: editor,
@@ -74,13 +87,19 @@ export function mountShell(options: MountShellOptions): Shell {
       projectStore,
       generateThumbnail: options.generateThumbnail,
       initialProject: project,
+      isNewProject: meta?.isNew,
       now,
       generateId,
       keyboardTarget: options.keyboardTarget,
       onBackToWorkspace: () => {
-        currentApp?.destroy();
-        currentApp = null;
-        showWorkspace();
+        void (async () => {
+          if (!currentApp) return;
+          const canClose = await currentApp.requestClose();
+          if (!canClose) return;
+          currentApp.destroy();
+          currentApp = null;
+          showWorkspace();
+        })();
       },
     });
   }
@@ -100,8 +119,26 @@ export function mountShell(options: MountShellOptions): Shell {
     if (result.migrated) void workspace.refresh();
   });
 
+  /**
+   * Epic 8, sección 9 (`beforeunload` como última línea de defensa): solo
+   * advierte si el editor actual tiene cambios genuinamente sin persistir
+   * (`App.hasUnsavedChanges()` — nunca por selección/zoom/pan, que ni
+   * siquiera ensucian el `ProjectSaveCoordinator`). NO es el mecanismo
+   * principal de guardado: no intenta flushear nada aquí (una escritura
+   * async de IndexedDB no puede garantizarse dentro de `beforeunload`) — es
+   * literalmente la última línea de defensa, y el texto del diálogo lo
+   * decide el navegador, no esta app.
+   */
+  function handleBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!currentApp?.hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  }
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
   return {
     destroy: () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       currentApp?.destroy();
       workspace.destroy();
     },

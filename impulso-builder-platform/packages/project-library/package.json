@@ -1,6 +1,6 @@
 {
   "name": "@impulso/project-library",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Project Library oficial de Impulso Platform: administración de múltiples proyectos guardados (Workspace), reutilizable por cualquier módulo (Sticker Builder, Planner Builder, Coloring Book Builder...). Un Project ya es su propio descriptor de catálogo — este paquete solo separa el listado liviano de su contenido pesado.",
   "type": "module",

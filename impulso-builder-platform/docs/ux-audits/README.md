@@ -26,3 +26,4 @@ Y se entrega siempre en el mismo formato: qué funciona muy bien, qué puede mej
 | [0003](0003-alignment-fase-7-2.md) | Batch Operations + Alignment (Epic 7 / Fase 7.2) | 2026-07-19 |
 | [0004](0004-assisted-placement-fase-7-3.md) | Assisted Placement (Epic 7 / Fase 7.3) | 2026-07-19 |
 | [0005](0005-multi-selection-fase-7-4.md) | Professional Multi Selection (Epic 7 / Fase 7.4) | 2026-07-20 |
+| [0006](0006-autosave-recovery-epic-8.md) | Autosave, Recovery & Project Safety (Epic 8) | 2026-07-20 |

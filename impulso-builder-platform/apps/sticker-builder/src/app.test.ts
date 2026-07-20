@@ -10,7 +10,7 @@ import {
   type SceneObject,
 } from "@impulso/document-schema";
 import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template-library";
-import { createMemoryProjectStore } from "@impulso/project-library";
+import { createMemoryProjectStore, type ProjectStore } from "@impulso/project-library";
 import { mountApp, moveIndexBy, type AppElements } from "./app.js";
 import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
 import { createProjectFromSize } from "./projectPresets.js";
@@ -93,10 +93,13 @@ function buildElements(): AppElements {
   const newProjectDialogContainer = document.createElement("div");
   const exportDialogContainer = document.createElement("div");
   const saveAsTemplateDialogContainer = document.createElement("div");
+  const unsavedChangesDialogContainer = document.createElement("div");
   const rulerHorizontal = document.createElement("canvas");
   const rulerVertical = document.createElement("canvas");
   const pointerIndicator = document.createElement("div");
   const canvasArea = document.createElement("div");
+  const saveStatusElement = document.createElement("span");
+  const saveStatusAnnouncer = document.createElement("span");
 
   function button(): HTMLButtonElement {
     return document.createElement("button");
@@ -116,7 +119,10 @@ function buildElements(): AppElements {
     newProjectDialogContainer,
     exportDialogContainer,
     saveAsTemplateDialogContainer,
+    unsavedChangesDialogContainer,
     statusElement,
+    saveStatusElement,
+    saveStatusAnnouncer,
     rulerHorizontal,
     rulerVertical,
     pointerIndicator,
@@ -144,6 +150,7 @@ function buildElements(): AppElements {
     newProjectDialogContainer,
     exportDialogContainer,
     saveAsTemplateDialogContainer,
+    unsavedChangesDialogContainer,
     newButton: button(),
     undoButton: button(),
     redoButton: button(),
@@ -156,6 +163,22 @@ function buildElements(): AppElements {
     groupButton: button(),
     ungroupButton: button(),
     statusElement,
+    saveStatusElement,
+    saveStatusAnnouncer,
+  };
+}
+
+/** Envuelve un `ProjectStore` real para que `save()` falle mientras
+ * `shouldFail()` sea `true` — usado para ejercitar los caminos de error del
+ * `ProjectSaveCoordinator`/`unsavedChangesDialog` (Epic 8) sin necesitar un
+ * `ProjectStore` roto de verdad. */
+function createFlakySaveStore(inner: ProjectStore, shouldFail: () => boolean): ProjectStore {
+  return {
+    ...inner,
+    save: async (project, thumbnail) => {
+      if (shouldFail()) throw new Error("fallo simulado");
+      return inner.save(project, thumbnail);
+    },
   };
 }
 
@@ -259,6 +282,7 @@ describe("mountApp", () => {
       projectStore,
       generateThumbnail,
       initialProject: buildProject([buildRect("a")]),
+      isNewProject: true,
       now: () => NOW,
     });
 
@@ -282,6 +306,7 @@ describe("mountApp", () => {
       projectStore,
       generateThumbnail,
       initialProject: buildProject([buildRect("a")]),
+      isNewProject: true,
       now: () => NOW,
     });
 
@@ -552,6 +577,7 @@ describe("mountApp", () => {
         projectStore: createMemoryProjectStore(),
         generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
         initialProject: buildProject([buildRect("a"), buildRect("b")]),
+        isNewProject: true,
         now: () => NOW,
         generateId: idGeneratorFrom(["dup1", "group1"]),
       });
@@ -666,5 +692,252 @@ describe("mountApp", () => {
     } finally {
       app.destroy();
     }
+  });
+
+  // Epic 8 — Autosave, Recovery & Project Safety.
+  describe("ProjectSaveCoordinator / indicador de guardado / salida segura", () => {
+    function dialogButton(elements: AppElements, kind: "retry" | "stay" | "discard"): HTMLButtonElement {
+      return elements.unsavedChangesDialogContainer.querySelector(`.unsaved-changes-dialog-${kind}`) as HTMLButtonElement;
+    }
+    function dialogOverlay(elements: AppElements): HTMLElement {
+      return elements.unsavedChangesDialogContainer.querySelector(".unsaved-changes-dialog-overlay") as HTMLElement;
+    }
+
+    it("el indicador de guardado refleja dirty -> saving -> clean al editar y guardar manualmente", async () => {
+      const projectStore = createMemoryProjectStore();
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        now: () => NOW,
+      });
+      expect(elements.saveStatusElement.textContent).toBe("Guardado");
+
+      app.getRuntime().engine.dispatch({ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 50 } });
+      expect(elements.saveStatusElement.textContent).toBe("Cambios sin guardar");
+
+      elements.saveButton.click();
+      await vi.waitFor(() => {
+        expect(elements.saveStatusElement.textContent).toBe("Guardado");
+      });
+    });
+
+    it("hasUnsavedChanges() es true para un Project nuevo antes de su primer guardado", () => {
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+      expect(app.hasUnsavedChanges()).toBe(true);
+    });
+
+    it("hasUnsavedChanges() es false para un Project existente recién abierto sin editar", () => {
+      const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+      expect(app.hasUnsavedChanges()).toBe(false);
+    });
+
+    it("requestClose() sin cambios pendientes resuelve true sin abrir el diálogo de salida", async () => {
+      const app = mountApp({ elements, keyboardTarget, initialProject: buildProject([buildRect("a")]), now: () => NOW });
+
+      await expect(app.requestClose()).resolves.toBe(true);
+      expect(dialogOverlay(elements).style.display).toBe("none");
+    });
+
+    it("requestClose() flushea un guardado pendiente exitosamente sin abrir el diálogo de salida", async () => {
+      const projectStore = createMemoryProjectStore();
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      await expect(app.requestClose()).resolves.toBe(true);
+      expect(dialogOverlay(elements).style.display).toBe("none");
+      expect(await projectStore.getProject(app.getRuntime().engine.getProject().id)).toBeDefined();
+    });
+
+    it("requestClose(): si el flush falla, abre el diálogo; 'Reintentar' puede tener éxito", async () => {
+      let shouldFail = true;
+      const projectStore = createFlakySaveStore(createMemoryProjectStore(), () => shouldFail);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      const pending = app.requestClose();
+      await vi.waitFor(() => {
+        expect(dialogOverlay(elements).style.display).not.toBe("none");
+      });
+      expect(elements.saveStatusElement.querySelector(".save-status-label")?.textContent).toBe("Error al guardar");
+      expect(elements.saveStatusElement.querySelector(".save-status-retry")).not.toBeNull();
+
+      shouldFail = false;
+      dialogButton(elements, "retry").click();
+
+      await expect(pending).resolves.toBe(true);
+      expect(dialogOverlay(elements).style.display).toBe("none");
+      consoleError.mockRestore();
+    });
+
+    it("requestClose(): 'Permanecer en el editor' devuelve false y conserva los cambios sin guardar", async () => {
+      const projectStore = createFlakySaveStore(createMemoryProjectStore(), () => true);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      const pending = app.requestClose();
+      await vi.waitFor(() => expect(dialogOverlay(elements).style.display).not.toBe("none"));
+
+      dialogButton(elements, "stay").click();
+
+      await expect(pending).resolves.toBe(false);
+      expect(app.hasUnsavedChanges()).toBe(true);
+      consoleError.mockRestore();
+    });
+
+    it("requestClose(): 'Salir sin guardar' devuelve true a pesar del guardado fallido", async () => {
+      const projectStore = createFlakySaveStore(createMemoryProjectStore(), () => true);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      const pending = app.requestClose();
+      await vi.waitFor(() => expect(dialogOverlay(elements).style.display).not.toBe("none"));
+
+      dialogButton(elements, "discard").click();
+
+      await expect(pending).resolves.toBe(true);
+      consoleError.mockRestore();
+    });
+
+    it("un fallo escribiendo el recovery no bloquea el guardado principal del Project", async () => {
+      const projectStore = createMemoryProjectStore();
+      const originalSaveRecovery = projectStore.saveRecovery.bind(projectStore);
+      projectStore.saveRecovery = vi.fn(async () => {
+        throw new Error("recovery store roto");
+      });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      elements.saveButton.click();
+      await vi.waitFor(() => {
+        expect(elements.saveStatusElement.querySelector(".save-status-label")?.textContent).toBe("Guardado");
+      });
+      expect(await projectStore.getProject(app.getRuntime().engine.getProject().id)).toBeDefined();
+
+      consoleError.mockRestore();
+      void originalSaveRecovery;
+    });
+
+    it("un fallo limpiando el recovery tras un guardado exitoso no revierte el estado 'Guardado'", async () => {
+      const projectStore = createMemoryProjectStore();
+      projectStore.clearRecovery = vi.fn(async () => {
+        throw new Error("no se pudo limpiar el recovery");
+      });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const app = mountApp({
+        elements,
+        keyboardTarget,
+        projectStore,
+        generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+        initialProject: buildProject([buildRect("a")]),
+        isNewProject: true,
+        now: () => NOW,
+      });
+
+      elements.saveButton.click();
+      await vi.waitFor(() => {
+        expect(elements.saveStatusElement.querySelector(".save-status-label")?.textContent).toBe("Guardado");
+      });
+      expect(app.hasUnsavedChanges()).toBe(false);
+      consoleError.mockRestore();
+    });
+
+    it("escribe un recovery mucho antes de que el autosave principal (1200ms) corra, protegiendo un cierre inesperado temprano (Epic 8, sección 10)", async () => {
+      vi.useFakeTimers();
+      try {
+        const projectStore = createMemoryProjectStore();
+        const app = mountApp({
+          elements,
+          keyboardTarget,
+          projectStore,
+          generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+          initialProject: buildProject([buildRect("a")]),
+          now: () => NOW,
+        });
+
+        app.getRuntime().engine.dispatch({ type: "updateObjectTransform", objectId: ObjectIdSchema.parse("a"), transform: { x: 50 } });
+
+        // Bien antes del debounce principal (1200ms por defecto) — si el
+        // recovery solo se escribiera junto con el guardado principal,
+        // todavía no existiría nada recuperable en este punto.
+        await vi.advanceTimersByTimeAsync(500);
+
+        expect(await projectStore.getRecovery(app.getRuntime().engine.getProject().id)).toBeDefined();
+        expect(await projectStore.getProject(app.getRuntime().engine.getProject().id)).toBeUndefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("destroy() cancela el timer de autosave pendiente — nada persiste después de destruir (Epic 8, sección 13, Caso E)", async () => {
+      vi.useFakeTimers();
+      try {
+        const projectStore = createMemoryProjectStore();
+        const saveSpy = vi.spyOn(projectStore, "save");
+        const app = mountApp({
+          elements,
+          keyboardTarget,
+          projectStore,
+          generateThumbnail: async () => new Blob(["png"], { type: "image/png" }),
+          initialProject: buildProject([buildRect("a")]),
+          isNewProject: true,
+          now: () => NOW,
+        });
+
+        app.destroy();
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(saveSpy).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

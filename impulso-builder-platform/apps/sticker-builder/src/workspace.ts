@@ -1,5 +1,5 @@
 import type { Project, ProjectId } from "@impulso/document-schema";
-import { duplicateProject, type ProjectDescriptor, type ProjectStore } from "@impulso/project-library";
+import { duplicateProject, type ProjectDescriptor, type ProjectRecoveryEntry, type ProjectStore } from "@impulso/project-library";
 import type { TemplateStore } from "@impulso/template-library";
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
 import { createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
@@ -17,8 +17,12 @@ export interface MountWorkspaceOptions {
    * monta su propia Workspace pasando el suyo (ver ADR-0014). */
   moduleId: string;
   /** Se llama cuando el usuario elige abrir o crear un proyecto — la app
-   * decide qué hacer con él (montar el editor). */
-  onOpenProject: (project: Project) => void;
+   * decide qué hacer con él (montar el editor). `meta.isNew` distingue
+   * abrir un Project EXISTENTE (`isNew: false`, ver `handleOpen`) de crear
+   * uno nuevo/desde Template (`isNew: true`, ver `newProjectDialog.onCreate`
+   * más abajo) — Epic 8, sección 3: solo el segundo caso debe arrancar el
+   * `ProjectSaveCoordinator` del editor en `"dirty"`. */
+  onOpenProject: (project: Project, meta?: { isNew?: boolean }) => void;
   now?: () => string;
   generateId?: () => string;
 }
@@ -73,6 +77,15 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   emptyMessage.style.display = "none";
   root.appendChild(emptyMessage);
 
+  // Epic 8 — Autosave, Recovery & Project Safety, sección 10/11: cambios
+  // detectados en `projectRecovery` más recientes que la última versión
+  // guardada (o de un Project que nunca llegó a persistirse) — nunca se
+  // sobreescriben en automático, se ofrece explícitamente elegir.
+  const recoveryBanner = document.createElement("div");
+  recoveryBanner.className = "workspace-recovery-banner";
+  recoveryBanner.style.display = "none";
+  root.appendChild(recoveryBanner);
+
   const grid = document.createElement("div");
   grid.className = "workspace-grid";
   root.appendChild(grid);
@@ -90,7 +103,7 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
 
   function handleOpen(id: ProjectId): void {
     void options.projectStore.getProject(id).then((project) => {
-      if (project) options.onOpenProject(project);
+      if (project) options.onOpenProject(project, { isNew: false });
     });
   }
 
@@ -210,7 +223,102 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
     return card;
   }
 
-  async function refresh(): Promise<void> {
+  /**
+   * Fila de una recovery pendiente: "Recuperar cambios" abre el editor con
+   * el contenido recuperado (SIEMPRE `isNew: true` — su revisión difiere de
+   * lo persistido, o no hay nada persistido todavía; en ambos casos el
+   * `ProjectSaveCoordinator` debe arrancar en `"dirty"` para autosavearlo
+   * pronto). "Abrir versión guardada" solo existe si de verdad hay una
+   * (Project con descriptor) y descarta la recovery al elegirla — de otro
+   * modo el banner reaparecería cada vez. "Descartar" simplemente limpia la
+   * recovery sin abrir nada.
+   */
+  function buildRecoveryRow(recovery: ProjectRecoveryEntry, descriptor: ProjectDescriptor | undefined): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "workspace-recovery-row";
+
+    const name = descriptor?.name ?? recovery.project.metadata.name ?? "Proyecto sin guardar";
+    const text = document.createElement("span");
+    text.className = "workspace-recovery-text";
+    text.textContent = `"${name}": hay cambios sin guardar de ${formatDate(recovery.savedAt)}.`;
+    row.appendChild(text);
+
+    const actions = document.createElement("div");
+    actions.className = "workspace-recovery-actions";
+
+    const recoverButton = document.createElement("button");
+    recoverButton.type = "button";
+    recoverButton.className = "workspace-recovery-recover";
+    recoverButton.textContent = "Recuperar cambios";
+    recoverButton.addEventListener("click", () => {
+      options.onOpenProject(recovery.project, { isNew: true });
+    });
+    actions.appendChild(recoverButton);
+
+    if (descriptor) {
+      const openSavedButton = document.createElement("button");
+      openSavedButton.type = "button";
+      openSavedButton.className = "workspace-recovery-open-saved";
+      openSavedButton.textContent = "Abrir versión guardada";
+      openSavedButton.addEventListener("click", () => {
+        void options.projectStore
+          .clearRecovery(recovery.projectId)
+          .then(() => options.projectStore.getProject(recovery.projectId))
+          .then((saved) => {
+            if (saved) options.onOpenProject(saved, { isNew: false });
+            return refresh();
+          });
+      });
+      actions.appendChild(openSavedButton);
+    }
+
+    const discardButton = document.createElement("button");
+    discardButton.type = "button";
+    discardButton.className = "workspace-recovery-discard";
+    discardButton.textContent = "Descartar";
+    discardButton.addEventListener("click", () => {
+      void options.projectStore.clearRecovery(recovery.projectId).then(() => refresh());
+    });
+    actions.appendChild(discardButton);
+
+    row.appendChild(actions);
+    return row;
+  }
+
+  async function refreshRecoveryBanner(): Promise<void> {
+    recoveryBanner.innerHTML = "";
+
+    let recoveries: ProjectRecoveryEntry[];
+    try {
+      recoveries = await options.projectStore.listRecoveries();
+    } catch {
+      // No molestar con un banner de recovery si ni siquiera se puede
+      // listarla — el error real de carga ya se refleja en `errorMessage`.
+      recoveryBanner.style.display = "none";
+      return;
+    }
+
+    for (const recovery of recoveries) {
+      let descriptor: ProjectDescriptor | undefined;
+      try {
+        descriptor = await options.projectStore.getDescriptor(recovery.projectId);
+      } catch {
+        descriptor = undefined;
+      }
+      if (descriptor && descriptor.updatedAt >= recovery.savedAt) {
+        // Ya quedó obsoleta por un guardado real posterior — se limpia en
+        // silencio, nunca se acumula (sección 10: "nunca acumular
+        // snapshots indefinidamente").
+        await options.projectStore.clearRecovery(recovery.projectId).catch(() => undefined);
+        continue;
+      }
+      recoveryBanner.appendChild(buildRecoveryRow(recovery, descriptor));
+    }
+
+    recoveryBanner.style.display = recoveryBanner.children.length > 0 ? "" : "none";
+  }
+
+  async function doRefresh(): Promise<void> {
     grid.innerHTML = "";
     revokeObjectUrls();
     errorMessage.style.display = "none";
@@ -230,6 +338,27 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
     for (const descriptor of descriptors) {
       grid.appendChild(buildCard(descriptor));
     }
+
+    await refreshRecoveryBanner();
+  }
+
+  // `mountWorkspace` dispara su propio `refresh()` inicial (más abajo) Y
+  // `shell.ts` dispara OTRO justo después de montar (`showWorkspace()`) —
+  // sin este guardado de "único vuelo", ambas llamadas se solapan: cada
+  // una limpia `grid`/`recoveryBanner` y vuelve a poblarlos de forma
+  // independiente, duplicando tarjetas/filas de recovery (visto en la
+  // práctica: Epic 8, el banner de recovery mostraba 2 filas idénticas
+  // para un único Project). Mismo patrón que `ProjectSaveCoordinator`:
+  // una llamada concurrente espera la MISMA ejecución en curso en vez de
+  // iniciar una segunda.
+  let refreshInFlight: Promise<void> | undefined;
+  function refresh(): Promise<void> {
+    if (!refreshInFlight) {
+      refreshInFlight = doRefresh().finally(() => {
+        refreshInFlight = undefined;
+      });
+    }
+    return refreshInFlight;
   }
 
   const newProjectDialog: NewProjectDialog = mountNewProjectDialog(newProjectDialogContainer, {
@@ -237,7 +366,7 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
     moduleId: options.moduleId,
     now,
     generateId,
-    onCreate: (project) => options.onOpenProject(project),
+    onCreate: (project) => options.onOpenProject(project, { isNew: true }),
   });
 
   // Propia instancia del sembrado perezoso de built-in — el botón "Nuevo

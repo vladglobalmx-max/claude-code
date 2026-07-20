@@ -28,7 +28,7 @@ Cinco paquetes más, cada uno un pilar reutilizable por cualquier módulo futuro
 | **Asset Library** | `packages/asset-library` | Almacenamiento de binarios de Asset (imágenes hoy; el modelo admite más tipos) — IndexedDB + memoria | `document-schema`, `storage-kit` |
 | **Export Engine** | `packages/export-engine` | Produce archivos finales (PNG/SVG) a partir del Document Schema. SVG lee el Document Schema directamente (nunca Konva); PNG rasteriza vía un `Konva.Stage` headless (`renderer-konva`), nunca el Stage interactivo del editor | `document-schema`, `renderer-konva` |
 | **Templates** | `packages/template-library` | Catálogo de puntos de partida para crear un proyecto — un Template ES un `Project` completo + metadatos de catálogo | `document-schema`, `engine`, `storage-kit` |
-| **Project Library** | `packages/project-library` | Administra múltiples proyectos guardados (la Workspace) — un `Project` ya es su propio descriptor de catálogo | `document-schema`, `engine`, `storage-kit` |
+| **Project Library** | `packages/project-library` | Administra múltiples proyectos guardados (la Workspace) — un `Project` ya es su propio descriptor de catálogo; coordina autosave/recovery (`ProjectSaveCoordinator`, Epic 8) | `document-schema`, `engine`, `storage-kit` |
 | **Storage Kit** | `packages/storage-kit` | Andamiaje genérico de IndexedDB (no un pilar de producto — infraestructura interna compartida por los tres paneles de arriba que usan IndexedDB) | *(ninguna)* |
 
 **Shared Services, Design System y AI Engine** siguen siendo conceptuales — nombrados en el mapa de producto, sin código real todavía (ver [`product/05-Technical-Debt.md`](product/05-Technical-Debt.md)).
@@ -77,7 +77,7 @@ impulso-builder-platform/
 │   ├── storage-kit/         # andamiaje genérico de IndexedDB (openIndexedDb/runInTransaction/...)
 │   ├── asset-library/       # AssetBinaryStore (IndexedDB + memoria) + ingesta de imágenes
 │   ├── template-library/    # TemplateStore + instantiateTemplate
-│   ├── project-library/     # ProjectStore + duplicateProject
+│   ├── project-library/     # ProjectStore + duplicateProject + ProjectSaveCoordinator (autosave/recovery, Epic 8)
 │   └── export-engine/       # exportProject (PNG/SVG) + adaptador de descarga en navegador
 ├── apps/
 │   └── sticker-builder/     # el único módulo construido — compone los 7 paquetes de arriba
@@ -138,4 +138,4 @@ interface RendererAdapter {
 
 ## 8. Qué sigue quedando fuera de alcance (ver `product/05-Technical-Debt.md` para el detalle completo)
 
-PDF print-ready con línea de corte/sangrado, autosave, cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.
+PDF print-ready con línea de corte/sangrado, cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.

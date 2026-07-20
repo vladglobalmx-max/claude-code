@@ -148,7 +148,92 @@ describe("mountWorkspace", () => {
     (div.querySelector(".workspace-card-open") as HTMLButtonElement).click();
     await flush();
 
-    expect(onOpenProject).toHaveBeenCalledWith(project);
+    expect(onOpenProject).toHaveBeenCalledWith(project, { isNew: false });
+  });
+
+  // Epic 8 — Autosave, Recovery & Project Safety, sección 10/11.
+  describe("banner de recovery", () => {
+    it("muestra una recovery más reciente que el último guardado, y 'Recuperar cambios' abre con isNew: true", async () => {
+      const saved = buildProject("project_1", { metadata: { ...metadata, name: "Guardado", updatedAt: "2026-07-19T10:00:00.000Z" } });
+      await projectStore.save(saved);
+      const recovered = { ...saved, metadata: { ...saved.metadata, name: "Con cambios sin guardar" } };
+      await projectStore.saveRecovery(recovered, "2026-07-20T09:00:00.000Z");
+      const onOpenProject = vi.fn();
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      await flush();
+
+      const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
+      expect(banner.style.display).not.toBe("none");
+      expect(banner.textContent).toContain("Guardado");
+
+      (div.querySelector(".workspace-recovery-recover") as HTMLButtonElement).click();
+      expect(onOpenProject).toHaveBeenCalledWith(recovered, { isNew: true });
+    });
+
+    it("una recovery ya obsoleta (más vieja que el último guardado) se limpia en silencio y no se muestra", async () => {
+      const saved = buildProject("project_1", { metadata: { ...metadata, updatedAt: "2026-07-20T09:00:00.000Z" } });
+      await projectStore.save(saved);
+      await projectStore.saveRecovery(saved, "2026-07-19T09:00:00.000Z");
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
+      expect(banner.style.display).toBe("none");
+      expect(await projectStore.getRecovery(saved.id)).toBeUndefined();
+    });
+
+    it("'Descartar' limpia la recovery sin abrir nada", async () => {
+      const saved = buildProject("project_1", { metadata: { ...metadata, updatedAt: "2026-07-19T00:00:00.000Z" } });
+      await projectStore.save(saved);
+      await projectStore.saveRecovery(saved, "2026-07-20T09:00:00.000Z");
+      const onOpenProject = vi.fn();
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      await flush();
+
+      (div.querySelector(".workspace-recovery-discard") as HTMLButtonElement).click();
+      await flush();
+
+      expect(onOpenProject).not.toHaveBeenCalled();
+      expect(await projectStore.getRecovery(saved.id)).toBeUndefined();
+      expect((div.querySelector(".workspace-recovery-banner") as HTMLElement).style.display).toBe("none");
+    });
+
+    it("'Abrir versión guardada' descarta la recovery y abre el Project persistido con isNew: false", async () => {
+      const saved = buildProject("project_1", { metadata: { ...metadata, name: "Guardado", updatedAt: "2026-07-19T00:00:00.000Z" } });
+      await projectStore.save(saved);
+      await projectStore.saveRecovery({ ...saved, metadata: { ...saved.metadata, name: "Sin guardar" } }, "2026-07-20T09:00:00.000Z");
+      const onOpenProject = vi.fn();
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      await flush();
+
+      (div.querySelector(".workspace-recovery-open-saved") as HTMLButtonElement).click();
+      await flush();
+
+      expect(onOpenProject).toHaveBeenCalledWith(saved, { isNew: false });
+      expect(await projectStore.getRecovery(saved.id)).toBeUndefined();
+    });
+
+    it("una recovery de un Project que nunca se guardó (sin descriptor) se muestra sin la opción 'Abrir versión guardada'", async () => {
+      const neverSaved = buildProject("project_nuevo", { metadata: { ...metadata, name: "Nunca guardado" } });
+      await projectStore.saveRecovery(neverSaved, "2026-07-20T09:00:00.000Z");
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
+      expect(banner.style.display).not.toBe("none");
+      expect(banner.querySelector(".workspace-recovery-open-saved")).toBeNull();
+      expect(banner.querySelector(".workspace-recovery-recover")).not.toBeNull();
+    });
   });
 
   it("renombrar: clic en el lápiz, escribir, Enter guarda el nuevo nombre", async () => {

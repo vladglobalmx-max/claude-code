@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.12.0] — Epic 8: Autosave, Recovery & Project Safety
+
+### Agregado
+- Autosave real: cualquier cambio de contenido confirmado (comando, batch, undo, redo) programa un guardado automático tras una pausa breve (debounce 1200ms) — nunca durante selección/zoom/pan/Smart Guides/previews efímeros, que nunca llegan a ensuciar el `ProjectSaveCoordinator` (`@impulso/project-library` 0.2.0, ver ADR-0019).
+- Indicador de estado de guardado (`#save-status`, junto a "Guardar"): Guardado / Cambios sin guardar / Guardando… / Error al guardar / Recuperado — nunca solo color, con un botón "Reintentar" propio en estado de error. Un anuncio accesible independiente (`aria-live="polite"`, oculto visualmente) solo se activa en transiciones que valen la pena anunciar (error, recuperado, guardado confirmado), nunca en cada autosave.
+- Salida segura del editor: "Nuevo" (interno), "Mis proyectos" y abrir/crear otro Project desde la Workspace intentan flushear cualquier guardado pendiente antes de reemplazar/destruir el editor; si falla, un diálogo propio con foco atrapado (`unsavedChangesDialog.ts`, nunca `window.confirm`) ofrece Reintentar/Permanecer en el editor/Salir sin guardar.
+- `beforeunload` como última línea de defensa: solo advierte si de verdad hay cambios sin persistir (`App.hasUnsavedChanges()`); nunca es el mecanismo principal de guardado.
+- Recovery: un cierre/recarga inesperados bien antes del autosave principal (~1200ms) siguen siendo recuperables gracias a un recovery rápido independiente (~400ms, sin thumbnail). La Workspace detecta recoveries más recientes que el último guardado (o de un Project nunca guardado) y ofrece un banner con Recuperar cambios / Abrir versión guardada / Descartar — nunca sobreescribe en automático. Ver ADR-0020.
+- Guardar manual (Ctrl/Cmd+S, sin cambio de atajo) ahora delega enteramente en el `ProjectSaveCoordinator`: cancela/absorbe cualquier debounce pendiente, espera cualquier guardado ya en curso, persiste la revisión más reciente.
+- 20 tests nuevos/actualizados en `app.test.ts`/`shell.test.ts`/`workspace.test.ts` (indicador, `requestClose`/`hasUnsavedChanges`, races, banner de recovery, `beforeunload`) + `e2e/autosave-recovery.spec.ts` (4 tests en Chromium real: autosave visible, refresh+recovery, guardado manual, Workspace/miniatura actualizada).
+
+### Corregido
+- **Bug real encontrado durante la verificación E2E de esta épica**: `workspace.ts`'s `refresh()` podía dispararse dos veces de forma concurrente al aterrizar en la Workspace (una desde `mountWorkspace` y otra desde `shell.ts`), duplicando tarjetas/filas del banner de recovery. Corregido con una guarda de "único vuelo" (mismo patrón que `ProjectSaveCoordinator.startSave()`). Ver `docs/PERFORMANCE_BUDGET.md` fila 20.
+- `e2e/export-visual.spec.ts`: las 3 pruebas rotas por Workspace-first (ADR-0014) — dependían de navegar directamente al editor con `demoProject.ts`, algo que ya no es posible — se reescribieron para crear el Project vía la experiencia soportada (Workspace → Nuevo proyecto → Personalizado) y usar la técnica de imagen de color sólido + Inspector ya probada en `multi-selection.spec.ts`, preservando el intento de verificación original (fidelidad de color 1x/2x, fondo transparente).
+- `test:e2e` ahora es `"vite build && playwright test"` (antes solo `"playwright test"`, que corría contra lo que hubiera en `dist/` sin reconstruirlo) — evita repetir el incidente de Fase 7.4 (E2E corriendo contra un build viejo).
+- `vitest.setup.ts` ahora importa `fake-indexeddb/auto`: sin autosave, ningún test dejaba timers reales pendientes; con autosave, cualquier test que no inyectara su propio `projectStore` (memoria) pero ensuciara el `ProjectSaveCoordinator` dejaba un timer real que, al disparar más tarde contra un `indexedDB` inexistente en jsdom, producía corridas ocasionalmente inestables de `pnpm -r test` — mismo patrón ya usado en `project-library`/`asset-library`/`template-library`.
+
 ## [0.11.0] — Epic 7 / Fase 7.4: Professional Multi Selection
 
 ### Agregado

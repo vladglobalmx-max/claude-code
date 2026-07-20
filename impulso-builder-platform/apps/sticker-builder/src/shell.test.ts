@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serializeProject, ProjectIdSchema } from "@impulso/document-schema";
 import { createMemoryTemplateStore } from "@impulso/template-library";
-import { createMemoryProjectStore } from "@impulso/project-library";
+import { createMemoryProjectStore, type ProjectStore } from "@impulso/project-library";
 import { mountShell, type ShellElements } from "./shell.js";
 import { createDemoProject } from "./demoProject.js";
 import type { AppElements } from "./app.js";
@@ -50,6 +50,7 @@ function buildEditorElements(): AppElements {
     newProjectDialogContainer: div(),
     exportDialogContainer: div(),
     saveAsTemplateDialogContainer: div(),
+    unsavedChangesDialogContainer: div(),
     newButton: button(),
     undoButton: button(),
     redoButton: button(),
@@ -62,6 +63,8 @@ function buildEditorElements(): AppElements {
     groupButton: button(),
     ungroupButton: button(),
     statusElement: document.createElement("span"),
+    saveStatusElement: document.createElement("span"),
+    saveStatusAnnouncer: document.createElement("span"),
   };
 }
 
@@ -79,6 +82,18 @@ function buildShellElements(): ShellElements {
 }
 
 const fakeGenerateThumbnail = async () => new Blob(["png"], { type: "image/png" });
+
+/** Epic 8 — igual que en `app.test.ts`: envuelve un `ProjectStore` real
+ * para que `save()` falle mientras `shouldFail()` sea `true`. */
+function createFlakySaveStore(inner: ProjectStore, shouldFail: () => boolean): ProjectStore {
+  return {
+    ...inner,
+    save: async (project, thumbnail) => {
+      if (shouldFail()) throw new Error("fallo simulado");
+      return inner.save(project, thumbnail);
+    },
+  };
+}
 
 describe("mountShell", () => {
   beforeEach(() => {
@@ -126,7 +141,9 @@ describe("mountShell", () => {
 
     elements.editor.backToWorkspaceButton.click();
 
-    expect(elements.editorScreen.style.display).toBe("none");
+    await vi.waitFor(() => {
+      expect(elements.editorScreen.style.display).toBe("none");
+    });
     expect(elements.workspaceScreen.style.display).not.toBe("none");
   });
 
@@ -200,5 +217,90 @@ describe("mountShell", () => {
     await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
 
     expect(() => shell.destroy()).not.toThrow();
+  });
+
+  // Epic 8 — Autosave, Recovery & Project Safety.
+  describe("beforeunload / salida segura", () => {
+    it("no advierte en beforeunload cuando el editor abierto está guardado (sin cambios pendientes)", async () => {
+      const projectStore = createMemoryProjectStore();
+      await projectStore.save(createDemoProject());
+
+      const elements = buildShellElements();
+      mountShell({ elements, projectStore, templateStore: createMemoryTemplateStore(), storage: fakeStorage(), generateThumbnail: fakeGenerateThumbnail });
+      await Promise.resolve();
+      (elements.workspaceContainer.querySelector(".workspace-card-open") as HTMLButtonElement).click();
+      await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
+
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("advierte (preventDefault) en beforeunload si el editor tiene cambios sin guardar", async () => {
+      const projectStore = createMemoryProjectStore();
+      await projectStore.save(createDemoProject());
+      const keyboardTarget = document.createElement("div");
+
+      const elements = buildShellElements();
+      mountShell({
+        elements,
+        projectStore,
+        templateStore: createMemoryTemplateStore(),
+        storage: fakeStorage(),
+        generateThumbnail: fakeGenerateThumbnail,
+        keyboardTarget,
+      });
+      await Promise.resolve();
+      (elements.workspaceContainer.querySelector(".workspace-card-open") as HTMLButtonElement).click();
+      await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
+
+      // "T" inserta un object de texto (ver `keyboardShortcuts.ts`) — un
+      // cambio de contenido real, no efímero, que ensucia el Project.
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("'Mis proyectos' con un guardado fallido: abre el diálogo, y 'Permanecer' mantiene el editor abierto", async () => {
+      const first = createDemoProject();
+      const inner = createMemoryProjectStore();
+      await inner.save(first);
+      let shouldFail = true;
+      const projectStore = createFlakySaveStore(inner, () => shouldFail);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const keyboardTarget = document.createElement("div");
+
+      const elements = buildShellElements();
+      mountShell({
+        elements,
+        projectStore,
+        templateStore: createMemoryTemplateStore(),
+        storage: fakeStorage(),
+        generateThumbnail: fakeGenerateThumbnail,
+        keyboardTarget,
+      });
+      await Promise.resolve();
+      (elements.workspaceContainer.querySelector(".workspace-card-open") as HTMLButtonElement).click();
+      await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
+
+      keyboardTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+      elements.editor.backToWorkspaceButton.click();
+
+      const overlay = elements.editor.unsavedChangesDialogContainer.querySelector(".unsaved-changes-dialog-overlay") as HTMLElement;
+      await vi.waitFor(() => expect(overlay.style.display).not.toBe("none"));
+
+      (elements.editor.unsavedChangesDialogContainer.querySelector(".unsaved-changes-dialog-stay") as HTMLButtonElement).click();
+
+      // Permanece en el editor: nunca llega a mostrarse la Workspace.
+      expect(elements.editorScreen.style.display).not.toBe("none");
+      expect(elements.workspaceScreen.style.display).toBe("none");
+
+      shouldFail = false;
+      consoleError.mockRestore();
+    });
   });
 });

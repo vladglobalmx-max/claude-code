@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library** y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library**, **Print Engine** (en construcción — Fase 9.1 de 5, ver ADR-0021) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -26,6 +26,8 @@ Impulso Platform
 ├── Templates                   (✅ construido — Epic 4, ver ADR-0013; único punto de entrada para crear proyectos nuevos)
 │
 ├── Project Library             (✅ construido — Epic 5, ver ADR-0014; Workspace, administración de múltiples proyectos)
+│
+├── Print Engine                (🚧 en construcción — Epic 9 / Fase 9.1 de 5, ver ADR-0021; modelo de PrintJob/unidades/boxes/Preflight, sin PDF/raster/marcas todavía)
 │
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)

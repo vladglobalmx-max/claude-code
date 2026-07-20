@@ -158,6 +158,31 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(jsdom@25.0.1)
 
+  packages/print-engine:
+    dependencies:
+      '@impulso/document-schema':
+        specifier: workspace:*
+        version: link:../document-schema
+      '@impulso/export-engine':
+        specifier: workspace:*
+        version: link:../export-engine
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^2.0.5
+        version: 2.1.9(vitest@2.1.9(jsdom@25.0.1))
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      tsup:
+        specifier: ^8.2.4
+        version: 8.5.1(postcss@8.5.19)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(jsdom@25.0.1)
+
   packages/project-library:
     dependencies:
       '@impulso/document-schema':

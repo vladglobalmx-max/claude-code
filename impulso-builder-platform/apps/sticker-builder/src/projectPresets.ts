@@ -5,6 +5,7 @@ import {
   LayerIdSchema,
   ObjectIdSchema,
   CURRENT_SCHEMA_VERSION,
+  toPixels,
   type Project,
 } from "@impulso/document-schema";
 
@@ -39,7 +40,17 @@ export function createProjectFromSize(options: CreateProjectFromSizeOptions): Pr
             id: ObjectIdSchema.parse(`object_${generateId()}`),
             type: "ellipse" as const,
             transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
-            size: { width: widthMm, height: heightMm },
+            // `SceneObject.size`/`transform` viven SIEMPRE en px canónico
+            // (el mismo espacio que usa el Inspector vía `fromPixels`/
+            // `toPixels`, ver Fase 7.1) — NUNCA en `page.unit` crudo, a
+            // diferencia de `page.size` (que sí es el valor físico crudo,
+            // convertido recién por el Renderer/Stage). Antes de Epic 9
+            // esta línea usaba `widthMm`/`heightMm` sin convertir: la
+            // línea de corte quedaba ~3.78x más chica que la página (un
+            // círculo de 50 CSS-px dentro de un Stage de ~189px), un bug
+            // real confirmado empíricamente al verificar el modelo de
+            // coordenadas para el Print Engine (ver ADR de Fase 9.1).
+            size: { width: toPixels(widthMm, "mm"), height: toPixels(heightMm, "mm") },
             style: { fill: "#ffffff", strokeWidth: 0.5, stroke: "#cccccc", opacity: 1, blendMode: "normal" as const },
             metadata: { ...metadata, role: "die-line", name: "Línea de corte" },
             pluginData: {},

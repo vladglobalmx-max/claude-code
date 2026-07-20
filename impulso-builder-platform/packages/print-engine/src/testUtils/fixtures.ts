@@ -14,6 +14,7 @@ import {
   type TextObject,
   type ImageObject,
   type ImageAsset,
+  type GroupObject,
 } from "@impulso/document-schema";
 import { createPrintJob } from "../printJob.js";
 import type { PrintJob, PrintProfileId } from "../types.js";
@@ -67,6 +68,20 @@ export function buildImageAsset(id: string, overrides: Partial<ImageAsset> = {})
     metadata: baseMetadata,
     pluginData: {},
     customProperties: {},
+    ...overrides,
+  };
+}
+
+export function buildGroup(id: string, children: SceneObject[], overrides: Partial<GroupObject> = {}): GroupObject {
+  return {
+    id: ObjectIdSchema.parse(id),
+    type: "group",
+    transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+    style: baseStyle,
+    metadata: baseMetadata,
+    pluginData: {},
+    customProperties: {},
+    children,
     ...overrides,
   };
 }

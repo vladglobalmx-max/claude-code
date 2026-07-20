@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Print Engine — harness de verificación (Epic 9 / Fase 9.2)</title>
+  </head>
+  <body>
+    <!--
+      Harness TEMPORAL de Epic 9 / Fase 9.2 (ver ADR-0022, sección
+      "Verificación en Chromium", y sección 21 del enunciado de la fase) —
+      ejerce el pipeline REAL de `@impulso/print-engine` (Konva real,
+      Canvas real, pdf-lib real) dentro de un navegador real, sin mockear
+      nada, para los 12 escenarios que la fase exige verificar en Chromium.
+
+      Ninguna ruta de producto lo referencia (no hay ningún link/botón que
+      navegue aquí desde `index.html`) — es exclusivamente el punto de
+      entrada que el spec de Playwright `e2e/print-engine.spec.ts` visita
+      directamente. Se retira o se transforma en la UI real de exportación
+      a producción durante la Fase 9.4.
+    -->
+    <pre id="result">ejecutando…</pre>
+    <script type="module" src="/src/printEngineHarness.ts"></script>
+  </body>
+</html>

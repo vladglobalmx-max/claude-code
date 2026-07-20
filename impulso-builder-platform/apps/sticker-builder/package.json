@@ -1,6 +1,6 @@
 {
   "name": "@impulso/sticker-builder",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "description": "Editor de Sticker Builder. Primer módulo construido sobre Impulso Engine + el Renderer Konva.",
   "type": "module",
@@ -24,11 +24,13 @@
     "@impulso/template-library": "workspace:*"
   },
   "devDependencies": {
+    "@impulso/print-engine": "workspace:*",
     "@playwright/test": "^1.56.1",
     "@vitest/coverage-v8": "^2.0.5",
     "fake-indexeddb": "^6.0.0",
     "jsdom": "^25.0.1",
     "konva": "^9.3.14",
+    "pdf-lib": "^1.17.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.10",
     "vitest": "^2.0.5"

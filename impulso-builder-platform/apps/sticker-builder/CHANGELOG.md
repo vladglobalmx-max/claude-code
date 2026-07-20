@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.13.0] — Epic 9 / Fase 9.2: Print Engine — Raster Pipeline & PDF Backend (verificación, no producto)
+
+### Agregado
+- `print-engine-harness.html` + `src/printEngineHarness.ts` + `e2e/print-engine.spec.ts` — harness **temporal**, no de producto: ejercita en Chromium real, sin ningún mock (Konva real, Canvas/Image reales, `pdf-lib` real), el pipeline completo de `@impulso/print-engine` recién construido (`renderPrintJob`/`exportPrintJobToPng`/`exportPrintJobToPdf`). 12 escenarios (sección 21 del enunciado de Fase 9.2): dimensiones exactas de PNG a 300 PPI, tamaño físico correcto de PDF/A4, conteo de páginas multipágina, geometría real de sangrado, fondo sólido/transparencia real, cancelación sin archivo entregado, presupuesto de memoria bloqueante, verificación de fuentes, Assets faltantes nunca sustituidos silenciosamente, inmutabilidad del Project, ausencia de dirty-state al exportar.
+- `vite.config.ts`: segunda entrada de build (`rollupOptions.input.printEngineHarness`) — ninguna pantalla del producto navega a ella; se retira o se transforma en la UI real de exportación durante Fase 9.4.
+- `@impulso/print-engine`/`pdf-lib` agregados como `devDependencies` — exclusivamente para este harness; ningún código de producto de esta app importa todavía `@impulso/print-engine`.
+- **Hallazgo real confirmado durante esta verificación**: `document.fonts.check()` devuelve siempre `true` en el Chromium usado, incluso para un nombre de fuente inventado — documentado en el CHANGELOG/README de `print-engine` y en ADR-0022, no oculto.
+
+### Nota
+Ningún flujo de usuario de este app cambió — Epic 9 / Fase 9.2 no toca ninguna pantalla existente. Este harness es código de verificación temporal, explícitamente documentado como tal en el propio HTML/TS y en ADR-0022.
+
 ## [0.12.0] — Epic 8: Autosave, Recovery & Project Safety
 
 ### Agregado

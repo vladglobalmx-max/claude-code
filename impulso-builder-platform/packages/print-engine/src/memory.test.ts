@@ -45,3 +45,34 @@ describe("estimateMemoryBytes", () => {
     expect(estimate.withinBudget).toBe(true);
   });
 });
+
+describe("estimateMemoryBytes — riskLevel y cachedImageBytes (Fase 9.2)", () => {
+  it("un canvas chico es 'recommended' (muy por debajo del presupuesto)", () => {
+    const estimate = estimateMemoryBytes({ canvasWidthPx: 100, canvasHeightPx: 100 });
+    expect(estimate.riskLevel).toBe("recommended");
+  });
+
+  it("un canvas que supera el umbral de warning pero sigue dentro del presupuesto es 'warning'", () => {
+    // Presupuesto custom chico para forzar el rango warning de forma determinista.
+    const estimate = estimateMemoryBytes({ canvasWidthPx: 100, canvasHeightPx: 100 }, 100_000);
+    expect(estimate.riskLevel).toBe("warning");
+    expect(estimate.withinBudget).toBe(true);
+  });
+
+  it("un canvas que excede el presupuesto es 'blocking', y withinBudget es false", () => {
+    const estimate = estimateMemoryBytes({ canvasWidthPx: 10_000, canvasHeightPx: 10_000 });
+    expect(estimate.riskLevel).toBe("blocking");
+    expect(estimate.withinBudget).toBe(false);
+  });
+
+  it("cachedImageBytes se suma al total SIN aplicarle el overhead de nuevo", () => {
+    const withoutCache = estimateMemoryBytes({ canvasWidthPx: 100, canvasHeightPx: 100 });
+    const withCache = estimateMemoryBytes({ canvasWidthPx: 100, canvasHeightPx: 100, cachedImageBytes: 5000 });
+    expect(withCache.totalEstimatedBytes).toBe(withoutCache.totalEstimatedBytes + 5000);
+  });
+
+  it("cachedImageBytes ausente equivale a 0 — compatibilidad exacta con Fase 9.1", () => {
+    const estimate = estimateMemoryBytes({ canvasWidthPx: 1000, canvasHeightPx: 500 });
+    expect(estimate.totalEstimatedBytes).toBe(estimate.rasterBytes * 2.5);
+  });
+});

@@ -1,15 +1,15 @@
 # @impulso/print-engine
 
-> Print Engine de plataforma, nacido en la Épica 9 (Professional Print Engine). Construye la base para producir salidas confiables para impresión digital, corte y producción comercial — modelo de `PrintJob`, unidades físicas, boxes de PDF (Trim/Bleed/Media/Safe Area), naming determinista, estimación de memoria y un Preflight estructural. Reutilizable por cualquier Builder futuro. Ver [ADR-0021](../../docs/adr/0021-print-engine-foundation.md).
+> Print Engine de plataforma, nacido en la Épica 9 (Professional Print Engine). Produce salidas confiables para impresión digital, corte y producción comercial — modelo de `PrintJob`, unidades físicas, boxes de PDF (Trim/Bleed/Media/Safe Area), Preflight, y ahora (Fase 9.2) el pipeline real de raster: PNG físico multipágina y PDF aplanado de alta resolución. Reutilizable por cualquier Builder futuro. Ver [ADR-0021](../../docs/adr/0021-print-engine-foundation.md) (Fase 9.1) y [ADR-0022](../../docs/adr/0022-print-engine-raster-pipeline.md) (Fase 9.2).
 
-**Estado:** Fase 9.1 (Print Model, Coordinates, Units & Preflight Foundation). Deliberadamente **sin** PDF, sin raster de impresión, sin marcas de corte renderizadas, sin imposición ni UI de exportación todavía — eso son las Fases 9.2-9.5, cada una con su propia autorización explícita.
+**Estado:** Fase 9.2 (Raster Pipeline & PDF Backend) completa. Deliberadamente **sin** marcas de corte renderizadas, sin cut paths exportados, sin imposición ni UI de exportación todavía — eso son las Fases 9.3-9.5, cada una con su propia autorización explícita.
 
 ---
 
 ## 1. Qué es y qué no es
 
-- **Sí hace:** modela un `PrintJob` completo y versionado (`createPrintJob`); calcula las boxes físicas de una página de impresión (`computeBoxes`: TrimBox/BleedBox/MediaBox/SafeAreaBox/CropBox); convierte entre unidades físicas, puntos PDF y píxeles de raster a un PPI real (`units.ts` — nunca el `toPixels` de 96 fijo de `document-schema`, que es de pantalla); estima el nombre de archivo determinista (`buildPrintFilename`) y el consumo de memoria de un raster antes de generarlo (`estimateMemoryBytes`, con overhead documentado, nunca `width×height×4` crudo); corre validaciones estructurales previas a exportar (`runPreflight`: dimensiones/bleed/escala inválidos, páginas faltantes/vacías, assets faltantes, resolución efectiva insuficiente, fuentes no disponibles/inciertas, presupuesto de memoria).
-- **No hace todavía:** no genera PDF (pendiente de Fase 9.2, `pdf-lib` encapsulado detrás de un `PdfBackend` interno); no rasteriza contenido de impresión real (Fase 9.2); no dibuja marcas de corte ni cut paths (Fase 9.3); no arma una imposición/hoja con múltiples copias (Fase 9.4); no ofrece ninguna UI de exportación a producción (ninguna fase todavía la ha construido).
+- **Sí hace:** modela un `PrintJob` completo y versionado (`createPrintJob`); calcula boxes físicas (`computeBoxes`, `computePdfPageBoxes`); convierte entre unidades físicas, puntos PDF y píxeles de raster a un PPI real (`units.ts`); corre Preflight estructural (`runPreflight`); **rasteriza páginas físicas reales** con sangrado (`renderPrintPage`/`renderPrintJob`, reutilizando `@impulso/renderer-konva` de forma aditiva); **exporta PNG físico multipágina** (`exportPrintJobToPng`) y **PDF aplanado de alta resolución** (`exportPrintJobToPdf`, con `pdf-lib` completamente encapsulado detrás de `PdfBackend`); soporta cancelación (`AbortSignal`) y progreso por etapas en ambos formatos.
+- **No hace todavía:** no dibuja marcas de corte ni safe area visual (Fase 9.3); no exporta cut paths ni soporta kiss-cut/die-cut real (Fase 9.3); no arma una imposición/hoja con múltiples copias (Fase 9.4); no ofrece ninguna UI de exportación a producción (existe un harness *temporal* de verificación en Chromium, ver sección 8 — no es producto).
 
 ## 2. Árbol
 
@@ -18,74 +18,81 @@ packages/print-engine/
 ├── package.json / tsconfig.json / vitest.config.ts
 ├── README.md / CHANGELOG.md
 └── src/
-    ├── index.ts                    # API pública
-    ├── units.ts / units.test.ts    # unitToPoints, physicalToPixels, pixelRatioForPpi, convertUnit...
-    ├── types.ts                    # PrintJob, BleedSpec, SafeAreaSpec, CropMarksSpec, CutPathSpec, ImpositionSpec...
-    ├── boxes.ts / boxes.test.ts    # computeBoxes: TrimBox/BleedBox/MediaBox/SafeAreaBox/CropBox
-    ├── printJob.ts / printJob.test.ts   # createPrintJob(profile, overrides) -> PrintJob completo
-    ├── profiles.ts                 # 4 perfiles base: digital-png, print-pdf, sticker-sheet, web-preview
-    ├── naming.ts / naming.test.ts  # buildPrintFilename — determinista
-    ├── memory.ts / memory.test.ts  # estimateMemoryBytes — nunca width×height×4 crudo
-    ├── preflight/
-    │   ├── types.ts                # PreflightIssue/PreflightResult/PreflightSeverity/PreflightCode
-    │   ├── fonts.ts                # FontChecker — 3 estados, degradación honesta
-    │   ├── imageProbe.ts           # ImageDimensionsProbe — degrada a undefined, nunca finge
-    │   └── runPreflight.ts / .test.ts   # orquestador — orden determinista
-    └── testUtils/fixtures.ts
+    ├── index.ts                     # API pública
+    ├── units.ts / boxes.ts / types.ts / printJob.ts / profiles.ts / naming.ts / memory.ts
+    ├── errors.ts                    # PrintEngineError — 11 códigos tipados
+    ├── progress.ts                  # PrintExportStage, emitProgress (nunca deja que el callback del caller corrompa la exportación)
+    ├── preflight/                   # runPreflight, fonts.ts, imageProbe.ts (Fase 9.1)
+    ├── raster/
+    │   ├── coordinates.ts           # computeCanonicalPageGeometry — px canónico -> raster físico
+    │   ├── objectFilters.ts         # defaultShouldRenderObject (excluye die-line), combineShouldRenderObject
+    │   ├── collectImageAssetIds.ts  # recorrido recursivo de Image dentro de group
+    │   ├── assetImageCache.ts       # cache de imágenes decodificadas de UNA exportación (single-flight)
+    │   ├── renderPrintPage.ts       # UNA página -> HTMLCanvasElement físico
+    │   ├── renderPrintJob.ts        # orquesta TODAS las páginas — generador async, nunca N en memoria a la vez
+    │   ├── exportPrintJobToPng.ts   # PNG físico multipágina
+    │   └── exportPrintJobToPdf.ts   # PDF aplanado de alta resolución
+    ├── pdf/
+    │   ├── pdfBackend.ts            # PdfBackend/PdfBackendDocument — CERO tipos de pdf-lib
+    │   ├── pdfLibBackend.ts         # ÚNICO módulo del paquete que importa pdf-lib
+    │   └── pageBoxes.ts             # computePdfPageBoxes — Trim/Bleed/Media/Crop en puntos
+    └── testUtils/
+        ├── fixtures.ts              # builders de dominio (Fase 9.1)
+        └── goldenFixtures.ts        # 6 escenarios canónicos (sección 22, Fase 9.2)
 
-    (96 tests, cobertura ≥90%/90%/90%/85% líneas/statements/funciones/branches)
+    (183 tests, cobertura ≥90%/90%/90%/85% líneas/statements/funciones/branches)
 ```
 
-## 3. El modelo de coordenadas (lo más importante de esta fase — ver ADR-0021 para el detalle completo)
+## 3. El modelo de coordenadas (ver ADR-0021 para el detalle completo)
 
-Tres espacios numéricos coexisten en Impulso y **nunca deben confundirse**:
+Tres espacios numéricos coexisten en Impulso y **nunca deben confundirse**: px canónico (`SceneObject.transform`/`size`), unidad física de página (`Page.size`/`Page.unit`), y resolución de impresión (`PrintJob.resolution.targetPpi`). Identidad base: `physicalToPixels(v, unit, targetPpi) === toPixels(v, unit) × (targetPpi / 96)`.
 
-1. **Px canónico** (`SceneObject.transform`/`SceneObject.size`) — un espacio CSS-96-DPI-equivalente, el mismo para cualquier `Project` sin importar `page.unit`. Es lo único que el Renderer lee directamente.
-2. **Unidad física de página** (`Page.size`, interpretada por `Page.unit`) — un valor crudo en esa unidad (ej. literalmente `210` para una página de 210mm), convertido a px canónico solo al compararlo contra geometría de objects (`toPixels(page.size.width, page.unit)`).
-3. **Resolución de impresión** (`PrintJob.resolution.targetPpi`) — un PPI real (150/300/600...), completamente independiente del `96` fijo de arriba.
+**Política `Page.unit === "px"` (Fase 9.2, sección 24)**: los px canónicos equivalen a 96px/pulgada — una página de 960px son 10 pulgadas físicas; `targetPpi` decide cuántos píxeles de RASTER se generan (960px → 3000px a 300 PPI), nunca cambia el tamaño físico base. `PrintJob.scale` sí lo cambia deliberadamente: escala el CONTENIDO respecto al trim (nunca el tamaño de la página), anclado en el origen del TrimBox dentro del BleedBox.
 
-Identidad verificada con test dedicado, base del pipeline de raster de Fase 9.2:
-```
-physicalToPixels(v, unit, targetPpi) === toPixels(v, unit) × (targetPpi / 96)
-```
+## 4. El pipeline de raster (Fase 9.2 — ver ADR-0022 para el detalle completo)
 
-**Por qué no reutilizamos `toPixels` de `document-schema` para impresión**: esa función fija 96 DPI (la resolución de pantalla/CSS) — usarla para imprimir produciría siempre una imagen de calidad de pantalla sin importar el PPI configurado. `physicalToPixels`/`pixelsToPhysical` (este paquete) son las únicas conversiones que aceptan un PPI real como parámetro.
+### 4.1 `renderPrintPage`/`renderPrintJob`
+`renderPrintPage` construye un Stage offscreen del tamaño del **BleedBox** (no solo el TrimBox — ver ADR-0021, ausencia de clipping confirmada), con el contenido desplazado por el sangrado y escalado por `PrintJob.scale`, excluye die-lines (`combineShouldRenderObject`), y pide un único `pixelRatio = canonicalScale` a Konva. `renderPrintJob` corre Preflight primero (aborta si hay errores bloqueantes) y expone las páginas como un **generador asíncrono** — nunca dos Stages offscreen vivos a la vez; el cache de imágenes de la exportación se libera automáticamente al terminar de iterar (incluso ante un `break` o una excepción).
 
-## 4. Decisiones clave (ver ADR-0021 para el detalle completo)
+### 4.2 `exportPrintJobToPng` — PNG físico multipágina
+Una imagen por página, con naming determinista y numeración estable (`page-01`, `page-02`...) — nunca inventa un contenedor multipágina, el caller recibe una colección.
 
-### 4.1 Boxes de PDF sin ambigüedad
-TrimBox = tamaño final. BleedBox = trim + sangrado (nunca incluye espacio de marcas). MediaBox = superficie TOTAL del PDF (bleed + espacio de marcas si están activadas). CropBox = MediaBox por decisión explícita (un archivo de impresión debe mostrar sus propias marcas/bleed a quien lo abra). ArtBox no se usa en V1 (sin necesidad clara identificada).
+### 4.3 `exportPrintJobToPdf` — PDF aplanado de alta resolución
+UN solo archivo, una página PDF por página del `PrintJob`, cada una con el raster de contenido cubriendo exactamente el `MediaBox` (= `BleedBox` en esta fase — sin espacio de marcas todavía) y los 4 boxes físicos correctos (`Trim`/`Bleed`/`Media`/`Crop`). El backend `pdf-lib` queda completamente aislado detrás de `PdfBackend` — nunca importado directamente por este módulo ni por ningún caller.
 
-### 4.2 `PrintJob` es efímero, versionado y siempre un valor propio del llamador
-`createPrintJob` nunca devuelve una referencia compartida con los presets de `PRINT_PROFILES` ni con los `overrides` recibidos — el resultado completo pasa por `structuredClone`. Esto existe porque un `PrintJob` está pensado para mutarse (la UI ajustando bleed/resolución antes de exportar); sin ese clon, mutar un campo corrompería el preset compartido para todo `PrintJob` futuro construido a partir del mismo perfil.
+### 4.4 Backend PDF encapsulado
+`pdf/pdfBackend.ts` define `PdfBackend`/`PdfBackendDocument` sin ningún tipo de `pdf-lib` en su firma (solo primitivas y boxes en puntos). `pdf/pdfLibBackend.ts` es el ÚNICO módulo de todo el paquete que importa `pdf-lib` — inyectable vía `exportPrintJobToPdf(..., { backend })` para tests de dominio que nunca necesitan conocerla (mismo patrón que `PngRasterizer` de `@impulso/export-engine`, ADR-0012).
 
-### 4.3 Preflight nunca bloquea por resolución insuficiente ni por fuente no disponible
-Ambos casos son advertencias (o info, si la incertidumbre es real) — nunca un error. Solo bloquean: documento no normalizado, dimensiones/bleed/escala inválidos, página referenciada inexistente, asset faltante (referencia o binario), y presupuesto de memoria excedido.
+**Dos comportamientos por-defecto de `pdf-lib` corregidos explícitamente** (no bugs de este código): `save()` agrega una página en blanco si el documento tiene 0 páginas (`addDefaultPage: false` forzado — el número de páginas lo decide únicamente `PrintJob.pageIds`); `load()` sobrescribe `Producer`/`CreationDate` por defecto (los tests que verifican metadata inyectada pasan `{ updateMetadata: false }` al recargar).
 
-### 4.4 Estimación de memoria con overhead documentado, nunca el raster crudo
-`estimateMemoryBytes` usa `width × height × 4` como base y aplica `MEMORY_OVERHEAD_FACTOR = 2.5` — cubre el canvas de composición final, buffers de codificación/decodificación y overhead no determinístico del navegador. Documentado como aproximación deliberada, ajustable en Fase 9.5 (Hardening) con evidencia real.
+### 4.5 Cancelación, progreso y errores tipados
+`AbortSignal` chequeado en los 10 puntos mínimos (antes/después de Preflight, de resolver assets, de cada página, de incrustar en PDF, de `save()`). Progreso por etapas (`validating → preparing-assets → rendering-page → encoding-page|assembling-pdf → finalizing → completed`) vía `onProgress`, con errores del propio callback nunca corrompiendo la exportación. `PrintEngineError` con 11 códigos tipados (`errors.ts`) — nunca un string libre que la UI futura tenga que inspeccionar.
 
-### 4.5 Ausencia de clipping en el Renderer, confirmada empíricamente
-`@impulso/renderer-konva` no aplica ningún `clip`/`clipFunc` en Stage, Layer ni Group — la única frontera de la región rasterizada hoy es el propio `width`/`height` del `Konva.Stage` (dimensionado al TrimBox). Esto significa que extender el sangrado en Fase 9.2 es aditivo: construir el Stage offscreen con las dimensiones del MediaBox y trasladar el contenido, sin desactivar ningún clip porque ninguno existe. Ver tests en `packages/renderer-konva/src/offscreenRenderer.test.ts` (sección "corrección 7").
+## 5. Verificación en Chromium real (temporal — ver ADR-0022)
 
-## 5. Desarrollo
+`apps/sticker-builder/print-engine-harness.html` + `src/printEngineHarness.ts` ejercitan el pipeline COMPLETO en un navegador real, sin ningún mock (Konva real, Canvas/Image reales, `pdf-lib` real) — 12 escenarios (`e2e/print-engine.spec.ts`), incluyendo lectura real de píxeles y estructura real de PDF. Hallazgo confirmado durante esta verificación: `document.fonts.check()` devuelve **siempre `true`** en el Chromium usado, incluso para un nombre de fuente inventado — validando por qué Fase 9.1 prohibió tratar esa API como garantía absoluta. Este harness no es producto — ninguna pantalla de la app navega a él; se retira o se transforma en la UI real de exportación en Fase 9.4.
+
+## 6. Desarrollo
 
 ```bash
 pnpm --filter @impulso/print-engine build
 pnpm --filter @impulso/print-engine test
 pnpm --filter @impulso/print-engine typecheck
+
+# Verificación en Chromium real (desde apps/sticker-builder):
+pnpm --filter @impulso/sticker-builder test:e2e
 ```
 
-## 6. Riesgos y limitaciones conocidas
+## 7. Riesgos y limitaciones conocidas
 
-- **`pdf-lib` todavía no se ha integrado** — aprobado para Fase 9.2, detrás de un `PdfBackend` interno (sin tipos de pdf-lib en la API pública de este paquete).
-- **`browserImageDimensionsProbe`/`browserFontChecker` degradan silenciosamente en entornos sin las APIs reales** (jsdom, algunos navegadores antiguos) — nunca fingen éxito, pero su cobertura real en producción solo se conocerá con uso real.
-- **El presupuesto de memoria (256MB, factor 2.5x) es un punto de partida documentado, no una medición empírica** de este proyecto — ajustable en Fase 9.5 si la evidencia real lo justifica.
-- **La reutilización de una pieza rasterizada N veces en una imposición no está implementada** — el modelo de memoria ya la anticipa (`simultaneousPages`), la lógica real es Fase 9.4.
+- **`pdf-lib` es ahora una dependencia real** (Fase 9.2) — su riesgo de mantenimiento ya estaba registrado en Technical Debt desde Fase 9.1; confirmado con evidencia real (dos comportamientos por-defecto sorprendentes documentados arriba).
+- **`document.fonts.check()` puede ser una señal mucho más débil de lo esperado** — confirmado devolviendo `true` para un nombre de fuente inventado en Chromium real. El preview visual sigue siendo la verificación práctica real, más que nunca.
+- **El presupuesto de memoria (256MB, factor 2.5x) sigue sin una medición empírica** de este proyecto — ajustable en Fase 9.5 si la evidencia real lo justifica.
+- **La reutilización de una pieza rasterizada N veces en una imposición no está implementada** — el modelo (`simultaneousPages`) y el diseño de una-página-a-la-vez ya lo anticipan, la composición real es Fase 9.4.
+- **El harness de Chromium es código temporal** — debe retirarse o transformarse en la UI real al construir Fase 9.4.
 
-## 7. Mejoras futuras (fases ya planificadas de la Épica 9)
+## 8. Mejoras futuras (fases ya planificadas de la Épica 9)
 
-- **Fase 9.2** — Raster Pipeline & PDF Backend: extensión aditiva del offscreen renderer para bleed, filtros de objects por rol, backend `pdf-lib` encapsulado, PDF y PNG físicos, cancelación por etapas.
-- **Fase 9.3** — Marcas, Safe Area & Cut Paths: crop marks vectoriales, safe area, die-line, kiss-cut/die-cut, Preflight correspondiente.
-- **Fase 9.4** — Imposición & Production Preview: hoja, repetición, grid, preview, flujo de UI, advertencias y exportación explícita.
-- **Fase 9.5** — Hardening & Golden Tests: presupuestos, memoria, determinismo, golden files, validación programática de PDF, E2E completo.
+- **Fase 9.3** — Marcas, Safe Area & Cut Paths: crop marks vectoriales, safe area, die-line, kiss-cut/die-cut, expansión de `MediaBox` para el espacio de marcas, Preflight correspondiente.
+- **Fase 9.4** — Imposición & Production Preview: hoja, repetición, grid, preview, flujo de UI real (reemplazando el harness), advertencias y exportación explícita.
+- **Fase 9.5** — Hardening & Golden Tests: presupuestos, memoria, determinismo, infraestructura completa de golden files (sobre `testUtils/goldenFixtures.ts`), validación programática de PDF, E2E completo.

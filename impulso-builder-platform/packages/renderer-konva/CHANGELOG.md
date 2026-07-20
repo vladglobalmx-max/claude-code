@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.10.0] — Epic 9 / Fase 9.2: Print Engine — Raster Pipeline & PDF Backend
+
+### Agregado
+- `OffscreenRenderOptions` (`offscreenRenderer.ts`) gana 4 opciones nuevas, todas opcionales y sin efecto cuando no se usan: `canvasSizePx`/`contentOffsetPx` (Stage extendido al tamaño del BleedBox, contenido desplazado dentro de él vía un `Konva.Group` contenedor, sin mover ningún `SceneObject` real ni activar clipping — confirma para esta fase lo verificado en Fase 9.1/ADR-0021), `contentScale` (aplica `PrintJob.scale` al mismo Group, ANCLADO en el origen del TrimBox — traslación primero, escala después, verificado con matemática exacta: `(8,8)` de offset + `(10,10)` local + escala 2 = `(28,28)` absoluto, no `(8+10)×2`), y `shouldRenderObject(object, context)` (predicado de filtrado recursivo y coherente en groups mixtos, reemplaza la necesidad de un solo `excludeMetadataRole`; nunca deja un Group vacío innecesario; la medición y el dibujo usan siempre el mismo filtro).
+- Consumido por la nueva `renderPrintPage` de `@impulso/print-engine` (Fase 9.2) para construir el raster físico con sangrado real — ver [ADR-0022](../../docs/adr/0022-print-engine-raster-pipeline.md).
+- Sin ninguna opción nueva, el árbol Konva producido es idéntico al de Epic 3/Fase 9.1 — verificado explícitamente con tests dedicados, no solo por inspección. Estas opciones nunca afectan el recorte/interacción del editor visible (`renderer.ts`/`mount`), exclusivas del pipeline offscreen.
+- 229 tests en total (213 → 229; 27 en `offscreenRenderer.test.ts`, antes 15). Sin dependencias circulares (verificado con `madge`).
+
 ## [0.9.0] — Epic 7 / Fase 7.4: Professional Multi Selection
 
 ### Agregado

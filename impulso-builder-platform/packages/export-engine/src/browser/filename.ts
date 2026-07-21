@@ -20,5 +20,12 @@ export function sanitizeFilename(name: string): string {
   // Sustituir (no descartar) caracteres ilegales garantiza que el
   // resultado nunca quede vacío a partir de un `trimmed` no vacío — no
   // hace falta un segundo chequeo de "vacío" después de sanitizar.
-  return trimmed.replace(ILLEGAL_CHARS, "_").slice(0, MAX_LENGTH);
+  const sanitized = trimmed.replace(ILLEGAL_CHARS, "_");
+  // `.slice(0, MAX_LENGTH)` opera sobre code units UTF-16 — con un
+  // nombre que contenga un emoji/par subrogado justo en la posición 150,
+  // partiría el par a la mitad y produciría un carácter inválido al
+  // final del nombre (bug real, Fase 9.5: error injection). `Array.from`
+  // itera por code points (respeta pares subrogados), así que truncar
+  // sobre esa lista nunca corta un carácter a la mitad.
+  return Array.from(sanitized).slice(0, MAX_LENGTH).join("");
 }

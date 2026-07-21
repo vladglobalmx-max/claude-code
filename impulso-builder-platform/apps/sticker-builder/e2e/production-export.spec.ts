@@ -62,6 +62,15 @@ test("Tab desde el último elemento enfocable vuelve al primero (foco atrapado r
   expect(activeInsideDialog).toBe(true);
 });
 
+test("Shift+Tab justo después de un cambio de paso (con el foco en el título, tabIndex=-1) nunca escapa del diálogo — regresión Fase 9.5 (hardening de accesibilidad)", async ({ page }) => {
+  await openProductionExportDialog(page);
+  await page.click(".production-export-next"); // profile -> config
+  await expect(page.locator(".production-export-dialog h2")).toBeFocused(); // el título recibe el foco, no un elemento real del trap
+  await page.keyboard.press("Shift+Tab");
+  const activeInsideDialog = await page.evaluate(() => document.activeElement?.closest(".production-export-dialog") !== null);
+  expect(activeInsideDialog).toBe(true);
+});
+
 test("al cambiar de paso, el foco se mueve al título (h2) del paso nuevo — anuncio para lectores de pantalla", async ({ page }) => {
   await openProductionExportDialog(page);
   await page.click(".production-export-next"); // profile -> config
@@ -84,6 +93,8 @@ for (const viewport of [
   { name: "1440x900", width: 1440, height: 900 },
   { name: "1920x1080", width: 1920, height: 1080 },
   { name: "estrecho (360x740)", width: 360, height: 740 },
+  { name: "1024x768 (Fase 9.5, laptop pequeña/tablet horizontal)", width: 1024, height: 768 },
+  { name: "810x1080 (Fase 9.5, tablet vertical — iPad portrait)", width: 810, height: 1080 },
 ]) {
   test(`layout responsivo sin overflow horizontal en ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -139,6 +150,26 @@ test("perfil 'Digital PNG' (sin imposición) completa la exportación real hasta
   await expect(page.locator(".production-export-body button")).toContainText("Descargar");
 });
 
+test("'Cerrar' en el paso de resultados restaura el foco al botón que abrió el diálogo — mismo criterio que Escape, nunca antes verificado para este botón específico", async ({ page }) => {
+  await page.focus("#production-export-btn");
+  await openProductionExportDialog(page);
+  await page.click('.production-export-profile-card input[value="digital-png"]');
+  await page.click(".production-export-next"); // profile -> config
+  await page.click(".production-export-next"); // config -> preview
+  await page.click(".production-export-next"); // preview -> preflight
+  await page.click(".production-export-body button"); // "Correr Preflight"
+  await page.click(".production-export-next"); // preflight -> warnings o auto-skip
+  if ((await page.locator(".production-export-dialog h2").textContent()) === "Advertencias") {
+    await page.click(".production-export-accept-warnings input");
+    await page.click(".production-export-next");
+  }
+  await expect(page.locator(".production-export-dialog h2")).toHaveText("Resultado", { timeout: 15_000 });
+
+  await page.click(".production-export-next"); // "Cerrar"
+  await expect(page.locator(".production-export-dialog-overlay")).toBeHidden();
+  await expect(page.locator("#production-export-btn")).toBeFocused();
+});
+
 test("perfil 'Print PDF' (sin imposición, con bleed/marcas estándar) completa la exportación real hasta la descarga con el resumen de página(s), no de hoja(s)/pieza(s)", async ({ page }) => {
   await openProductionExportDialog(page);
   await page.click('.production-export-profile-card input[value="print-pdf"]');
@@ -157,6 +188,40 @@ test("perfil 'Print PDF' (sin imposición, con bleed/marcas estándar) completa 
   // `ExportPrintJobToPdfResult` resume en "página(s)" — nunca en
   // "hoja(s)/pieza(s)" (ese resumen es exclusivo de la imposición real).
   await expect(page.locator(".production-export-body p")).toContainText("página");
+});
+
+test("los controles de la Production Preview (navegación de hoja, capas, zoom) son operables 100% por teclado — Fase 9.5, sección de accesibilidad (antes solo verificado con .click())", async ({ page }) => {
+  await openProductionExportDialog(page);
+  await page.click(".production-export-next"); // profile -> config
+  const quantityInput = page.locator("fieldset input[type='number']").first();
+  await quantityInput.fill("20"); // suficientes copias para garantizar más de 1 hoja
+  await quantityInput.press("Tab");
+  await page.click(".production-export-next"); // config -> preview
+  await page.waitForSelector(".production-preview-canvas-slot canvas");
+  await expect(page.locator(".production-preview-sheet-label")).toContainText("Hoja 1 de");
+
+  // Navega a "Hoja ▶" con Tab (no .click()) y la activa con Enter.
+  await page.locator(".production-preview-next-sheet").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".production-preview-sheet-label")).toContainText("Hoja 2 de");
+
+  // "◀ Hoja" con Space, vuelve a la hoja 1.
+  await page.locator(".production-preview-prev-sheet").focus();
+  await page.keyboard.press(" ");
+  await expect(page.locator(".production-preview-sheet-label")).toContainText("Hoja 1 de");
+
+  // Un checkbox de capa (overlay de la hoja) con Space lo desactiva.
+  const firstLayerCheckbox = page.locator(".production-preview-layers input[type='checkbox']").first();
+  await firstLayerCheckbox.focus();
+  expect(await firstLayerCheckbox.isChecked()).toBe(true);
+  await page.keyboard.press(" ");
+  expect(await firstLayerCheckbox.isChecked()).toBe(false);
+
+  // El slider de zoom responde a las flechas del teclado (nunca solo al mouse).
+  await page.locator(".production-preview-zoom input[type='range']").focus();
+  await expect(page.locator(".production-preview-zoom-readout")).toHaveText("100%");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".production-preview-zoom-readout")).not.toHaveText("100%");
 });
 
 test("el paso de perfil muestra los 3 perfiles reales, con nombre/descripción comprensibles (sección 24, sin jerga técnica en el nombre)", async ({ page }) => {
@@ -220,19 +285,25 @@ test("los errores de Preflight se distinguen por encabezado de texto, no solo po
   await expect(page.locator(".production-export-body h3").first()).toContainText("Errores");
 });
 
-test("layout responsivo del paso de Preflight (con issues visibles) también sin overflow horizontal en viewport estrecho", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 740 });
-  await openProductionExportDialog(page);
-  await page.click(".production-export-next"); // -> config
-  await page.click(".production-export-next"); // -> preview
-  await page.click(".production-export-next"); // -> preflight
-  await page.click(".production-export-body button"); // correr preflight
-  const overflowsHorizontally = await page.evaluate(() => {
-    const dialog = document.querySelector(".production-export-dialog");
-    return dialog ? dialog.scrollWidth > window.innerWidth : true;
+for (const viewport of [
+  { name: "estrecho (360x740)", width: 360, height: 740 },
+  { name: "1024x768 (Fase 9.5, laptop pequeña/tablet horizontal)", width: 1024, height: 768 },
+  { name: "810x1080 (Fase 9.5, tablet vertical — iPad portrait)", width: 810, height: 1080 },
+]) {
+  test(`layout responsivo del paso de Preflight (con issues visibles) también sin overflow horizontal en ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openProductionExportDialog(page);
+    await page.click(".production-export-next"); // -> config
+    await page.click(".production-export-next"); // -> preview
+    await page.click(".production-export-next"); // -> preflight
+    await page.click(".production-export-body button"); // correr preflight
+    const overflowsHorizontally = await page.evaluate(() => {
+      const dialog = document.querySelector(".production-export-dialog");
+      return dialog ? dialog.scrollWidth > window.innerWidth : true;
+    });
+    expect(overflowsHorizontally).toBe(false);
   });
-  expect(overflowsHorizontally).toBe(false);
-});
+}
 
 test("regresión visual — el preview de imposición dibuja MÁS de una copia real cuando quantity aumenta (nunca una sola pieza escalada o repetida como imagen estática)", async ({ page }) => {
   // Fase 9.5, sección 6 (regresión visual): en vez de predecir coordenadas

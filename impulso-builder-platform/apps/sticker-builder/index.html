@@ -1113,6 +1113,14 @@
         font-size: 0.9em;
       }
       .production-export-body fieldset {
+        /* Mismo reset que `.inspector-section` (Fase 9.5, hardening
+           responsive) — un <fieldset> tiene un `min-width: min-content`
+           implícito en la mayoría de los navegadores que ignora el ancho
+           del contenedor; sin este reset, un <select> con opciones largas
+           (ej. "bottom-center" en Alineación del grid) podría forzar
+           overflow horizontal del diálogo en viewports angostos. */
+        min-width: 0;
+        box-sizing: border-box;
         border: 1px solid #d6d3d1;
         border-radius: 6px;
         display: flex;

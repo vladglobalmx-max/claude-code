@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [Unreleased] — Epic 9 / Fase 9.5: Hardening (descargas)
+
+### Corregido
+- `browser/filename.ts` (`sanitizeFilename`), bug real de error injection: el truncado a 150 caracteres usaba `.slice()` sobre code units UTF-16 — un nombre con un emoji/par subrogado justo en esa posición podía partirlo a la mitad, produciendo un carácter corrupto al final del nombre de archivo. Corregido truncando por code point (`Array.from(...).slice(...).join("")`). Regresión: `filename.test.ts` (2 tests nuevos).
+
+### Verificado sin hallazgos
+- `browser/download.test.ts`: filename con Unicode/emoji se pasa sin alterar a `anchor.download`; dos descargas seguidas (mismo patrón que múltiples botones de descarga en un mismo resultado) no comparten ni pisan la object URL una de la otra; repetir la misma descarga dos veces crea anchors/URLs independientes.
+
 ## [0.1.1] — Aprobación formal del rasterizador PNG (condiciones del usuario)
 
 ### Agregado

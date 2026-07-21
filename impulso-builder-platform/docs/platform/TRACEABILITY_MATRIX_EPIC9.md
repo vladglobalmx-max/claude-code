@@ -54,9 +54,9 @@
 | Nombre de archivo editable | — no existe | — | UX Audit 0008, UX Backlog | `intentionally-deferred` |
 | Localización de issues de Preflight en el preview | — no existe | — | UX Audit 0008, UX Backlog | `intentionally-deferred` |
 | UI de asignación de die-line en el Inspector | — no existe | — | UX Audit 0008, Technical Debt | `intentionally-deferred` (brecha general del editor, no de esta fase) |
-| Accesibilidad (foco atrapado, ARIA, teclado) | `productionExportDialog.ts` | `e2e/production-export.spec.ts` (varios escenarios) | ADR-0025 | `partially-supported` — lo verificado (foco atrapado, `aria-live`, navegación por teclado en los flujos principales) funciona; una pasada formal de auditoría (tab order exhaustivo, anuncios, diálogos anidados) es hardening pendiente (ver Pendientes) |
-| Responsive | `index.html`/`productionExportDialog.ts` | `e2e/production-export.spec.ts` (4 viewports) | ADR-0025 | `partially-supported` — verificado en 1366×768/1440×900/1920×1080/360×740; faltan 1024×768 y un ancho de tablet explícito (ver Pendientes) |
-| Descargas (PDF único, PNG múltiple) | `triggerBrowserDownload` (`@impulso/export-engine`) | Cubierto en `productionExportDialog.test.ts`/E2E | ADR-0025 | `complete` para el caso básico; "Descargar todos" (ZIP) `not-supported` (no evaluado como necesidad real todavía) |
+| Accesibilidad (foco atrapado, ARIA, teclado) | `productionExportDialog.ts`, `productionPreview.ts` | `e2e/production-export.spec.ts` — foco atrapado, `aria-live`, navegación por teclado en flujos principales, controles de la Production Preview (navegación de hoja/capas/zoom) 100% por teclado (Fase 9.5, nuevo), foco tras "Cerrar" (Fase 9.5, nuevo) | ADR-0025 | `complete` — bug real encontrado y corregido en esta fase: un Shift+Tab justo después de cualquier cambio de paso (con el foco en el `<h2>`, `tabIndex=-1`, excluido deliberadamente del trap) no coincidía con ninguna rama del trap y podía escapar el foco del diálogo por completo; controles de la Production Preview confirmados operables 100% por teclado (antes solo probados con `.click()`, sin bug encontrado ahí) |
+| Responsive | `index.html`/`productionExportDialog.ts` | `e2e/production-export.spec.ts` (6 viewports: 1366×768/1440×900/1920×1080/360×740/1024×768/810×1080) | ADR-0025 | `complete` — 1024×768 y un ancho de tablet (810×1080, iPad portrait) agregados en esta fase, ambos sin overflow horizontal; `min-width: 0` agregado preventivamente a `.production-export-body fieldset` (mismo footgun de `<fieldset>` ya corregido en `.inspector-section`) aunque no se confirmó overflow real a estos anchos |
+| Descargas (PDF único, PNG múltiple) | `triggerBrowserDownload` (`@impulso/export-engine`), `sanitizeFilename` (`@impulso/export-engine`) | Cubierto en `productionExportDialog.test.ts`/E2E + `download.test.ts`/`filename.test.ts` (Fase 9.5: Unicode/emoji en filename, descargas múltiples seguidas, misma descarga repetida, truncado seguro por code point) | ADR-0025 | `complete` para el caso básico — bug real encontrado y corregido: `sanitizeFilename` truncaba por code unit UTF-16 (`.slice`), pudiendo partir un emoji/par subrogado a la mitad; corregido truncando por code point (`Array.from`); "Descargar todos" (ZIP) `not-supported` (no evaluado como necesidad real todavía) |
 | Cross-browser (Firefox/WebKit) | — solo Chromium hoy | — | — | `not-supported` todavía (ver Pendientes) |
 | Performance real del wizard (Chromium, sin mocks) | `productionExportController.ts`/`productionPreview.ts` (mismo pipeline real) | `e2e/production-export-hardening.spec.ts` — ciclo completo con 200 copias imposicionadas, dato observado registrado en `PERFORMANCE_BUDGET.md` (fila 28) | `PERFORMANCE_BUDGET.md` | `complete` (verificado en un entorno; no se afirma como cota universal cross-máquina) |
 | Memoria observada del wizard (Chromium, `performance.memory`) | — | `e2e/production-export-hardening.spec.ts` — heap antes/después de 5 ciclos completos, dato observado en `PERFORMANCE_BUDGET.md` (fila 29) | `PERFORMANCE_BUDGET.md` | `partially-supported` — la señal confirma ausencia de crecimiento desbocado, pero `performance.memory` es una API no estándar y cuantizada, sin GC forzado; no es una medición precisa de memoria de proceso |
@@ -69,9 +69,8 @@
 
 ## Pendientes de esta fase (no bloquean el resto del hardening, pero deben resolverse antes del cierre de Epic 9)
 
-1. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
-2. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
-3. UX Audit 0009 (validación final).
+1. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
+2. UX Audit 0009 (validación final).
 
 ## Cómo se usa este documento
 

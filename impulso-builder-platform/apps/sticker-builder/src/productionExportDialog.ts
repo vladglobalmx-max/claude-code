@@ -164,7 +164,19 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
     if (elements.length === 0) return;
     const first = elements[0]!;
     const last = elements[elements.length - 1]!;
-    if (evt.shiftKey && document.activeElement === first) {
+    // El `<h2>` del título recibe el foco programáticamente en cada cambio
+    // de paso (`tabIndex = -1`, ver más abajo) — deliberadamente EXCLUIDO
+    // de `focusableElements()` (no debe entrar al orden normal de
+    // tabulación), pero eso significa que justo después de cualquier
+    // transición de paso, `document.activeElement` no es ni `first` ni
+    // `last`. Bug real de Fase 9.5 (hardening de accesibilidad): un
+    // Shift+Tab en ese momento no coincidía con ninguna rama de abajo, así
+    // que el navegador aplicaba su comportamiento nativo — que podía sacar
+    // el foco del diálogo por completo. Tratar `title` como equivalente a
+    // `first` para el wrap de Shift+Tab cierra el escape sin cambiar nada
+    // del resto del comportamiento (Tab hacia adelante desde `title` ya
+    // caía de forma natural dentro del propio diálogo, nunca escapaba).
+    if (evt.shiftKey && (document.activeElement === first || document.activeElement === title)) {
       evt.preventDefault();
       last.focus();
     } else if (!evt.shiftKey && document.activeElement === last) {

@@ -4,11 +4,20 @@ import type { FontChecker } from "../preflight/fonts.js";
 import type { ImageDimensionsProbe } from "../preflight/imageProbe.js";
 import { buildPrintJobFor } from "../testUtils/fixtures.js";
 import { createFakeCanvasContext2D } from "../testUtils/fakeCanvasContext2D.js";
+import { runPreflight } from "../preflight/runPreflight.js";
 import {
+  goldenCircularSticker,
+  goldenClosedPathSticker,
+  goldenFailureMissingAsset,
+  goldenFailureMultipleDieLines,
+  goldenFailureOpenPathDieLine,
+  goldenFontFallbackAvailable,
+  goldenFontFallbackUnavailable,
   goldenForAsymmetricBleed,
   goldenImage,
   goldenMultiPage,
   goldenObjectCrossingTrim,
+  goldenStickerSheet,
   goldenTextAndShape,
   goldenTransparent,
 } from "../testUtils/goldenFixtures.js";
@@ -34,11 +43,30 @@ vi.mock("@impulso/renderer-konva", () => ({
   resolveActivePage: (...args: unknown[]) => resolveActivePageMock(...args),
 }));
 
+const ONE_BY_ONE_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+/** PNG real de 1x1 (no un `Blob` de texto arbitrario) — pdf-lib
+ * (`embedPng`) decodifica los bytes de verdad al ensamblar un PDF real
+ * (escenarios 7-9, que ejercitan `exportPrintJobToPdf`/
+ * `exportImpositionToPdf` sin mockear el backend), y jsdom no implementa
+ * `Blob.prototype.arrayBuffer` — mismo patrón ya usado en
+ * `impositionPerformance.test.ts`. */
+function onePixelPngBlob(): Blob {
+  const binaryString = atob(ONE_BY_ONE_PNG_BASE64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  const blob = new Blob([new Uint8Array(bytes)], { type: "image/png" });
+  if (typeof blob.arrayBuffer !== "function") {
+    (blob as unknown as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async () => bytes.buffer as ArrayBuffer;
+  }
+  return blob;
+}
+
 function fakeCanvas(): HTMLCanvasElement {
   return {
     width: 10,
     height: 10,
-    toBlob: (cb: (b: Blob | null) => void) => cb(new Blob(["png"], { type: "image/png" })),
+    toBlob: (cb: (b: Blob | null) => void) => cb(onePixelPngBlob()),
   } as unknown as HTMLCanvasElement;
 }
 
@@ -78,7 +106,7 @@ describe("fixtures canónicos del pipeline de raster (sección 22)", () => {
     // porque el perfil por defecto ("print-pdf") tiene `cropMarks.enabled`,
     // así que `exportPrintJobToPng` compone un canvas de MediaBox real.
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(createFakeCanvasContext2D() as unknown as CanvasRenderingContext2D);
-    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((cb) => cb(new Blob(["png"], { type: "image/png" })));
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((cb) => cb(onePixelPngBlob()));
   });
 
   afterEach(() => {
@@ -196,5 +224,120 @@ describe("fixtures canónicos del pipeline de raster (sección 22)", () => {
     expect(resultA.pages.map((p) => p.pageId)).toEqual(project.document.pages.map((p) => p.id));
     expect(resultA.pages.map((p) => p.pageId)).toEqual(resultB.pages.map((p) => p.pageId));
     expect(resultA.pages.map((p) => p.filename)).toEqual(resultB.pages.map((p) => p.filename));
+  });
+
+  // Fixtures agregados en Fase 9.5 (sección 3 del enunciado) — completan
+  // el set de 10 pedido.
+
+  it("7. Circular Sticker: exporta sin error con die-line/bleed/safe area/cut path reales", async () => {
+    const project = goldenCircularSticker();
+    const printJob = buildPrintJobFor(project, "sticker-sheet", { imposition: { mode: "single" } });
+    const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+    const result = await exportPrintJobToPdf({
+      project,
+      printJob,
+      resolver: resolverFor(),
+      projectName: "golden",
+      fontChecker: NEVER_CHECK,
+      imageProbe: NO_PROBE,
+      now: NOW,
+    });
+    expect(result.pageCount).toBe(1);
+  });
+
+  it("8. Closed Path Sticker: un PathObject cerrado como die-line exporta como cut path vectorial real, sin degradar a bounding box", async () => {
+    const project = goldenClosedPathSticker();
+    const printJob = buildPrintJobFor(project, "sticker-sheet", { imposition: { mode: "single" } });
+    const preflight = await runPreflight(project, printJob, { resolver: resolverFor(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+    expect(preflight.hasBlockingErrors).toBe(false);
+    const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
+    const result = await exportPrintJobToPdf({
+      project,
+      printJob,
+      resolver: resolverFor(),
+      projectName: "golden",
+      fontChecker: NEVER_CHECK,
+      imageProbe: NO_PROBE,
+      now: NOW,
+    });
+    expect(result.pageCount).toBe(1);
+  });
+
+  it("9. Sticker Sheet: combinado con imposición real produce múltiples hojas con cut paths por copia", async () => {
+    const project = goldenStickerSheet();
+    const printJob = buildPrintJobFor(project, "sticker-sheet", {
+      imposition: {
+        mode: "grid",
+        sheet: { width: 100, height: 60, unit: "mm" },
+        orientation: "portrait",
+        quantity: 50,
+        placementMode: "automatic",
+        gapX: 2,
+        gapY: 2,
+        marginTop: 5,
+        marginRight: 5,
+        marginBottom: 5,
+        marginLeft: 5,
+        alignment: "center",
+        marksMode: "per-piece",
+      },
+    });
+    const { exportImpositionToPdf } = await import("./exportImpositionToPdf.js");
+    const result = await exportImpositionToPdf({
+      project,
+      printJob,
+      resolver: resolverFor(),
+      projectName: "golden",
+      fontChecker: NEVER_CHECK,
+      imageProbe: NO_PROBE,
+      now: NOW,
+    });
+    expect(result.sheetCount).toBeGreaterThan(1);
+    expect(result.pieceCount).toBe(50);
+  });
+
+  it("10a. Font Fallback: distingue una fuente disponible de una inventada (Preflight real, no un FontChecker fake indiferente)", async () => {
+    const realisticFontChecker: import("../preflight/fonts.js").FontChecker = {
+      check: async (fontFamily) => (fontFamily === "sans-serif" ? "available" : "unavailable"),
+    };
+    const unavailableProject = goldenFontFallbackUnavailable();
+    const unavailablePreflight = await runPreflight(unavailableProject, buildPrintJobFor(unavailableProject, "print-pdf"), {
+      resolver: resolverFor(),
+      fontChecker: realisticFontChecker,
+      imageProbe: NO_PROBE,
+    });
+    expect(unavailablePreflight.issues.some((i) => i.code === "font_unavailable")).toBe(true);
+
+    const availableProject = goldenFontFallbackAvailable();
+    const availablePreflight = await runPreflight(availableProject, buildPrintJobFor(availableProject, "print-pdf"), {
+      resolver: resolverFor(),
+      fontChecker: realisticFontChecker,
+      imageProbe: NO_PROBE,
+    });
+    expect(availablePreflight.issues.some((i) => i.code === "font_unavailable")).toBe(false);
+  });
+
+  it("10b. Failure Case — asset faltante: Preflight bloquea con asset_reference_missing", async () => {
+    const project = goldenFailureMissingAsset();
+    const printJob = buildPrintJobFor(project, "print-pdf");
+    const preflight = await runPreflight(project, printJob, { resolver: resolverFor(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+    expect(preflight.issues.some((i) => i.code === "asset_reference_missing")).toBe(true);
+    expect(preflight.hasBlockingErrors).toBe(true);
+  });
+
+  it("10c. Failure Case — path abierto como die-line: Preflight bloquea con cut_path_open", async () => {
+    const project = goldenFailureOpenPathDieLine();
+    const printJob = buildPrintJobFor(project, "sticker-sheet", { imposition: { mode: "single" } });
+    const preflight = await runPreflight(project, printJob, { resolver: resolverFor(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+    expect(preflight.issues.some((i) => i.code === "cut_path_open")).toBe(true);
+    expect(preflight.hasBlockingErrors).toBe(true);
+  });
+
+  it("10d. Failure Case — múltiples die-lines: Preflight bloquea con cut_path_multiple_candidates (nunca elige el primero en silencio)", async () => {
+    const project = goldenFailureMultipleDieLines();
+    const printJob = buildPrintJobFor(project, "sticker-sheet", { imposition: { mode: "single" } });
+    const preflight = await runPreflight(project, printJob, { resolver: resolverFor(), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+    expect(preflight.issues.some((i) => i.code === "cut_path_multiple_candidates")).toBe(true);
+    expect(preflight.hasBlockingErrors).toBe(true);
   });
 });

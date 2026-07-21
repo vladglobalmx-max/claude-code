@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [Unreleased] — Epic 9 / Fase 9.5: Hardening & Golden Tests (en progreso)
+
+Versión final y changelog completo se consolidan al cierre de esta fase (ver `docs/platform/TRACEABILITY_MATRIX_EPIC9.md` para el estado en vivo). Progreso hasta ahora:
+
+### Agregado
+- `testUtils/goldenFixtures.ts`: 4 fixtures nuevos, completando el set de 10 pedido — `goldenCircularSticker` (die-line circular de página completa, bleed, safe area), `goldenClosedPathSticker` (PathObject cerrado como die-line, offset 0), `goldenStickerSheet` (pieza pensada para combinarse con imposición real), `goldenFontFallbackAvailable`/`goldenFontFallbackUnavailable` (par para Preflight de fuentes), y 3 Failure Cases (`goldenFailureMissingAsset`/`goldenFailureOpenPathDieLine`/`goldenFailureMultipleDieLines`). 7 tests nuevos en `goldenFixtures.test.ts` (13 en total).
+- `docs/platform/TRACEABILITY_MATRIX_EPIC9.md`: matriz completa requisito→implementación→tests→documentación→estado de toda la Épica 9.
+
+### Corregido
+- `apps/sticker-builder`: umbral de cobertura restaurado (los harnesses temporales nunca se habían excluido del reporte de vitest).
+- `apps/sticker-builder`: `e2e/assisted-placement.spec.ts`'s test de Smart Guides corregido de raíz — no era un flake, dependía de un bug ya corregido en Fase 9.1. Suite E2E completa (37 escenarios) verde por primera vez.
+- `apps/sticker-builder`: discrepancia de perfiles de exportación resuelta — el wizard ahora conecta 3 de los 4 perfiles reales del motor (ver ADR-0025, enmienda).
+
 ## [0.4.0] — Epic 9 / Fase 9.4: Imposition & Sheet Repetition
 
 ### Agregado

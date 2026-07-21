@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.16.0] — Epic 9 / Fase 9.5: Hardening del wizard de exportación
+
+Endurecimiento del flujo "Exportar para impresión" construido en Fase 9.4 — sin funciones nuevas fuera de hardening. Detalle completo (incluida la parte de `@impulso/print-engine`) en `packages/print-engine/CHANGELOG.md` [0.5.0]; resumen de lo que toca a esta app:
+
+### Corregido (bugs reales)
+- `productionExportController.ts`: `startExport()` no despachaba a los exportadores de página única (`exportPrintJobToPdf`/`Png`) para los perfiles sin imposición (Digital PNG/Print PDF) — el wizard quedaba colgado en "Preparando…" sin producir ningún archivo. Corregido despachando según `imposition.mode`.
+- `productionExportDialog.ts`: el auto-avance del paso "warnings" (sin advertencias) nunca disparaba `startExport()` — mismo síntoma. Corregido.
+- `productionExportDialog.ts`: un `Shift+Tab` justo después de cualquier cambio de paso (foco en el `<h2>`, `tabIndex=-1`) podía escapar el foco atrapado del diálogo. Corregido.
+- `index.html`: `min-width: 0` agregado preventivamente a `.production-export-body fieldset` (mismo footgun ya corregido en `.inspector-section`).
+
+### Verificado (Chromium real, sin mocks)
+- Performance/memoria/resource-leaks: `e2e/production-export-hardening.spec.ts` (4 tests) — ciclo completo con 200 copias imposicionadas, heap observado, object URLs/canvases balanceados tras ciclos repetidos de éxito y cancelación.
+- Los 3 perfiles del wizard (Digital PNG/Print PDF/Sticker Sheet) confirmados funcionando extremo a extremo hasta una descarga real.
+- Accesibilidad: controles de la Production Preview 100% operables por teclado; foco tras "Cerrar" restaura al trigger.
+- Responsive: 1024×768 y 810×1080 (tablet) agregados, sin overflow horizontal.
+- Descargas: filename Unicode/emoji, descargas múltiples/repetidas sin interferencia.
+
+### Documentación nueva
+- `docs/platform/TRACEABILITY_MATRIX_EPIC9.md`: matriz completa de toda la Épica 9.
+- `docs/platform/PREFLIGHT_CODES.md`: tabla formal de los 44 códigos de Preflight.
+- ADR-0025: 2da enmienda documentando el bug de dispatch y su corrección.
+
 ## [0.15.0] — Epic 9 / Fase 9.4: Production Export Workflow (producto real)
 
 ### Agregado

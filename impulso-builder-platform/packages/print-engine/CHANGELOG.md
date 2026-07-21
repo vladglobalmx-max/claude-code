@@ -2,9 +2,9 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [Unreleased] — Epic 9 / Fase 9.5: Hardening & Golden Tests (en progreso)
+## [0.5.0] — Epic 9 / Fase 9.5: Hardening & Golden Tests
 
-Versión final y changelog completo se consolidan al cierre de esta fase (ver `docs/platform/TRACEABILITY_MATRIX_EPIC9.md` para el estado en vivo). Progreso hasta ahora:
+Fase de endurecimiento, sin funciones nuevas fuera de hardening (por diseño explícito de esta fase) — ver `docs/platform/TRACEABILITY_MATRIX_EPIC9.md` para el estado completo requisito→implementación→tests→documentación de toda la Épica 9, y `docs/platform/PREFLIGHT_CODES.md` para la tabla formal de los 44 códigos de Preflight.
 
 ### Agregado
 - `testUtils/goldenFixtures.ts`: 4 fixtures nuevos, completando el set de 10 pedido — `goldenCircularSticker` (die-line circular de página completa, bleed, safe area), `goldenClosedPathSticker` (PathObject cerrado como die-line, offset 0), `goldenStickerSheet` (pieza pensada para combinarse con imposición real), `goldenFontFallbackAvailable`/`goldenFontFallbackUnavailable` (par para Preflight de fuentes), y 3 Failure Cases (`goldenFailureMissingAsset`/`goldenFailureOpenPathDieLine`/`goldenFailureMultipleDieLines`). 7 tests nuevos en `goldenFixtures.test.ts` (13 en total).

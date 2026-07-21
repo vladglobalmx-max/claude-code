@@ -1,6 +1,6 @@
 {
   "name": "@impulso/export-engine",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Export Engine oficial de Impulso Platform: produce archivos finales (PNG/SVG) a partir del Document Schema. SVG es independiente de Konva; PNG reutiliza @impulso/renderer-konva vía un Stage headless (ver ADR-0012).",
   "type": "module",

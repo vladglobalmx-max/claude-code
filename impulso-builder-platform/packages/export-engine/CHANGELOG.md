@@ -2,7 +2,7 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [Unreleased] — Epic 9 / Fase 9.5: Hardening (descargas)
+## [0.1.2] — Epic 9 / Fase 9.5: Hardening (descargas)
 
 ### Corregido
 - `browser/filename.ts` (`sanitizeFilename`), bug real de error injection: el truncado a 150 caracteres usaba `.slice()` sobre code units UTF-16 — un nombre con un emoji/par subrogado justo en esa posición podía partirlo a la mitad, produciendo un carácter corrupto al final del nombre de archivo. Corregido truncando por code point (`Array.from(...).slice(...).join("")`). Regresión: `filename.test.ts` (2 tests nuevos).

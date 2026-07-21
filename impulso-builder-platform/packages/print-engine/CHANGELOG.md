@@ -9,6 +9,7 @@ Versión final y changelog completo se consolidan al cierre de esta fase (ver `d
 ### Agregado
 - `testUtils/goldenFixtures.ts`: 4 fixtures nuevos, completando el set de 10 pedido — `goldenCircularSticker` (die-line circular de página completa, bleed, safe area), `goldenClosedPathSticker` (PathObject cerrado como die-line, offset 0), `goldenStickerSheet` (pieza pensada para combinarse con imposición real), `goldenFontFallbackAvailable`/`goldenFontFallbackUnavailable` (par para Preflight de fuentes), y 3 Failure Cases (`goldenFailureMissingAsset`/`goldenFailureOpenPathDieLine`/`goldenFailureMultipleDieLines`). 7 tests nuevos en `goldenFixtures.test.ts` (13 en total).
 - `docs/platform/TRACEABILITY_MATRIX_EPIC9.md`: matriz completa requisito→implementación→tests→documentación→estado de toda la Épica 9.
+- `precisionAndDeterminism.test.ts` (16 tests): precisión física verificada programáticamente (A4/Letter/100mm/bleed 0.125in-3mm/página 960px/300-150 PPI/pixelRatio fraccional/escalas), determinismo estructural empírico (20 exportaciones PDF repetidas, comparación de páginas/boxes/imágenes), y property-based/generative tests con seed fija (`mulberry32`, sin dependencia nueva) — round-trip de unidades, inclusión Trim⊆Bleed⊆Media, crop marks nunca invaden TrimBox, `capacity === rows×columns` en imposición.
 
 ### Corregido
 - `apps/sticker-builder`: umbral de cobertura restaurado (los harnesses temporales nunca se habían excluido del reporte de vitest).

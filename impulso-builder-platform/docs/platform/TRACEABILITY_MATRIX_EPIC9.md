@@ -36,11 +36,12 @@
 | Progreso (`onProgress`, etapas) | `progress.ts` (`emitProgress`) | Cubierto en tests de exportadores | ADR-0022 | `complete` |
 | Naming determinista de archivos | `naming.ts` (`buildPrintFilename`, param `label`) | `naming.test.ts` (11) | ADR-0022/0024 | `complete` |
 | Presupuesto de memoria (estimación) | `memory.ts` (`estimateMemoryBytes`) | `memory.test.ts` (12) | ADR-0021/0022 | `partially-supported` — el modelo (factor 2.5x, umbrales) nunca se midió empíricamente contra dispositivos/navegadores reales de usuarios |
-| Determinismo de exportación (bytes/estructura estables entre corridas) | — (las funciones son puras por construcción, pero nunca se verificó con un test de repetición) | — no existe todavía un test de "exportar N veces, comparar" | — | `partially-supported` — determinismo estructural por diseño (sin estado global, sin `Math.random`/`Date.now()` no inyectado), pero sin verificación empírica repetida todavía (ver Pendientes) |
+| Determinismo de exportación (bytes/estructura estables entre corridas) | Funciones puras por construcción (sin estado global, `now` siempre inyectado) | `precisionAndDeterminism.test.ts` — 20 exportaciones PDF repetidas del mismo fixture, estructura (páginas/boxes/cantidad de imágenes) idéntica en las 20; test dedicado que documenta explícitamente que la igualdad byte-a-byte de `pdf-lib` NO se afirma sin evidencia | — | `complete` (determinismo ESTRUCTURAL verificado empíricamente; byte-a-byte deliberadamente no reclamado) |
+| Precisión física (mm/in/px canónico/pt/PPI, casos mínimos del enunciado) | `units.ts` | `precisionAndDeterminism.test.ts` — A4/Letter/100mm/bleed 0.125in/3mm/página 960px/300-150 PPI/pixelRatio fraccional/escalas 0.5-1-2, con tolerancia documentada | ADR-0021 | `complete` |
 | Golden fixtures (documentos canónicos) | `testUtils/goldenFixtures.ts` — 10 de 10 (Fase 9.5 agregó Circular Sticker, Closed Path Sticker, Sticker Sheet, Font Fallback disponible/no-disponible, 3 Failure Cases) | `goldenFixtures.test.ts` (13) | ADR-0022 | `complete` |
 | Golden outputs (PNG hash/PDF estructura, con tolerancia) | — no existe infraestructura dedicada todavía | — | — | `not-supported` todavía (ver Pendientes — sección 3/4 del enunciado de Fase 9.5) |
 | Regresión visual (diff con umbral/artefactos) | — no existe todavía | — | — | `not-supported` todavía (ver Pendientes) |
-| Property-based / generative tests | — no existen todavía | — | — | `not-supported` todavía (ver Pendientes) |
+| Property-based / generative tests | Seed fija (`mulberry32`, sin agregar dependencia) | `precisionAndDeterminism.test.ts` — round-trip de unidades (200 casos), inclusión Trim⊆Bleed⊆Media (100 casos), crop marks nunca invaden TrimBox (50 casos), `capacity === rows×columns` y piezas colocadas ≤ quantity en imposición (30 casos) | — | `complete` |
 
 ## Producto (`apps/sticker-builder`)
 
@@ -64,13 +65,11 @@
 
 1. Tabla formal código-por-código de los 44 códigos de Preflight (severidad/trigger/blocking/recommendation/test/UI handling).
 2. Endurecimiento exhaustivo de cancelación en TODOS los puntos cooperativos (tabla de verificación, no solo cobertura general).
-3. Test de determinismo empírico (N exportaciones repetidas del mismo fixture, comparación estructural + visual).
-5. Infraestructura de golden outputs + regresión visual + normalización.
-6. Property-based/generative tests con seed fija.
-7. Medición empírica de memoria/performance con datos observados (actualizar `PERFORMANCE_BUDGET.md`).
-8. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
-9. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
-10. UX Audit 0009 (validación final).
+3. Infraestructura de golden outputs + regresión visual + normalización (el determinismo ESTRUCTURAL ya está verificado; falta la comparación VISUAL con tolerancia/artefactos de diff).
+4. Medición empírica de memoria/performance con datos observados (actualizar `PERFORMANCE_BUDGET.md`).
+5. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
+6. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
+7. UX Audit 0009 (validación final).
 
 ## Cómo se usa este documento
 

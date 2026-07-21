@@ -4,10 +4,11 @@ export type PreflightSeverity = "error" | "warning" | "info";
 
 /**
  * Códigos de Fase 9.1 (estructural) + Fase 9.3 (marcas de corte, safe
- * area, cut paths — ver ADR-0023). Deliberadamente NO incluye
+ * area, cut paths — ver ADR-0023) + Fase 9.4 (imposición — ver
+ * `preflight/impositionChecks.ts`). Deliberadamente NO incluye
  * `background_not_covering_bleed` (depende del pipeline de render, no
- * decidido todavía) ni `imposition_does_not_fit` (Fase 9.4) — cada uno se
- * agrega en su propia fase, sobre esta misma estructura de `PreflightIssue`.
+ * decidido todavía) — se agrega en su propia fase, sobre esta misma
+ * estructura de `PreflightIssue`.
  */
 export type PreflightCode =
   | "document_not_normalized"
@@ -40,7 +41,24 @@ export type PreflightCode =
   | "cut_path_offset_unsupported"
   | "cut_path_collapsed"
   | "cut_path_outside_media_box"
-  | "cut_path_transform_unsupported";
+  | "cut_path_transform_unsupported"
+  // Imposición (Fase 9.4, sección 16, ver ADR de imposición).
+  | "imposition_invalid"
+  | "sheet_size_invalid"
+  | "sheet_area_collapsed"
+  | "quantity_invalid"
+  | "grid_rows_invalid"
+  | "grid_columns_invalid"
+  | "piece_does_not_fit"
+  | "fixed_grid_does_not_fit"
+  | "insufficient_gap"
+  | "excessive_sheet_count"
+  | "excessive_piece_count"
+  | "sheet_memory_budget_exceeded"
+  | "cut_paths_overlap"
+  | "crop_marks_overlap"
+  | "piece_outside_sheet"
+  | "partial_output_required";
 
 export interface PreflightIssue {
   code: PreflightCode;

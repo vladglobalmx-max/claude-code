@@ -8,6 +8,10 @@ export interface PrintFilenameOptions {
    * necesita numerarse). */
   pageIndex?: number;
   pageCount: number;
+  /** Palabra usada antes del número (`"page-01"` vs `"sheet-01"`) — Fase
+   * 9.4: un PNG imposicionado numera HOJAS, no páginas de origen; el
+   * default preserva el naming ya usado desde Fase 9.2. */
+  label?: "page" | "sheet";
   /** Instant ISO inyectable — mismo patrón que el resto del código
    * (`ProjectSaveCoordinator`, `createPrintJob`), nunca `Date.now()`
    * directo dentro de esta función pura. */
@@ -31,7 +35,7 @@ export function buildPrintFilename(options: PrintFilenameOptions): string {
   const nameParts = [sanitizeFilename(options.projectName), options.profile];
 
   if (options.pageCount > 1 && options.pageIndex !== undefined) {
-    nameParts.push(`page-${String(options.pageIndex).padStart(2, "0")}`);
+    nameParts.push(`${options.label ?? "page"}-${String(options.pageIndex).padStart(2, "0")}`);
   }
 
   const datePart = options.date.slice(0, 10);

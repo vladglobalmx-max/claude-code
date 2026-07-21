@@ -951,6 +951,241 @@
         border-color: #1c1917;
       }
 
+      /* Production Preview (Epic 9 / Fase 9.4) — panel reutilizable, no un
+       * diálogo propio (se embebe dentro del flujo de exportación, sección
+       * 22). Diferenciación de capas por trazo (dasharray), NUNCA solo por
+       * color (UX Audit 0007, quick win #1). */
+      .production-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .production-preview-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      .production-preview-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .production-preview-nav button {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+      }
+      .production-preview-nav button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .production-preview-layers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid #d6d3d1;
+        border-radius: 4px;
+        padding: 4px 8px;
+      }
+      .production-preview-zoom {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .production-preview-zoom button {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+      }
+      .production-preview-error {
+        color: #b91c1c;
+        font-weight: 600;
+      }
+      .production-preview-canvas-wrapper {
+        overflow: auto;
+        border: 1px solid #999;
+        max-width: 100%;
+        background: #e5e5e5;
+      }
+      .production-preview-scale-target {
+        position: relative;
+      }
+      .production-preview-canvas-slot canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .production-preview-overlay-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .production-preview-overlay-stroke {
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .production-preview-sheet {
+        stroke: #666;
+        stroke-dasharray: 2 2;
+      }
+      .production-preview-usefularea {
+        stroke: #9b59b6;
+        stroke-dasharray: 8 3 2 3;
+      }
+      .production-preview-footprint {
+        stroke: #e67e22;
+        stroke-dasharray: 6 3;
+      }
+      .production-preview-trim {
+        stroke: #2ecc71;
+        stroke-dasharray: none;
+      }
+      .production-preview-safearea {
+        stroke: #3498db;
+        stroke-dasharray: 1 4;
+      }
+      .production-preview-cropmark {
+        stroke: #000000;
+        stroke-dasharray: none;
+      }
+      .production-preview-cutpath {
+        stroke: #ff00ff;
+        stroke-dasharray: 4 2 1 2;
+      }
+      .production-preview-summary {
+        font-size: 13px;
+      }
+      .production-preview-summary dt {
+        font-weight: 600;
+      }
+      .production-preview-summary dd {
+        margin: 0 0 6px 0;
+      }
+
+      /* "Exportar para impresión" — flujo de 7 pasos (Epic 9 / Fase 9.4) */
+      .production-export-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .production-export-dialog {
+        background: #ffffff;
+        color: #1c1917;
+        padding: 20px 24px;
+        border-radius: 8px;
+        max-width: 720px;
+        width: 92%;
+        max-height: 88vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .production-export-step-indicator {
+        margin: 0;
+        font-size: 0.85em;
+        color: #78716c;
+      }
+      .production-export-dialog h2 {
+        margin: 0 0 8px;
+        font-size: 1.15em;
+      }
+      .production-export-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .production-export-body label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.9em;
+      }
+      .production-export-body fieldset {
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+      .production-export-accept-warnings {
+        flex-direction: row !important;
+        align-items: center;
+        gap: 8px !important;
+      }
+      .production-export-stale-banner {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin: 0;
+      }
+      .production-export-error {
+        color: #b91c1c;
+        font-weight: 600;
+      }
+      .production-export-issues {
+        margin: 0 0 8px 0;
+        padding-left: 20px;
+      }
+      .production-export-issues-error {
+        color: #b91c1c;
+      }
+      .production-export-issues-warning {
+        color: #b45309;
+      }
+      .production-export-results-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .production-export-live-region {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+      .production-export-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .production-export-actions button {
+        font: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+      }
+      .production-export-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .production-export-next {
+        background: #1c1917;
+        color: #ffffff;
+        border-color: #1c1917;
+      }
+
       /* Diálogo de guardar como plantilla */
       .save-as-template-dialog-overlay {
         position: fixed;
@@ -1021,6 +1256,7 @@
           <button id="back-to-workspace-btn" type="button" title="Mis proyectos (Ctrl/Cmd+O)">Mis proyectos</button>
           <span class="divider"></span>
           <button id="export-btn" type="button">Exportar</button>
+          <button id="production-export-btn" type="button" title="Exportar para impresión (imposición, hojas de producción)">Exportar para impresión</button>
           <button id="save-as-template-btn" type="button">Guardar como plantilla</button>
           <span class="divider"></span>
           <button id="duplicate-btn" type="button" title="Duplicar (Ctrl/Cmd+D)">Duplicar</button>
@@ -1060,6 +1296,7 @@
       </div>
       <div id="new-project-dialog-root"></div>
       <div id="export-dialog-root"></div>
+      <div id="production-export-dialog-root"></div>
       <div id="save-as-template-dialog-root"></div>
       <div id="unsaved-changes-dialog-root"></div>
     </div>

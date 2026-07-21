@@ -263,7 +263,7 @@ describe("exportPrintJobToPdf", () => {
 
     const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
     const save = vi.fn(async () => new Uint8Array([1, 2, 3]));
-    const fakeDocument: PdfBackendDocument = { addRasterPage, save };
+    const fakeDocument: PdfBackendDocument = { addRasterPage, save, embedImage: vi.fn(), addImposedSheetPage: vi.fn() };
     const createDocument = vi.fn(() => fakeDocument);
     const fakeBackend: PdfBackend = { createDocument };
 
@@ -317,7 +317,7 @@ describe("exportPrintJobToPdf", () => {
     const controller = new AbortController();
 
     const save = vi.fn(async () => new Uint8Array([1, 2, 3]));
-    const fakeDocument: PdfBackendDocument = { addRasterPage: vi.fn(async () => undefined), save };
+    const fakeDocument: PdfBackendDocument = { addRasterPage: vi.fn(async () => undefined), save, embedImage: vi.fn(), addImposedSheetPage: vi.fn() };
     const fakeBackend: PdfBackend = { createDocument: vi.fn(() => fakeDocument) };
 
     await expect(
@@ -409,7 +409,7 @@ describe("exportPrintJobToPdf", () => {
       const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
 
       const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
-      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]), embedImage: vi.fn(), addImposedSheetPage: vi.fn() }) };
 
       await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
 
@@ -426,7 +426,7 @@ describe("exportPrintJobToPdf", () => {
       const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
 
       const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
-      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]), embedImage: vi.fn(), addImposedSheetPage: vi.fn() }) };
 
       await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
 
@@ -442,7 +442,7 @@ describe("exportPrintJobToPdf", () => {
       const { exportPrintJobToPdf } = await import("./exportPrintJobToPdf.js");
 
       const addRasterPage = vi.fn(async (_options: AddRasterPageOptions) => undefined);
-      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]) }) };
+      const fakeBackend: PdfBackend = { createDocument: () => ({ addRasterPage, save: async () => new Uint8Array([1]), embedImage: vi.fn(), addImposedSheetPage: vi.fn() }) };
 
       await exportPrintJobToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend: fakeBackend });
 

@@ -2,6 +2,29 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.4.0] — Epic 9 / Fase 9.4: Imposition & Sheet Repetition
+
+### Agregado
+- `types.ts`: `ImpositionSpec` discriminated union (`{ mode: "single" } | GridImpositionSpec`) — `"single"` es el comportamiento de Fases 9.1-9.3 sin cambios; `GridImpositionSpec` (`sheet`, `orientation`, `quantity`, `placementMode`, `rows?`/`columns?`, `gapX`/`gapY`, márgenes por lado, `alignment`, `marksMode`).
+- `imposition/pieceFootprint.ts`/`sheetGeometry.ts`/`gridCapacity.ts`/`alignment.ts`/`validateLayoutGeometry.ts`/`impositionLayout.ts`: geometría pura de imposición, sin Canvas/PDF/Konva/UI. `computeImpositionLayout` — función central, orden determinista obligatorio (hojas en orden, filas arriba→abajo, columnas izquierda→derecha, `copyIndex` global estable); `placementMode: "fixed-grid"` que no cabe es un error bloqueante explícito, nunca una reducción silenciosa; la última hoja puede quedar parcialmente ocupada (`lastSheetPieceCount`/`lastSheetEmptyCells` expuestos explícitamente). `MAX_IMPOSITION_SHEETS = 200`/`MAX_IMPOSITION_PIECES = 2000` — límites de producto explícitos, verificados con evidencia de performance real.
+- `raster/pieceRasterCache.ts`: `createPieceRasterCache` — rasteriza la pieza de origen UNA sola vez por página, reutilizada N veces por hoja/copia (verificado a escala real: 500 piezas/10 hojas, `renderPageToStageMock` llamado exactamente una vez).
+- `raster/exportImpositionToPdf.ts`: PDF imposicionado — una pieza embebida (`PdfBackend.embedImage`) UNA sola vez por página de origen, dibujada N veces por hoja vía `addImposedSheetPage` (tercera operación pública de `PdfBackend`, junto a `addRasterPage`/`save`); cada página de `printJob.pageIds` genera su propio grupo de hojas independiente, concatenadas en el mismo documento; marcas `per-piece`/`per-sheet`; cut path normalizado/offseteado UNA sola vez por página y solo TRASLADADO por copia.
+- `raster/exportImpositionToPng.ts`: PNG imposicionado — una hoja física por archivo, numerada `sheet-01`/`sheet-02`... (vía el nuevo parámetro `label` de `buildPrintFilename`), misma reutilización de raster y misma política de marcas/cut path que el PDF.
+- `raster/composeCanvasOverlays.ts`: `createBlankCanvas` extraído (canvas + contexto 2D en blanco), reutilizado por `createMediaCanvasWithContent` y por la composición de hojas imposicionadas.
+- `naming.ts`: `buildPrintFilename` gana el parámetro opcional `label?: "page" | "sheet"` (default `"page"`, compatibilidad total con Fases 9.1-9.3).
+- `pdf/pdfBackend.ts`/`pdf/pdfLibBackend.ts`: `addImposedSheetPage` — recibe imágenes/marcas/cut paths ya posicionados en puntos PDF absolutos de la hoja; sigue sin exponer ningún tipo de `pdf-lib` en su firma.
+- `preflight/impositionChecks.ts`: 16 códigos nuevos — `checkImpositionConfig` (validación escalar a nivel de job: `imposition_invalid`, `insufficient_gap`) y `checkImpositionForPage` (traduce cada motivo de fallo de `computeImpositionLayout` a un código Preflight homónimo; `piece_outside_sheet`/`crop_marks_overlap`/`cut_paths_overlap` vía `mapImpositionLayoutGeometryIssues`, extraída como función testable independientemente ya que `computeImpositionLayout` nunca produce por construcción una `ImpositionLayout` inválida; `sheet_memory_budget_exceeded`; `partial_output_required`, informativo). Wireado en `runPreflight.ts` — config de job primero, luego por página en el orden de `pageIds`.
+- `errors.ts`: `"imposition-does-not-fit"` agregado a `PrintEngineErrorCode` (fallback defensivo, correctamente inalcanzable en flujo normal una vez wireado el Preflight de imposición — mismo patrón que ADR-0022/0023).
+- `raster/impositionPerformance.test.ts`: verificación empírica de performance a escala real (sección 38 del enunciado) — 500 piezas/10 hojas en <500ms (geometría pura) y <10s (exportación completa PDF/PNG), con la reutilización de raster confirmada exactamente una vez, no solo argumentada.
+- 29 tests dedicados de `impositionChecks.test.ts` cubriendo los 16 códigos nuevos, más tests exhaustivos de cada módulo de `imposition/` y de ambos exportadores imposicionados.
+- [ADR-0024](../../docs/adr/0024-print-engine-imposition.md): documenta el modelo completo de imposición y sus límites honestos.
+
+### Nota
+`apps/sticker-builder` gana su primera UI real de exportación a producción sobre este motor — ver [ADR-0025](../../docs/adr/0025-production-export-workflow.md) y el CHANGELOG de `apps/sticker-builder`.
+
+### Fuera de alcance (deliberado — fases futuras de la misma épica, cada una con su propia autorización)
+Nesting irregular, optimización automática de desperdicio, tiling de gran formato, integración con RIP/plotter, parámetros reales de cuchilla, CMYK, perfiles ICC, Spot Colors certificados, render en la nube, persistencia de un `PrintJob` como preset reutilizable más allá de lo trivial en memoria.
+
 ## [0.3.0] — Epic 9 / Fase 9.3: Marks, Safe Area & Cut Paths
 
 ### Agregado

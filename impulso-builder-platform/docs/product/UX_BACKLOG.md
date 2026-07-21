@@ -22,6 +22,9 @@
 | 12 | Asociar los campos "Ancho (mm)"/"Alto (mm)" del diálogo "Nuevo proyecto" (personalizado) a su input con `<label for>` o `aria-label` — hoy son solo nodos de texto sueltos, sin asociación programática | Fase 7.3.5 (Beta Stabilization) | Editor |
 | 13 | `title` en el candado de un object bloqueado que forma parte de una selección múltiple, explicando por qué quedó fuera de la caja compartida | UX Audit 0005 | Editor |
 | 14 | Contador breve ("N objects seleccionados") en el Inspector cuando la selección es 2+ | UX Audit 0005 | Editor |
+| 15 | Agregar un campo de texto editable para el nombre base del archivo en el wizard de "Exportar para impresión" (paso de configuración o de resultados), en vez de depender únicamente del nombre del Project al abrir el diálogo | UX Audit 0008 | Editor / Export |
+| 16 | Mostrar un mensaje breve ("No hay nada que ajustar todavía") si "Ajustar" (Fit) del Production Preview no puede calcular una escala real, en vez de no hacer nada visible | UX Audit 0008 | Editor / Export |
+| 17 | Texto de ayuda en el paso de perfil del wizard de exportación explicando por qué solo aparece un perfil hoy ("Sticker Sheet es el único perfil con imposición disponible") — para que no parezca un selector vacío roto | UX Audit 0008 | Editor / Export |
 
 ## Medium (más que un quick win, sin requerir una épica completa)
 
@@ -38,6 +41,8 @@
 | 9 | Mensaje explicativo específico cuando Distribuir produce superposición por falta de espacio (hoy es un comportamiento determinista sin explicación visible, distinto de un rechazo real) | UX Audit 0003 | Editor |
 | 10 | Feedback visual breve cuando Shift desactiva el snap durante un resize (hoy simplemente deja de mostrar guías, sin indicar que es intencional) | UX Audit 0004 | Editor |
 | 11 | Selector de unidad accesible desde los Rulers (clic derecho o control dedicado) — hoy no existe en ningún lugar de la UI | UX Audit 0004 | Editor |
+| 12 | **Exponer márgenes por lado y configuración de cut path (color/grosor/offset) en una sección "Avanzado"** del paso de configuración del wizard de exportación — hoy son parte del `PrintJob`/`GridImpositionSpec` pero no editables desde el flujo | UX Audit 0008 | Editor / Export |
+| 13 | **Localizar issues de Preflight en el Production Preview** — al hacer click en un issue con `pageId`/`objectId`, resaltar temporalmente esa pieza/hoja en el preview; requiere permitir volver al paso de preview desde Preflight sin perder el estado ya calculado (hoy el flujo es estrictamente lineal hacia adelante salvo "Atrás") | UX Audit 0008 | Editor / Export |
 
 ## Large (esperar una épica futura o evaluación de producto)
 
@@ -65,7 +70,10 @@
 | 20 | Soporte de *shear*/skew en el Document Schema, para que el resize de una selección múltiple con members rotados sea geométricamente exacto en todos los casos (ver Technical Debt, ADR-0017) | Fase 7.4 (Professional Multi Selection) | Editor |
 | 21 | Señal visual/tooltip cuando el handle de rotación fue recortado por cercanía a un borde (ADR-0018) — hoy se ve idéntico a un handle sin recortar, solo más cerca del object | Fase 7.4 (Professional Multi Selection) | Editor |
 | 22 | Indicación textual ("N objects seleccionados") en algún punto visible de la UI durante una selección múltiple — hoy solo se infiere contando filas `.selected` en Capas | Fase 7.4 (Professional Multi Selection) | Editor |
-| 23 | La UI real de exportación a producción (Fase 9.4) necesita: toggles de visibilidad para MediaBox/BleedBox/TrimBox/Safe Area/Crop Marks/Cut Path (ya prototipados en el preview técnico de Fase 9.3, `printPreviewHarness.ts`, pero como harness dev, no producto); selector de kiss-cut/die-cut; indicación clara de que el color del cut path es visual/RGB, nunca un Spot Color certificado; superficie para los 15 códigos nuevos de Preflight de Fase 9.3 (hoy solo consumibles programáticamente vía `PreflightIssue[]`) | Fase 9.3 (Marks, Safe Area & Cut Paths) | Editor / Export |
+| 23 | ~~La UI real de exportación a producción necesita: toggles de visibilidad, selector de kiss-cut/die-cut, indicación de color RGB no-certificado, superficie para los códigos de Preflight~~ — **resuelto en Fase 9.4** (`productionPreview.ts`/`productionExportDialog.ts`, ver ADR-0025): toggles de overlay diferenciados por `stroke-dasharray` además de color, issues de Preflight mostrados con `message`/`recommendation` en texto, agrupados por severidad | Fase 9.3 (Marks, Safe Area & Cut Paths) | Editor / Export |
+| 24 | **UI de asignación de `metadata.role: "die-line"`** en el Inspector — desbloquearía el camino feliz completo del wizard de exportación (y del Production Preview de Fase 9.3) sin depender de editar el documento directamente; hoy es la brecha más visible detectada durante la verificación E2E real de Fase 9.4 | UX Audit 0008 | Editor / Export |
+| 25 | **Múltiples perfiles de imposición** (más allá de "Sticker Sheet") en el wizard de exportación — el paso de perfil y su tarjeta ya están preparados estructuralmente para esto, solo falta que `PRINT_PROFILES` ofrezca más de una opción imposicionable | UX Audit 0008 | Editor / Export |
+| 26 | **Persistencia de configuraciones de imposición como preset reutilizable** — explícitamente fuera de alcance de Fase 9.4 salvo trivial; evaluar cuando exista evidencia real de que los usuarios repiten la misma configuración entre proyectos | UX Audit 0008 | Editor / Export |
 
 ---
 
@@ -76,7 +84,6 @@ La práctica de UX Audits nació con Epic 5 — los siguientes bloques, ya const
 - **Editor** — el Inspector de un object individual (UX Audit 0002) y la sección de Alineación (UX Audit 0003) ya están auditados; Toolbar, Canvas Runtime y manipulación de un solo object (resize/rotate) siguen sin auditoría formal.
 - **Export** (diálogo de exportación PNG/SVG) — Epic 3.
 - **Templates** (galería de "Nuevo proyecto", "Guardar como plantilla") — Epic 4.
-- **Print Engine** (marcas de corte, safe area, cut paths, Epic 9 / Fases 9.1-9.3) — sin UI de producto todavía, solo harnesses temporales de verificación (`print-engine-harness.html`/`print-preview-harness.html`); una UX Audit formal recién tiene sentido cuando exista la UI real de exportación de Fase 9.4.
 
 ## Cómo se usa este documento
 

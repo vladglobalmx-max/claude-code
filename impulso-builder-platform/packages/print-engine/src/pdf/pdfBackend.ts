@@ -77,8 +77,57 @@ export interface AddRasterPageOptions {
   cutPath?: PdfPathOverlay;
 }
 
+/** Handle OPACO de una imagen ya embebida en el documento (Fase 9.4,
+ * sección 15) — permite dibujarla N veces (misma página o páginas
+ * distintas) sin volver a embeber los mismos bytes. Nunca expone el tipo
+ * real de la implementación (ej. `PDFImage` de `pdf-lib`) — cada backend
+ * decide internamente cómo resolver el handle de vuelta a su propio
+ * recurso (`pdfLibBackend.ts` usa un `WeakMap` privado). */
+export interface PdfEmbeddedImage {
+  readonly kind: "pdf-embedded-image";
+}
+
+/** Una imagen YA embebida (`embedImage`), colocada en una posición física
+ * concreta dentro de una hoja impuesta. */
+export interface PlacedImage {
+  image: PdfEmbeddedImage;
+  x: number;
+  y: number;
+  widthPt: number;
+  heightPt: number;
+}
+
+export interface AddImposedSheetPageOptions {
+  mediaWidthPt: number;
+  mediaHeightPt: number;
+  /** `CropBox` se fija igual a `mediaBox` (misma política que
+   * `AddRasterPageOptions` — nunca oculta contenido por defecto). Una
+   * hoja impuesta NO tiene `TrimBox`/`BleedBox` propios (esos conceptos
+   * viven por PIEZA, no por hoja, sección 6: "no inventar un 5º box no
+   * estándar") — se omiten deliberadamente. */
+  mediaBox: PdfBoxPt;
+  images: PlacedImage[];
+  /** Marcas de corte de ESTA hoja (por pieza y/o por hoja, ya combinadas
+   * y posicionadas por el caller) — `undefined`/`[]` si `marksMode ===
+   * "none"`. */
+  cropMarks?: PdfLineOverlay[];
+  /** Un cut path por pieza colocada, ya transformado a su posición dentro
+   * de la hoja — nunca una única ruta reutilizada en coordenadas de
+   * origen (sección 17: "si existen 20 piezas, deben existir 20 rutas de
+   * corte colocadas"). */
+  cutPaths?: PdfPathOverlay[];
+}
+
 export interface PdfBackendDocument {
   addRasterPage(options: AddRasterPageOptions): Promise<void>;
+  /** Embebe una imagen UNA sola vez — el handle devuelto puede dibujarse
+   * N veces vía `addImposedSheetPage` sin volver a embeber los mismos
+   * bytes (Fase 9.4, sección 15: "reutilizar la imagen embebida"). */
+  embedImage(imageBytes: Uint8Array): Promise<PdfEmbeddedImage>;
+  /** Agrega UNA página de hoja impuesta — múltiples copias de imágenes
+   * YA embebidas, cada una en su posición física, más overlays de
+   * marcas/cut path ya resueltos por el caller. */
+  addImposedSheetPage(options: AddImposedSheetPageOptions): Promise<void>;
   save(): Promise<Uint8Array>;
 }
 

@@ -58,6 +58,21 @@ export function drawPathSegmentsOnCanvas(ctx: CanvasRenderingContext2D, segments
   ctx.restore();
 }
 
+/** Crea un canvas vacío (sin contenido dibujado) del tamaño pedido — la
+ * base compartida de `createMediaCanvasWithContent` (1 imagen) y de la
+ * composición de una hoja impuesta (Fase 9.4, N imágenes en N
+ * posiciones, ver `exportImpositionToPng.ts`). */
+export function createBlankCanvas(widthPx: number, heightPx: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+  const canvas = document.createElement("canvas");
+  canvas.width = widthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("No se pudo obtener un contexto 2D del canvas de composición — entorno sin soporte de Canvas.");
+  }
+  return { canvas, ctx };
+}
+
 /** Crea un nuevo canvas del tamaño de MediaBox y compone el raster de
  * contenido (que cubre exactamente el BleedBox) en su offset correcto —
  * sin escalarlo (`drawImage` con el mismo ancho/alto que el canvas
@@ -68,13 +83,7 @@ export function createMediaCanvasWithContent(
   mediaRasterHeight: number,
   bleedOffsetRasterPx: { x: number; y: number },
 ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
-  const canvas = document.createElement("canvas");
-  canvas.width = mediaRasterWidth;
-  canvas.height = mediaRasterHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("No se pudo obtener un contexto 2D del canvas de composición — entorno sin soporte de Canvas.");
-  }
+  const { canvas, ctx } = createBlankCanvas(mediaRasterWidth, mediaRasterHeight);
   ctx.drawImage(contentCanvas, bleedOffsetRasterPx.x, bleedOffsetRasterPx.y, contentCanvas.width, contentCanvas.height);
   return { canvas, ctx };
 }

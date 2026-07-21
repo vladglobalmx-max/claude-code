@@ -29,6 +29,9 @@ importers:
       '@impulso/export-engine':
         specifier: workspace:*
         version: link:../../packages/export-engine
+      '@impulso/print-engine':
+        specifier: workspace:*
+        version: link:../../packages/print-engine
       '@impulso/project-library':
         specifier: workspace:*
         version: link:../../packages/project-library
@@ -39,9 +42,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/template-library
     devDependencies:
-      '@impulso/print-engine':
-        specifier: workspace:*
-        version: link:../../packages/print-engine
       '@playwright/test':
         specifier: ^1.56.1
         version: 1.61.1

@@ -30,6 +30,10 @@ export {
   type CutPathMode,
   type CutPathSource,
   type ImpositionSpec,
+  type GridImpositionSpec,
+  type ImpositionAlignment,
+  type ImpositionMarksMode,
+  type ImpositionPlacementMode,
   type PrintOutputFormat,
   type PrintProfileId,
 } from "./types.js";
@@ -75,6 +79,8 @@ export { renderPrintJob, type RenderPrintJobOptions, type RenderPrintJobResult }
 // Exportación física.
 export { exportPrintJobToPng, type ExportPrintJobToPngOptions, type ExportPrintJobToPngResult, type PrintPngPageResult } from "./raster/exportPrintJobToPng.js";
 export { exportPrintJobToPdf, type ExportPrintJobToPdfOptions, type ExportPrintJobToPdfResult } from "./raster/exportPrintJobToPdf.js";
+export { exportImpositionToPdf, type ExportImpositionToPdfOptions, type ExportImpositionToPdfResult } from "./raster/exportImpositionToPdf.js";
+export { exportImpositionToPng, type ExportImpositionToPngOptions, type ExportImpositionToPngResult, type ImposedPngSheetResult } from "./raster/exportImpositionToPng.js";
 
 // Backend PDF — interfaz encapsulada (sin tipos de pdf-lib) + implementación por defecto.
 export type {
@@ -82,10 +88,13 @@ export type {
   PdfBackendDocument,
   PdfBackendCreateDocumentOptions,
   AddRasterPageOptions,
+  AddImposedSheetPageOptions,
   PdfBoxPt,
   PdfPointPt,
   PdfLineOverlay,
   PdfPathOverlay,
+  PdfEmbeddedImage,
+  PlacedImage,
 } from "./pdf/pdfBackend.js";
 export { pdfLibBackend } from "./pdf/pdfLibBackend.js";
 export { computePdfPageBoxes, type PdfPageBoxes } from "./pdf/pageBoxes.js";
@@ -138,4 +147,33 @@ export {
   drawLineSegmentOnCanvas,
   drawPathSegmentsOnCanvas,
   createMediaCanvasWithContent,
+  createBlankCanvas,
 } from "./raster/composeCanvasOverlays.js";
+
+// Imposición — geometría pura (Fase 9.4, ver ADR de imposición).
+export { computePieceFootprint, convertPieceFootprint, type PieceFootprint } from "./imposition/pieceFootprint.js";
+export { computeSheetPhysicalBoxes, type SheetPhysicalBoxes } from "./imposition/sheetGeometry.js";
+export {
+  computeGridCapacity,
+  type GridCapacity,
+  type GridCapacityResult,
+  type GridCapacityFailureReason,
+} from "./imposition/gridCapacity.js";
+export { computeAlignmentOffset } from "./imposition/alignment.js";
+export {
+  computeImpositionLayout,
+  MAX_IMPOSITION_SHEETS,
+  MAX_IMPOSITION_PIECES,
+  type ImpositionLayout,
+  type ImpositionLayoutResult,
+  type ImpositionFitFailureReason,
+  type PlacedPiece,
+  type PlacedSheet,
+} from "./imposition/impositionLayout.js";
+export { validateImpositionLayoutGeometry, type LayoutGeometryIssue } from "./imposition/validateLayoutGeometry.js";
+export {
+  createPieceRasterCache,
+  pieceRasterCacheKey,
+  type PieceRasterCache,
+  type RenderPieceOptions,
+} from "./raster/pieceRasterCache.js";

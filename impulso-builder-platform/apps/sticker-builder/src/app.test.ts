@@ -92,6 +92,7 @@ function buildElements(): AppElements {
   const zoomContainer = document.createElement("div");
   const newProjectDialogContainer = document.createElement("div");
   const exportDialogContainer = document.createElement("div");
+  const productionExportDialogContainer = document.createElement("div");
   const saveAsTemplateDialogContainer = document.createElement("div");
   const unsavedChangesDialogContainer = document.createElement("div");
   const rulerHorizontal = document.createElement("canvas");
@@ -118,6 +119,7 @@ function buildElements(): AppElements {
     zoomContainer,
     newProjectDialogContainer,
     exportDialogContainer,
+    productionExportDialogContainer,
     saveAsTemplateDialogContainer,
     unsavedChangesDialogContainer,
     statusElement,
@@ -149,6 +151,7 @@ function buildElements(): AppElements {
     canvasArea,
     newProjectDialogContainer,
     exportDialogContainer,
+    productionExportDialogContainer,
     saveAsTemplateDialogContainer,
     unsavedChangesDialogContainer,
     newButton: button(),
@@ -157,6 +160,7 @@ function buildElements(): AppElements {
     saveButton: button(),
     backToWorkspaceButton: button(),
     exportButton: button(),
+    productionExportButton: button(),
     saveAsTemplateButton: button(),
     duplicateButton: button(),
     deleteButton: button(),

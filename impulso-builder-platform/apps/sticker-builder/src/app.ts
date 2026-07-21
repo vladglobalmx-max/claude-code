@@ -25,6 +25,7 @@ import { createToolsController, mountToolButtons, type ToolButtons } from "./too
 import { mountKeyboardShortcuts, type KeyboardShortcuts } from "./keyboardShortcuts.js";
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
 import { mountExportDialog, type ExportDialog } from "./exportDialog.js";
+import { mountProductionExportDialog, type ProductionExportDialog } from "./productionExportDialog.js";
 import { mountSaveAsTemplateDialog, type SaveAsTemplateDialog } from "./saveAsTemplateDialog.js";
 import {
   mountGridOverlay,
@@ -82,6 +83,10 @@ export interface AppElements {
   canvasArea: HTMLElement;
   newProjectDialogContainer: HTMLElement;
   exportDialogContainer: HTMLElement;
+  /** Epic 9 / Fase 9.4 — flujo de 7 pasos de "Exportar para impresión"
+   * (imposición), entrada de editor DISTINTA del "Exportar" rápido de
+   * arriba (sección 23). */
+  productionExportDialogContainer: HTMLElement;
   saveAsTemplateDialogContainer: HTMLElement;
   newButton: HTMLButtonElement;
   undoButton: HTMLButtonElement;
@@ -92,6 +97,7 @@ export interface AppElements {
    * elige qué proyecto abrir. */
   backToWorkspaceButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
+  productionExportButton: HTMLButtonElement;
   saveAsTemplateButton: HTMLButtonElement;
   duplicateButton: HTMLButtonElement;
   deleteButton: HTMLButtonElement;
@@ -667,6 +673,11 @@ export function mountApp(deps: AppDependencies): App {
     resolver: { resolve: (assetId) => binaryStore.get(assetId) },
   });
 
+  const productionExportDialog: ProductionExportDialog = mountProductionExportDialog(elements.productionExportDialogContainer, {
+    resolver: { resolve: (assetId) => binaryStore.get(assetId) },
+    now,
+  });
+
   const saveAsTemplateDialog: SaveAsTemplateDialog = mountSaveAsTemplateDialog(elements.saveAsTemplateDialogContainer, {
     getProject: () => runtime.engine.getProject(),
     templateStore,
@@ -690,6 +701,7 @@ export function mountApp(deps: AppDependencies): App {
     })();
   });
   elements.exportButton.addEventListener("click", () => exportDialog.open());
+  elements.productionExportButton.addEventListener("click", () => productionExportDialog.open(runtime.engine.getProject(), runtime.engine.getProject().metadata.name ?? "Sticker"));
   elements.saveAsTemplateButton.addEventListener("click", () => saveAsTemplateDialog.open());
   elements.undoButton.addEventListener("click", () => {
     const result = runtime.engine.undo();
@@ -751,6 +763,7 @@ export function mountApp(deps: AppDependencies): App {
       toolButtons.destroy();
       newProjectDialog.destroy();
       exportDialog.destroy();
+      productionExportDialog.destroy();
       saveAsTemplateDialog.destroy();
       layersPanel.destroy();
       inspector.destroy();

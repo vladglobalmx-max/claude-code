@@ -74,16 +74,74 @@ export type PrintOutputFormat = "pdf" | "png";
 
 export type PrintProfileId = "digital-png" | "print-pdf" | "sticker-sheet" | "web-preview";
 
-export interface ImpositionSpec {
-  enabled: boolean;
+export type ImpositionAlignment =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+/** "none": sin marcas en la hoja impuesta. "per-piece": cada copia
+ * colocada recibe sus propias 8 marcas (expande su footprint — Fase 9.4,
+ * sección 8/16). "per-sheet": marcas alrededor del área útil general de
+ * la hoja — un contorno de producción, NUNCA una guía de corte individual
+ * por pieza (documentado honestamente, sección 16). Ignorado si
+ * `mode === "single"`: `PrintJob.cropMarks` sigue siendo la única
+ * autoridad para una exportación sin imposición. */
+export type ImpositionMarksMode = "none" | "per-piece" | "per-sheet";
+
+/** "automatic": el motor calcula la capacidad máxima (filas/columnas) que
+ * cabe en el área útil. "fixed-grid": el usuario fija `rows`/`columns`
+ * explícitos — si no caben, es un error bloqueante, nunca se reducen
+ * silenciosamente (Fase 9.4, sección 7). */
+export type ImpositionPlacementMode = "automatic" | "fixed-grid";
+
+/**
+ * Imposición (Fase 9.4, sección 3) — discriminated union explícito:
+ * `"single"` es el comportamiento de Fases 9.1-9.3 sin cambios (una
+ * página, sin repetición); `"grid"` reparte copias de UNA página de
+ * origen en una hoja física. Si `PrintJob.pageIds` tiene varias páginas,
+ * cada una genera su PROPIO grupo de hojas independiente — nunca mezcla
+ * diseños distintos en la misma hoja (ver ADR de imposición).
+ */
+export type ImpositionSpec = { mode: "single" } | GridImpositionSpec;
+
+export interface GridImpositionSpec {
+  mode: "grid";
   sheet: PhysicalSize;
-  columns: number;
-  rows: number;
+  /** "portrait" usa `sheet.width`/`sheet.height` tal cual; "landscape"
+   * intercambia esas dimensiones físicas — nunca rota ninguna pieza ni
+   * modifica el `Project` (sección 5). */
+  orientation: "portrait" | "landscape";
+  /** Entero positivo — cuántas copias de la pieza se necesitan en total,
+   * repartidas en cuantas hojas hagan falta. Nunca se generan copias de
+   * más para "llenar" la última hoja (sección 6). */
+  quantity: number;
+  placementMode: ImpositionPlacementMode;
+  /** Solo relevantes (y validados) cuando `placementMode === "fixed-grid"`;
+   * ignorados en `"automatic"`, donde el motor los calcula. */
+  rows?: number;
+  columns?: number;
+  /** Distancia física entre el footprint de una pieza y la siguiente —
+   * misma `unit` que `sheet` (sección 9). */
   gapX: number;
   gapY: number;
-  marginX: number;
-  marginY: number;
-  orientation: "portrait" | "landscape";
+  /** Márgenes físicos por lado, en la misma `unit` que `sheet` — reducen
+   * el área útil; NUNCA deben confundirse con el bleed de la pieza
+   * (sección 10). */
+  marginTop: number;
+  marginRight: number;
+  marginBottom: number;
+  marginLeft: number;
+  /** Cómo se posiciona el grid completo dentro del área útil cuando no la
+   * ocupa por completo — desplaza el conjunto, nunca altera gaps/escala
+   * (sección 11). Default recomendado: `"center"`. */
+  alignment: ImpositionAlignment;
+  marksMode: ImpositionMarksMode;
 }
 
 export const PRINT_JOB_SCHEMA_VERSION = 1;

@@ -45,7 +45,7 @@ describe("createPrintJob — defaults por perfil", () => {
 
   it("'sticker-sheet' es PDF con imposición habilitada y cutPath die-cut automático", () => {
     const job = createPrintJob({ documentId, pageIds, dimensions, profile: "sticker-sheet", now: () => NOW });
-    expect(job.imposition.enabled).toBe(true);
+    expect(job.imposition.mode).toBe("grid");
     expect(job.cutPath).toEqual({
       mode: "die-cut",
       source: { type: "auto" },

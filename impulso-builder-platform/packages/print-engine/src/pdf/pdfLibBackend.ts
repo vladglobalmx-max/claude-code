@@ -1,9 +1,18 @@
-import { PDFDocument, PDFPage, rgb } from "pdf-lib";
+import { PDFDocument, PDFImage, PDFPage, rgb } from "pdf-lib";
 import type { PathSegment } from "@impulso/document-schema";
 import { segmentsToSvgPathData } from "@impulso/document-schema";
 import { PrintEngineError } from "../errors.js";
 import { parseHexColor } from "./color.js";
-import type { AddRasterPageOptions, PdfBackend, PdfBackendCreateDocumentOptions, PdfBackendDocument, PdfLineOverlay, PdfPathOverlay } from "./pdfBackend.js";
+import type {
+  AddImposedSheetPageOptions,
+  AddRasterPageOptions,
+  PdfBackend,
+  PdfBackendCreateDocumentOptions,
+  PdfBackendDocument,
+  PdfEmbeddedImage,
+  PdfLineOverlay,
+  PdfPathOverlay,
+} from "./pdfBackend.js";
 
 /**
  * `page.drawSvgPath` aplica SIEMPRE un flip interno de Y sobre las
@@ -65,6 +74,9 @@ function colorFromHex(colorHex: string) {
  */
 class PdfLibBackendDocument implements PdfBackendDocument {
   private readonly docPromise: Promise<PDFDocument>;
+  /** Resuelve un handle OPACO de vuelta al `PDFImage` real de `pdf-lib` —
+   * nunca expuesto fuera de este módulo (Fase 9.4, sección 15). */
+  private readonly embeddedImages = new WeakMap<PdfEmbeddedImage, PDFImage>();
 
   constructor(options?: PdfBackendCreateDocumentOptions) {
     this.docPromise = PDFDocument.create().then((doc) => {
@@ -106,6 +118,46 @@ class PdfLibBackendDocument implements PdfBackendDocument {
       }
     } catch (error) {
       throw new PrintEngineError("pdf-backend-failed", "No se pudo agregar una página al PDF.", { cause: error });
+    }
+  }
+
+  async embedImage(imageBytes: Uint8Array): Promise<PdfEmbeddedImage> {
+    try {
+      const doc = await this.docPromise;
+      const embedded = await doc.embedPng(imageBytes);
+      const handle: PdfEmbeddedImage = { kind: "pdf-embedded-image" };
+      this.embeddedImages.set(handle, embedded);
+      return handle;
+    } catch (error) {
+      throw new PrintEngineError("pdf-backend-failed", "No se pudo embeber una imagen en el PDF.", { cause: error });
+    }
+  }
+
+  async addImposedSheetPage(options: AddImposedSheetPageOptions): Promise<void> {
+    try {
+      const doc = await this.docPromise;
+      const page = doc.addPage([options.mediaWidthPt, options.mediaHeightPt]);
+      page.setMediaBox(options.mediaBox.x, options.mediaBox.y, options.mediaBox.width, options.mediaBox.height);
+      page.setCropBox(options.mediaBox.x, options.mediaBox.y, options.mediaBox.width, options.mediaBox.height);
+
+      for (const placed of options.images) {
+        const embedded = this.embeddedImages.get(placed.image);
+        if (!embedded) {
+          throw new PrintEngineError(
+            "pdf-backend-failed",
+            "Se intentó dibujar una imagen no embebida en este documento (handle inválido, o embebida en otro documento).",
+          );
+        }
+        page.drawImage(embedded, { x: placed.x, y: placed.y, width: placed.widthPt, height: placed.heightPt });
+      }
+
+      // Mismo orden que `addRasterPage` (ADR-0023): marcas primero, cut
+      // paths después — todos DESPUÉS de las imágenes de contenido.
+      for (const mark of options.cropMarks ?? []) this.drawLineOverlay(page, mark);
+      for (const cutPath of options.cutPaths ?? []) this.drawPathOverlay(page, cutPath);
+    } catch (error) {
+      if (error instanceof PrintEngineError) throw error;
+      throw new PrintEngineError("pdf-backend-failed", "No se pudo agregar una hoja impuesta al PDF.", { cause: error });
     }
   }
 

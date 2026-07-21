@@ -2,6 +2,27 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.15.0] — Epic 9 / Fase 9.4: Production Export Workflow (producto real)
+
+### Agregado
+- `productionPreview.ts`: Production Preview real, data-driven — reutiliza exactamente `computeImpositionLayout`/`renderPrintPage`/`computeCropMarksGeometry`/`resolveDieLineSource`+`normalizeCutGeometry`+`applyCutGeometryOffset`+`cutGeometryToPathSegments`/`cropMarkSegmentToRaster`/`canonicalPointToRasterPoint`/`cutPathSegmentsToRaster` de `@impulso/print-engine`, nunca una reimplementación aproximada. Renderiza a `PREVIEW_PPI = 72` (deliberadamente menor al `targetPpi` real), navega entre hojas/páginas, toggles de overlay (Sheet/Useful Area/Footprint/Trim/SafeArea/CropMarks/CutPath) diferenciados por `stroke-dasharray` además de color, resumen textual (`<dl>`) con disclaimer de PPI y el `message` de Preflight, zoom Fit/100%/slider.
+- `productionExportController.ts`: `mountProductionExportController(options): ProductionExportController` — mismo patrón factory que `ProjectSaveCoordinator` (Epic 8). Dueño del estado del wizard de 7 pasos (`ExportStep`), foto inmutable de `Project`/`PrintJob` tomada en `open()` (`structuredClone`, nunca una lectura en vivo), `projectStale`/`refreshSnapshot` para cambios del `Project` en curso, invalidación de Preflight ante cualquier `updatePrintJob`, aceptación de advertencias por ejecución (nunca recordada), cancelación real vía `AbortController` propagado a `exportImpositionToPdf`/`Png`.
+- `productionExportDialog.ts`: UI del wizard "Exportar para impresión" (perfil → configuración → preview → preflight → advertencias → progreso → resultados). Foco atrapado real (modelado sobre `unsavedChangesDialog.ts`), `role="dialog"`/`aria-modal="true"`/`aria-labelledby` apuntando al `<h2 tabIndex="-1">` de cada paso (foco movido ahí en cada cambio de paso), región de progreso `aria-live="polite"`/`role="status"`, issues de Preflight agrupados por severidad con encabezados de texto usando `issue.message`/`issue.recommendation` (nunca el `code` crudo), paso de advertencias auto-saltado cuando no hay ninguna, descargas por formato vía `triggerBrowserDownload(blob, filename)`, banner de staleness del proyecto.
+- Nuevo punto de entrada de UI: `#production-export-btn` ("Exportar para impresión") en `index.html`, distinto de `#export-btn` ("Exportar", exportación rápida a pantalla, sin cambios); wireado en `app.ts`/`main.ts`, `AppElements` extendido, `productionExportDialog.destroy()` agregado a la limpieza de la app.
+- `e2e/production-export.spec.ts`: 19 escenarios reales en Chromium, sin mocks — `role="dialog"`/`aria-modal`/título por paso; `Escape` cierra y restaura el foco; `Tab` nunca escapa del diálogo (foco atrapado real); el foco se mueve al `<h2>` de cada paso nuevo; Preflight bloquea "Siguiente" con el motivo en texto; layout responsivo sin overflow horizontal en 1366×768/1440×900/1920×1080/360×740; preview renderiza un canvas real; "Atrás" deshabilitado en el primer paso; "Cancelar" cierra desde cualquier paso; reapertura limpia tras cerrar; navegación completamente por teclado; `aria-live="polite"` verificado; errores de Preflight distinguidos por texto.
+- `@impulso/print-engine` se mueve de `devDependencies` a `dependencies` — código de producto (no solo un harness de verificación) lo importa directamente por primera vez.
+- [ADR-0025](../../docs/adr/0025-production-export-workflow.md): documenta la arquitectura de 3 piezas (preview/controller/dialog) y sus límites honestos.
+- [UX Audit 0008](../../docs/ux-audits/0008-production-export-experience-fase-9-4.md): auditoría del flujo real construido en esta fase, con autocrítica explícita de sus limitaciones (nombre de archivo no editable, sin localización de issues en el preview, configuración avanzada parcial, un solo perfil, sin UI de asignación de die-line, "Ajustar" sin fallback visible).
+
+### Corregido (bug real encontrado durante esta fase)
+- `ProductionExportController.close()` no reseteaba `step` de vuelta a `"profile"` — reabrir el diálogo tras cancelar desde un paso intermedio mostraba el título obsoleto de ese paso con un `printJob` ya vacío. Detectado con un test real en Chromium (E2E de reapertura tras cancelar), corregido reseteando `step` explícitamente en `close()`, con una regresión equivalente agregada a `productionExportController.test.ts`.
+
+### Hallazgo documentado (no es un bug de esta fase)
+- `e2e/assisted-placement.spec.ts`'s test de Smart Guides sigue fallando — confirmado sin relación con el flujo de exportación (corrido antes y después de todo el trabajo de esta fase); no investigado ni corregido aquí, ver Technical Debt.
+
+### Fuera de alcance (deliberado — fases futuras, cada una con su propia autorización)
+Nombre de archivo editable, localización de issues de Preflight en el preview, márgenes/cut path/PPI editables desde el wizard, múltiples perfiles imposicionables, UI de asignación de die-line en el Inspector, persistencia de un `PrintJob` como preset reutilizable, Fase 9.5 (Hardening & Golden Tests).
+
 ## [0.14.0] — Epic 9 / Fase 9.3: Print Engine — Marks, Safe Area & Cut Paths (verificación, no producto)
 
 ### Agregado

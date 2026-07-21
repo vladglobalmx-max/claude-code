@@ -49,17 +49,7 @@ const NO_CUT_PATH: CutPathSpec = {
   color: "#ff00ff",
   logicalLayerName: "CutContour",
 };
-const NO_IMPOSITION: ImpositionSpec = {
-  enabled: false,
-  sheet: { width: 0, height: 0, unit: "mm" },
-  columns: 1,
-  rows: 1,
-  gapX: 0,
-  gapY: 0,
-  marginX: 0,
-  marginY: 0,
-  orientation: "portrait",
-};
+const NO_IMPOSITION: ImpositionSpec = { mode: "single" };
 
 /** Bleed de 3mm — el preset sugerido más común para impresión comercial
  * pequeña (sección 7 del enunciado). */
@@ -117,15 +107,19 @@ export const PRINT_PROFILES: Record<PrintProfileId, PrintProfileDefaults> = {
     cutPath: STANDARD_CUT_PATH,
     background: { type: "solid", color: "#ffffff" },
     imposition: {
-      enabled: true,
+      mode: "grid",
       sheet: { width: 210, height: 297, unit: "mm" },
-      columns: 1,
-      rows: 1,
+      orientation: "portrait",
+      quantity: 1,
+      placementMode: "automatic",
       gapX: 5,
       gapY: 5,
-      marginX: 10,
-      marginY: 10,
-      orientation: "portrait",
+      marginTop: 10,
+      marginRight: 10,
+      marginBottom: 10,
+      marginLeft: 10,
+      alignment: "center",
+      marksMode: "per-piece",
     },
     offsetUnsupportedPolicy: "warn",
   },

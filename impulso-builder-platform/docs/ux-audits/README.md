@@ -27,3 +27,5 @@ Y se entrega siempre en el mismo formato: qué funciona muy bien, qué puede mej
 | [0004](0004-assisted-placement-fase-7-3.md) | Assisted Placement (Epic 7 / Fase 7.3) | 2026-07-19 |
 | [0005](0005-multi-selection-fase-7-4.md) | Professional Multi Selection (Epic 7 / Fase 7.4) | 2026-07-20 |
 | [0006](0006-autosave-recovery-epic-8.md) | Autosave, Recovery & Project Safety (Epic 8) | 2026-07-20 |
+| [0007](0007-technical-production-preview-fase-9-3.md) | Technical Production Preview Foundations (Epic 9 / Fase 9.3) | 2026-07-20 |
+| [0008](0008-production-export-experience-fase-9-4.md) | Production Export Experience (Epic 9 / Fase 9.4) | 2026-07-21 |

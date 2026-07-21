@@ -239,4 +239,84 @@ describe("pdfLibBackend", () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe("embedImage/addImposedSheetPage (Fase 9.4)", () => {
+    it("embedImage + addImposedSheetPage dibuja la MISMA imagen embebida N veces, en cada posición pedida", async () => {
+      const doc = pdfLibBackend.createDocument();
+      const image = await doc.embedImage(onePixelPngBytes());
+      await doc.addImposedSheetPage({
+        mediaWidthPt: 200,
+        mediaHeightPt: 200,
+        mediaBox: { x: 0, y: 0, width: 200, height: 200 },
+        images: [
+          { image, x: 0, y: 0, widthPt: 50, heightPt: 50 },
+          { image, x: 100, y: 100, widthPt: 50, heightPt: 50 },
+        ],
+      });
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      expect(reloaded.getPageCount()).toBe(1);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(countImageDrawOperations(text)).toBe(2);
+
+      // 2 nombres de recurso (uno por llamada a `drawImage`), pero AMBOS
+      // apuntan al MISMO objeto indirecto — la misma imagen embebida una
+      // sola vez, reutilizada por las 2 posiciones (sección 13/15: nunca
+      // re-embeber los mismos bytes).
+      const { PDFDict, PDFName } = await import("pdf-lib");
+      const resources = reloaded.getPages()[0]!.node.Resources();
+      const xObjectDict = resources?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+      const refs = (xObjectDict?.entries() ?? []).map(([, ref]) => ref);
+      expect(refs.length).toBe(2);
+      expect(refs[0]).toBe(refs[1]);
+    });
+
+    it("addImposedSheetPage con un handle de imagen inválido/ajeno lanza PrintEngineError('pdf-backend-failed')", async () => {
+      const docA = pdfLibBackend.createDocument();
+      const docB = pdfLibBackend.createDocument();
+      const imageFromA = await docA.embedImage(onePixelPngBytes());
+
+      await expect(
+        docB.addImposedSheetPage({
+          mediaWidthPt: 100,
+          mediaHeightPt: 100,
+          mediaBox: { x: 0, y: 0, width: 100, height: 100 },
+          images: [{ image: imageFromA, x: 0, y: 0, widthPt: 50, heightPt: 50 }],
+        }),
+      ).rejects.toMatchObject({ code: "pdf-backend-failed" });
+    });
+
+    it("addImposedSheetPage produce un PDF multipágina, con CropBox = MediaBox en cada hoja", async () => {
+      const doc = pdfLibBackend.createDocument();
+      const image = await doc.embedImage(onePixelPngBytes());
+      await doc.addImposedSheetPage({ mediaWidthPt: 100, mediaHeightPt: 100, mediaBox: { x: 0, y: 0, width: 100, height: 100 }, images: [{ image, x: 0, y: 0, widthPt: 100, heightPt: 100 }] });
+      await doc.addImposedSheetPage({ mediaWidthPt: 300, mediaHeightPt: 300, mediaBox: { x: 0, y: 0, width: 300, height: 300 }, images: [{ image, x: 0, y: 0, widthPt: 300, heightPt: 300 }] });
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      expect(reloaded.getPageCount()).toBe(2);
+      const [page1, page2] = reloaded.getPages();
+      expect(page1!.getMediaBox()).toMatchObject({ x: 0, y: 0, width: 100, height: 100 });
+      expect(page1!.getCropBox()).toMatchObject({ x: 0, y: 0, width: 100, height: 100 });
+      expect(page2!.getMediaBox().width).toBeCloseTo(300, 5);
+    });
+
+    it("cropMarks/cutPaths en addImposedSheetPage se dibujan como vectores reales, DESPUÉS de las imágenes", async () => {
+      const doc = pdfLibBackend.createDocument();
+      const image = await doc.embedImage(onePixelPngBytes());
+      await doc.addImposedSheetPage({
+        mediaWidthPt: 100,
+        mediaHeightPt: 100,
+        mediaBox: { x: 0, y: 0, width: 100, height: 100 },
+        images: [{ image, x: 0, y: 0, widthPt: 40, heightPt: 40 }],
+        cropMarks: [{ from: { x: 0, y: 0 }, to: { x: 5, y: 0 }, strokeWidthPt: 1, colorHex: "#000000" }],
+        cutPaths: [{ segments: [{ type: "moveTo", point: { x: 1, y: 1 } }, { type: "lineTo", point: { x: 10, y: 1 } }, { type: "close" }], strokeWidthPt: 0.5, colorHex: "#ff00ff" }],
+      });
+      const bytes = await doc.save();
+      const reloaded = await PDFDocument.load(bytes);
+      const text = getPageContentText(reloaded, reloaded.getPages()[0]!);
+      expect(text).toContain("0 0 m");
+      expect(text).toContain("5 0 l");
+      expect(countImageDrawOperations(text)).toBe(1);
+    });
+  });
 });

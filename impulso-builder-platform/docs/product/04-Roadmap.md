@@ -32,13 +32,14 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) y ADR-0001 a ADR-0009 p
 - Pan del canvas mediante scroll nativo del contenedor, sin una herramienta dedicada de arrastre (Espacio/click central) como la de herramientas de referencia.
 - Especificación de producto para Sticker Builder (sangrado, material) — sigue siendo, hasta hoy, solo un concepto en `../ARCHITECTURE.md`, sin UI real.
 
-## Fase 3 — Print Production 🚧 En construcción (motor real, sin UI de producto todavía)
+## Fase 3 — Print Production ✅ Motor y UI real completos (hardening pendiente)
 
 **Objetivo:** primer lanzamiento con ambición comercial real para el caso de uso central de Sticker Builder — un archivo listo para imprenta, no solo para pantalla.
 
-- **PDF print-ready completo**: `packages/print-engine` (Epic 9 / Fases 9.1-9.3, ver ADR-0021/ADR-0022/ADR-0023) ya produce PDF aplanado de alta resolución con boxes físicos correctos, marcas de corte vectoriales reales, safe area verificable y cut paths (kiss-cut/die-cut V1) — el motor está construido y verificado en Chromium real. Falta: imposición/repetición en hojas, Production Preview definitivo, y la UI de exportación real (Fase 9.4, hoy solo harnesses temporales de verificación) — ver `PRODUCT_BACKLOG.md`.
-- **Rendimiento validado con documentos grandes**: la meta declarada del proyecto ("miles de objetos sin degradar la experiencia") deja de ser un objetivo documentado en `PERFORMANCE_BUDGET.md` y pasa a medirse con documentos reales de ese tamaño.
+- **PDF print-ready completo, con imposición y UI real de exportación**: `packages/print-engine` (Epic 9 / Fases 9.1-9.4, ver ADR-0021 a ADR-0024) produce PDF/PNG aplanados de alta resolución con boxes físicos correctos, marcas de corte vectoriales reales, safe area verificable, cut paths (kiss-cut/die-cut V1), e imposición/repetición en hojas con reutilización real de raster. `apps/sticker-builder` ya tiene el flujo real de "Exportar para impresión" (wizard de 7 pasos, ver ADR-0025) — un usuario real puede usarlo de principio a fin hoy, verificado en Chromium real (accesibilidad, responsividad, foco atrapado). Limitaciones V1 conocidas y documentadas (ver `05-Technical-Debt.md`/UX Audit 0008): sin nesting irregular, sin múltiples perfiles imposicionables, sin UI de asignación de die-line en el Inspector, sin nombre de archivo editable en el wizard.
+- **Rendimiento validado con documentos grandes**: la meta declarada del proyecto ("miles de objetos sin degradar la experiencia") deja de ser un objetivo documentado en `PERFORMANCE_BUDGET.md` y pasa a medirse con documentos reales de ese tamaño. La imposición ya tiene una primera medición empírica (500 piezas/10 hojas, Fase 9.4) — falta la medición general del editor con miles de objects.
 - **Persistencia robusta**: manejo explícito de cuota de almacenamiento agotada.
+- **Pendiente, sin autorización todavía**: Fase 9.5 (Hardening & Golden Tests) — presupuestos de memoria medidos con evidencia real, infraestructura completa de golden files, validación programática de PDF, E2E completo.
 
 ## Fase 4 — Commercial Platform ⏳ Planeada
 

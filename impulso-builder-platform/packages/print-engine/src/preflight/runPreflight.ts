@@ -9,6 +9,7 @@ import { browserImageDimensionsProbe, type ImageDimensionsProbe } from "./imageP
 import { checkCropMarksConfig, checkCropMarksGeometry } from "./cropMarksChecks.js";
 import { checkSafeAreaConfig, checkSafeAreaForPage } from "./safeAreaChecks.js";
 import { checkCutPathForPage } from "./cutPathChecks.js";
+import { checkImpositionConfig, checkImpositionForPage } from "./impositionChecks.js";
 import type { PreflightIssue, PreflightResult } from "./types.js";
 
 export interface RunPreflightOptions {
@@ -138,6 +139,7 @@ export async function runPreflight(
     issues.push(...checkCropMarksGeometry(printJob));
   }
   issues.push(...checkSafeAreaConfig(printJob));
+  issues.push(...checkImpositionConfig(printJob));
 
   for (const pageId of printJob.pageIds) {
     const page = findPage(project, pageId);
@@ -157,6 +159,7 @@ export async function runPreflight(
     // reutiliza el resultado de la primera (sección 24, multipágina).
     issues.push(...checkSafeAreaForPage(page, pageId, printJob));
     issues.push(...checkCutPathForPage(page, pageId, printJob));
+    issues.push(...checkImpositionForPage(pageId, printJob, options.memoryBudgetBytes));
 
     let visibleObjectCount = 0;
     for (const layer of page.layers) {

@@ -21,15 +21,16 @@ Esta separación es la que hace posible todo lo demás: cualquier pilar o módul
 
 ## 2. Los pilares de plataforma (sobre el núcleo)
 
-Cinco paquetes más, cada uno un pilar reutilizable por cualquier módulo futuro — no exclusivos de Sticker Builder:
+Seis paquetes más, cada uno un pilar reutilizable por cualquier módulo futuro — no exclusivos de Sticker Builder:
 
 | Pilar | Paquete | Qué resuelve | Depende de |
 |---|---|---|---|
 | **Asset Library** | `packages/asset-library` | Almacenamiento de binarios de Asset (imágenes hoy; el modelo admite más tipos) — IndexedDB + memoria | `document-schema`, `storage-kit` |
-| **Export Engine** | `packages/export-engine` | Produce archivos finales (PNG/SVG) a partir del Document Schema. SVG lee el Document Schema directamente (nunca Konva); PNG rasteriza vía un `Konva.Stage` headless (`renderer-konva`), nunca el Stage interactivo del editor | `document-schema`, `renderer-konva` |
+| **Export Engine** | `packages/export-engine` | Produce archivos finales para pantalla (PNG/SVG) a partir del Document Schema. SVG lee el Document Schema directamente (nunca Konva); PNG rasteriza vía un `Konva.Stage` headless (`renderer-konva`), nunca el Stage interactivo del editor | `document-schema`, `renderer-konva` |
+| **Print Engine** | `packages/print-engine` | Produce archivos print-ready reales (PDF/PNG físicos) — `PrintJob` versionado, boxes físicas (Trim/Bleed/Media/Safe Area), Preflight, marcas de corte/cut paths vectoriales, imposición/repetición en hojas (Epic 9, Fases 9.1-9.4) | `document-schema`, `engine`, `export-engine`, `renderer-konva`, `pdf-lib` |
 | **Templates** | `packages/template-library` | Catálogo de puntos de partida para crear un proyecto — un Template ES un `Project` completo + metadatos de catálogo | `document-schema`, `engine`, `storage-kit` |
 | **Project Library** | `packages/project-library` | Administra múltiples proyectos guardados (la Workspace) — un `Project` ya es su propio descriptor de catálogo; coordina autosave/recovery (`ProjectSaveCoordinator`, Epic 8) | `document-schema`, `engine`, `storage-kit` |
-| **Storage Kit** | `packages/storage-kit` | Andamiaje genérico de IndexedDB (no un pilar de producto — infraestructura interna compartida por los tres paneles de arriba que usan IndexedDB) | *(ninguna)* |
+| **Storage Kit** | `packages/storage-kit` | Andamiaje genérico de IndexedDB (no un pilar de producto — infraestructura interna compartida por los paneles de arriba que usan IndexedDB) | *(ninguna)* |
 
 **Shared Services, Design System y AI Engine** siguen siendo conceptuales — nombrados en el mapa de producto, sin código real todavía (ver [`product/05-Technical-Debt.md`](product/05-Technical-Debt.md)).
 
@@ -55,16 +56,23 @@ flowchart TD
     DS --> EE[export-engine]
     RK --> EE
 
+    DS --> PE[print-engine]
+    E --> PE
+    EE --> PE
+    RK --> PE
+    PE -.pdf-lib.-> PDFLIB[(pdf-lib)]
+
     AL --> APP[apps/sticker-builder]
     DS --> APP
     E --> APP
     EE --> APP
+    PE --> APP
     PL --> APP
     RK --> APP
     TL --> APP
 ```
 
-Ninguna flecha va "hacia arriba": ni `document-schema` ni `engine` conocen la existencia de ningún pilar ni de la app. `apps/sticker-builder` es el único consumidor de los siete paquetes — un segundo módulo futuro sería otro nodo hoja igual de ancho, nunca insertado entre medio.
+Ninguna flecha va "hacia arriba": ni `document-schema` ni `engine` conocen la existencia de ningún pilar ni de la app. `apps/sticker-builder` es el único consumidor de los ocho paquetes — un segundo módulo futuro sería otro nodo hoja igual de ancho, nunca insertado entre medio.
 
 ## 4. Estructura real del monorepo
 
@@ -78,9 +86,10 @@ impulso-builder-platform/
 │   ├── asset-library/       # AssetBinaryStore (IndexedDB + memoria) + ingesta de imágenes
 │   ├── template-library/    # TemplateStore + instantiateTemplate
 │   ├── project-library/     # ProjectStore + duplicateProject + ProjectSaveCoordinator (autosave/recovery, Epic 8)
-│   └── export-engine/       # exportProject (PNG/SVG) + adaptador de descarga en navegador
+│   ├── export-engine/       # exportProject (PNG/SVG) + adaptador de descarga en navegador
+│   └── print-engine/        # PrintJob, boxes físicas, Preflight, raster/PDF print-ready, imposición (Epic 9, Fases 9.1-9.4)
 ├── apps/
-│   └── sticker-builder/     # el único módulo construido — compone los 7 paquetes de arriba
+│   └── sticker-builder/     # el único módulo construido — compone los 8 paquetes de arriba
 │       └── src/
 │           ├── shell.ts               # orquestador Workspace ↔ Editor (Epic 5)
 │           ├── workspace.ts           # pantalla "Mis proyectos"
@@ -88,7 +97,8 @@ impulso-builder-platform/
 │           ├── bootstrap.ts           # mountCanvasRuntime — primera integración end-to-end
 │           ├── newProjectDialog.ts    # galería de Templates ("Nuevo proyecto")
 │           ├── saveAsTemplateDialog.ts
-│           ├── exportDialog.ts
+│           ├── exportDialog.ts                     # exportación rápida a pantalla (PNG/SVG)
+│           ├── productionPreview.ts / productionExportController.ts / productionExportDialog.ts  # "Exportar para impresión" (Fase 9.4)
 │           ├── assetsPanel.ts / layersPanel.ts / inspector.ts / tools.ts / zoom.ts / keyboardShortcuts.ts
 │           └── workspaceMigration.ts / legacyMigration.ts   # migraciones transparentes de una sola vez
 ├── docs/
@@ -116,8 +126,9 @@ No existen (todavía) `packages/ui`, `packages/config` ni una carpeta `plugin/` 
 - **Vitest** (unit, todos los paquetes) + **Playwright** (verificación en navegador real, por épica) + **`fake-indexeddb`** (para testear los adaptadores IndexedDB reales sin un navegador).
 - **Turborepo + pnpm workspaces** — orquestación del monorepo.
 - **Sin backend, sin auth, sin infraestructura distribuida** — 100% cliente, persistencia 100% local (IndexedDB), tal como se decidió desde Fase 0 y nunca se revirtió.
+- **`pdf-lib`** (Epic 9, desde Fase 9.2) — única dependencia real de generación de PDF, completamente encapsulada detrás de `PdfBackend` (`packages/print-engine/src/pdf/pdfLibBackend.ts`, el único módulo de todo el monorepo que la importa).
 
-Zustand, Immer, Tailwind, Radix UI, React, `idb`, imagetracerjs, js-angusj-clipper y pdf-lib — todos mencionados en el diseño original de Fase 0 — **no forman parte del código real** a la fecha de este documento.
+Zustand, Immer, Tailwind, Radix UI, React, `idb`, imagetracerjs y js-angusj-clipper — todos mencionados en el diseño original de Fase 0 — **no forman parte del código real** a la fecha de este documento.
 
 ## 6. El contrato `RendererAdapter` (real, no un boceto)
 
@@ -135,7 +146,8 @@ interface RendererAdapter {
 
 - **SVG** se genera en `export-engine/src/svg/` leyendo el Document Schema directamente — cero import de Konva en ese módulo (verificado por inspección; ver ADR-0012).
 - **PNG** es la única excepción real: `konvaPngRasterizer` construye un `Konva.Stage` headless (`renderPageToStage`, en `renderer-konva`) — nunca el Stage interactivo del editor, sin selección/handles/overlays. La dependencia de Konva queda acotada y documentada exclusivamente en el adaptador PNG (`png/` de `export-engine`), tras la aprobación formal de esta decisión (ver ADR-0012, condiciones de aprobación).
+- **`packages/print-engine`** (Epic 9) reutiliza el MISMO mecanismo (`renderPageToStage` headless, nunca el Stage interactivo) para producir raster físico a un PPI real — un único Stage offscreen vivo a la vez, destruido antes de procesar la siguiente página/pieza (ver ADR-0022/ADR-0024).
 
 ## 8. Qué sigue quedando fuera de alcance (ver `product/05-Technical-Debt.md` para el detalle completo)
 
-PDF print-ready con línea de corte/sangrado, cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.
+Nesting irregular/optimización automática de desperdicio, tiling de gran formato, integración con RIP/plotter, CMYK/perfiles ICC/Spot Colors certificados (todo lo anterior, Print Engine/Epic 9), cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Fase 9.5 (Hardening & Golden Tests) de Epic 9 está planeada pero sin autorización todavía. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.

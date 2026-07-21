@@ -1,8 +1,8 @@
 {
   "name": "@impulso/print-engine",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Print Engine oficial de Impulso Platform: PrintJob, unidades físicas/PPI, boxes (trim/bleed/safe/media, con espacio de marcas), naming determinista, estimación de memoria, Preflight, pipeline de raster físico y exportación PNG/PDF aplanado de alta resolución con marcas de corte/safe area/cut paths reales — reutilizable por cualquier Builder. Ver ADRs de Epic 9 (Fases 9.1-9.3).",
+  "description": "Print Engine oficial de Impulso Platform: PrintJob, unidades físicas/PPI, boxes (trim/bleed/safe/media, con espacio de marcas), naming determinista, estimación de memoria, Preflight, pipeline de raster físico, exportación PNG/PDF aplanado de alta resolución con marcas de corte/safe area/cut paths reales, e imposición/repetición en hojas con reutilización real de raster — reutilizable por cualquier Builder. Ver ADRs de Epic 9 (Fases 9.1-9.4).",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

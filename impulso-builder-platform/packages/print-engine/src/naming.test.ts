@@ -46,4 +46,15 @@ describe("buildPrintFilename", () => {
     const page2 = buildPrintFilename({ ...BASE, pageCount: 2, pageIndex: 2 });
     expect(page1).not.toBe(page2);
   });
+
+  it("label 'sheet' (Fase 9.4, imposición) numera hojas en vez de páginas", () => {
+    const name = buildPrintFilename({ ...BASE, pageCount: 2, pageIndex: 1, label: "sheet" });
+    expect(name).toBe("Mi Sticker_print-pdf_sheet-01_2026-07-20.pdf");
+    expect(name).not.toContain("page-");
+  });
+
+  it("sin label explícito, usa 'page' por defecto (compatibilidad con Fase 9.2)", () => {
+    const name = buildPrintFilename({ ...BASE, pageCount: 2, pageIndex: 1 });
+    expect(name).toContain("page-01");
+  });
 });

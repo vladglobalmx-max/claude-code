@@ -17,7 +17,12 @@ export type PrintEngineErrorCode =
   | "pdf-backend-failed"
   | "aborted"
   | "unsupported-output"
-  | "internal-cleanup-failed";
+  | "internal-cleanup-failed"
+  /** Fase 9.4 — `computeImpositionLayout` devolvió `ok: false` (la pieza no
+   * cabe, la hoja/cantidad es inválida, etc.). DEFENSIVO: una vez que la
+   * Preflight de imposición (sección 16) esté conectada, ese mismo caso ya
+   * debería estar bloqueado antes de llegar al exportador. */
+  | "imposition-does-not-fit";
 
 export class PrintEngineError extends Error {
   readonly code: PrintEngineErrorCode;

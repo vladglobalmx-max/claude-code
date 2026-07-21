@@ -173,6 +173,50 @@ describe("runPreflight — assets faltantes", () => {
     });
     expect(result.issues.some((i) => i.code === "asset_reference_missing" || i.code === "asset_binary_missing")).toBe(false);
   });
+
+  it("un resolver que RECHAZA (no solo devuelve undefined) produce el mismo asset_binary_missing, en vez de propagar un rechazo crudo — regresión Fase 9.5 (error injection)", async () => {
+    const image = buildImage("obj_1");
+    const project = buildProject({
+      document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [image])])], { assets: [buildImageAsset("asset_1")] }),
+    });
+    const printJob = buildPrintJobFor(project);
+    const failingResolver = { resolve: async (): Promise<Blob | undefined> => Promise.reject(new Error("network down")) };
+    const result = await runPreflight(project, printJob, { resolver: failingResolver, fontChecker: NEVER_CHECK, imageProbe: NO_PROBE });
+    const issue = result.issues.find((i) => i.code === "asset_binary_missing");
+    expect(issue?.severity).toBe("error");
+    expect(result.hasBlockingErrors).toBe(true);
+  });
+});
+
+describe("runPreflight — cancelación cooperativa", () => {
+  it("un signal ya abortado antes de la primera página detiene Preflight de inmediato (regresión Fase 9.5 — antes no existía NINGÚN punto de cancelación dentro de runPreflight)", async () => {
+    const project = buildProject({ document: buildDocument([buildPage("page_1", [buildLayer("layer_1", [buildImage("obj_1")])])], { assets: [buildImageAsset("asset_1")] }) });
+    const printJob = buildPrintJobFor(project);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      runPreflight(project, printJob, { resolver: noopResolver({ asset_1: new Blob(["x"]) }), fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, signal: controller.signal }),
+    ).rejects.toMatchObject({ code: "aborted" });
+  });
+
+  it("abortar DESPUÉS de que la primera página termine detiene Preflight antes de procesar la segunda página", async () => {
+    const controller = new AbortController();
+    const image = buildImage("obj_1");
+    const page1 = buildPage("page_1", [buildLayer("layer_1", [image])]);
+    const page2 = buildPage("page_2", [buildLayer("layer_2", [buildImage("obj_2")])]);
+    const project = buildProject({ document: buildDocument([page1, page2], { assets: [buildImageAsset("asset_1")] }) });
+    const printJob = buildPrintJobFor(project);
+    printJob.pageIds = [page1.id, page2.id];
+    const resolverThatAbortsAfterFirstCall = {
+      resolve: async (assetId: string): Promise<Blob | undefined> => {
+        controller.abort(); // simula el usuario cancelando justo mientras Preflight trabaja
+        return assetId === "asset_1" ? new Blob(["x"]) : undefined;
+      },
+    };
+    await expect(
+      runPreflight(project, printJob, { resolver: resolverThatAbortsAfterFirstCall, fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, signal: controller.signal }),
+    ).rejects.toMatchObject({ code: "aborted" });
+  });
 });
 
 describe("runPreflight — resolución efectiva", () => {

@@ -3,6 +3,7 @@ import type { ExportAssetResolver } from "@impulso/export-engine";
 import { computeBoxes } from "../boxes.js";
 import { physicalToPixels } from "../units.js";
 import { estimateMemoryBytes, type MemoryEstimateInput } from "../memory.js";
+import { throwIfAborted } from "../errors.js";
 import type { PrintJob } from "../types.js";
 import { browserFontChecker, type FontChecker } from "./fonts.js";
 import { browserImageDimensionsProbe, type ImageDimensionsProbe } from "./imageProbe.js";
@@ -17,6 +18,13 @@ export interface RunPreflightOptions {
   fontChecker?: FontChecker;
   imageProbe?: ImageDimensionsProbe;
   memoryBudgetBytes?: number;
+  /** Fase 9.5 (hardening) — Preflight puede recorrer muchas páginas/objects
+   * con I/O real (`resolver.resolve`/`imageProbe.measure`/`fontChecker.check`)
+   * por cada uno; antes de este campo, un `signal` abortado durante una
+   * corrida de Preflight en un documento grande no tenía efecto hasta que
+   * TODO Preflight terminara — el único punto de cancelación cooperativa
+   * que faltaba en todo el pipeline (ver `throwIfAborted`, `errors.ts`). */
+  signal?: AbortSignal;
 }
 
 function findPage(project: Project, pageId: string): Page | undefined {
@@ -142,6 +150,7 @@ export async function runPreflight(
   issues.push(...checkImpositionConfig(printJob));
 
   for (const pageId of printJob.pageIds) {
+    throwIfAborted(options.signal, "preflight-page");
     const page = findPage(project, pageId);
     if (!page) {
       issues.push({
@@ -167,6 +176,7 @@ export async function runPreflight(
       for (const object of layer.objects) {
         if (!object.metadata.visible) continue;
         visibleObjectCount += 1;
+        throwIfAborted(options.signal, "preflight-object");
 
         if (object.type === "image") {
           const assetExists = project.document.assets.some((asset) => asset.id === object.assetId);
@@ -182,7 +192,19 @@ export async function runPreflight(
             });
             continue;
           }
-          const blob = await options.resolver.resolve(object.assetId);
+          // `resolver.resolve` es I/O real provisto por el caller (Fase 9.5,
+          // bug real encontrado): un rechazo (no solo un `undefined`) nunca
+          // estaba contemplado — se propagaba crudo fuera de `runPreflight`,
+          // interrumpiendo Preflight entero en vez de reportarse como el
+          // mismo issue estructurado que ya existe para "no se encontró el
+          // archivo". Desde la perspectiva de Preflight, un resolver que
+          // falla es indistinguible de uno que no encuentra el archivo.
+          let blob: Blob | undefined;
+          try {
+            blob = await options.resolver.resolve(object.assetId);
+          } catch {
+            blob = undefined;
+          }
           if (!blob) {
             issues.push({
               code: "asset_binary_missing",

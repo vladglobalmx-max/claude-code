@@ -70,7 +70,7 @@ export async function renderPrintJob(options: RenderPrintJobOptions): Promise<Re
   emitProgress(onProgress, { stage: "validating" });
   throwIfAborted(signal, "antes de Preflight");
 
-  const preflight = await runPreflight(project, printJob, { resolver, fontChecker, imageProbe, memoryBudgetBytes });
+  const preflight = await runPreflight(project, printJob, { resolver, fontChecker, imageProbe, memoryBudgetBytes, signal });
   if (preflight.hasBlockingErrors) {
     throw new PrintEngineError(
       "preflight-blocked",

@@ -8,6 +8,8 @@ import type { AddImposedSheetPageOptions, PdfBackend, PdfBackendDocument, PdfEmb
 import type { GridImpositionSpec } from "../types.js";
 import { buildDocument, buildImage, buildImageAsset, buildLayer, buildPage, buildPrintJobFor, buildProject, buildRectangle } from "../testUtils/fixtures.js";
 import { countImageDrawOperations, getPageContentText } from "../testUtils/pdfContentInspection.js";
+import * as assetImageCacheModule from "./assetImageCache.js";
+import * as pieceRasterCacheModule from "./pieceRasterCache.js";
 
 let renderPageToStageMock: ReturnType<typeof vi.fn>;
 let resolveActivePageMock: ReturnType<typeof vi.fn>;
@@ -429,6 +431,52 @@ describe("exportImpositionToPdf", () => {
     expect(createDocument).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledTimes(1);
     expect(result.blob).toBeInstanceOf(Blob);
+  });
+
+  it("dispose() de imageCache y pieceCache corre incluso si el backend falla a mitad del ensamblado (hoja 2 de 2) — error injection Fase 9.5", async () => {
+    const page = buildPage("page_1", [], { size: { width: 20, height: 20 }, unit: "mm" });
+    const project = buildProject({ document: buildDocument([page]) });
+    const printJob = buildPrintJobFor(project, "sticker-sheet", {
+      bleed: { top: 0, right: 0, bottom: 0, left: 0, unit: "mm" },
+      cropMarks: { enabled: false, length: 0, offset: 0, strokeWidth: 0, unit: "mm", color: "#000000" },
+      cutPath: { mode: "none", source: { type: "auto" }, offset: 0, unit: "mm", stroke: 0, color: "#ff00ff", logicalLayerName: "CutContour" },
+      imposition: gridImposition(), // quantity 6, capacidad 4/hoja -> 2 hojas
+    });
+
+    const imageDisposeSpy = vi.fn();
+    const pieceDisposeSpy = vi.fn();
+    const realCreateAssetImageCache = assetImageCacheModule.createAssetImageCache;
+    const realCreatePieceRasterCache = pieceRasterCacheModule.createPieceRasterCache;
+    vi.spyOn(assetImageCacheModule, "createAssetImageCache").mockImplementation((resolver) => {
+      const real = realCreateAssetImageCache(resolver);
+      const originalDispose = real.dispose.bind(real);
+      return { ...real, dispose: () => { imageDisposeSpy(); originalDispose(); } };
+    });
+    vi.spyOn(pieceRasterCacheModule, "createPieceRasterCache").mockImplementation(() => {
+      const real = realCreatePieceRasterCache();
+      const originalDispose = real.dispose.bind(real);
+      return { ...real, dispose: () => { pieceDisposeSpy(); originalDispose(); } };
+    });
+
+    let assembledSheets = 0;
+    const addImposedSheetPage = vi.fn(async () => {
+      assembledSheets += 1;
+      if (assembledSheets === 2) throw new Error("backend real: fallo simulado ensamblando la hoja 2");
+    });
+    const embedImage = vi.fn(async () => fakeEmbeddedImage());
+    const save = vi.fn(async () => new Uint8Array([1, 2, 3]));
+    const fakeDocument: PdfBackendDocument = { addRasterPage: vi.fn(), embedImage, addImposedSheetPage, save };
+    const backend: PdfBackend = { createDocument: vi.fn(() => fakeDocument) };
+
+    const { exportImpositionToPdf } = await import("./exportImpositionToPdf.js");
+    await expect(
+      exportImpositionToPdf({ project, printJob, resolver: noopResolver, projectName: "x", fontChecker: NEVER_CHECK, imageProbe: NO_PROBE, now: NOW, backend }),
+    ).rejects.toThrow(/fallo simulado/);
+
+    // El error real del backend (no un error de cleanup) es el que llega al
+    // caller — Y el cleanup corrió de todos modos (finally), nunca se saltó.
+    expect(imageDisposeSpy).toHaveBeenCalledTimes(1);
+    expect(pieceDisposeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("nunca modifica el Project", async () => {

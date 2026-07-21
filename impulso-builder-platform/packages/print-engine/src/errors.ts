@@ -6,18 +6,24 @@ import type { PreflightIssue } from "./preflight/types.js";
  * futura tenga que inspeccionar (sección 19 del enunciado). Nunca se
  * expone el stack interno al usuario: `message` ya es un texto accionable.
  */
+/**
+ * Fase 9.5 (hardening, error injection): 4 códigos que existían en esta
+ * unión pero nunca se lanzaban desde ningún punto real del pipeline
+ * (`invalid-print-job`, `font-unavailable`, `unsupported-output`,
+ * `internal-cleanup-failed`) se eliminaron tras confirmarlo con una
+ * búsqueda exhaustiva — código sin uso, nunca ejercitado por ningún test.
+ * `font-unavailable` en particular era confuso: la falta de una fuente ya
+ * se reporta como el `PreflightIssue` `font_unavailable` (advertencia, no
+ * un error duro) — nunca fue, ni debía ser, un `PrintEngineError`.
+ */
 export type PrintEngineErrorCode =
-  | "invalid-print-job"
   | "preflight-blocked"
   | "memory-budget-exceeded"
   | "asset-resolution-failed"
-  | "font-unavailable"
   | "render-failed"
   | "raster-encoding-failed"
   | "pdf-backend-failed"
   | "aborted"
-  | "unsupported-output"
-  | "internal-cleanup-failed"
   /** Fase 9.4 — `computeImpositionLayout` devolvió `ok: false` (la pieza no
    * cabe, la hoja/cantidad es inválida, etc.). DEFENSIVO: una vez que la
    * Preflight de imposición (sección 16) esté conectada, ese mismo caso ya

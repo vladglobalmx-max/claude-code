@@ -135,14 +135,46 @@ async function waitForStepTitle(expectedTitle: string): Promise<void> {
 }
 
 describe("mountProductionExportDialog", () => {
-  it("open() muestra el paso 'profile' con la tarjeta del perfil Sticker Sheet", () => {
+  it("open() muestra el paso 'profile' con el perfil Sticker Sheet preseleccionado", () => {
     const dialog = mount();
     dialog.open(buildProject(), "Mi Sticker");
 
     expect(container.querySelector(".production-export-dialog-overlay") as HTMLElement).toHaveProperty("style");
     expect(container.querySelector("h2")!.textContent).toBe("Perfil de impresión");
-    expect(container.querySelector(".production-export-profile-card h3")!.textContent).toBe("Sticker Sheet");
+    const selectedCard = container.querySelector(".production-export-profile-card-selected") as HTMLElement;
+    expect(selectedCard.querySelector("h3")!.textContent).toBe("Sticker Sheet");
     expect((container.querySelector(".production-export-back") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("el paso 'profile' muestra los 3 perfiles reales del motor (Fase 9.5 — antes solo uno estaba conectado)", () => {
+    const dialog = mount();
+    dialog.open(buildProject(), "Mi Sticker");
+
+    const titles = Array.from(container.querySelectorAll(".production-export-profile-card h3")).map((el) => el.textContent);
+    expect(titles).toEqual(["Digital PNG", "Print PDF", "Sticker Sheet"]);
+    // "Web Preview" existe en @impulso/print-engine pero deliberadamente no
+    // se expone aquí — ver el comentario junto a WIZARD_PROFILE_IDS.
+    expect(titles).not.toContain("Web Preview");
+  });
+
+  it("elegir un perfil sin imposición (Digital PNG) y avanzar produce un PrintJob en modo 'single', sin campos de imposición en 'config'", () => {
+    const dialog = mount();
+    dialog.open(buildProject(), "Mi Sticker");
+
+    const digitalPngRadio = Array.from(container.querySelectorAll<HTMLInputElement>('.production-export-profile-card input[type="radio"]')).find(
+      (input) => input.value === "digital-png",
+    )!;
+    digitalPngRadio.checked = true;
+    digitalPngRadio.dispatchEvent(new Event("change"));
+    expect(container.querySelector(".production-export-profile-card-selected h3")!.textContent).toBe("Digital PNG");
+
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // profile -> config
+    expect(container.querySelector(".production-export-simple-summary")).not.toBeNull();
+    expect(container.querySelector(".production-export-simple-summary")!.textContent).toContain("PNG");
+    // Ningún control de imposición (cantidad/hoja/gap/alineación) en este
+    // perfil — sección 16: "activar o desactivar imposición según
+    // corresponda".
+    expect(container.querySelector("fieldset")).toBeNull();
   });
 
   it("Escape cierra el diálogo y restaura el foco previo", () => {

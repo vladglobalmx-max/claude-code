@@ -50,6 +50,21 @@ const STEP_TITLES: Record<ExportStep, string> = {
 
 const STEP_ORDER: readonly ExportStep[] = ["profile", "config", "preview", "preflight", "warnings", "progress", "results"];
 
+/**
+ * Perfiles reales expuestos en este wizard (Fase 9.5 — corrige la
+ * discrepancia detectada: los 4 perfiles de `PRINT_PROFILES` existían y
+ * funcionaban en el motor, pero solo `"sticker-sheet"` estaba conectado
+ * aquí, hardcodeado). `"web-preview"` se deja deliberadamente FUERA de
+ * este wizard — ver ADR-0025 (enmienda de Fase 9.5): su propósito
+ * (resolución baja para pantalla, sin bleed/marcas/cut path/imposición)
+ * ya está cubierto por el diálogo de "Exportar" rápido existente
+ * (`exportDialog.ts`), que además ofrece más control útil para ese caso
+ * (fondo transparente/sólido, escala 1x-4x) sin pasarlo por Preflight ni
+ * por los pasos de imposición, que no le aplican. Duplicarlo aquí no
+ * aportaría nada que el usuario no tenga ya, y confundiría el propósito
+ * de este flujo (producción real, no vista rápida). */
+const WIZARD_PROFILE_IDS = ["digital-png", "print-pdf", "sticker-sheet"] as const;
+
 function focusableElements(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(
     (el) => el.offsetParent !== null || el === document.activeElement,
@@ -205,22 +220,42 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
 
     switch (state.step) {
       case "profile": {
-        const profile = PRINT_PROFILES[pendingProfileId];
-        const card = document.createElement("div");
-        card.className = "production-export-profile-card";
-        const cardTitle = document.createElement("h3");
-        cardTitle.textContent = profile.name;
-        const cardDescription = document.createElement("p");
-        cardDescription.textContent = profile.description;
-        card.append(cardTitle, cardDescription);
-        body.appendChild(card);
+        const list = document.createElement("div");
+        list.className = "production-export-profile-list";
+        list.setAttribute("role", "radiogroup");
+        list.setAttribute("aria-label", "Perfil de impresión");
+        for (const profileId of WIZARD_PROFILE_IDS) {
+          const profile = PRINT_PROFILES[profileId];
+          const card = document.createElement("label");
+          card.className = "production-export-profile-card";
+          card.classList.toggle("production-export-profile-card-selected", profileId === pendingProfileId);
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = "production-export-profile";
+          radio.value = profileId;
+          radio.checked = profileId === pendingProfileId;
+          radio.addEventListener("change", () => {
+            pendingProfileId = profileId;
+            renderStep(controller.getState());
+          });
+          const cardTitle = document.createElement("h3");
+          cardTitle.textContent = profile.name;
+          const cardDescription = document.createElement("p");
+          cardDescription.textContent = profile.description;
+          card.append(radio, cardTitle, cardDescription);
+          list.appendChild(card);
+        }
+        body.appendChild(list);
         nextButton.textContent = "Comenzar ▶";
         break;
       }
       case "config": {
-        if (!state.printJob || state.printJob.imposition.mode !== "grid") break;
-        const imposition = state.printJob.imposition;
-        body.appendChild(buildConfigForm(state.printJob, imposition));
+        if (!state.printJob) break;
+        if (state.printJob.imposition.mode === "grid") {
+          body.appendChild(buildConfigForm(state.printJob, state.printJob.imposition));
+        } else {
+          body.appendChild(buildSimpleConfigForm(state.printJob));
+        }
         break;
       }
       case "preview": {
@@ -338,6 +373,56 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
         break;
       }
     }
+  }
+
+  /**
+   * Paso de configuración para un perfil SIN imposición (`digital-png`/
+   * `print-pdf`, sección 16 del enunciado de Fase 9.5) — sin grid/hoja
+   * que configurar, pero igual debe mostrar formato/resolución/bleed
+   * reales del `PrintJob`, no una pantalla en blanco (el gap detectado en
+   * Fase 9.5: antes de este fix, un perfil sin imposición renderizaba un
+   * paso de configuración completamente vacío).
+   */
+  function buildSimpleConfigForm(printJob: PrintJob): HTMLElement {
+    const form = document.createElement("div");
+
+    const summary = document.createElement("dl");
+    summary.className = "production-export-simple-summary";
+    function summaryRow(term: string, value: string): void {
+      const dt = document.createElement("dt");
+      dt.textContent = term;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      summary.append(dt, dd);
+    }
+    summaryRow("Formato", printJob.output.toUpperCase());
+    summaryRow("Resolución", `${printJob.resolution.targetPpi} PPI`);
+    summaryRow(
+      "Sangrado",
+      printJob.bleed.top === 0 && printJob.bleed.right === 0 && printJob.bleed.bottom === 0 && printJob.bleed.left === 0
+        ? "Sin sangrado"
+        : `${printJob.bleed.top}${printJob.bleed.unit} por lado`,
+    );
+    form.appendChild(summary);
+
+    const outputLabel = document.createElement("label");
+    outputLabel.textContent = "Formato de salida";
+    const outputSelect = document.createElement("select");
+    for (const value of ["pdf", "png"] as const) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value.toUpperCase();
+      option.selected = printJob.output === value;
+      outputSelect.appendChild(option);
+    }
+    outputSelect.addEventListener("change", () => {
+      const value = outputSelect.value as "pdf" | "png";
+      controller.updatePrintJob((draft) => ({ ...draft, output: value }));
+    });
+    outputLabel.appendChild(outputSelect);
+    form.appendChild(outputLabel);
+
+    return form;
   }
 
   function buildConfigForm(printJob: PrintJob, imposition: Extract<PrintJob["imposition"], { mode: "grid" }>): HTMLElement {

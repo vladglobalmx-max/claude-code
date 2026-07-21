@@ -118,10 +118,13 @@ test("el preview (paso 3) renderiza un canvas real de la hoja, sin modificar el 
   expect(canvasSize?.height).toBeGreaterThan(0);
 });
 
-test("el paso de perfil muestra nombre y descripción comprensibles (sección 24, sin jerga técnica en el nombre)", async ({ page }) => {
+test("el paso de perfil muestra los 3 perfiles reales, con nombre/descripción comprensibles (sección 24, sin jerga técnica en el nombre)", async ({ page }) => {
   await openProductionExportDialog(page);
-  await expect(page.locator(".production-export-profile-card h3")).toHaveText("Sticker Sheet");
-  await expect(page.locator(".production-export-profile-card p")).not.toBeEmpty();
+  const titles = await page.locator(".production-export-profile-card h3").allTextContents();
+  expect(titles).toEqual(["Digital PNG", "Print PDF", "Sticker Sheet"]);
+  await expect(page.locator(".production-export-profile-card-selected h3")).toHaveText("Sticker Sheet");
+  const descriptions = await page.locator(".production-export-profile-card p").allTextContents();
+  for (const description of descriptions) expect(description.length).toBeGreaterThan(0);
 });
 
 test("'Atrás' está deshabilitado en el primer paso", async ({ page }) => {

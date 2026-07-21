@@ -30,6 +30,8 @@ import type { ExportAssetResolver } from "@impulso/export-engine";
 import {
   exportImpositionToPdf,
   exportImpositionToPng,
+  exportPrintJobToPdf,
+  exportPrintJobToPng,
   runPreflight,
   PrintEngineError,
   type PrintJob,
@@ -37,6 +39,8 @@ import {
   type PrintExportProgressEvent,
   type ExportImpositionToPdfResult,
   type ExportImpositionToPngResult,
+  type ExportPrintJobToPdfResult,
+  type ExportPrintJobToPngResult,
   type FontChecker,
   type ImageDimensionsProbe,
 } from "@impulso/print-engine";
@@ -45,7 +49,7 @@ export type ExportStep = "profile" | "config" | "preview" | "preflight" | "warni
 
 const STEP_ORDER: readonly ExportStep[] = ["profile", "config", "preview", "preflight", "warnings", "progress", "results"];
 
-export type ExportResult = ExportImpositionToPdfResult | ExportImpositionToPngResult;
+export type ExportResult = ExportImpositionToPdfResult | ExportImpositionToPngResult | ExportPrintJobToPdfResult | ExportPrintJobToPngResult;
 
 export interface ProductionExportState {
   isOpen: boolean;
@@ -239,7 +243,6 @@ export function mountProductionExportController(options: MountProductionExportCo
       if (preflight.hasBlockingErrors) return;
       const hasWarnings = preflight.issues.some((issue) => issue.severity === "warning");
       if (hasWarnings && !warningsAccepted) return;
-      if (!isImposed(printJob)) return;
 
       exporting = true;
       progress = undefined;
@@ -265,7 +268,17 @@ export function mountProductionExportController(options: MountProductionExportCo
           memoryBudgetBytes,
           now,
         };
-        result = printJob.output === "pdf" ? await exportImpositionToPdf(shared) : await exportImpositionToPng(shared);
+        // Perfiles SIN imposición (`digital-png`/`print-pdf`, `imposition.mode
+        // === "single"`) usan los exportadores de página única de Fase 9.2
+        // (`exportPrintJobToPdf`/`exportPrintJobToPng`) — `exportImpositionToPdf`/
+        // `exportImpositionToPng` exigen `mode === "grid"` y lanzan si no (ver
+        // `exportImpositionToPdf.ts`). Bug real de Fase 9.5: antes de este fix,
+        // `startExport` llamaba SIEMPRE a los exportadores de imposición sin
+        // verificar el modo — para un `PrintJob` sin imposición la llamada real
+        // habría lanzado un error no manejado; el guard `isImposed` original lo
+        // evitaba con un `return` silencioso, dejando el wizard colgado
+        // indefinidamente en "Preparando…" sin ninguna forma de continuar.
+        result = isImposed(printJob) ? (printJob.output === "pdf" ? await exportImpositionToPdf(shared) : await exportImpositionToPng(shared)) : printJob.output === "pdf" ? await exportPrintJobToPdf(shared) : await exportPrintJobToPng(shared);
         step = "results";
       } catch (thrown) {
         if (thrown instanceof PrintEngineError && thrown.code === "aborted") {

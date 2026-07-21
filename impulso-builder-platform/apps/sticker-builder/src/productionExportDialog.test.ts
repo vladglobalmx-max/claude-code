@@ -177,6 +177,34 @@ describe("mountProductionExportDialog", () => {
     expect(container.querySelector("fieldset")).toBeNull();
   });
 
+  it("un proyecto SIN advertencias (perfil Digital PNG, sin die-line/imposición/bleed que objetar) completa la exportación real hasta 'Resultado' — regresión Fase 9.5: antes de este fix, el paso 'warnings' se saltaba automáticamente a 'progress' sin llamar nunca a startExport(), dejando el wizard colgado indefinidamente en 'Preparando…' sin ningún botón visible para continuar (el de 'Siguiente' se oculta en el paso 'progress')", async () => {
+    const dialog = mount();
+    dialog.open(buildProject(), "Mi Sticker");
+
+    const digitalPngRadio = Array.from(container.querySelectorAll<HTMLInputElement>('.production-export-profile-card input[type="radio"]')).find(
+      (input) => input.value === "digital-png",
+    )!;
+    digitalPngRadio.checked = true;
+    digitalPngRadio.dispatchEvent(new Event("change"));
+
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // profile -> config
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // config -> preview
+    await flush();
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // preview -> preflight
+    (container.querySelector(".production-export-body button") as HTMLButtonElement).click(); // "Correr Preflight"
+    await flush();
+    // Confirma que este escenario realmente ejercita el camino "sin
+    // advertencias" — si el entorno alguna vez produjera una advertencia
+    // real aquí, este test dejaría de probar lo que dice probar.
+    expect(container.querySelector(".production-export-issues-error")).toBeNull();
+    expect(container.querySelector(".production-export-issues-warning")).toBeNull();
+
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // preflight -> (warnings, auto-skip) -> progress -> (al completar) results
+    await waitForStepTitle("Resultado");
+    const downloadButton = container.querySelector(".production-export-body button") as HTMLButtonElement;
+    expect(downloadButton.textContent).toContain("Descargar");
+  });
+
   it("Escape cierra el diálogo y restaura el foco previo", () => {
     const trigger = document.createElement("button");
     document.body.appendChild(trigger);

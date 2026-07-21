@@ -352,6 +352,36 @@ describe("mountProductionExportController", () => {
     expect(state.step).toBe("results");
   });
 
+  it("startExport() con imposition.mode !== 'grid' (perfiles digital-png/print-pdf) produce un resultado real vía exportPrintJobToPdf — regresión Fase 9.5: antes de este fix, startExport llamaba SIEMPRE a los exportadores de imposición (que exigen mode==='grid' y lanzan si no) protegidos por un guard que simplemente no hacía nada para PrintJobs sin imposición, dejando el wizard sin forma de completar la exportación para esos perfiles", async () => {
+    const project = buildProject();
+    const printJob = buildPrintJob(project, { imposition: { mode: "single" } });
+    const controller = mount();
+    await toReadyForExport(controller, project, printJob);
+
+    await controller.startExport("Mi Sticker", () => NOW);
+
+    const state = controller.getState();
+    expect(state.exporting).toBe(false);
+    expect(state.step).toBe("results");
+    expect(state.error).toBeUndefined();
+    expect(state.result?.format).toBe("pdf");
+    expect(state.result && "pageCount" in state.result ? state.result.pageCount : undefined).toBe(1);
+  });
+
+  it("startExport() con imposition.mode !== 'grid' y output 'png' produce un resultado real vía exportPrintJobToPng (misma regresión de arriba, variante PNG)", async () => {
+    const project = buildProject();
+    const printJob = buildPrintJob(project, { imposition: { mode: "single" }, output: "png" });
+    const controller = mount();
+    await toReadyForExport(controller, project, printJob);
+
+    await controller.startExport("Mi Sticker", () => NOW);
+
+    const state = controller.getState();
+    expect(state.step).toBe("results");
+    expect(state.result?.format).toBe("png");
+    expect(state.result && "pages" in state.result ? state.result.pages.length : undefined).toBe(1);
+  });
+
   it("cancelExport() aborta la exportación en curso sin tratarlo como un error", async () => {
     const project = buildProject();
     const printJob = buildPrintJob(project);

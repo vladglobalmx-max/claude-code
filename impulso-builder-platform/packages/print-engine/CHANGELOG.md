@@ -17,6 +17,8 @@ Versión final y changelog completo se consolidan al cierre de esta fase (ver `d
 - `apps/sticker-builder`: umbral de cobertura restaurado (los harnesses temporales nunca se habían excluido del reporte de vitest).
 - `apps/sticker-builder`: `e2e/assisted-placement.spec.ts`'s test de Smart Guides corregido de raíz — no era un flake, dependía de un bug ya corregido en Fase 9.1. Suite E2E completa (37 escenarios) verde por primera vez.
 - `apps/sticker-builder`: discrepancia de perfiles de exportación resuelta — el wizard ahora conecta 3 de los 4 perfiles reales del motor (ver ADR-0025, enmienda).
+- `apps/sticker-builder`, bug real encontrado durante la verificación de performance/memoria de esta fase: `ProductionExportController.startExport()` llamaba SIEMPRE a los exportadores de imposición (que exigen `imposition.mode === "grid"`) y no hacía nada para los perfiles sin imposición ("Digital PNG"/"Print PDF", agregados al selector en esta misma fase) — el wizard quedaba colgado indefinidamente en "Preparando…" sin producir ningún archivo ni error visible. Corregido despachando a `exportPrintJobToPdf`/`exportPrintJobToPng` (Fase 9.2) según el modo; el paso "results" del diálogo ahora distingue ambos tipos de resultado. Ver 2da enmienda de ADR-0025.
+- `apps/sticker-builder`, segundo bug relacionado: el auto-avance del paso "warnings" (cuando Preflight no reporta advertencias) solo cambiaba de paso a "progress" sin disparar `startExport()` — un proyecto genuinamente sin advertencias quedaba con el mismo síntoma de wizard colgado. Corregido disparando la exportación real en ese mismo punto.
 
 ## [0.4.0] — Epic 9 / Fase 9.4: Imposition & Sheet Repetition
 

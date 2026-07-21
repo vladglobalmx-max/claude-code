@@ -118,6 +118,47 @@ test("el preview (paso 3) renderiza un canvas real de la hoja, sin modificar el 
   expect(canvasSize?.height).toBeGreaterThan(0);
 });
 
+test("perfil 'Digital PNG' (sin imposición) completa la exportación real hasta la descarga — regresión Fase 9.5: startExport() exigía SIEMPRE imposition.mode==='grid' y no hacía nada para los perfiles sin imposición añadidos en esta misma fase, dejando el wizard colgado en 'Preparando…' sin forma de continuar", async ({ page }) => {
+  await openProductionExportDialog(page);
+  await page.click('.production-export-profile-card input[value="digital-png"]');
+  await page.click(".production-export-next"); // profile -> config
+  await page.click(".production-export-next"); // config -> preview
+  // La Production Preview solo aplica a imposición (mode: "grid") — para un
+  // perfil sin imposición muestra un banner de error explícito, nunca un
+  // canvas ni un crash (comportamiento ya existente, verificado aquí).
+  await expect(page.locator(".production-preview-error")).toBeVisible();
+  await page.click(".production-export-next"); // preview -> preflight
+  await page.click(".production-export-body button"); // "Correr Preflight"
+  await expect(page.locator(".production-export-issues-error")).toHaveCount(0);
+  await page.click(".production-export-next"); // preflight -> warnings (real advertencias aquí, ej. resolución) o auto-skip a progress
+  if ((await page.locator(".production-export-dialog h2").textContent()) === "Advertencias") {
+    await page.click(".production-export-accept-warnings input");
+    await page.click(".production-export-next"); // warnings -> progress -> results
+  }
+  await expect(page.locator(".production-export-dialog h2")).toHaveText("Resultado", { timeout: 15_000 });
+  await expect(page.locator(".production-export-body button")).toContainText("Descargar");
+});
+
+test("perfil 'Print PDF' (sin imposición, con bleed/marcas estándar) completa la exportación real hasta la descarga con el resumen de página(s), no de hoja(s)/pieza(s)", async ({ page }) => {
+  await openProductionExportDialog(page);
+  await page.click('.production-export-profile-card input[value="print-pdf"]');
+  await page.click(".production-export-next"); // profile -> config
+  await page.click(".production-export-next"); // config -> preview
+  await expect(page.locator(".production-preview-error")).toBeVisible();
+  await page.click(".production-export-next"); // preview -> preflight
+  await page.click(".production-export-body button"); // "Correr Preflight"
+  await expect(page.locator(".production-export-issues-error")).toHaveCount(0);
+  await page.click(".production-export-next"); // preflight -> warnings o auto-skip
+  if ((await page.locator(".production-export-dialog h2").textContent()) === "Advertencias") {
+    await page.click(".production-export-accept-warnings input");
+    await page.click(".production-export-next");
+  }
+  await expect(page.locator(".production-export-dialog h2")).toHaveText("Resultado", { timeout: 15_000 });
+  // `ExportPrintJobToPdfResult` resume en "página(s)" — nunca en
+  // "hoja(s)/pieza(s)" (ese resumen es exclusivo de la imposición real).
+  await expect(page.locator(".production-export-body p")).toContainText("página");
+});
+
 test("el paso de perfil muestra los 3 perfiles reales, con nombre/descripción comprensibles (sección 24, sin jerga técnica en el nombre)", async ({ page }) => {
   await openProductionExportDialog(page);
   const titles = await page.locator(".production-export-profile-card h3").allTextContents();

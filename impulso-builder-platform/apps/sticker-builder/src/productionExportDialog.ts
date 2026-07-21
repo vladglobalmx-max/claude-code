@@ -299,8 +299,16 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
         const hasWarnings = state.preflight?.issues.some((i) => i.severity === "warning") ?? false;
         if (!hasWarnings) {
           // Nada que aceptar — se avanza automáticamente (sección 29: solo
-          // se pregunta cuando realmente hay algo que aceptar).
-          controller.setStep("progress");
+          // se pregunta cuando realmente hay algo que aceptar) Y se dispara
+          // la exportación real de inmediato. Bug real de Fase 9.5: la
+          // versión anterior solo llamaba `controller.setStep("progress")`
+          // — `startExport()` NUNCA se invocaba para un proyecto sin
+          // advertencias (solo el click en "Siguiente" mientras
+          // `state.step === "warnings"` lo hacía, y ese paso nunca llegaba a
+          // renderizarse aquí), dejando el wizard colgado indefinidamente en
+          // "Preparando…" sin ningún botón visible (el de "Siguiente" se
+          // oculta en el paso "progress") para continuar.
+          if (currentProject) void controller.startExport(defaultProjectName, now);
           return;
         }
         const label = document.createElement("label");
@@ -352,18 +360,33 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
             downloadButton.textContent = `Descargar ${result.filename} (${formatBytes(result.blob.size)})`;
             downloadButton.addEventListener("click", () => triggerBrowserDownload(result.blob, result.filename));
             body.appendChild(downloadButton);
-            const summary = document.createElement("p");
-            summary.textContent = `${result.sheetCount} hoja(s), ${result.pieceCount} pieza(s) en total.`;
-            body.appendChild(summary);
+            // Solo el PDF imposicionado (`ExportImpositionToPdfResult`) trae
+            // `sheetCount`/`pieceCount` — el PDF de página única sin
+            // imposición (`ExportPrintJobToPdfResult`, perfiles
+            // `digital-png`/`print-pdf`) no tiene ese concepto, y en su
+            // lugar expone `pageCount`.
+            if ("sheetCount" in result) {
+              const summary = document.createElement("p");
+              summary.textContent = `${result.sheetCount} hoja(s), ${result.pieceCount} pieza(s) en total.`;
+              body.appendChild(summary);
+            } else {
+              const summary = document.createElement("p");
+              summary.textContent = `${result.pageCount} página(s).`;
+              body.appendChild(summary);
+            }
           } else {
+            // Imposición (`sheets`, una entrada por hoja física) vs página
+            // única sin imposición (`pages`, una entrada por página del
+            // documento) — mismo par filename/blob en ambos casos.
+            const entries = "sheets" in result ? result.sheets : result.pages;
             const list = document.createElement("ul");
             list.className = "production-export-results-list";
-            for (const sheet of result.sheets) {
+            for (const entry of entries) {
               const li = document.createElement("li");
               const downloadButton = document.createElement("button");
               downloadButton.type = "button";
-              downloadButton.textContent = `Descargar ${sheet.filename} (${formatBytes(sheet.blob.size)})`;
-              downloadButton.addEventListener("click", () => triggerBrowserDownload(sheet.blob, sheet.filename));
+              downloadButton.textContent = `Descargar ${entry.filename} (${formatBytes(entry.blob.size)})`;
+              downloadButton.addEventListener("click", () => triggerBrowserDownload(entry.blob, entry.filename));
               li.appendChild(downloadButton);
               list.appendChild(li);
             }

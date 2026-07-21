@@ -1,0 +1,453 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 1. texto + shape 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 204.09,
+        "width": 204.09,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 2. imagen 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 204.09,
+        "width": 204.09,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 3. transparencia 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 0,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 4. object cruzando el trim 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 99.86,
+        "width": 99.86,
+      },
+      "trimBox": {
+        "height": 37.5,
+        "width": 37.5,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 5. bleed asimétrico 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 218.27,
+        "width": 238.11,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 6. multipágina 1`] = `
+{
+  "pageCount": 3,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 204.09,
+        "width": 204.09,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 204.09,
+        "width": 204.09,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 204.09,
+        "width": 204.09,
+      },
+      "trimBox": {
+        "height": 141.73,
+        "width": 141.73,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 7. Circular Sticker 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 175.75,
+        "width": 175.75,
+      },
+      "trimBox": {
+        "height": 113.39,
+        "width": 113.39,
+      },
+      "vectorLineSegmentCount": 8,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 8. Closed Path Sticker 1`] = `
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 1,
+      "mediaBox": {
+        "height": 175.75,
+        "width": 175.75,
+      },
+      "trimBox": {
+        "height": 113.39,
+        "width": 113.39,
+      },
+      "vectorLineSegmentCount": 11,
+    },
+  ],
+}
+`;
+
+exports[`Golden outputs — snapshots estructurales de PDF (Fase 9.5) > 9. Sticker Sheet (imposicionado, 50 copias) 1`] = `
+{
+  "pageCount": 25,
+  "pages": [
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+    {
+      "hasAlphaImage": false,
+      "imageDrawCount": 2,
+      "mediaBox": {
+        "height": 170.08,
+        "width": 283.46,
+      },
+      "trimBox": undefined,
+      "vectorLineSegmentCount": 22,
+    },
+  ],
+}
+`;

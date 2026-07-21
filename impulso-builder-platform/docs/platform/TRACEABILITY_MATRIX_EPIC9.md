@@ -39,8 +39,8 @@
 | Determinismo de exportación (bytes/estructura estables entre corridas) | Funciones puras por construcción (sin estado global, `now` siempre inyectado) | `precisionAndDeterminism.test.ts` — 20 exportaciones PDF repetidas del mismo fixture, estructura (páginas/boxes/cantidad de imágenes) idéntica en las 20; test dedicado que documenta explícitamente que la igualdad byte-a-byte de `pdf-lib` NO se afirma sin evidencia | — | `complete` (determinismo ESTRUCTURAL verificado empíricamente; byte-a-byte deliberadamente no reclamado) |
 | Precisión física (mm/in/px canónico/pt/PPI, casos mínimos del enunciado) | `units.ts` | `precisionAndDeterminism.test.ts` — A4/Letter/100mm/bleed 0.125in/3mm/página 960px/300-150 PPI/pixelRatio fraccional/escalas 0.5-1-2, con tolerancia documentada | ADR-0021 | `complete` |
 | Golden fixtures (documentos canónicos) | `testUtils/goldenFixtures.ts` — 10 de 10 (Fase 9.5 agregó Circular Sticker, Closed Path Sticker, Sticker Sheet, Font Fallback disponible/no-disponible, 3 Failure Cases) | `goldenFixtures.test.ts` (13) | ADR-0022 | `complete` |
-| Golden outputs (PNG hash/PDF estructura, con tolerancia) | — no existe infraestructura dedicada todavía | — | — | `not-supported` todavía (ver Pendientes — sección 3/4 del enunciado de Fase 9.5) |
-| Regresión visual (diff con umbral/artefactos) | — no existe todavía | — | — | `not-supported` todavía (ver Pendientes) |
+| Golden outputs (PNG hash/PDF estructura, con tolerancia) | `testUtils/pdfStructuralSnapshot.ts` (`describePdfStructure`) — snapshot estructural (páginas/boxes/cantidad de imágenes-vectores/alpha), NUNCA el binario del PDF, vía `toMatchSnapshot` de vitest | `raster/goldenOutputs.test.ts` (9, uno por fixture canónico incl. imposición de 50 copias) a través del pipeline REAL (`exportPrintJobToPdf`/`exportImpositionToPdf`, pdf-lib real) | — | `complete` (snapshots de texto pequeños, human-reviewable; un cambio real de geometría/boxes/cantidad rompe el snapshot) |
+| Regresión visual (diff con umbral/artefactos) | `productionPreview.ts` (canvas real de imposición) | `e2e/production-export.spec.ts` — comparación de área BLANCA real del canvas (footprint de piezas) entre `quantity=1` y `quantity=4` del mismo contenido; investigado empíricamente (histograma de color) que el fondo del canvas es casi negro y domina cualquier conteo de "no blanco", por lo que la señal correcta es contar píxeles casi-blancos | — | `complete` (para el caso de imposición grid; no cubre diff pixel-a-pixel general con expected/actual/diff persistidos — ese enfoque más pesado no fue necesario dado el caso a verificar) |
 | Property-based / generative tests | Seed fija (`mulberry32`, sin agregar dependencia) | `precisionAndDeterminism.test.ts` — round-trip de unidades (200 casos), inclusión Trim⊆Bleed⊆Media (100 casos), crop marks nunca invaden TrimBox (50 casos), `capacity === rows×columns` y piezas colocadas ≤ quantity en imposición (30 casos) | — | `complete` |
 
 ## Producto (`apps/sticker-builder`)
@@ -65,11 +65,10 @@
 
 1. Tabla formal código-por-código de los 44 códigos de Preflight (severidad/trigger/blocking/recommendation/test/UI handling).
 2. Endurecimiento exhaustivo de cancelación en TODOS los puntos cooperativos (tabla de verificación, no solo cobertura general).
-3. Infraestructura de golden outputs + regresión visual + normalización (el determinismo ESTRUCTURAL ya está verificado; falta la comparación VISUAL con tolerancia/artefactos de diff).
-4. Medición empírica de memoria/performance con datos observados (actualizar `PERFORMANCE_BUDGET.md`).
-5. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
-6. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
-7. UX Audit 0009 (validación final).
+3. Medición empírica de memoria/performance con datos observados (actualizar `PERFORMANCE_BUDGET.md`).
+4. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
+5. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
+6. UX Audit 0009 (validación final).
 
 ## Cómo se usa este documento
 

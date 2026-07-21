@@ -192,3 +192,73 @@ test("layout responsivo del paso de Preflight (con issues visibles) también sin
   });
   expect(overflowsHorizontally).toBe(false);
 });
+
+test("regresión visual — el preview de imposición dibuja MÁS de una copia real cuando quantity aumenta (nunca una sola pieza escalada o repetida como imagen estática)", async ({ page }) => {
+  // Fase 9.5, sección 6 (regresión visual): en vez de predecir coordenadas
+  // exactas de celdas de grid (frágil — la Production Preview aplica su
+  // propio PPI/zoom/Fit, ver el fix de `assisted-placement.spec.ts` de
+  // esta misma fase para el mismo riesgo), se compara el área BLANCA
+  // (el footprint de la(s) pieza(s), sobre un fondo de canvas oscuro
+  // fuera del área útil) del canvas real entre `quantity=1` y
+  // `quantity=4` del MISMO contenido. Investigado empíricamente antes de
+  // escribir la aserción (capturas reales + histograma de color): el
+  // fondo del canvas es casi negro y domina cualquier conteo de "no
+  // blanco" — contar píxeles blancos mide directamente cuánta área de
+  // hoja está ocupada por piezas reales, y escaló ~4.0x exacto en la
+  // investigación (24768 -> 99072 píxeles blancos) para quantity 1 -> 4.
+  await page.click('button:has-text("Texto")'); // contenido real antes de abrir el wizard
+  // `computeInsertPosition` (tools.ts, Technical Debt) no convierte
+  // `page.size` a píxeles antes de calcular dónde centrar el object nuevo
+  // — en una página de 50mm (usada por `openNewBlankProject`) el texto
+  // insertado queda en x canónico NEGATIVO, fuera del área visible de la
+  // pieza (mismo hallazgo ya documentado al corregir
+  // `assisted-placement.spec.ts` en esta misma fase). Se reposiciona
+  // explícitamente vía el Inspector — nunca arrastrando con el mouse, que
+  // dependería de coordenadas de pantalla frágiles — a un punto conocido
+  // y visible dentro de la pieza.
+  await page.click(".layer-row");
+  const xInput = page.locator('.inspector-field:has(span:text-is("X")) input');
+  const yInput = page.locator('.inspector-field:has(span:text-is("Y")) input');
+  await expect(xInput).toBeVisible();
+  await xInput.fill("5");
+  await xInput.press("Tab");
+  await yInput.fill("5");
+  await yInput.press("Tab");
+
+  await openProductionExportDialog(page);
+  await page.click(".production-export-next"); // profile -> config
+
+  async function setQuantityAndCountWhiteArea(quantity: number): Promise<number> {
+    const quantityInput = page.locator("fieldset input[type='number']").first();
+    await quantityInput.fill(String(quantity));
+    await quantityInput.press("Tab");
+    await page.click(".production-export-next"); // config -> preview
+    await page.waitForSelector(".production-preview-canvas-slot canvas");
+    await page.waitForTimeout(150); // deja que el preview termine de renderizar tras el cambio
+
+    const whitePixels = await page.evaluate(() => {
+      const canvas = document.querySelector(".production-preview-canvas-slot canvas") as HTMLCanvasElement | null;
+      if (!canvas) return 0;
+      const ctx = canvas.getContext("2d")!;
+      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let white = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) white++;
+      }
+      return white;
+    });
+
+    await page.click(".production-export-back"); // preview -> config, para el siguiente cambio de quantity
+    return whitePixels;
+  }
+
+  const whiteAreaAtQuantity1 = await setQuantityAndCountWhiteArea(1);
+  const whiteAreaAtQuantity4 = await setQuantityAndCountWhiteArea(4);
+
+  expect(whiteAreaAtQuantity1).toBeGreaterThan(0); // la pieza sí produce área blanca real
+  // Tolerancia >3x (la investigación empírica dio ~4.0x exacto) — evita
+  // sobreajustar a un número exacto, mientras sigue exigiendo claramente
+  // MÁS de una copia real, nunca la misma área repetida sin importar
+  // `quantity` (el síntoma de una sola pieza estática).
+  expect(whiteAreaAtQuantity4).toBeGreaterThan(whiteAreaAtQuantity1 * 3);
+});

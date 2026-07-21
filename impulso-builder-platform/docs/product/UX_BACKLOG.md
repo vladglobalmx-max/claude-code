@@ -24,7 +24,7 @@
 | 14 | Contador breve ("N objects seleccionados") en el Inspector cuando la selección es 2+ | UX Audit 0005 | Editor |
 | 15 | Agregar un campo de texto editable para el nombre base del archivo en el wizard de "Exportar para impresión" (paso de configuración o de resultados), en vez de depender únicamente del nombre del Project al abrir el diálogo | UX Audit 0008 | Editor / Export |
 | 16 | Mostrar un mensaje breve ("No hay nada que ajustar todavía") si "Ajustar" (Fit) del Production Preview no puede calcular una escala real, en vez de no hacer nada visible | UX Audit 0008 | Editor / Export |
-| 17 | Texto de ayuda en el paso de perfil del wizard de exportación explicando por qué solo aparece un perfil hoy ("Sticker Sheet es el único perfil con imposición disponible") — para que no parezca un selector vacío roto | UX Audit 0008 | Editor / Export |
+| 17 | ~~Texto de ayuda explicando por qué solo aparece un perfil~~ — ya no aplica (los 3 perfiles funcionan desde Fase 9.5). Reemplazado: texto breve aclarando por qué "Web Preview" no aparece en este wizard (ya cubierto por "Exportar" rápido) — para que un usuario que conoce el motor no se pregunte por un 4to perfil faltante | UX Audit 0009 | Editor / Export |
 
 ## Medium (más que un quick win, sin requerir una épica completa)
 

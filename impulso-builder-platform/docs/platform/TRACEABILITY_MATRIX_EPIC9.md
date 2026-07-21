@@ -67,10 +67,12 @@
 
 ---
 
-## Pendientes de esta fase (no bloquean el resto del hardening, pero deben resolverse antes del cierre de Epic 9)
+## Pendientes de esta fase
 
-1. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
-2. UX Audit 0009 (validación final).
+Ninguno. Los dos ítems que quedaban abiertos ya se resolvieron (cada uno con su resolución honesta, no necesariamente con la funcionalidad construida):
+
+1. ~~Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.~~ — Resuelto: el entorno no lo permite (solo Chromium instalado); documentado como `not-supported`/límite de entorno en la fila "Cross-browser" de la tabla de Producto, no omitido en silencio.
+2. ~~UX Audit 0009 (validación final).~~ — Resuelto: `docs/ux-audits/0009-production-export-hardening-fase-9-5.md` completado.
 
 ## Cómo se usa este documento
 

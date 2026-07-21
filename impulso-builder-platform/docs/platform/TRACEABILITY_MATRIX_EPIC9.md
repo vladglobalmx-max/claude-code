@@ -58,6 +58,9 @@
 | Responsive | `index.html`/`productionExportDialog.ts` | `e2e/production-export.spec.ts` (4 viewports) | ADR-0025 | `partially-supported` — verificado en 1366×768/1440×900/1920×1080/360×740; faltan 1024×768 y un ancho de tablet explícito (ver Pendientes) |
 | Descargas (PDF único, PNG múltiple) | `triggerBrowserDownload` (`@impulso/export-engine`) | Cubierto en `productionExportDialog.test.ts`/E2E | ADR-0025 | `complete` para el caso básico; "Descargar todos" (ZIP) `not-supported` (no evaluado como necesidad real todavía) |
 | Cross-browser (Firefox/WebKit) | — solo Chromium hoy | — | — | `not-supported` todavía (ver Pendientes) |
+| Performance real del wizard (Chromium, sin mocks) | `productionExportController.ts`/`productionPreview.ts` (mismo pipeline real) | `e2e/production-export-hardening.spec.ts` — ciclo completo con 200 copias imposicionadas, dato observado registrado en `PERFORMANCE_BUDGET.md` (fila 28) | `PERFORMANCE_BUDGET.md` | `complete` (verificado en un entorno; no se afirma como cota universal cross-máquina) |
+| Memoria observada del wizard (Chromium, `performance.memory`) | — | `e2e/production-export-hardening.spec.ts` — heap antes/después de 5 ciclos completos, dato observado en `PERFORMANCE_BUDGET.md` (fila 29) | `PERFORMANCE_BUDGET.md` | `partially-supported` — la señal confirma ausencia de crecimiento desbocado, pero `performance.memory` es una API no estándar y cuantizada, sin GC forzado; no es una medición precisa de memoria de proceso |
+| Resource leaks del wizard (object URLs, canvases, diálogo) | `productionExportDialog.ts`/`productionPreview.ts`/`@impulso/export-engine` (`triggerBrowserDownload`) — cleanup ya existente, confirmado correcto | `e2e/production-export-hardening.spec.ts` — 3 ciclos de éxito + 3 ciclos de cancelación repetida, object URLs creates===revokes y conteo de `<canvas>` vuelve a la línea base en ambos casos | `PERFORMANCE_BUDGET.md` (fila 30) | `complete` para object URLs/canvases/ciclo de vida del diálogo; timers/listeners/`ImageBitmap` no tienen contador global inspeccionable — se revisaron manualmente (sin hallazgos), ver limitación en `PERFORMANCE_BUDGET.md` |
 
 ---
 
@@ -65,10 +68,9 @@
 
 1. Tabla formal código-por-código de los 44 códigos de Preflight (severidad/trigger/blocking/recommendation/test/UI handling).
 2. Endurecimiento exhaustivo de cancelación en TODOS los puntos cooperativos (tabla de verificación, no solo cobertura general).
-3. Medición empírica de memoria/performance con datos observados (actualizar `PERFORMANCE_BUDGET.md`).
-4. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
-5. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
-6. UX Audit 0009 (validación final).
+3. Auditoría formal de accesibilidad (más allá de los escenarios ya verificados) + viewports adicionales (1024×768, tablet).
+4. Smoke cross-browser (Firefox/WebKit) si el entorno lo permite.
+5. UX Audit 0009 (validación final).
 
 ## Cómo se usa este documento
 

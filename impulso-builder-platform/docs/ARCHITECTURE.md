@@ -27,7 +27,7 @@ Seis paquetes más, cada uno un pilar reutilizable por cualquier módulo futuro 
 |---|---|---|---|
 | **Asset Library** | `packages/asset-library` | Almacenamiento de binarios de Asset (imágenes hoy; el modelo admite más tipos) — IndexedDB + memoria | `document-schema`, `storage-kit` |
 | **Export Engine** | `packages/export-engine` | Produce archivos finales para pantalla (PNG/SVG) a partir del Document Schema. SVG lee el Document Schema directamente (nunca Konva); PNG rasteriza vía un `Konva.Stage` headless (`renderer-konva`), nunca el Stage interactivo del editor | `document-schema`, `renderer-konva` |
-| **Print Engine** | `packages/print-engine` | Produce archivos print-ready reales (PDF/PNG físicos) — `PrintJob` versionado, boxes físicas (Trim/Bleed/Media/Safe Area), Preflight, marcas de corte/cut paths vectoriales, imposición/repetición en hojas (Epic 9, Fases 9.1-9.4) | `document-schema`, `engine`, `export-engine`, `renderer-konva`, `pdf-lib` |
+| **Print Engine** | `packages/print-engine` | Produce archivos print-ready reales (PDF/PNG físicos) — `PrintJob` versionado, boxes físicas (Trim/Bleed/Media/Safe Area), Preflight, marcas de corte/cut paths vectoriales, imposición/repetición en hojas, endurecido con golden tests/performance/cancelación (Epic 9, Fases 9.1-9.5) | `document-schema`, `engine`, `export-engine`, `renderer-konva`, `pdf-lib` |
 | **Templates** | `packages/template-library` | Catálogo de puntos de partida para crear un proyecto — un Template ES un `Project` completo + metadatos de catálogo | `document-schema`, `engine`, `storage-kit` |
 | **Project Library** | `packages/project-library` | Administra múltiples proyectos guardados (la Workspace) — un `Project` ya es su propio descriptor de catálogo; coordina autosave/recovery (`ProjectSaveCoordinator`, Epic 8) | `document-schema`, `engine`, `storage-kit` |
 | **Storage Kit** | `packages/storage-kit` | Andamiaje genérico de IndexedDB (no un pilar de producto — infraestructura interna compartida por los paneles de arriba que usan IndexedDB) | *(ninguna)* |
@@ -87,7 +87,7 @@ impulso-builder-platform/
 │   ├── template-library/    # TemplateStore + instantiateTemplate
 │   ├── project-library/     # ProjectStore + duplicateProject + ProjectSaveCoordinator (autosave/recovery, Epic 8)
 │   ├── export-engine/       # exportProject (PNG/SVG) + adaptador de descarga en navegador
-│   └── print-engine/        # PrintJob, boxes físicas, Preflight, raster/PDF print-ready, imposición (Epic 9, Fases 9.1-9.4)
+│   └── print-engine/        # PrintJob, boxes físicas, Preflight, raster/PDF print-ready, imposición (Epic 9, Fases 9.1-9.5, cerrada)
 ├── apps/
 │   └── sticker-builder/     # el único módulo construido — compone los 8 paquetes de arriba
 │       └── src/
@@ -98,7 +98,7 @@ impulso-builder-platform/
 │           ├── newProjectDialog.ts    # galería de Templates ("Nuevo proyecto")
 │           ├── saveAsTemplateDialog.ts
 │           ├── exportDialog.ts                     # exportación rápida a pantalla (PNG/SVG)
-│           ├── productionPreview.ts / productionExportController.ts / productionExportDialog.ts  # "Exportar para impresión" (Fase 9.4)
+│           ├── productionPreview.ts / productionExportController.ts / productionExportDialog.ts  # "Exportar para impresión" (Fase 9.4, endurecido en Fase 9.5)
 │           ├── assetsPanel.ts / layersPanel.ts / inspector.ts / tools.ts / zoom.ts / keyboardShortcuts.ts
 │           └── workspaceMigration.ts / legacyMigration.ts   # migraciones transparentes de una sola vez
 ├── docs/
@@ -150,4 +150,4 @@ interface RendererAdapter {
 
 ## 8. Qué sigue quedando fuera de alcance (ver `product/05-Technical-Debt.md` para el detalle completo)
 
-Nesting irregular/optimización automática de desperdicio, tiling de gran formato, integración con RIP/plotter, CMYK/perfiles ICC/Spot Colors certificados (todo lo anterior, Print Engine/Epic 9), cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Fase 9.5 (Hardening & Golden Tests) de Epic 9 está planeada pero sin autorización todavía. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.
+Nesting irregular/optimización automática de desperdicio, tiling de gran formato, integración con RIP/plotter, CMYK/perfiles ICC/Spot Colors certificados (todo lo anterior, Print Engine/Epic 9), cuentas/auth, sincronización remota, colaboración en tiempo real, marketplace, un segundo módulo real, arquitectura de plugins abierta a terceros — todos deliberadamente diferidos hasta que exista una necesidad de negocio concreta, no por limitación técnica. Epic 9 (Professional Print Engine) está completa y cerrada (Fases 9.1-9.5, ver `docs/platform/TRACEABILITY_MATRIX_EPIC9.md`) — ninguna épica nueva está autorizada todavía. Ver [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) para estas capacidades evaluadas con valor/prioridad/dependencias/complejidad, y [`WHAT_SHOULD_WE_BUILD_NEXT.md`](../WHAT_SHOULD_WE_BUILD_NEXT.md) para la recomendación de la próxima épica.

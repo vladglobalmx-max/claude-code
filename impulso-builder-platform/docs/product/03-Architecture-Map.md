@@ -2,7 +2,7 @@
 
 > Cómo está organizada toda **Impulso Platform**, en capas. Este documento describe la estructura conceptual de PRODUCTO — qué existe, qué está planeado, y cómo se relaciona todo. Para el razonamiento técnico de por qué se decidió así, ver [ADR-0001](../adr/0001-impulso-engine-architecture.md) y [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Para el detalle de implementación de cada pieza ya construida, ver el README de su paquete.
 >
-> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library**, **Print Engine** (en construcción — Fase 9.3 de 5, ver ADR-0021/ADR-0022/ADR-0023) y el módulo **Sticker Builder**. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
+> **Nota de honestidad:** de todo lo descrito aquí, hoy existe código real para **Impulso Engine** (Document Schema, Engine Core, Renderer Adapter), **Asset Library**, **Export Engine**, **Templates**, **Project Library**, **Print Engine** (completo — Epic 9 cerrada, Fases 9.1-9.5, ver ADR-0021 a ADR-0025) y el módulo **Sticker Builder**. **Commercial Platform** tiene arquitectura/modelo completos pero solo un paquete de contrato de datos real (`packages/commercial-schema`, Fase 4.1, ver ADR-0026 a ADR-0029) — sin capabilities/entitlements/licensing/canales implementados todavía. Shared Services, Design System, AI Engine y el resto de los Modules son la estructura conceptual hacia la que la plataforma crece — no paquetes ya construidos. Ver [`05-Technical-Debt.md`](05-Technical-Debt.md) para el detalle de qué falta de cada uno.
 
 ---
 
@@ -27,7 +27,9 @@ Impulso Platform
 │
 ├── Project Library             (✅ construido — Epic 5, ver ADR-0014; Workspace, administración de múltiples proyectos)
 │
-├── Print Engine                (🚧 en construcción — Epic 9 / Fase 9.3 de 5, ver ADR-0021/ADR-0022/ADR-0023; modelo de PrintJob/unidades/boxes/Preflight + pipeline real de raster físico/PNG multipágina/PDF aplanado de alta resolución con backend `pdf-lib` encapsulado + marcas de corte/safe area/cut paths reales; sin imposición/Production Preview/UI de exportación final todavía)
+├── Print Engine                (✅ construido — Epic 9 completa y cerrada, Fases 9.1-9.5, ver ADR-0021 a ADR-0025; PrintJob/boxes físicas/Preflight (44 códigos)/raster PDF-PNG aplanado/marcas de corte/safe area/cut paths/imposición, con wizard real de 7 pasos en Sticker Builder, endurecido con golden tests/performance/accesibilidad/cross-browser documentado)
+│
+├── Commercial Platform          (📐 diseñado, sin producto — Fase 4.1, ver ADR-0026 a ADR-0029; boundaries Module/Feature/Commercial Product/Entitlement/License/Channel, capa ortogonal a los pilares creativos de arriba — nunca insertada entre ellos y un Module; único código real: `packages/commercial-schema`, contrato de datos puro)
 │
 └── Modules                     (consumidores de todo lo anterior)
       ├── Sticker Builder          ✅ construido (Foundations 1-3, Editor 1-3, Editor Epic 1, Milestone 1 Alpha)

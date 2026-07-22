@@ -84,17 +84,18 @@ La estructura conceptual de la plataforma nombra pilares que hoy son solo eso �
 
 ## 4. Infraestructura y backend (no construida)
 
-Ninguna pieza de infraestructura de servidor existe todavía — Fase 1 es 100% cliente, por decisión de producto (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Offline First"), no por limitación. El disparador de negocio de cada una vive en `PRODUCT_BACKLOG.md` ("Cloud Sync / Cuentas", "Colaboración en tiempo real", "Marketplace").
+Ninguna pieza de infraestructura de servidor existe todavía — Fase 1 es 100% cliente, por decisión de producto (ver [`02-Product-Principles.md`](02-Product-Principles.md), "Offline First"), no por limitación. El disparador de negocio de cada una vive en `PRODUCT_BACKLOG.md` ("Cloud Sync / Cuentas", "Colaboración en tiempo real", "Marketplace", "Commercial Platform").
 
 | Ítem | Se incorpora cuando... |
 |---|---|
 | Auth (Clerk/Auth.js o equivalente) | Se necesite identificar usuarios entre sesiones/dispositivos. |
-| Backend HTTP | El `StorageProvider` remoto (Cloud Sync) necesite un servidor real detrás. |
-| Base de datos relacional (PostgreSQL) | Exista almacenamiento server-side — viene junto con el backend HTTP. |
+| Backend HTTP | El `StorageProvider` remoto (Cloud Sync) o un `EntitlementService`/`GumroadAdapter` real (Fase 4.4+) necesiten un servidor real detrás. |
+| Base de datos relacional (PostgreSQL, recomendación por defecto Supabase — ver `docs/platform/COST_MODEL.md`) | Exista almacenamiento server-side — viene junto con el backend HTTP. |
 | Cola de jobs distribuida (Redis + BullMQ) | El procesamiento de exportación deje de poder resolverse en un Web Worker del navegador. |
 | Object storage remoto (S3/R2) | Los assets/exports necesiten vivir fuera del navegador del usuario. |
 | Renderers adicionales (Pixi, SVG-only, headless) | Exista un caso de uso concreto — el contrato `RendererAdapter` ya lo permite sin rediseño. |
-| Checkout, fulfillment, integración con imprentas, white-label | Fuera de alcance del producto tal como está definido hoy (ver [`01-Product-Vision.md`](01-Product-Vision.md)) — decisión de qué ES y qué NO ES Impulso, no solo una postergación técnica. |
+| Checkout, fulfillment, integración con imprentas, white-label | Checkout: cubierto por Gumroad en V1 (Fase 4.1, ver ADR-0029), sin backend propio. Fulfillment/imprentas/white-label siguen fuera de alcance del producto tal como está definido hoy (ver [`01-Product-Vision.md`](01-Product-Vision.md)). |
+| `@impulso/capabilities`/`entitlements`/`licensing`/`commerce-adapters` (paquetes comerciales diseñados pero no creados en Fase 4.1) | Fase 4.2 (capabilities/manifest real), Fase 4.3 (entitlements/licensing), Fase 4.4 (commerce-adapters/Gumroad) — ver `docs/platform/COMMERCIAL_PLATFORM_ROADMAP.md`. Ninguno tiene todavía un consumidor real que justifique crearlo antes de tiempo (mismo principio aplicado a `@impulso/commercial-schema`, el único creado en 4.1). |
 
 ## 5. Deuda técnica de rendimiento (registrada en `../PERFORMANCE_BUDGET.md`)
 

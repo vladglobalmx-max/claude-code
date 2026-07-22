@@ -41,15 +41,16 @@ Ver [`../MILESTONE_1_ALPHA.md`](../MILESTONE_1_ALPHA.md) y ADR-0001 a ADR-0009 p
 - **Persistencia robusta**: manejo explícito de cuota de almacenamiento agotada.
 - **Fase 9.5 (Hardening & Golden Tests) completada**: golden outputs/fixtures, precisión física/determinismo/property-based tests, performance/memoria/resource-leaks verificados con datos reales de Chromium, error injection y cancelación cooperativa exhaustiva (incluido un gap real cerrado en `runPreflight`), tabla formal de los 44 códigos de Preflight, accesibilidad/responsive/descargas endurecidas (2 bugs reales encontrados y corregidos: escape de foco atrapado, truncado de nombre de archivo). Ver `docs/platform/TRACEABILITY_MATRIX_EPIC9.md` para el estado completo y el reporte ejecutivo final de Fase 9.5 para el cierre formal de Epic 9.
 
-## Fase 4 — Commercial Platform ⏳ Planeada
+## Fase 4 — Commercial Platform 🔶 En progreso (Fase 4.1 completa)
 
-**Objetivo:** algo que se pueda ofrecer a usuarios finales fuera de un contexto de prueba, con la calidad de experiencia que la Visión de Producto exige.
+**Objetivo:** convertir Impulso de un conjunto de Builders técnicamente funcionales en una plataforma capaz de empaquetar productos, controlar acceso, vender licencias, distribuir actualizaciones, y soportar venta directa y canales externos — manteniendo aislamiento entre producto, comercio y experiencia creativa.
 
-- **Onboarding**: la primera vez que alguien abre la app sin contexto previo, entiende qué hacer sin documentación externa.
-- **Cuentas / Cloud Sync**: continuar un proyecto entre dispositivos (ver `PRODUCT_BACKLOG.md` — depende de que exista una razón de negocio concreta).
-- **Compartir**: links de solo lectura o exportación compartible (ver `PRODUCT_BACKLOG.md`).
+- **Fase 4.1 — Commercial Platform Architecture & Product Packaging ✅ Completa**: arquitectura de 11 capas con dependencia unidireccional (ver [ADR-0026](../adr/0026-commercial-platform-boundaries.md)), modelo `CommercialProduct`/`ProductManifest`/`Capability`/`Entitlement` (ADR-0027/0028), Gumroad como canal de checkout/entrega inicial y Bookfluence como storefront/marketing (ADR-0029), threat model inicial, recomendación V1 concreta (pago único, sin cuenta obligatoria, sin backend, `licensingMode: "delivery-only"`), roadmap de fases 4.2-4.8, y el primer paquete de foundation (`@impulso/commercial-schema`, contrato de datos puro, 37 tests, 100% cobertura) — sin ningún cambio de comportamiento en el producto real. Ver `docs/platform/COMMERCIAL_PLATFORM_ROADMAP.md` para el detalle de cada sub-fase siguiente, cada una con su propia autorización.
+- **Onboarding**: la primera vez que alguien abre la app sin contexto previo, entiende qué hacer sin documentación externa — todavía no abordado.
+- **Cuentas / Cloud Sync**: continuar un proyecto entre dispositivos (ver `PRODUCT_BACKLOG.md`) — evaluado conceptualmente en Fase 4.1 (identidad opcional, no obligatoria para V1), decisión real diferida a Fase 4.5.
+- **Compartir**: links de solo lectura o exportación compartible (ver `PRODUCT_BACKLOG.md`) — todavía no abordado.
 - **Fundación de AI Provider Agnostic**, si para entonces existe una primera capacidad de IA concreta a construir — nace desde el día uno detrás de un contrato/adaptador propio, nunca acoplada directamente a un proveedor.
-- **Facturación**, si el negocio define una propuesta de precios validada.
+- **Facturación**, si el negocio define una propuesta de precios validada — Fase 4.1 recomienda pago único vía Gumroad como V1, sin facturación propia.
 
 ## Fase 5 — Multi Builder Platform ⏳ Planeada
 

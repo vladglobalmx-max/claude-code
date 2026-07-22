@@ -16,12 +16,19 @@
 - **Dependencias:** Export Engine (`packages/export-engine`) + Print Engine (`packages/print-engine`, Fases 9.1-9.5) — ambos construidos, endurecidos, y en uso real.
 - **Complejidad:** Resuelta. Fase 9.5 (Hardening & Golden Tests) completada — golden outputs/fixtures, precisión física/determinismo/property-based tests, performance/memoria/resource-leaks verificados en Chromium real, error injection y cancelación cooperativa exhaustiva, tabla formal de 44 códigos de Preflight, accesibilidad/responsive/descargas endurecidas. Cross-browser (Firefox/WebKit) queda como límite de entorno documentado, no resuelto (ver Technical Debt).
 
+## Commercial Platform (empaquetado, licencias, distribución) — arquitectura y modelo completos (Fase 4.1)
+
+**Diseñado y modelado, sin producto todavía — no confundir con "resuelto".** Fase 4.1 (Commercial Platform Architecture & Product Packaging) entregó la arquitectura completa que gobierna cómo Impulso se convierte en algo vendible: boundaries Module/Feature/Commercial Product/Entitlement/License/Channel (ver [ADR-0026](../adr/0026-commercial-platform-boundaries.md)), formato de `commercial-product.json` (ADR-0027), estrategia de licensing V1 sin backend ni DRM agresivo (ADR-0028), y Gumroad/Bookfluence como canal inicial/storefront (ADR-0029). Incluye una recomendación V1 concreta (ver `docs/platform/V1_COMMERCIAL_RECOMMENDATION.md`): producto único "Sticker Builder" con pago único vía Gumroad, sin cuenta obligatoria, sin backend, `licensingMode: "delivery-only"`. El único código real de esta fase es `@impulso/commercial-schema` (contrato de datos puro — `CommercialProduct`/`ProductManifest`/`Capability`/`Entitlement`, sin lógica de negocio).
+- **Prioridad:** Alta para continuar — es la vía identificada para la primera venta real del proyecto, pero cada sub-fase (4.2-4.8, ver `docs/platform/COMMERCIAL_PLATFORM_ROADMAP.md`) requiere su propia autorización explícita antes de iniciar, misma disciplina que Epic 9.
+- **Dependencias:** Ninguna técnica bloqueante para Fase 4.2 (Product Manifest & Capabilities real) — el modelo ya está diseñado. Fases 4.4+ dependen de decisiones de negocio externas (acuerdo con Bookfluence, alta en Gumroad).
+- **Complejidad:** Media para 4.2-4.3 (sin backend); alta a partir de 4.4-4.5 si se decide agregar un canal con verificación técnica o cuentas reales.
+
 ## Cloud Sync / Cuentas
 
 - **Valor:** Habilita continuar un proyecto entre dispositivos — condición previa para cualquier capacidad de colaboración, compartir, o versionado real.
-- **Prioridad:** Media — sin una razón de negocio concreta todavía (uso actual es 100% individual y local), pero es la dependencia dura de casi todo lo demás en este documento.
+- **Prioridad:** Media — sin una razón de negocio concreta todavía (uso actual es 100% individual y local), pero es la dependencia dura de casi todo lo demás en este documento. Fase 4.1 evaluó esto conceptualmente (ver `V1_COMMERCIAL_RECOMMENDATION.md` §1) y recomendó NO construir cuentas para el V1 comercial — la cuenta de Gumroad del comprador cubre recuperación/historial en esta etapa.
 - **Dependencias:** Requiere Auth (identificar usuarios) + backend HTTP + base de datos remota — ninguno existe hoy. `StorageProvider`/`ProjectStore` ya están diseñados como interfaces reemplazables, así que una implementación remota no exigiría rediseñar cómo el Engine guarda/lee un documento.
-- **Complejidad:** Alta. Es, en la práctica, la primera pieza de infraestructura de servidor de toda la plataforma — nada de eso existe hoy (ver `05-Technical-Debt.md`, "Infraestructura y backend").
+- **Complejidad:** Alta. Es, en la práctica, la primera pieza de infraestructura de servidor de toda la plataforma — nada de eso existe hoy (ver `05-Technical-Debt.md`, "Infraestructura y backend"). Fase 4.1 recomienda Supabase como default declarado para cuando exista evidencia real de necesitarlo (ver `docs/platform/COST_MODEL.md`), sin comprometerse a esa elección todavía.
 
 ## Compartir (links de solo lectura / exportación compartible)
 

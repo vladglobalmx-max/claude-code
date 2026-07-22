@@ -74,6 +74,7 @@
 | 24 | **UI de asignación de `metadata.role: "die-line"`** en el Inspector — desbloquearía el camino feliz completo del wizard de exportación (y del Production Preview de Fase 9.3) sin depender de editar el documento directamente; hoy es la brecha más visible detectada durante la verificación E2E real de Fase 9.4 | UX Audit 0008 | Editor / Export |
 | 25 | ~~Múltiples perfiles de imposición en el wizard de exportación~~ — **resuelto en Fase 9.5**: el gap real era wiring de UI (`pendingProfileId` hardcodeado), no falta de perfiles en el motor — ver enmienda de ADR-0025. El wizard ahora ofrece Digital PNG/Print PDF/Sticker Sheet; "Web Preview" queda fuera por decisión explícita (cubierto por el export rápido existente) | UX Audit 0008 | Editor / Export |
 | 26 | **Persistencia de configuraciones de imposición como preset reutilizable** — explícitamente fuera de alcance de Fase 9.4 salvo trivial; evaluar cuando exista evidencia real de que los usuarios repiten la misma configuración entre proyectos | UX Audit 0008 | Editor / Export |
+| 27 | **UX comercial** (activación, feature bloqueada, periodo de gracia, upgrade, recuperación) — wireflows textuales diseñados en Fase 4.1 (`docs/platform/V1_COMMERCIAL_RECOMMENDATION.md` §4), sin UI real todavía; solo se construye si Fase 4.2+ introduce una segunda edición/producto que la justifique | Fase 4.1 (Commercial Platform Architecture) | Plataforma completa |
 
 ---
 

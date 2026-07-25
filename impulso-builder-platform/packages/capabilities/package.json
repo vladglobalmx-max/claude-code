@@ -1,0 +1,34 @@
+{
+  "name": "@impulso/capabilities",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CapabilityProvider real (Fase 4.2): evalúa el manifest comercial local, sin backend ni llamadas remotas. Capa 4 de la arquitectura comercial (ver ADR-0026).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@impulso/commercial-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.0.5",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

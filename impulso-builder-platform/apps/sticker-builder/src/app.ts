@@ -292,7 +292,7 @@ export function mountApp(deps: AppDependencies): App {
     try {
       await projectStore.saveRecovery(project, now());
     } catch (error) {
-      console.error("[Epic 8] No se pudo escribir el recovery:", error);
+      console.error("No se pudo escribir el recovery:", error);
     }
     let thumbnail: Blob | undefined;
     try {
@@ -304,7 +304,7 @@ export function mountApp(deps: AppDependencies): App {
     try {
       await projectStore.clearRecovery(project.id);
     } catch (error) {
-      console.error("[Epic 8] No se pudo limpiar el recovery:", error);
+      console.error("No se pudo limpiar el recovery:", error);
     }
   }
 

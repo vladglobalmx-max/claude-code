@@ -11,9 +11,20 @@ import {
 } from "@impulso/document-schema";
 import { createMemoryProjectStore, type ProjectStore } from "@impulso/project-library";
 import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template-library";
+import { createMemoryAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import { mountWorkspace } from "./workspace.js";
 import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
 import { createProjectFromSize } from "./projectPresets.js";
+import { serializeProjectBackup } from "./projectBackup.js";
+
+const triggerBrowserDownloadMock = vi.fn();
+vi.mock("@impulso/export-engine", async () => {
+  const actual = await vi.importActual<typeof import("@impulso/export-engine")>("@impulso/export-engine");
+  return {
+    ...actual,
+    triggerBrowserDownload: (...args: unknown[]) => triggerBrowserDownloadMock(...args),
+  };
+});
 
 /** Pre-siembra el store con los 3 Templates incorporados ya "existentes" —
  * evita que `mountWorkspace`'s propio sembrado perezoso (ver ADR-0014)
@@ -91,10 +102,16 @@ async function flush(): Promise<void> {
 describe("mountWorkspace", () => {
   let projectStore: ProjectStore;
   let templateStore: TemplateStore;
+  let assetStore: AssetBinaryStore;
 
   beforeEach(() => {
     projectStore = createMemoryProjectStore();
     templateStore = createMemoryTemplateStore();
+    assetStore = createMemoryAssetStore();
+    // La bienvenida de primera ejecución (Fase 4.2) se guarda en
+    // localStorage — sin limpiarlo, un test que la cierre "contaminaría" el
+    // resto de la suite (dejaría de mostrarse), y viceversa.
+    window.localStorage.clear();
     vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:x"), revokeObjectURL: vi.fn() });
   });
 
@@ -105,7 +122,7 @@ describe("mountWorkspace", () => {
 
   it("muestra el mensaje vacío cuando no hay proyectos guardados", async () => {
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     expect((div.querySelector(".workspace-empty") as HTMLElement).style.display).toBe("block");
@@ -117,7 +134,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_new", { metadata: { ...metadata, name: "Nuevo", updatedAt: "2026-06-01T00:00:00.000Z" } }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     const names = Array.from(div.querySelectorAll(".workspace-card-name")).map((el) => el.textContent);
@@ -130,7 +147,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_planner", { moduleId: "planner-builder" }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     expect(div.querySelectorAll(".workspace-card")).toHaveLength(1);
@@ -142,7 +159,7 @@ describe("mountWorkspace", () => {
     const onOpenProject = vi.fn();
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject });
     await flush();
 
     (div.querySelector(".workspace-card-open") as HTMLButtonElement).click();
@@ -161,7 +178,7 @@ describe("mountWorkspace", () => {
       const onOpenProject = vi.fn();
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject });
       await flush();
 
       const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
@@ -178,7 +195,7 @@ describe("mountWorkspace", () => {
       await projectStore.saveRecovery(saved, "2026-07-19T09:00:00.000Z");
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
       await flush();
 
       const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
@@ -193,7 +210,7 @@ describe("mountWorkspace", () => {
       const onOpenProject = vi.fn();
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject });
       await flush();
 
       (div.querySelector(".workspace-recovery-discard") as HTMLButtonElement).click();
@@ -211,7 +228,7 @@ describe("mountWorkspace", () => {
       const onOpenProject = vi.fn();
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject });
       await flush();
 
       (div.querySelector(".workspace-recovery-open-saved") as HTMLButtonElement).click();
@@ -226,7 +243,7 @@ describe("mountWorkspace", () => {
       await projectStore.saveRecovery(neverSaved, "2026-07-20T09:00:00.000Z");
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
       await flush();
 
       const banner = div.querySelector(".workspace-recovery-banner") as HTMLElement;
@@ -240,7 +257,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_1", { metadata: { ...metadata, name: "Original" } }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-rename") as HTMLButtonElement).click();
@@ -258,7 +275,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_1", { metadata: { ...metadata, name: "Original" } }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-rename") as HTMLButtonElement).click();
@@ -274,7 +291,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_1", { metadata: { ...metadata, name: "Original" } }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-rename") as HTMLButtonElement).click();
@@ -290,7 +307,7 @@ describe("mountWorkspace", () => {
     await projectStore.save(buildProject("project_1", { metadata: { ...metadata, name: "Original" } }));
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-duplicate") as HTMLButtonElement).click();
@@ -306,7 +323,7 @@ describe("mountWorkspace", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-delete") as HTMLButtonElement).click();
@@ -321,7 +338,7 @@ describe("mountWorkspace", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-card-delete") as HTMLButtonElement).click();
@@ -334,7 +351,7 @@ describe("mountWorkspace", () => {
   it("'Nuevo proyecto' abre la galería de Templates existente", async () => {
     await preSeedBuiltIns(templateStore, "2026-01-01T00:00:00.000Z");
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     (div.querySelector(".workspace-new-btn") as HTMLButtonElement).click();
@@ -348,7 +365,7 @@ describe("mountWorkspace", () => {
     await preSeedBuiltIns(templateStore, "2026-01-01T00:00:00.000Z");
     const onOpenProject = vi.fn();
     const div = container();
-    mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject });
+    mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject });
     await flush();
 
     (div.querySelector(".workspace-new-btn") as HTMLButtonElement).click();
@@ -369,7 +386,7 @@ describe("mountWorkspace", () => {
       },
     };
     const div = container();
-    mountWorkspace(div, { projectStore: failingStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    mountWorkspace(div, { projectStore: failingStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     const error = div.querySelector(".workspace-error") as HTMLElement;
@@ -379,7 +396,7 @@ describe("mountWorkspace", () => {
 
   it("destroy() remueve la pantalla completa del DOM", async () => {
     const div = container();
-    const workspace = mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    const workspace = mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
 
     workspace.destroy();
@@ -389,7 +406,7 @@ describe("mountWorkspace", () => {
 
   it("refresh() vuelve a cargar la grilla manualmente", async () => {
     const div = container();
-    const workspace = mountWorkspace(div, { projectStore, templateStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+    const workspace = mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
     await flush();
     expect(div.querySelectorAll(".workspace-card")).toHaveLength(0);
 
@@ -397,5 +414,99 @@ describe("mountWorkspace", () => {
     await workspace.refresh();
 
     expect(div.querySelectorAll(".workspace-card")).toHaveLength(1);
+  });
+
+  // Fase 4.2, sección 12/13 (Primera experiencia + estado comercial).
+  describe("Bienvenida de primera ejecución + estado comercial", () => {
+    it("muestra la bienvenida en el primer montaje, y ya no en un remontaje tras cerrarla", async () => {
+      const div1 = container();
+      const workspace1 = mountWorkspace(div1, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+      expect((div1.querySelector(".welcome-dialog-overlay") as HTMLElement).style.display).not.toBe("none");
+
+      (div1.querySelector(".welcome-dialog-close") as HTMLButtonElement).click();
+      workspace1.destroy();
+
+      const div2 = container();
+      mountWorkspace(div2, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+      expect((div2.querySelector(".welcome-dialog-overlay") as HTMLElement).style.display).toBe("none");
+    });
+
+    it("muestra el estado comercial (producto/versión/licencia/canal) con lenguaje honesto, sin decir 'activado'", async () => {
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const status = div.querySelector(".workspace-commercial-status") as HTMLElement;
+      expect(status).not.toBeNull();
+      expect(status.textContent).toContain("Impulso Sticker Builder");
+      expect(status.textContent).toContain("gumroad");
+      expect(status.textContent).not.toContain("activado");
+    });
+  });
+
+  // Fase 4.2, sección 18 (Backup y portabilidad).
+  describe("Exportar respaldo / Importar proyecto", () => {
+    beforeEach(() => triggerBrowserDownloadMock.mockReset());
+
+    it("'Exportar respaldo' descarga un JSON con el Project (vía triggerBrowserDownload)", async () => {
+      await projectStore.save(buildProject("project_1", { metadata: { ...metadata, name: "Mi sticker" } }));
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      (div.querySelector(".workspace-card-export-backup") as HTMLButtonElement).click();
+      await flush();
+
+      expect(triggerBrowserDownloadMock).toHaveBeenCalledTimes(1);
+      const [blob, filename] = triggerBrowserDownloadMock.mock.calls[0]!;
+      expect(blob).toBeInstanceOf(Blob);
+      expect(filename).toContain("respaldo");
+    });
+
+    it("'Importar proyecto' agrega un proyecto nuevo a la Workspace a partir de un respaldo válido", async () => {
+      const original = buildProject("project_imported", { metadata: { ...metadata, name: "Proyecto restaurado" } });
+      const raw = await serializeProjectBackup(original, assetStore, () => "2026-07-25T00:00:00.000Z");
+      const file = new File([raw], "respaldo.json", { type: "application/json" });
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;
+      Object.defineProperty(input, "files", { value: [file], writable: false });
+      input.dispatchEvent(new Event("change"));
+      // FileReader (usado internamente para leer el archivo) resuelve vía un
+      // macrotask real en jsdom, no solo microtasks — un setTimeout real es
+      // necesario además de flush().
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flush();
+
+      const names = Array.from(div.querySelectorAll(".workspace-card-name")).map((el) => el.textContent);
+      expect(names).toContain("Proyecto restaurado");
+    });
+
+    it("'Importar proyecto' con un archivo corrupto muestra un error (window.alert) sin agregar nada", async () => {
+      const alertMock = vi.fn();
+      vi.stubGlobal("alert", alertMock);
+      const file = new File(["esto no es un respaldo"], "roto.json", { type: "application/json" });
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;
+      Object.defineProperty(input, "files", { value: [file], writable: false });
+      input.dispatchEvent(new Event("change"));
+      // FileReader (usado internamente para leer el archivo) resuelve vía un
+      // macrotask real en jsdom, no solo microtasks — un setTimeout real es
+      // necesario además de flush().
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flush();
+
+      expect(alertMock).toHaveBeenCalled();
+      expect(div.querySelectorAll(".workspace-card")).toHaveLength(0);
+    });
   });
 });

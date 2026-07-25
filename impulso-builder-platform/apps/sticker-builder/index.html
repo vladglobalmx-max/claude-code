@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Impulso Sticker Builder</title>
-    <link rel="icon" href="data:," />
+    <!-- Fase 4.2, sección 11 (branding comercial) — favicon propio mínimo
+         (SVG inline, sin archivo binario ni asset de terceros): un
+         "sticker" simplificado sobre el mismo fondo oscuro (#1c1917) usado
+         en toda la app. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c1917'/%3E%3Ccircle cx='32' cy='30' r='16' fill='white'/%3E%3Cpath d='M40 38 L52 50 L38 46 Z' fill='white'/%3E%3C/svg%3E"
+    />
+
     <style>
       /*
        * Tokens visuales (Epic 7 / Fase 7.3 — Assisted Placement): primer
@@ -60,6 +68,29 @@
         background: #1c1917;
         color: #ffffff;
         border-radius: 6px;
+      }
+      .workspace-import-btn {
+        font: inherit;
+        padding: 8px 16px;
+        cursor: pointer;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+        color: #1c1917;
+        border-radius: 6px;
+      }
+      /* Fase 4.2, sección 13 — discreto a propósito, nunca "activado". */
+      .workspace-commercial-status {
+        margin: -8px 0 16px;
+        font-size: 0.8em;
+        color: #78716c;
+      }
+      .workspace-card-export-backup {
+        font: inherit;
+        padding: 4px 10px;
+        cursor: pointer;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+        border-radius: 4px;
       }
       .workspace-error {
         color: #b91c1c;
@@ -319,6 +350,47 @@
       .unsaved-changes-dialog-discard {
         color: #b91c1c;
         border-color: #b91c1c;
+      }
+
+      /* Fase 4.2, sección 12 — bienvenida de primera ejecución. */
+      .welcome-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .welcome-dialog {
+        background: #ffffff;
+        color: #1c1917;
+        padding: 24px 28px;
+        border-radius: 8px;
+        max-width: 480px;
+        width: 90%;
+      }
+      .welcome-dialog h2 {
+        margin: 0 0 12px;
+        font-size: 1.2em;
+      }
+      .welcome-dialog-body p {
+        margin: 0 0 10px;
+        color: #44403c;
+      }
+      .welcome-dialog-support {
+        color: #78716c;
+        font-size: 0.9em;
+      }
+      .welcome-dialog-close {
+        font: inherit;
+        padding: 8px 20px;
+        cursor: pointer;
+        border: none;
+        background: #1c1917;
+        color: #ffffff;
+        border-radius: 6px;
+        margin-top: 8px;
       }
 
       /* Barra de herramientas: Texto/Imagen + Zoom */

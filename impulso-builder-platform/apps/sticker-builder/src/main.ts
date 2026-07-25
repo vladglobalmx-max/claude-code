@@ -1,4 +1,18 @@
 import { mountShell } from "./shell.js";
+import { getCommercialManifest } from "./commercialManifest.js";
+
+// Fase 4.2 — carga el manifest comercial una sola vez al iniciar la app.
+// `getCommercialManifest()` ya registra por consola (console.warn) si el
+// manifest resultara inválido — este log es la confirmación honesta del
+// caso feliz, nunca "activado" (ver docs/platform/CAPABILITY_MODEL.md).
+{
+  const { manifest } = getCommercialManifest();
+  if (manifest) {
+    console.info(
+      `[commercial] ${manifest.branding.displayName} v${manifest.productVersion} — edición comercial, licencia de pago único.`,
+    );
+  }
+}
 
 function requireElement<T extends Element>(id: string, check: (el: Element) => el is T): T {
   const el = document.getElementById(id);

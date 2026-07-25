@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-commercial/
+dist-commercial-raw/
 coverage/
 .turbo/
 *.tsbuildinfo

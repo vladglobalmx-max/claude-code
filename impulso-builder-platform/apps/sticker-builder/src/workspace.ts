@@ -1,9 +1,14 @@
 import type { Project, ProjectId } from "@impulso/document-schema";
 import { duplicateProject, type ProjectDescriptor, type ProjectRecoveryEntry, type ProjectStore } from "@impulso/project-library";
 import type { TemplateStore } from "@impulso/template-library";
+import type { AssetBinaryStore } from "@impulso/asset-library";
+import { triggerBrowserDownload, sanitizeFilename } from "@impulso/export-engine";
 import { mountNewProjectDialog, type NewProjectDialog } from "./newProjectDialog.js";
 import { createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
 import { createThumbnailGenerator } from "./app.js";
+import { importProjectBackup, serializeProjectBackup, ProjectBackupError } from "./projectBackup.js";
+import { mountWelcomeDialog, type WelcomeDialog } from "./welcomeDialog.js";
+import { getCommercialManifest } from "./commercialManifest.js";
 
 export interface Workspace {
   refresh(): Promise<void>;
@@ -13,6 +18,10 @@ export interface Workspace {
 export interface MountWorkspaceOptions {
   projectStore: ProjectStore;
   templateStore: TemplateStore;
+  /** Fase 4.2 — necesario para que "Exportar respaldo"/"Importar proyecto"
+   * incluyan los binarios de los assets referenciados, no solo el
+   * `Project` (ver `projectBackup.ts`). */
+  assetStore: AssetBinaryStore;
   /** Qué módulo filtrar — "sticker-builder" hoy; cualquier módulo futuro
    * monta su propia Workspace pasando el suyo (ver ADR-0014). */
   moduleId: string;
@@ -64,7 +73,42 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   newButton.className = "workspace-new-btn";
   newButton.textContent = "Nuevo proyecto";
   header.appendChild(newButton);
+
+  // Fase 4.2, sección 18 (Backup y portabilidad): único punto de entrada
+  // para restaurar un respaldo — abre el selector de archivo nativo, sin
+  // ningún backend ni sincronización remota.
+  const importButton = document.createElement("button");
+  importButton.type = "button";
+  importButton.className = "workspace-import-btn";
+  importButton.textContent = "Importar proyecto";
+  const importInput = document.createElement("input");
+  importInput.type = "file";
+  importInput.accept = ".json,application/json";
+  importInput.style.display = "none";
+  importButton.addEventListener("click", () => importInput.click());
+  importInput.addEventListener("change", () => {
+    const file = importInput.files?.[0];
+    importInput.value = "";
+    if (file) void handleImportBackup(file);
+  });
+  header.appendChild(importButton);
+  header.appendChild(importInput);
   root.appendChild(header);
+
+  // Fase 4.2, sección 13 ("Estado comercial en la app"): discreto, lenguaje
+  // honesto — nunca "activado" (no existe activación técnica en V1,
+  // licensingMode: "delivery-only", ver ADR-0028).
+  const { manifest: commercialManifest } = getCommercialManifest();
+  if (commercialManifest) {
+    const commercialStatus = document.createElement("p");
+    commercialStatus.className = "workspace-commercial-status";
+    commercialStatus.textContent = `${commercialManifest.branding.displayName} · Versión ${commercialManifest.productVersion} · Edición comercial (pago único) · Distribuido mediante ${commercialManifest.channel}`;
+    root.appendChild(commercialStatus);
+  }
+
+  const welcomeDialogContainer = document.createElement("div");
+  root.appendChild(welcomeDialogContainer);
+  const welcomeDialog: WelcomeDialog = mountWelcomeDialog(welcomeDialogContainer, { manifest: commercialManifest });
 
   const errorMessage = document.createElement("p");
   errorMessage.className = "workspace-error";
@@ -126,6 +170,49 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   function handleDelete(id: ProjectId, name: string): void {
     if (!window.confirm(`¿Eliminar el proyecto "${name}"? Esta acción no se puede deshacer.`)) return;
     void options.projectStore.delete(id).then(() => refresh());
+  }
+
+  /**
+   * Fase 4.2, sección 18: respaldo autocontenido (Project + binarios de sus
+   * assets) — ver `projectBackup.ts`. Es la vía recomendada antes de una
+   * actualización manual (nueva descarga, posible cambio de origen de
+   * IndexedDB, ver ADR-0028).
+   */
+  async function handleExportBackup(id: ProjectId, name: string): Promise<void> {
+    const project = await options.projectStore.getProject(id);
+    if (!project) return;
+    const raw = await serializeProjectBackup(project, options.assetStore, now);
+    const blob = new Blob([raw], { type: "application/json" });
+    const filename = `${sanitizeFilename(name)}-respaldo-impulso.json`;
+    triggerBrowserDownload(blob, filename);
+  }
+
+  function readFileAsText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el archivo."));
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleImportBackup(file: File): Promise<void> {
+    const raw = await readFileAsText(file);
+    let imported;
+    try {
+      imported = await importProjectBackup(raw, options.assetStore);
+    } catch (error) {
+      const message = error instanceof ProjectBackupError ? error.message : "No se pudo leer el archivo de respaldo.";
+      window.alert(message);
+      return;
+    }
+    await options.projectStore.save(imported.project);
+    if (imported.missingAssetIds.length > 0) {
+      window.alert(
+        `El proyecto se importó, pero ${imported.missingAssetIds.length} asset(s) ya faltaban en el respaldo y no pudieron restaurarse.`,
+      );
+    }
+    await refresh();
   }
 
   function startRename(nameSpan: HTMLElement, descriptor: ProjectDescriptor): void {
@@ -211,6 +298,14 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
     duplicateButton.textContent = "Duplicar proyecto";
     duplicateButton.addEventListener("click", () => handleDuplicate(descriptor.id));
     actions.appendChild(duplicateButton);
+
+    const exportBackupButton = document.createElement("button");
+    exportBackupButton.type = "button";
+    exportBackupButton.className = "workspace-card-export-backup";
+    exportBackupButton.title = "Descarga el proyecto y sus assets en un solo archivo, para restaurarlo si actualizas o cambias de equipo";
+    exportBackupButton.textContent = "Exportar respaldo";
+    exportBackupButton.addEventListener("click", () => void handleExportBackup(descriptor.id, descriptor.name));
+    actions.appendChild(exportBackupButton);
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
@@ -383,12 +478,14 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   });
 
   void refresh();
+  welcomeDialog.showIfFirstRun();
 
   return {
     refresh,
     destroy: () => {
       revokeObjectUrls();
       newProjectDialog.destroy();
+      welcomeDialog.destroy();
       root.remove();
     },
   };

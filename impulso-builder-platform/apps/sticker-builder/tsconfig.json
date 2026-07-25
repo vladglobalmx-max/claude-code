@@ -4,7 +4,12 @@
     "outDir": "dist",
     "rootDir": "src",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "noEmit": true
+    "noEmit": true,
+    // Habilitado únicamente aquí (no en tsconfig.base.json) para importar
+    // commercial-product.json como dato estático de build (ver
+    // src/commercialManifest.ts, Fase 4.2) — el resto de paquetes del
+    // monorepo no tiene ningún JSON que necesite importarse así.
+    "resolveJsonModule": true
   },
   "include": ["src"]
 }

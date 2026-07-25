@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "productId": "impulso-sticker-builder",
+  "slug": "sticker-builder",
+  "productVersion": "1.0.0",
+  "edition": "professional",
+  "modules": ["sticker-builder"],
+  "capabilities": [
+    "sticker.core",
+    "sticker.asset-library",
+    "sticker.templates",
+    "export.png",
+    "export.svg",
+    "print.professional",
+    "print.pdf",
+    "print.imposition",
+    "print.cut-paths",
+    "print.crop-marks",
+    "print.preflight",
+    "storage.local",
+    "commercial-use"
+  ],
+  "branding": {
+    "displayName": "Impulso Sticker Builder Professional",
+    "shortName": "Impulso Sticker Builder"
+  },
+  "support": {
+    "email": "soporte@bookfluence.shop",
+    "docsUrl": null
+  },
+  "updateChannel": "stable",
+  "licensingMode": "delivery-only",
+  "channel": "gumroad",
+  "termsReference": null,
+  "legal": {
+    "eulaPath": "legal/LICENCIA-DE-USO.md",
+    "privacyPath": "legal/PRIVACIDAD.md",
+    "thirdPartyLicensesPath": "legal/LICENCIAS-DE-TERCEROS.md"
+  },
+  "buildMetadata": {
+    "builtAt": null,
+    "commit": null,
+    "buildId": null
+  },
+  "releaseMetadata": {
+    "releaseDate": null,
+    "releaseNotesPath": "docs/NOTAS-DE-VERSION.md"
+  }
+}

@@ -38,6 +38,36 @@ describe("productManifestSchema — round-trip de serialización", () => {
     });
     expect(manifest.licensingMode).toBe("account-bound");
   });
+
+  it("admite legal.*Path nulos (paquete sin documentos legales todavía)", () => {
+    const manifest = parseProductManifest({
+      ...createStickerBuilderManifestFixture(),
+      legal: { eulaPath: null, privacyPath: null, thirdPartyLicensesPath: null },
+    });
+    expect(manifest.legal.eulaPath).toBeNull();
+  });
+
+  it("admite legal.*Path con rutas relativas reales dentro del paquete", () => {
+    const manifest = parseProductManifest({
+      ...createStickerBuilderManifestFixture(),
+      legal: {
+        eulaPath: "legal/EULA.md",
+        privacyPath: "legal/PRIVACIDAD.md",
+        thirdPartyLicensesPath: "legal/LICENCIAS-TERCEROS.md",
+      },
+    });
+    expect(manifest.legal.eulaPath).toBe("legal/EULA.md");
+  });
+
+  it("admite buildMetadata.buildId y releaseMetadata reales", () => {
+    const manifest = parseProductManifest({
+      ...createStickerBuilderManifestFixture(),
+      buildMetadata: { builtAt: "2026-07-25T00:00:00.000Z", commit: "abc1234", buildId: "build-0001" },
+      releaseMetadata: { releaseDate: "2026-07-25", releaseNotesPath: "docs/RELEASE-NOTES.md" },
+    });
+    expect(manifest.buildMetadata.buildId).toBe("build-0001");
+    expect(manifest.releaseMetadata.releaseNotesPath).toBe("docs/RELEASE-NOTES.md");
+  });
 });
 
 describe("productManifestSchema — validación", () => {

@@ -107,6 +107,7 @@ export function mountShell(options: MountShellOptions): Shell {
   const workspace: Workspace = mountWorkspace(workspaceContainer, {
     projectStore,
     templateStore,
+    assetStore: binaryStore,
     moduleId: MODULE_ID,
     now,
     generateId,

@@ -33,6 +33,21 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     launchOptions: { executablePath },
+    // Fase 4.2 agregó una bienvenida de primera ejecución (welcomeDialog.ts)
+    // gateada por localStorage — sin esto, cada test arranca con el overlay
+    // modal abierto y bloquea todo click contra la app (regresión real
+    // detectada al correr la suite completa tras agregarla). Ningún spec
+    // existente prueba esa bienvenida, así que la damos por "ya vista" a
+    // nivel global.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:4173",
+          localStorage: [{ name: "impulso:welcome-seen:v1", value: "1" }],
+        },
+      ],
+    },
   },
   webServer: {
     command: "pnpm preview --port 4173",

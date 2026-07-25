@@ -2,6 +2,25 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.2] — Release Candidate 1.0: bug crítico de contraste + branding
+
+Segundo lote de correcciones de RC1 — encontradas durante la revisión de branding y la toma de capturas oficiales de producto. Sin funciones nuevas.
+
+### Corregido (bug real, crítico)
+- **El botón principal del wizard "Exportar para impresión" ("Comenzar ▶"/"Siguiente ▶"/"Exportar ▶") era invisible — texto blanco sobre fondo blanco** en todos los pasos. Causa raíz: `.production-export-actions button` (regla genérica, especificidad CSS 0-1-1) tenía MÁS especificidad que `.production-export-next` (0-1-0, fondo oscuro), así que el fondo blanco genérico siempre ganaba. El botón seguía siendo clickeable (por eso ningún test de interacción ni los 51 escenarios E2E existentes lo habían detectado) — se encontró recién al tomar capturas de pantalla reales para el material comercial de RC1. Corregido calificando el selector (`​.production-export-actions button.production-export-next`) para igualar la especificidad. Regresión agregada en `e2e/production-export.spec.ts` (verifica `color !== background` vía `getComputedStyle` real en Chromium) — confirmada: falla sin el fix, pasa con el fix.
+
+### Corregido (branding, menor)
+- Sección "Metadata" del Inspector renombrada a "Metadatos" (única sección en inglés entre "Transformar"/"Apariencia"/"Texto", todas en español).
+- Pestaña lateral "Assets" renombrada a "Biblioteca" (consistente con "Eliminar de la Biblioteca", ya existente).
+- "Estado comercial" mostraba el canal en minúscula tal cual el manifest ("...mediante gumroad") — ahora se capitaliza solo para mostrarlo ("...mediante Gumroad"), sin tocar el valor real del manifest.
+
+## [0.17.1] — Release Candidate 1.0: bug crítico en "Importar proyecto"
+
+Corrección de bug único, sin funciones nuevas — parte de la validación de Release Candidate 1.0 (ingeniería congelada salvo bugs críticos).
+
+### Corregido (bug real, crítico)
+- **"Importar proyecto" sobrescribía en silencio un proyecto existente en vez de agregar uno nuevo**, cuando el respaldo importado tenía el mismo id de proyecto que uno ya presente en la Workspace — el caso más común en la práctica: un comprador re-importando su propio respaldo para comprobar que funciona. Encontrado durante la validación real de recorrido de RC1 (round-trip exportar → importar con el launcher real, no solo tests unitarios — los tests existentes solo cubrían importar hacia una Workspace vacía). Corregido en `workspace.ts`/`handleImportBackup`: se aplica `cloneProjectWithNewIds` (`@impulso/engine`, el mismo mecanismo que ya usa "Duplicar proyecto") al proyecto importado antes de guardarlo, garantizando que importar SIEMPRE crea una entrada nueva e independiente. Regresión agregada en `workspace.test.ts` reproduciendo exactamente el escenario de colisión; re-verificado con Playwright/Chromium real contra el `.zip` comercial reconstruido (2 tarjetas tras importar, no 1).
+
 ## [0.17.0] — Fase 4.2: Commercial MVP — First Sellable Sticker Builder
 
 Convierte Sticker Builder en "Impulso Sticker Builder Professional" v1.0.0 — un producto real, empaquetable y listo para vender vía Gumroad. No solo arquitectura/tipos (eso fue Fase 4.1): implementación real, verificada de punta a punta.

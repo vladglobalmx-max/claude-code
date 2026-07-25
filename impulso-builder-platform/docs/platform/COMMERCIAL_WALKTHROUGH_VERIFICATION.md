@@ -19,7 +19,7 @@ Prueba de recorrido completo contra el `.zip` real (`impulso-sticker-builder-v1.
 | 11 | El guardado automático corre sin acción explícita | ✅ Verificado — indicador pasa a "Guardado" |
 | 12 | Volver a "Mis proyectos" muestra el proyecto guardado | ✅ Verificado — 1 tarjeta presente |
 | 13 | "Exportar respaldo" dispara una descarga real | ✅ Verificado — evento `download` capturado con nombre de archivo real |
-| 14 | Importar un respaldo válido restaura un proyecto completo (incluidas imágenes) | ✅ Verificado — cobertura unitaria exhaustiva en `projectBackup.test.ts` (8 tests: round-trip con asset real, sin asset, asset faltante, 4 casos de error) |
+| 14 | Importar un respaldo válido restaura un proyecto completo (incluidas imágenes), SIEMPRE como una entrada nueva e independiente | ✅ Verificado — cobertura unitaria (`projectBackup.test.ts`, 8 tests) + round-trip real exportar→importar con imagen real, launcher real y Chromium real contra el `.zip` reconstruido tras el fix de RC1 (ver sección "Re-verificación RC1" abajo): 2 tarjetas tras importar, no 1 |
 | 15 | Exportación rápida (PNG/SVG) funciona sin conexión | ✅ Verificado en la suite E2E general (`export-visual.spec.ts`, 3 escenarios, corre contra el mismo build de producción) |
 | 16 | Exportación para impresión (los 3 perfiles) funciona sin conexión | ✅ Verificado — 51/51 escenarios E2E en verde (incluye los 19+ escenarios de `production-export.spec.ts`), todos contra un build de producción real |
 | 17 | Preflight bloquea exportaciones inválidas con mensaje claro | ✅ Verificado (parte de la suite E2E general, sin cambios de comportamiento en Fase 4.2) |
@@ -37,6 +37,10 @@ Prueba de recorrido completo contra el `.zip` real (`impulso-sticker-builder-v1.
 ## Bug real encontrado durante esta prueba (ya corregido, ver CHANGELOG y UX Audit 0010)
 
 El primer intento de este recorrido, ejecutando el launcher REAL contra el `.zip` REAL (en vez de servir la carpeta manualmente), falló de inmediato: los launchers buscaban una subcarpeta `app/` que el paquete real nunca tuvo. Corregido en ambos launchers; este documento refleja el estado YA corregido (re-verificado después del fix, no antes).
+
+## Re-verificación RC1 — segundo bug real encontrado y corregido
+
+Durante la validación de Release Candidate 1.0 se ejecutó por primera vez el round-trip COMPLETO de "Importar proyecto" (exportar → importar de vuelta) contra el `.zip` real con un proyecto que SEGUÍA existiendo en la Workspace — escenario nunca antes ejecutado end-to-end (los tests unitarios previos solo cubrían importar hacia una Workspace vacía). Resultado: 1 sola tarjeta tras importar (se esperaban 2) — "Importar proyecto" sobrescribía en silencio el proyecto existente en vez de agregar uno nuevo. Corregido (ver CHANGELOG `[0.17.1]`) aplicando `cloneProjectWithNewIds` al proyecto importado. Re-verificado con el mismo round-trip real (launcher real, Chromium real, imagen real insertada) contra el `.zip` reconstruido: 2 tarjetas tras importar, cero errores de consola.
 
 ## Protocolo de usuario no técnico (diseño, sin usuario real en esta fase)
 

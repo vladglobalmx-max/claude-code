@@ -1303,7 +1303,15 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .production-export-next {
+      /* Selector calificado con `button` a propósito: `.production-export-next`
+         solo (una clase) tiene MENOS especificidad que la regla genérica
+         `.production-export-actions button` de arriba (una clase + un
+         elemento) — sin este calificador, la regla genérica ganaba y el
+         botón quedaba con fondo blanco y texto blanco (invisible pero
+         funcional: los clicks seguían funcionando, por eso ningún test
+         automatizado lo detectó — encontrado recién al tomar capturas de
+         pantalla reales para Release Candidate 1.0). */
+      .production-export-actions button.production-export-next {
         background: #1c1917;
         color: #ffffff;
         border-color: #1c1917;
@@ -1397,7 +1405,7 @@
           <div id="sidebar-left">
             <div class="sidebar-tabs">
               <button id="tab-layers" type="button" class="sidebar-tab">Capas</button>
-              <button id="tab-assets" type="button" class="sidebar-tab">Assets</button>
+              <button id="tab-assets" type="button" class="sidebar-tab">Biblioteca</button>
             </div>
             <div id="layers-panel"></div>
             <div id="assets-panel"></div>

@@ -2,6 +2,10 @@
 
 Checklist ejecutado y verificado sobre el paquete real producido por `pnpm build:commercial` (no una descripción teórica). Repetir esta lista antes de cada release que se suba a Gumroad.
 
+## Re-verificación — Release Candidate 1.0
+
+Re-ejecutado sobre el commit `bff9f87` (build fresco, `buildId: 1.0.0+bff9f8724e2c`): `sha256sum -c CHECKSUMS.sha256` → `OK`; escaneo de higiene automático del build sin fallos; `find -iname "*harness*" -o -iname "*.map" -o -name ".env" -o -name ".git" -o -name "node_modules"` sobre el paquete → sin resultados. Sin cambios respecto a la verificación original de Fase 4.2 — confirma que el estado sigue siendo el mismo tras el commit de ajuste de Roadmap (`bff9f87`, solo documentación).
+
 ## 1. Escaneo de contenido no permitido
 
 `scripts/build-commercial.mjs` falla el build si encuentra `.env`, `.git`, `node_modules` o `.DS_Store` en cualquier nivel del paquete armado (`scanForbidden`). Verificado con un build real: cero coincidencias.

@@ -374,3 +374,22 @@ test("regresión visual — el preview de imposición dibuja MÁS de una copia r
   // `quantity` (el síntoma de una sola pieza estática).
   expect(whiteAreaAtQuantity4).toBeGreaterThan(whiteAreaAtQuantity1 * 3);
 });
+
+test("regresión RC1: el botón principal ('Comenzar ▶'/'Siguiente ▶') tiene contraste real, nunca texto blanco sobre fondo blanco", async ({
+  page,
+}) => {
+  // Bug real encontrado tomando capturas de pantalla oficiales para RC1 (no
+  // por ningún test previo): `.production-export-actions button` (fondo
+  // blanco genérico) tenía MÁS especificidad CSS que `.production-export-next`
+  // (fondo oscuro) — el botón principal del wizard quedaba con fondo blanco
+  // y texto blanco, invisible a simple vista, aunque el click seguía
+  // funcionando (por eso ningún test de interacción lo había detectado).
+  await openProductionExportDialog(page);
+  const next = page.locator(".production-export-next");
+  const colors = await next.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { color: cs.color, background: cs.backgroundColor };
+  });
+  expect(colors.color).not.toBe(colors.background);
+  expect(colors.background).toBe("rgb(28, 25, 23)"); // #1c1917, el fondo oscuro esperado
+});

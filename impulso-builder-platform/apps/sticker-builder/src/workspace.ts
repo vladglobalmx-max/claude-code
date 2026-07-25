@@ -1,4 +1,5 @@
 import type { Project, ProjectId } from "@impulso/document-schema";
+import { cloneProjectWithNewIds } from "@impulso/engine";
 import { duplicateProject, type ProjectDescriptor, type ProjectRecoveryEntry, type ProjectStore } from "@impulso/project-library";
 import type { TemplateStore } from "@impulso/template-library";
 import type { AssetBinaryStore } from "@impulso/asset-library";
@@ -102,7 +103,13 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   if (commercialManifest) {
     const commercialStatus = document.createElement("p");
     commercialStatus.className = "workspace-commercial-status";
-    commercialStatus.textContent = `${commercialManifest.branding.displayName} · Versión ${commercialManifest.productVersion} · Edición comercial (pago único) · Distribuido mediante ${commercialManifest.channel}`;
+    // `channel` es un identificador de manifest en minúsculas (ej. "gumroad")
+    // — se capitaliza solo para mostrarlo, nunca se toca el valor real del
+    // manifest. Encontrado durante la revisión de branding de RC1 (se veía
+    // "gumroad" en minúscula en un texto por lo demás bien puntuado).
+    const channelDisplayName =
+      commercialManifest.channel.charAt(0).toUpperCase() + commercialManifest.channel.slice(1);
+    commercialStatus.textContent = `${commercialManifest.branding.displayName} · Versión ${commercialManifest.productVersion} · Edición comercial (pago único) · Distribuido mediante ${channelDisplayName}`;
     root.appendChild(commercialStatus);
   }
 
@@ -206,7 +213,18 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
       window.alert(message);
       return;
     }
-    await options.projectStore.save(imported.project);
+    // Bug real encontrado en la validación de Release Candidate 1.0:
+    // guardar `imported.project` tal cual (mismo id que el original)
+    // sobrescribía en silencio un proyecto ya existente en vez de agregar
+    // uno nuevo — solo se notaba al re-importar un respaldo en el MISMO
+    // navegador donde el proyecto original seguía existiendo (justo el
+    // caso más común: un comprador probando que su respaldo "sí funciona").
+    // `cloneProjectWithNewIds` (mismo mecanismo que ya usa "Duplicar
+    // proyecto", @impulso/engine) garantiza que importar SIEMPRE crea una
+    // entrada nueva e independiente, sin importar si el proyecto original
+    // sigue presente.
+    const freshProject = cloneProjectWithNewIds(imported.project, { now: now(), generateId });
+    await options.projectStore.save(freshProject);
     if (imported.missingAssetIds.length > 0) {
       window.alert(
         `El proyecto se importó, pero ${imported.missingAssetIds.length} asset(s) ya faltaban en el respaldo y no pudieron restaurarse.`,

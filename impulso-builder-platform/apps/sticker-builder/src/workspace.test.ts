@@ -441,7 +441,7 @@ describe("mountWorkspace", () => {
       const status = div.querySelector(".workspace-commercial-status") as HTMLElement;
       expect(status).not.toBeNull();
       expect(status.textContent).toContain("Impulso Sticker Builder");
-      expect(status.textContent).toContain("gumroad");
+      expect(status.textContent).toContain("Gumroad");
       expect(status.textContent).not.toContain("activado");
     });
   });
@@ -485,6 +485,34 @@ describe("mountWorkspace", () => {
 
       const names = Array.from(div.querySelectorAll(".workspace-card-name")).map((el) => el.textContent);
       expect(names).toContain("Proyecto restaurado");
+    });
+
+    it("regresión RC1: importar un respaldo cuyo proyecto original SIGUE existiendo agrega una tarjeta nueva, no sobrescribe la existente", async () => {
+      // Bug real encontrado durante la validación de Release Candidate 1.0:
+      // `handleImportBackup` guardaba `imported.project` con el mismo id
+      // que el original — si ese id ya existía en el ProjectStore (el caso
+      // más común: un comprador re-importando su propio respaldo para
+      // comprobar que funciona), `projectStore.save` lo sobrescribía en
+      // silencio en vez de agregar una entrada nueva e independiente.
+      const original = buildProject("project_still_here", { metadata: { ...metadata, name: "Original" } });
+      await projectStore.save(original);
+      const raw = await serializeProjectBackup(original, assetStore, () => "2026-07-25T00:00:00.000Z");
+      const file = new File([raw], "respaldo.json", { type: "application/json" });
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      await flush();
+
+      const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;
+      Object.defineProperty(input, "files", { value: [file], writable: false });
+      input.dispatchEvent(new Event("change"));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flush();
+
+      const cards = div.querySelectorAll(".workspace-card");
+      expect(cards).toHaveLength(2);
+      const names = Array.from(div.querySelectorAll(".workspace-card-name")).map((el) => el.textContent);
+      expect(names.filter((name) => name === "Original")).toHaveLength(2);
     });
 
     it("'Importar proyecto' con un archivo corrupto muestra un error (window.alert) sin agregar nada", async () => {

@@ -163,7 +163,7 @@ describe("mountInspector", () => {
     const sections = Array.from(div.querySelectorAll(".inspector-section")).map(
       (s) => s.querySelector("legend")?.textContent,
     );
-    expect(sections).toEqual(["Transformar", "Apariencia", "Metadata"]);
+    expect(sections).toEqual(["Transformar", "Apariencia", "Metadatos"]);
 
     const transformSection = sectionByLegend(div, "Transformar");
     const fieldLabels = Array.from(transformSection.querySelectorAll(".inspector-field > span")).map(
@@ -394,7 +394,7 @@ describe("mountInspector", () => {
     const sections = Array.from(div.querySelectorAll(".inspector-section")).map(
       (s) => s.querySelector("legend")?.textContent,
     );
-    expect(sections).toEqual(["Transformar", "Apariencia", "Texto", "Metadata"]);
+    expect(sections).toEqual(["Transformar", "Apariencia", "Texto", "Metadatos"]);
 
     const textSection = sectionByLegend(div, "Texto");
     const textLabels = Array.from(textSection.querySelectorAll(".inspector-field > span")).map((s) => s.textContent);
@@ -483,7 +483,7 @@ describe("mountInspector", () => {
     engine.dispatch({ type: "setSelection", objectIds: [ObjectIdSchema.parse("a")] });
     mountInspector(div, engine);
 
-    const metadataSection = sectionByLegend(div, "Metadata");
+    const metadataSection = sectionByLegend(div, "Metadatos");
     const nameInput = metadataSection.querySelector("input[type='text']") as HTMLInputElement;
     nameInput.value = "Mi rectángulo";
     nameInput.dispatchEvent(new Event("change"));

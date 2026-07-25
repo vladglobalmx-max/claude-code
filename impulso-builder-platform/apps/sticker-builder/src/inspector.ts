@@ -378,8 +378,8 @@ export function mountInspector(container: HTMLElement, engine: Engine): Inspecto
         metadata: { name: v || undefined },
       }),
     );
-    nameInput.title = "Nombre visible en el panel de Layers.";
-    container.appendChild(section("Metadata", [field("Nombre", nameInput)]));
+    nameInput.title = "Nombre visible en el panel de Capas.";
+    container.appendChild(section("Metadatos", [field("Nombre", nameInput)]));
   }
 
   function render(): void {

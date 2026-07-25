@@ -24,6 +24,10 @@ Ambos hacen lo mismo: levantan un servidor HTTP estático (`python -m http.serve
 - Se verificó el comportamiento **realmente offline** con `context.setOffline(true)` de Playwright contra ese mismo servidor: creación de proyecto, guardado automático, persistencia tras navegar, y apertura del diálogo de exportación — todo funciona sin red, cero errores de consola/red.
 - Se encontró y corrigió un bug real en el launcher de macOS/Linux: `trap "kill $PID" EXIT` por sí solo no mataba de forma confiable el servidor en segundo plano cuando el script recibía `SIGTERM` (ej. al cerrar la terminal de golpe) — verificado con una reproducción basada en `timeout` que confirmó un servidor huérfano todavía respondiendo después de que el script "terminara". Se corrigió agregando una función `cleanup()` atrapada en `EXIT INT TERM HUP`, y se volvió a correr la misma reproducción para confirmar "sin servidor huérfano" tras el fix.
 
+## Re-verificación — Release Candidate 1.0
+
+Validado empíricamente (no solo por el argumento del puerto fijo): se creó y guardó un proyecto real vía el launcher, se dejó apagar el servidor por completo (proceso terminado), y se volvió a levantar el launcher en un proceso de servidor nuevo — el proyecto seguía visible en "Mis proyectos" sin ninguna acción de recuperación. Esto es exactamente lo que ocurre al actualizar Impulso a una versión nueva (nuevo paquete, mismo puerto 4173).
+
 ## Limitación conocida y documentada: Python
 
 Ambos launchers dependen de tener Python instalado (`python`/`py -3` en Windows, `python3`/`python` en macOS/Linux) para levantar el servidor HTTP. macOS y la mayoría de distribuciones Linux lo traen preinstalado; Windows no. El launcher de Windows detecta la ausencia y muestra un mensaje claro con un link a python.org en vez de fallar en silencio o colgarse — esto es una limitación aceptada de la V1, documentada honestamente en `06-requisitos-y-limitaciones.md`, no un defecto oculto. Un instalador nativo que empaquete su propio runtime (sin depender de Python del sistema) queda fuera de alcance de esta fase — ver Roadmap, fases 4.3+.

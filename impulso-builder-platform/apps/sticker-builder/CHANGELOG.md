@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.6] — Release Candidate 1.0: validación de comprador en vivo — las imágenes desaparecían al reabrir un proyecto guardado
+
+Encontrado durante la validación de comprador en vivo, inmediatamente después de confirmar el fix de 0.17.5: al cerrar la app por completo y volver a abrir un proyecto guardado desde "Mis proyectos", cualquier imagen importada desaparecía — quedaba como un placeholder invisible (rectángulo punteado), aunque el objeto seguía presente en la capa y el thumbnail de "Mis proyectos" sí la mostraba correctamente.
+
+### Corregido (bug real, crítico — cualquier sticker con imagen propia perdía su imagen al reabrirlo)
+- Causa raíz: `createImageNode` (`@impulso/renderer-konva`) resuelve la imagen de un `ImageObject` UNA sola vez, al crear el node — nunca se reintenta después. El primer montaje del editor (`mountApp()`, usado por "Abrir" desde la Workspace vía `shell.ts`) construía ese node con el cache de imágenes resueltas todavía vacío, porque nunca esperaba a precargar los binarios (`preloadDocumentAssets`) desde `AssetBinaryStore` antes de montar — a diferencia de "Nuevo"/"Abrir" hechos DESDE DENTRO del editor (`remount()`), que sí lo hacía correctamente desde antes.
+- Corregido dejando que `shell.ts` (que ya es async) precargue el cache de imágenes ANTES de montar el editor, e inyectándolo ya resuelto — sin cambiar la firma síncrona de `mountApp()` ni tocar ninguno de sus ~40 tests existentes. Regresión agregada en `shell.test.ts` (confirmada: falla sin el fix, pasa con el fix) + verificación manual en Chromium real con recarga completa de página (el binario persiste en IndexedDB entre recargas, igual que en el ZIP comercial real).
+
 ## [0.17.5] — Release Candidate 1.0: validación de comprador en vivo — causa raíz real: mezcla de unidades al insertar objetos
 
 Continuación directa de 0.17.4: el usuario probó el fix en su propia máquina (ZIP real, no el sandbox) y reportó que la imagen importada seguía viéndose mal — con coordenadas que no correspondían ni al bug original ni al fix. Investigación de causa raíz (no solo el síntoma) reveló que 0.17.4 corrigió el síntoma correcto por el motivo equivocado.

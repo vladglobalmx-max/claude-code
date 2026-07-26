@@ -133,6 +133,23 @@ export interface AppDependencies {
    * `createIndexedDbProjectStore()`. "Guardar" persiste aquí (ver ADR-0014) —
    * ya no en el slot único legado de `localStorage`. */
   projectStore?: ProjectStore;
+  /**
+   * Bug real encontrado en la validación de comprador en vivo de RC1: al
+   * reabrir un proyecto guardado (vía "Abrir" desde "Mis proyectos"), las
+   * imágenes no aparecían — quedaban como placeholder — porque el primer
+   * montaje del Canvas Runtime ocurría con el `resolvedCache` todavía
+   * vacío (`createImageNode`, `@impulso/renderer-konva`, resuelve la Image
+   * UNA sola vez al crear el node; nunca se reintenta). `remount()` (más
+   * abajo, usado por "Nuevo"/"Abrir" DESDE DENTRO del editor) ya evita esto
+   * esperando `preloadDocumentAssets` antes de montar — pero el primer
+   * montaje de `mountApp()` (el único usado por `shell.ts` al abrir desde
+   * la Workspace) no lo hacía. Se resuelve dejando que el caller (que es
+   * async — ver `shell.ts`) precargue el cache ANTES de llamar a
+   * `mountApp()` y lo inyecte aquí — así `mountApp()` sigue siendo
+   * síncrono (sin romper ninguno de los tests existentes, que no inyectan
+   * este parámetro y siguen recibiendo un cache vacío recién creado, igual
+   * que antes). Por defecto `createResolvedAssetCache()`. */
+  resolvedCache?: ResolvedAssetCache;
   /** Genera el thumbnail que "Guardar" y "Guardar como plantilla" adjuntan
    * al proyecto — inyectable para evitar la rasterización real de Konva en
    * tests (jsdom no implementa `HTMLCanvasElement.toBlob`); por defecto
@@ -219,7 +236,7 @@ export function mountApp(deps: AppDependencies): App {
   const templateStore = deps.templateStore ?? createIndexedDbTemplateStore();
   const projectStore = deps.projectStore ?? createIndexedDbProjectStore();
   const generateThumbnail = deps.generateThumbnail ?? createThumbnailGenerator({ resolve: (assetId) => binaryStore.get(assetId) });
-  const resolvedCache: ResolvedAssetCache = createResolvedAssetCache();
+  const resolvedCache: ResolvedAssetCache = deps.resolvedCache ?? createResolvedAssetCache();
 
   // Sembrado perezoso (recién al primer "Nuevo" real, ver el listener de
   // `newButton` más abajo) — nunca al montar. Igual que `binaryStore`, el

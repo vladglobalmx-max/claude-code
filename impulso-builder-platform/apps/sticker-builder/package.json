@@ -1,6 +1,6 @@
 {
   "name": "@impulso/sticker-builder",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "private": true,
   "description": "Editor de Sticker Builder. Primer módulo construido sobre Impulso Engine + el Renderer Konva. Desde Fase 9.4, incluye el flujo real de exportación a producción sobre @impulso/print-engine; Fase 9.5 endureció ese flujo. Desde Fase 4.2, es además el primer producto comercial real y empaquetable (\"Impulso Sticker Builder Professional\") — manifest/capabilities reales, build:commercial reproducible, backup de proyectos, launchers offline verificados.",
   "type": "module",

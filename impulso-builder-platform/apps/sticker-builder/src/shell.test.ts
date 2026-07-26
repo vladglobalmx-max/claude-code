@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { serializeProject, ProjectIdSchema } from "@impulso/document-schema";
+import { serializeProject, ProjectIdSchema, AssetIdSchema, ObjectIdSchema, type Project } from "@impulso/document-schema";
 import { createMemoryTemplateStore } from "@impulso/template-library";
 import { createMemoryProjectStore, type ProjectStore } from "@impulso/project-library";
+import { createMemoryAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import { mountShell, type ShellElements } from "./shell.js";
 import { createDemoProject } from "./demoProject.js";
 import type { AppElements } from "./app.js";
@@ -85,6 +86,81 @@ function buildShellElements(): ShellElements {
 
 const fakeGenerateThumbnail = async () => new Blob(["png"], { type: "image/png" });
 
+/** jsdom no resuelve `onload`/`onerror` de un `<img>` real para una blob URL
+ * falsa (la que stubea `URL.createObjectURL` en el `beforeEach` de este
+ * archivo) — se queda colgado para siempre. Mismo stub que usa
+ * `tools.test.ts` para poder ejercitar `preloadDocumentAssets` de verdad. */
+class FakeImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  private _src = "";
+  get src() {
+    return this._src;
+  }
+  set src(value: string) {
+    this._src = value;
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
+/** Proyecto con un ImageObject real (referenciando un Asset en
+ * `document.assets`) — para la regresión RC1 de abajo, que necesita un
+ * Asset de type "image" cuyo binario `openEditor` deba precargar. */
+function buildProjectWithImage(): Project {
+  const project = createDemoProject();
+  const assetId = AssetIdSchema.parse("asset_image_1");
+  const metadata = { tags: [], visible: true, locked: false, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
+  return {
+    ...project,
+    document: {
+      ...project.document,
+      assets: [{ id: assetId, type: "image", name: "foto.png", mimeType: "image/png", width: 10, height: 10, metadata, pluginData: {}, customProperties: {} }],
+      pages: [
+        {
+          ...project.document.pages[0]!,
+          layers: [
+            {
+              ...project.document.pages[0]!.layers[0]!,
+              objects: [
+                ...project.document.pages[0]!.layers[0]!.objects,
+                {
+                  id: ObjectIdSchema.parse("image_object_1"),
+                  type: "image",
+                  assetId,
+                  transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+                  size: { width: 10, height: 10 },
+                  style: { strokeWidth: 0, opacity: 1, blendMode: "normal" },
+                  metadata,
+                  pluginData: {},
+                  customProperties: {},
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/** Envuelve un `AssetBinaryStore` para registrar cada `assetId` consultado
+ * — usado por la regresión RC1 de abajo para confirmar que abrir un
+ * proyecto de verdad precarga sus imágenes (y no solo genera un thumbnail
+ * correcto, que usa una ruta de resolución completamente aparte). */
+function createTrackedAssetStore(inner: AssetBinaryStore): { store: AssetBinaryStore; requestedIds: string[] } {
+  const requestedIds: string[] = [];
+  return {
+    store: {
+      ...inner,
+      get: async (assetId) => {
+        requestedIds.push(assetId);
+        return inner.get(assetId);
+      },
+    },
+    requestedIds,
+  };
+}
+
 /** Epic 8 — igual que en `app.test.ts`: envuelve un `ProjectStore` real
  * para que `save()` falle mientras `shouldFail()` sea `true`. */
 function createFlakySaveStore(inner: ProjectStore, shouldFail: () => boolean): ProjectStore {
@@ -129,6 +205,37 @@ describe("mountShell", () => {
       expect(elements.editorScreen.style.display).not.toBe("none");
     });
     expect(elements.workspaceScreen.style.display).toBe("none");
+  });
+
+  it("regresión RC1: abrir un proyecto con una imagen precarga su binario ANTES/al mostrar el editor (no se queda como placeholder)", async () => {
+    // Bug real encontrado en la validación de comprador en vivo: `mountApp()`
+    // montaba el Canvas Runtime inicial con el `resolvedCache` de imágenes
+    // vacío — cualquier ImageObject quedaba como placeholder para siempre,
+    // sin importar cuánto tiempo pasara, porque `createImageNode`
+    // (`@impulso/renderer-konva`) solo resuelve la Image UNA vez, al crear
+    // el node. `remount()` (usado por "Nuevo"/"Abrir" DESDE DENTRO del
+    // editor) ya evitaba este bug esperando `preloadDocumentAssets` antes de
+    // montar — pero el primer `mountApp()` de `shell.ts` (el que usa
+    // "Abrir" desde la Workspace, el flujo real de cualquier comprador) no
+    // lo hacía. Este test falla sin el fix: antes de él, `binaryStore.get`
+    // nunca se llamaba para el asset de imagen al abrir el proyecto.
+    const projectStore = createMemoryProjectStore();
+    const project = buildProjectWithImage();
+    await projectStore.save(project);
+
+    const innerBinaryStore = createMemoryAssetStore();
+    await innerBinaryStore.set(AssetIdSchema.parse("asset_image_1"), new Blob(["x"], { type: "image/png" }));
+    const { store: binaryStore, requestedIds } = createTrackedAssetStore(innerBinaryStore);
+    vi.stubGlobal("Image", FakeImage);
+
+    const elements = buildShellElements();
+    mountShell({ elements, projectStore, binaryStore, templateStore: createMemoryTemplateStore(), storage: fakeStorage(), generateThumbnail: fakeGenerateThumbnail });
+    await Promise.resolve();
+
+    (elements.workspaceContainer.querySelector(".workspace-card-open") as HTMLButtonElement).click();
+    await vi.waitFor(() => expect(elements.editorScreen.style.display).not.toBe("none"));
+
+    expect(requestedIds).toContain("asset_image_1");
   });
 
   it("'Mis proyectos' desde el editor destruye el editor y vuelve a mostrar la Workspace", async () => {

@@ -5,6 +5,7 @@ import { createIndexedDbProjectStore, type ProjectStore } from "@impulso/project
 import { mountApp, MODULE_ID, type App, type AppElements } from "./app.js";
 import { mountWorkspace, type Workspace } from "./workspace.js";
 import { migrateLegacyLocalProject } from "./workspaceMigration.js";
+import { createResolvedAssetCache, preloadDocumentAssets } from "./assetResolution.js";
 
 export interface ShellElements {
   workspaceScreen: HTMLElement;
@@ -72,6 +73,15 @@ export function mountShell(options: MountShellOptions): Shell {
    * guardado pendiente y, si falla, ofrece Reintentar/Permanecer/Salir sin
    * guardar). Si el usuario elige permanecer, `openEditor` no hace nada —
    * la Workspace nunca llega a mostrarse y el editor anterior sigue vivo.
+   *
+   * Bug real encontrado en la validación de comprador en vivo de RC1: al
+   * reabrir un proyecto guardado, sus imágenes no aparecían (quedaban como
+   * placeholder) porque `mountApp()` montaba el Canvas Runtime con el
+   * `resolvedCache` todavía vacío. Como esta función YA es async, precarga
+   * el cache aquí (`preloadDocumentAssets`) antes de montar — ver el
+   * comentario de `resolvedCache` en `AppDependencies` (`app.ts`) para el
+   * detalle completo de por qué el fix vive en el caller y no dentro de
+   * `mountApp()`.
    */
   async function openEditor(project: Project, meta?: { isNew?: boolean }): Promise<void> {
     if (currentApp) {
@@ -79,12 +89,15 @@ export function mountShell(options: MountShellOptions): Shell {
       if (!canClose) return;
       currentApp.destroy();
     }
+    const resolvedCache = createResolvedAssetCache();
+    await preloadDocumentAssets(project.document, binaryStore, resolvedCache);
     showEditor();
     currentApp = mountApp({
       elements: editor,
       binaryStore,
       templateStore,
       projectStore,
+      resolvedCache,
       generateThumbnail: options.generateThumbnail,
       initialProject: project,
       isNewProject: meta?.isNew,

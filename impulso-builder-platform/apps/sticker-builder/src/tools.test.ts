@@ -7,6 +7,7 @@ import {
   ProjectIdSchema,
   AssetIdSchema,
   CURRENT_SCHEMA_VERSION,
+  toPixels,
   type Project,
 } from "@impulso/document-schema";
 import { createMemoryAssetStore } from "@impulso/asset-library";
@@ -263,6 +264,77 @@ describe("createToolsController", () => {
       if (objects[0]?.type === "image") {
         expect(objects[0].size.width).toBeLessThanOrEqual(50);
         expect(objects[0].size.height).toBeLessThanOrEqual(50);
+      }
+    });
+
+    it("regresión RC1 (causa raíz): en una página real en mm, la imagen se centra e inserta en píxeles canónicos, no en la unidad cruda de la página", async () => {
+      // Bug real de fondo: `Page.size` vive en la unidad física cruda de la
+      // página (`Page.unit`, "mm" en cualquier proyecto real creado desde
+      // "Nuevo proyecto"), pero `size`/`transform` de cualquier object viven
+      // SIEMPRE en píxeles canónicos (ver `pageSizeInCanonicalPx` en
+      // tools.ts). Usar `page.size.width/height` sin convertir — como hacía
+      // este código antes, incluido el primer intento de fix de esta misma
+      // regresión — mezclaba ambas unidades: en una página de 50mm reales
+      // (~189px canónicos), el objeto terminaba centrado/dimensionado como
+      // si la página midiera 50px, muy por fuera del área visible real.
+      const mmProject = buildProject();
+      const page = mmProject.document.pages[0];
+      if (page) {
+        page.size = { width: 50, height: 50 };
+        page.unit = "mm";
+      }
+      const engine = createEngine(mmProject);
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
+      const file = new File(["x"], "grande.png", { type: "image/png" });
+
+      await controller.insertImage(file);
+
+      const pagePx = toPixels(50, "mm"); // ~188.98 — el mismo espacio numérico que `size`/`transform`
+      const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
+      if (objects[0]?.type === "image") {
+        // La imagen debe caber dentro de la página EN PÍXELES CANÓNICOS, no
+        // dentro de un cuadro de "50" unidades (el bug de la mezcla de
+        // unidades) — con la conversión correcta, cabe con margen de sobra.
+        expect(objects[0].size.width).toBeLessThanOrEqual(pagePx);
+        expect(objects[0].size.height).toBeLessThanOrEqual(pagePx);
+        // Y debe quedar dentro del área visible de la página (0..pagePx),
+        // no desbordando hacia coordenadas muy negativas como con el bug.
+        expect(objects[0].transform.x).toBeGreaterThan(0);
+        expect(objects[0].transform.y).toBeGreaterThan(0);
+        expect(objects[0].transform.x + objects[0].size.width).toBeLessThan(pagePx);
+        expect(objects[0].transform.y + objects[0].size.height).toBeLessThan(pagePx);
+      }
+    });
+
+    it("regresión RC1 (causa raíz): insertText también centra en píxeles canónicos en una página real en mm", () => {
+      const mmProject = buildProject();
+      const page = mmProject.document.pages[0];
+      if (page) {
+        page.size = { width: 50, height: 50 };
+        page.unit = "mm";
+      }
+      const engine = createEngine(mmProject);
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
+
+      controller.insertText();
+
+      const pagePx = toPixels(50, "mm");
+      const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
+      if (objects[0]?.type === "text") {
+        expect(objects[0].transform.x).toBeGreaterThanOrEqual(0);
+        expect(objects[0].transform.y).toBeGreaterThanOrEqual(0);
+        expect(objects[0].transform.x).toBeLessThan(pagePx);
+        expect(objects[0].transform.y).toBeLessThan(pagePx);
       }
     });
   });

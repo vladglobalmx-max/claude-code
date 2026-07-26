@@ -2,12 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [0.17.4] — Release Candidate 1.0: validación de comprador en vivo — imágenes importadas se salían del sticker en páginas pequeñas
+## [0.17.5] — Release Candidate 1.0: validación de comprador en vivo — causa raíz real: mezcla de unidades al insertar objetos
 
-Encontrado durante una validación de comprador en vivo, sobre la máquina real del usuario (no una auditoría de código): al importar una imagen PNG en un sticker de tamaño típico (p.ej. 50×50mm), la imagen se insertaba visiblemente descentrada y desbordando el área del sticker.
+Continuación directa de 0.17.4: el usuario probó el fix en su propia máquina (ZIP real, no el sandbox) y reportó que la imagen importada seguía viéndose mal — con coordenadas que no correspondían ni al bug original ni al fix. Investigación de causa raíz (no solo el síntoma) reveló que 0.17.4 corrigió el síntoma correcto por el motivo equivocado.
 
-### Corregido (bug real, crítico — flujo principal de importar artwork propio)
-- `insertImageObject` (`src/tools.ts`) limitaba el tamaño de las imágenes importadas a un máximo absoluto fijo (`MAX_IMAGE_DIMENSION = 200`, en las mismas unidades que la página) sin relación con el tamaño real de la página. En un sticker de 50×50mm, una imagen terminaba insertándose hasta 4 veces más grande que el propio sticker — "centrada" matemáticamente respecto a ese tamaño, pero desbordando casi por completo el área visible, lo cual se percibía como mal colocada. Corregido: el límite efectivo ahora es siempre relativo al tamaño de la página (`min(MAX_IMAGE_DIMENSION, min(pageWidth, pageHeight) * 0.8)`), garantizando que una imagen importada siempre quepa dentro del sticker por defecto. Regresión agregada en `src/tools.test.ts` (página de 50×50, la imagen importada nunca excede esas dimensiones).
+### Corregido (bug real, crítico — causa raíz de 0.17.4, misma familia de bug)
+- `Page.size` vive siempre en la unidad física cruda de la página (`Page.unit` — "mm" en cualquier proyecto real creado desde "Nuevo proyecto"), mientras que `size`/`transform` de cualquier object (texto, imagen, línea de corte) viven siempre en píxeles canónicos — un espacio de unidades distinto, con conversión fija de ~3.78px por mm (ver comentario ya existente en `createProjectFromSize`, `projectPresets.ts`). `insertText` e `insertImageObject` (`src/tools.ts`) usaban `page.size.width/height` sin convertir, mezclando ambas unidades — incluido el propio fix de 0.17.4, que calculó su límite relativo sobre el valor crudo en mm en vez del valor en píxeles canónicos. En un sticker de 50mm reales (~189px canónicos), esto seguía descentrando y sobredimensionando cualquier object insertado.
+- Corregido con `pageSizeInCanonicalPx` (nueva función en `tools.ts`, usa `toPixels` de `@impulso/document-schema`): convierte `page.size` a píxeles canónicos ANTES de combinarlo con cualquier tamaño/posición de object, tanto en `insertText` como en `insertImageObject`. Verificado en un navegador real contra el escenario exacto reportado (sticker 50×50mm, imagen de 441×529px): la imagen ahora queda completamente dentro de los límites del sticker, con margen visible (antes: coordenadas negativas, desbordando el área visible).
+- Regresión agregada en `src/tools.test.ts` (2 casos nuevos, página real en unidad "mm" — los fixtures anteriores usaban unidad "px", donde el bug era invisible por coincidencia de unidades).
 
 ## [0.17.3] — Release Candidate 1.0: validación de comprador en vivo — foco del diálogo de bienvenida
 

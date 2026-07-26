@@ -1,4 +1,4 @@
-import { ObjectIdSchema, type AssetId, type ImageAsset } from "@impulso/document-schema";
+import { ObjectIdSchema, toPixels, type AssetId, type ImageAsset, type Page } from "@impulso/document-schema";
 import type { Engine } from "@impulso/engine";
 import { createImageAssetFromFile, type AssetBinaryStore } from "@impulso/asset-library";
 import { loadImageElement, type ResolvedAssetCache } from "./assetResolution.js";
@@ -64,6 +64,24 @@ function firstPageAndLayer(engine: Engine) {
 }
 
 /**
+ * Bug real encontrado en la validación de comprador en vivo de RC1: `Page.size`
+ * vive SIEMPRE en la unidad física cruda de la página (`Page.unit` — casi
+ * siempre "mm" en proyectos reales), mientras que `Transform`/`size` de
+ * cualquier object insertado (texto, imagen, línea de corte) viven SIEMPRE
+ * en píxeles canónicos (ver comentario de `createProjectFromSize` en
+ * `projectPresets.ts` y ADR de Fase 9.1) — el mismo espacio numérico que
+ * `DEFAULT_TEXT_WIDTH`/`MAX_IMAGE_DIMENSION` de este archivo. Insertar un
+ * object usando `page.size.width/height` sin convertir (como hacía este
+ * código antes) mezcla ambas unidades: en un sticker de 50mm reales
+ * (≈189 px canónicos), la posición/tamaño calculados terminaban fuera de la
+ * página casi por completo. Debe convertirse SIEMPRE con `toPixels` antes
+ * de combinarlo con cualquier valor de object.
+ */
+function pageSizeInCanonicalPx(page: Page): { width: number; height: number } {
+  return { width: toPixels(page.size.width, page.unit), height: toPixels(page.size.height, page.unit) };
+}
+
+/**
  * Acciones "Agregar texto"/"Agregar imágenes SVG/PNG" (ver Épica: Sticker
  * Creation Experience). Ambas insertan un object ya centrado en la página
  * (en vez de exigir "elegir la herramienta y luego hacer click en el
@@ -91,13 +109,8 @@ export function createToolsController(options: CreateToolsControllerOptions): To
 
   function insertText(): void {
     const { page, layer } = firstPageAndLayer(engine);
-    const position = computeInsertPosition(
-      page.size.width,
-      page.size.height,
-      DEFAULT_TEXT_WIDTH,
-      DEFAULT_TEXT_HEIGHT,
-      insertCount++,
-    );
+    const pagePx = pageSizeInCanonicalPx(page);
+    const position = computeInsertPosition(pagePx.width, pagePx.height, DEFAULT_TEXT_WIDTH, DEFAULT_TEXT_HEIGHT, insertCount++);
     engine.dispatch({
       type: "addObject",
       pageId: page.id,
@@ -128,17 +141,18 @@ export function createToolsController(options: CreateToolsControllerOptions): To
     insertIndex: number,
   ): void {
     const { page, layer } = firstPageAndLayer(engine);
-    // Bug real encontrado en la validación de comprador de Release Candidate
-    // 1.0: `MAX_IMAGE_DIMENSION` es un tope absoluto en las mismas unidades
-    // que la página (mm). Para páginas grandes eso es solo un límite
-    // razonable, pero para un sticker pequeño (p.ej. 50×50mm, el tamaño más
-    // común) una imagen importada se insertaba hasta 4 veces más grande que
-    // la propia página — "centrada" matemáticamente, pero desbordando casi
-    // por completo el área visible, pareciendo mal colocada. El límite debe
-    // ser siempre relativo al tamaño real de la página que se está editando.
-    const maxDimension = Math.min(MAX_IMAGE_DIMENSION, Math.min(page.size.width, page.size.height) * 0.8);
+    // Bug real encontrado en la validación de comprador en vivo de RC1 (ver
+    // `pageSizeInCanonicalPx`): el tope de tamaño y el centrado deben
+    // calcularse en píxeles canónicos, la misma unidad que `size`/`transform`
+    // de cualquier object — nunca en la unidad física cruda de `page.size`.
+    // Además, el tope siempre debe ser relativo al tamaño real de la página
+    // (nunca solo un absoluto fijo): en un sticker pequeño, una imagen
+    // importada sin este límite relativo terminaba más grande que la propia
+    // página.
+    const pagePx = pageSizeInCanonicalPx(page);
+    const maxDimension = Math.min(MAX_IMAGE_DIMENSION, Math.min(pagePx.width, pagePx.height) * 0.8);
     const fitSize = scaleToFit(size.width, size.height, maxDimension);
-    const position = computeInsertPosition(page.size.width, page.size.height, fitSize.width, fitSize.height, insertIndex);
+    const position = computeInsertPosition(pagePx.width, pagePx.height, fitSize.width, fitSize.height, insertIndex);
     engine.dispatch({
       type: "addObject",
       pageId: page.id,

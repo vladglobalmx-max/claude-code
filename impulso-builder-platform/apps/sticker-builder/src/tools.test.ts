@@ -219,8 +219,9 @@ describe("createToolsController", () => {
       }
     });
 
-    it("reduce el tamaño de imágenes más grandes que MAX_IMAGE_DIMENSION manteniendo el aspect ratio", async () => {
-      // FakeImage: 400x100 -> el lado mayor (400) se reduce a 200, escala 0.5 -> 200x50
+    it("reduce el tamaño de imágenes más grandes que el límite efectivo manteniendo el aspect ratio", async () => {
+      // Página de prueba: 200x100 -> límite efectivo = min(200, min(200,100)*0.8) = 80.
+      // FakeImage: 400x100 -> el lado mayor (400) se reduce a 80, escala 0.2 -> 80x20
       const engine = createEngine(buildProject());
       const controller = createToolsController({
         engine,
@@ -234,7 +235,34 @@ describe("createToolsController", () => {
 
       const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
       if (objects[0]?.type === "image") {
-        expect(objects[0].size).toEqual({ width: 200, height: 50 });
+        expect(objects[0].size).toEqual({ width: 80, height: 20 });
+      }
+    });
+
+    it("regresión RC1: en una página pequeña (p.ej. un sticker de 50x50), la imagen importada nunca es más grande que la propia página", async () => {
+      // Bug real encontrado en la validación de comprador: antes de este fix,
+      // el límite era un valor absoluto (200) sin relación con el tamaño de
+      // la página, así que en un sticker de 50x50 una imagen terminaba 4x
+      // más grande que el propio sticker, desbordando casi por completo el
+      // área visible.
+      const smallPageProject = buildProject();
+      const page = smallPageProject.document.pages[0];
+      if (page) page.size = { width: 50, height: 50 };
+      const engine = createEngine(smallPageProject);
+      const controller = createToolsController({
+        engine,
+        binaryStore: createMemoryAssetStore(),
+        resolvedCache: createResolvedAssetCache(),
+        now: () => NOW,
+      });
+      const file = new File(["x"], "grande.png", { type: "image/png" });
+
+      await controller.insertImage(file);
+
+      const objects = engine.getProject().document.pages[0]?.layers[0]?.objects ?? [];
+      if (objects[0]?.type === "image") {
+        expect(objects[0].size.width).toBeLessThanOrEqual(50);
+        expect(objects[0].size.height).toBeLessThanOrEqual(50);
       }
     });
   });

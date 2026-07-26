@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.4] — Release Candidate 1.0: validación de comprador en vivo — imágenes importadas se salían del sticker en páginas pequeñas
+
+Encontrado durante una validación de comprador en vivo, sobre la máquina real del usuario (no una auditoría de código): al importar una imagen PNG en un sticker de tamaño típico (p.ej. 50×50mm), la imagen se insertaba visiblemente descentrada y desbordando el área del sticker.
+
+### Corregido (bug real, crítico — flujo principal de importar artwork propio)
+- `insertImageObject` (`src/tools.ts`) limitaba el tamaño de las imágenes importadas a un máximo absoluto fijo (`MAX_IMAGE_DIMENSION = 200`, en las mismas unidades que la página) sin relación con el tamaño real de la página. En un sticker de 50×50mm, una imagen terminaba insertándose hasta 4 veces más grande que el propio sticker — "centrada" matemáticamente respecto a ese tamaño, pero desbordando casi por completo el área visible, lo cual se percibía como mal colocada. Corregido: el límite efectivo ahora es siempre relativo al tamaño de la página (`min(MAX_IMAGE_DIMENSION, min(pageWidth, pageHeight) * 0.8)`), garantizando que una imagen importada siempre quepa dentro del sticker por defecto. Regresión agregada en `src/tools.test.ts` (página de 50×50, la imagen importada nunca excede esas dimensiones).
+
 ## [0.17.3] — Release Candidate 1.0: validación de comprador en vivo — foco del diálogo de bienvenida
 
 Encontrado durante una validación de comprador guiada paso a paso (no una auditoría de código): el título del diálogo de bienvenida — lo primero que ve un comprador nuevo — recibe foco programático al abrirse (para que lectores de pantalla lo anuncien), pero sin un estilo de foco propio el navegador dibujaba su contorno por defecto: un recuadro negro crudo alrededor del texto, sin relación con el diseño de la app. Sin impacto funcional, pero con impacto real en la primera impresión.

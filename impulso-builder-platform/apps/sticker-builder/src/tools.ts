@@ -128,7 +128,16 @@ export function createToolsController(options: CreateToolsControllerOptions): To
     insertIndex: number,
   ): void {
     const { page, layer } = firstPageAndLayer(engine);
-    const fitSize = scaleToFit(size.width, size.height, MAX_IMAGE_DIMENSION);
+    // Bug real encontrado en la validación de comprador de Release Candidate
+    // 1.0: `MAX_IMAGE_DIMENSION` es un tope absoluto en las mismas unidades
+    // que la página (mm). Para páginas grandes eso es solo un límite
+    // razonable, pero para un sticker pequeño (p.ej. 50×50mm, el tamaño más
+    // común) una imagen importada se insertaba hasta 4 veces más grande que
+    // la propia página — "centrada" matemáticamente, pero desbordando casi
+    // por completo el área visible, pareciendo mal colocada. El límite debe
+    // ser siempre relativo al tamaño real de la página que se está editando.
+    const maxDimension = Math.min(MAX_IMAGE_DIMENSION, Math.min(page.size.width, page.size.height) * 0.8);
+    const fitSize = scaleToFit(size.width, size.height, maxDimension);
     const position = computeInsertPosition(page.size.width, page.size.height, fitSize.width, fitSize.height, insertIndex);
     engine.dispatch({
       type: "addObject",

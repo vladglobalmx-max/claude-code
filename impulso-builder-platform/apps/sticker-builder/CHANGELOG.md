@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.3] — Release Candidate 1.0: validación de comprador en vivo — foco del diálogo de bienvenida
+
+Encontrado durante una validación de comprador guiada paso a paso (no una auditoría de código): el título del diálogo de bienvenida — lo primero que ve un comprador nuevo — recibe foco programático al abrirse (para que lectores de pantalla lo anuncien), pero sin un estilo de foco propio el navegador dibujaba su contorno por defecto: un recuadro negro crudo alrededor del texto, sin relación con el diseño de la app. Sin impacto funcional, pero con impacto real en la primera impresión.
+
+### Corregido (percepción de calidad, sin cambio de funcionalidad)
+- `.welcome-dialog h2:focus-visible` ahora usa el mismo tratamiento de foco ya establecido en el resto de la app (`outline: 2px solid #1c1917`, igual que `.alignment-button:focus-visible`) en vez del contorno `auto` del navegador. El foco programático y el anuncio para lectores de pantalla siguen intactos; Tab/Escape siguen funcionando igual (verificado). Regresión agregada: `e2e/welcome-dialog.spec.ts` (2 escenarios nuevos, primer spec E2E que ve la bienvenida real — el resto de la suite la tiene pre-marcada como "ya vista" vía `storageState`).
+
 ## [0.17.2] — Release Candidate 1.0: bug crítico de contraste + branding
 
 Segundo lote de correcciones de RC1 — encontradas durante la revisión de branding y la toma de capturas oficiales de producto. Sin funciones nuevas.

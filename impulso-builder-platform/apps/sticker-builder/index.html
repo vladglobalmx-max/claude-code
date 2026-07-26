@@ -374,6 +374,18 @@
         margin: 0 0 12px;
         font-size: 1.2em;
       }
+      /* El título recibe foco programático al abrirse (para que lectores de
+         pantalla lo anuncien) — sin esta regla, el navegador dibuja su
+         contorno de foco por defecto (un recuadro crudo sin relación con el
+         diseño), justo en lo primero que ve un comprador nuevo. Se sustituye
+         por el mismo tratamiento de foco ya usado en el resto de la app
+         (`.alignment-button:focus-visible`), nunca se elimina el indicador —
+         solo se le da una apariencia coherente con la marca. */
+      .welcome-dialog h2:focus-visible {
+        outline: 2px solid #1c1917;
+        outline-offset: 3px;
+        border-radius: 2px;
+      }
       .welcome-dialog-body p {
         margin: 0 0 10px;
         color: #44403c;

@@ -53,6 +53,7 @@ Para que quien imprima/fotografíe tenga el archivo exacto: se genera el PDF de 
 | Escena 3 (0:55–1:00) | Destello del producto terminado — un solo plano, el más impactante de los 3-4 productos | 5s |
 | Escena 4 (1:38–1:55) | Toma más larga y detallada, sin prisa — puede combinar 2-3 productos distintos en cortes suaves | 17s |
 | Escena 6 (si se decide mostrar producto en el cierre, opcional) | Plano quieto de un producto, para intercalar con la Hero | 2-4s |
+| Escena 5.5 (nueva, aprobada tras el animatic v1) | El PDF exportado → el sticker recién impreso en la hoja → el sticker aplicado sobre el producto. 3 momentos breves de la MISMA sesión, un corte entre ellos | 10s |
 
 ---
 

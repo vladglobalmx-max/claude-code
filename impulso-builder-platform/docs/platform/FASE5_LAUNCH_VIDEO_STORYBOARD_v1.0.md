@@ -1,6 +1,6 @@
 # Video Oficial de Lanzamiento — Storyboard v1.0 (Fase 5)
 
-Estado: **storyboard APROBADO** como base oficial del Video de Lanzamiento v1.0. Las 4 decisiones pendientes de la primera entrega ya están resueltas (ver §7) y quedan reflejadas en el cuerpo de este documento. Sigue pendiente de producir: el video final. Antes de renderizar la versión definitiva, el usuario revisará y aprobará un **animatic/versión preliminar** (ver §9) — nada se renderiza en calidad final sin ese paso intermedio.
+Estado: **animatic v2 APROBADO como base oficial de producción** (§9). El render final todavía no está autorizado — quedan 3 ajustes pendientes antes de esa autorización (ver §9.1): (1) sesión real de fotografía/video de producto físico según el brief aprobado — crítica para la credibilidad del video, pendiente de ejecución humana; (2) locución humana (aún no grabada); (3) música con licencia (plataforma aún sin contratar, ver §6). La estructura, narrativa y ritmo quedan aprobados sin cambios adicionales.
 
 Precede a este documento la aprobación formal de **THÖREN Hero v1.0 Final** (congelada, sin más iteraciones estéticas) — el video reutiliza esa Hero como asset de marca, sin recrearla.
 
@@ -29,7 +29,7 @@ Antes de escribir una sola escena, se revisó que el mensaje de marca sea el mis
 
 | | |
 |---|---|
-| **Duración total aproximada** | 2:40 (160 segundos) |
+| **Duración total aproximada** | 2:50 (170 segundos) — incluye la Escena 5.5 opcional (impresión/aplicación real) agregada tras la revisión del animatic v1 |
 | **Formato** | 1920×1080, 16:9, MP4 (H.264), 30fps mínimo (recomendado 60fps para las capturas de pantalla, ver §5) |
 | **Narración** | Voz **humana** en español, tono calmado y directo (no vendedor/gritón) — decisión firme, sin TTS para esta versión principal (ver §7.3). Sincronizada con música y texto en pantalla, nunca los tres compitiendo a la vez. |
 | **¿Responde las 3 preguntas en los primeros 60s?** | Sí — ver marcador "✔ 60s" en la tabla de la Escena 3. |
@@ -49,7 +49,8 @@ Antes de escribir una sola escena, se revisó que el mensaje de marca sea el mis
 | 3 | Flujo de trabajo — vista rápida | 0:20–1:00 | 40s | Ágil, 1 corte cada 2-4s |
 | 4 | Flujo de trabajo — en profundidad | 1:00–1:55 | 55s | Moderado, 1 corte cada 4-6s |
 | 5 | Beneficios | 1:55–2:20 | 25s | Pausado, 1 corte cada 6-8s |
-| 6 | Cierre | 2:20–2:40 | 20s | Estático, sin cortes |
+| 5.5 | (Opcional, agregada tras animatic v1) Del archivo a la impresión | 2:20–2:30 | 10s | Un corte, sin prisa |
+| 6 | Cierre | 2:30–2:50 | 20s | Estático, sin cortes |
 
 **Las tres preguntas del hook, resueltas dentro del primer minuto:**
 1. *¿Qué problema resuelve?* → Escena 1 (0:00–0:08).
@@ -100,8 +101,8 @@ Capturas reales de la app (`localhost:4174` en producción, o el build comercial
 | 0:20–0:27 | Crear proyecto | Clic en "Nuevo proyecto" → elegir plantilla | "Elige un tamaño o plantilla" |
 | 0:27–0:33 | Elegir template | Selección de plantilla circular (o la usada en la Hero, para continuidad visual) | — |
 | 0:33–0:45 | Diseñar | Insertar imagen/texto, mover, ajustar — 2-3 cortes rápidos dentro del propio paso | "Diseña con precisión" |
-| 0:45–0:55 | Exportar | Clic en "Exportar para impresión" → Preview con sangrado/marcas de corte visibles | "Listo para tu imprenta" |
-| 0:55–1:00 | *(destello)* Producto físico | Corte breve (5s) al producto físico terminado — el mismo tratamiento visual que la Hero (ver §4, nota de continuidad) | "Esto es lo que obtienes." |
+| 0:45–0:55 | Exportar | Clic en "Exportar para impresión" → Preview con sangrado/marcas de corte visibles. El corte de salida de esta escena queda fijado exactamente en el último frame real limpio (verificado cuadro a cuadro), nunca sobre un frame de Preflight — la transición hacia la Escena 4 (Preflight) es metraje real continuo, no un salto oculto tras un freeze | "Listo para tu imprenta" |
+| 0:55–1:00 | *(destello)* Producto físico | Corte breve (5s) — fotografía/video real (ver §7.1 y brief de producción), pendiente de la sesión real | "Esto es lo que obtienes." |
 
 **Narración (VO), continua sobre los 4 pasos:**
 > "Creas tu proyecto, eliges una plantilla, diseñas con precisión... y exportas un archivo real, listo para imprenta. Esto es lo que obtienes."
@@ -116,7 +117,7 @@ Mismo tratamiento de capturas reales, ritmo ahora más pausado (1 corte cada 4-6
 
 | Tiempo | Paso | Visual | Texto en pantalla |
 |---|---|---|---|
-| 1:00–1:12 | Organizar | Uso de capas, alineación y guías inteligentes (Smart Guides) alineando 2-3 elementos | "Todo alineado, sin esfuerzo" |
+| 1:00–1:12 | Organizar | Metraje real dedicado (no reutiliza el clip de diseño): 3 elementos insertados deliberadamente desalineados, selección múltiple (Ctrl+A), "Alinear arriba" + "Distribuir horizontalmente" reales | "Todo alineado, sin esfuerzo" |
 | 1:12–1:25 | Revisión automática | Preflight detectando y resolviendo un aviso real (ej. elemento fuera del área segura) | "Preflight revisa antes de exportar" |
 | 1:25–1:38 | Imposición en hoja | Wizard de exportación para impresión, paso de imposición mostrando varias copias en una hoja | "Varias copias, una sola hoja" |
 | 1:38–1:55 | Producto físico terminado | Toma más larga y detallada del producto físico (mismo tratamiento que la Hero), esta vez sin prisa — el "pago" visual de toda la escena | "De la idea al producto." |
@@ -145,7 +146,25 @@ Mismo tratamiento de capturas reales, ritmo ahora más pausado (1 corte cada 4-6
 
 ---
 
-### Escena 6 — Cierre (2:20–2:40)
+### Escena 5.5 — Del archivo a la impresión (2:20–2:30) — opcional, agregada tras revisión del animatic v1
+
+Escena nueva, pedida explícitamente por el usuario tras aprobar el animatic v1: "si el ritmo lo permite, agregar una breve secuencia mostrando el archivo exportado, la impresión y la aplicación real del sticker antes del cierre". No obligatoria, pero fortalece la promesa "de la idea al producto" con una prueba tangible justo antes del cierre.
+
+**Visual:** Secuencia real (fotografía/video, misma sesión del brief de producción, §7.1): el PDF exportado abierto/visible → el sticker recién impreso saliendo de la impresora o en la hoja → el sticker aplicado sobre el producto físico. 3 momentos breves, sin prisa, un solo corte entre ellos.
+
+**Texto en pantalla:**
+> "Del archivo exportado, a la impresión, al sticker en tus manos."
+
+**Narración (VO):**
+> "El mismo archivo que exportaste... es el que tu imprenta usa. Sin conversiones, sin sorpresas."
+
+**Animación:** Sin efectos — el contenido real ya tiene su propio peso; un corte seco entre los 3 momentos, sin transición decorativa.
+
+**Estado:** Placeholder en el animatic (`PENDIENTE: secuencia real de impresión + aplicación del sticker`) hasta que exista el metraje real de la sesión de fotografía/video (§7.1).
+
+---
+
+### Escena 6 — Cierre (2:30–2:50)
 
 **Visual:** Vuelve la Hero oficial (misma imagen que la Escena 2, para cerrar el círculo visual), esta vez con un fade suave hacia el lockup final: thorn-mark + "THÖREN Sticker Builder", tagline debajo.
 
@@ -169,16 +188,17 @@ Decisión firme (§7.2): **sin precio ni CTA de compra/Gumroad en el video.** El
 - `THOREN-Hero-Desktop-Light.png` (Escenas 2 y 6).
 - Capturas reales ya generadas en Fase RC1 (`01-mis-proyectos.png`, `02-editor.png`, `03-exportar-rapido.png`, `04-exportar-impresion-perfil.png`) — sirven de referencia de encuadre, pero deben regrabarse en video (no como foto fija) para las Escenas 3 y 4.
 
-### Grabaciones nuevas necesarias (capturas de pantalla reales, screen recording)
-1. Flujo completo "Nuevo proyecto → elegir plantilla" (Escena 3).
-2. Sesión de diseño real: insertar imagen/texto, mover, ajustar (Escenas 3-4) — usar un diseño de marca ficticia consistente con el ya aprobado en la Hero (VELARA) para que el video se sienta parte del mismo mundo visual que la Hero, no una marca nueva sin relación.
-3. Wizard de "Exportar para impresión": perfil → Preview con sangrado/marcas de corte (Escena 3).
-4. Uso de capas/alineación/Smart Guides (Escena 4).
-5. Preflight detectando y resolviendo un aviso real (Escena 4) — requiere preparar deliberadamente un proyecto con un problema real de preflight para capturarlo (no fabricar un mensaje falso).
-6. Wizard de imposición en hoja, paso de Preview con varias copias (Escena 4).
+### Grabaciones nuevas necesarias (capturas de pantalla reales, screen recording) — ✅ completo en el animatic v2
+1. Flujo completo "Nuevo proyecto → elegir plantilla" (Escena 3). ✅
+2. Sesión de diseño real: insertar imagen/texto, mover, ajustar (Escenas 3-4) — usar un diseño de marca ficticia consistente con el ya aprobado en la Hero (VELARA) para que el video se sienta parte del mismo mundo visual que la Hero, no una marca nueva sin relación. ✅
+3. Wizard de "Exportar para impresión": perfil → Preview con sangrado/marcas de corte (Escena 3). ✅ (transición a Preflight corregida, ver §9.1)
+4. Uso de capas/alineación/distribución (Escena 4) — metraje real dedicado, no reutiliza el clip de diseño. ✅
+5. Preflight detectando y resolviendo un aviso real (Escena 4) — un elemento posicionado a caballo del borde de página, detectado por el chequeo real de safe area; corregido en pantalla y re-verificado sin advertencias. ✅
+6. Wizard de imposición en hoja, paso de Preview con varias copias (Escena 4). ✅
 
 ### Recurso pendiente de producción humana (decisión ya tomada, ver §7.1)
 - **Producto físico terminado** (Escenas 3 y 4): decisión firme — **fotografía/video real** de stickers impresos aplicados a productos reales (botella de skincare, frasco cosmético, caja premium, laptop, empaque artesanal). No se reutiliza ni extiende el tratamiento CSS ilustrado de la Hero — esa Hero ya cumplió su función de marca; el video debe aumentar credibilidad con producto auténtico, no con otra ilustración. Ver el brief de producción completo en `FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md` (impresión, productos a conseguir, ángulos, iluminación, estilo).
+- **Escena 5.5** (nueva): del archivo exportado a la impresión y aplicación — misma sesión de producción que el punto anterior, ya incluida en el brief como mapeo a esta escena.
 
 ### Audio
 - Pista musical: por ahora solo referencia creativa de estilo (§6) — **no se integra ningún archivo con licencia todavía**. La plataforma (Artlist, Epidemic Sound u otra) se evalúa y contrata en el momento de producir el video final, no antes.
@@ -237,13 +257,26 @@ Este documento deja listo: la estructura completa, los tiempos, el guion de narr
 
 ## 9. Animatic / versión preliminar (gate obligatorio antes del render final)
 
-Antes de producir el Video Oficial de Lanzamiento v1.0 en calidad final, el usuario revisará un **animatic**: una versión preliminar de baja fidelidad que valida ritmo, tiempos, transiciones, narrativa y claridad del mensaje — no busca calidad visual final.
+Antes de producir el Video Oficial de Lanzamiento v1.0 en calidad final, el usuario revisa un **animatic**: una versión preliminar de baja fidelidad que valida ritmo, tiempos, transiciones, narrativa y claridad del mensaje — no busca calidad visual final.
 
 Composición del animatic (mientras la producción real de fotografía/locución/música no está lista):
 - **Capturas de pantalla reales** de la app en ejecución para las Escenas 3-4 (mismo software, mismo flujo — esto sí es real, no un placeholder).
 - **Hero oficial** para las Escenas 2 y 6 (asset final, ya aprobado).
-- **Tarjetas de marcador de posición** explícitas ("PENDIENTE: fotografía real de producto físico") en los huecos de las Escenas 3-4 y 6 donde iría el producto físico — para no fingir un resultado que todavía no existe.
+- **Tarjetas de marcador de posición** explícitas ("PENDIENTE: fotografía real de producto físico" / "PENDIENTE: secuencia real de impresión + aplicación del sticker") en los huecos donde iría el producto físico — para no fingir un resultado que todavía no existe.
 - **Subtítulos en pantalla** con el guion de narración completo (§3), en lugar de una voz grabada — permite validar tiempos y sincronía sin esperar al locutor.
 - **Sin música** (o un lecho silencioso de referencia) — la música es la última pieza en integrarse, después de aprobado el animatic.
 
-Solo después de que el usuario apruebe explícitamente el animatic se autoriza: contratar locución humana, gestionar la sesión de fotografía real, licenciar música, y producir el render final del Video Oficial de Lanzamiento v1.0.
+### 9.1 Estado: animatic v2 APROBADO como base de producción (render final aún no autorizado)
+
+El usuario aprobó la estructura, narrativa y ritmo del animatic v2 y autorizó **continuar con la producción**, sin autorizar todavía el render final. Quedan 3 ajustes obligatorios antes de esa autorización:
+
+1. **Sesión real de fotografía/video de producto físico** — según `FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md`. Marcada por el usuario como crítica para la credibilidad del video. Requiere ejecución humana (imprimir, aplicar, fotografiar/filmar) — no generable por este proceso.
+2. **Locución humana** — grabar el guion de narración de §3 con un locutor real (no TTS).
+3. **Música con licencia** — evaluar y contratar la plataforma (Artlist, Epidemic Sound u otra) cuando se decida producir el render final.
+
+Ya resueltos en el animatic v2 (no requieren más trabajo):
+- ✅ Escena "Organizar" (§Escena 4): metraje real dedicado — 3 elementos, selección múltiple, "Alinear arriba" + "Distribuir horizontalmente" reales. Ya no reutiliza el clip de "Diseñar".
+- ✅ Transición Exportar → Preflight: corregida y verificada cuadro a cuadro — el freeze de "Exportar" queda siempre sobre el último frame limpio del preview (nunca sobre contenido de Preflight), y "Preflight" arranca con su propio metraje real, incluyendo el clic de transición real hacia el diálogo.
+- ✅ Escena 5.5 (nueva, opcional): agregada entre Beneficios y Cierre, con placeholder explícito hasta que exista el metraje real del punto 1.
+
+Una vez resueltos los 3 puntos pendientes, se produce el render final del Video Oficial de Lanzamiento v1.0.

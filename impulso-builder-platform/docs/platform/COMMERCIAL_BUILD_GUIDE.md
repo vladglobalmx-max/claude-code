@@ -1,4 +1,4 @@
-# Commercial Build Guide — Impulso Sticker Builder (Fase 4.2)
+# Commercial Build Guide — THÖREN Sticker Builder (Fase 4.2)
 
 Cómo producir el paquete comercial real que se sube a Gumroad, y qué garantiza cada paso.
 

@@ -1,6 +1,6 @@
 # 02 — Ideal Customer Profiles
 
-> Cinco perfiles iniciales de usuario para Sticker Builder (el primer módulo de Impulso Platform). Estos perfiles se basan en patrones de comportamiento ampliamente documentados en el ecosistema de creadores/vendedores de productos físicos pequeños (Etsy, comunidades de maestros, planner communities, estudios creativos pequeños, agencias) — no en investigación de usuario propia de Impulso, que todavía no existe. Cada sección **"Qué lo convencería de cambiar"** es, por naturaleza, una hipótesis de producto — se marca explícitamente **[HIPÓTESIS]** y debe validarse con entrevistas reales antes de diseñar features específicas alrededor de ella.
+> Cinco perfiles iniciales de usuario para Sticker Builder (el primer módulo de Impulso Platform). Estos perfiles se basan en patrones de comportamiento ampliamente documentados en el ecosistema de creadores/vendedores de productos físicos pequeños (Etsy, comunidades de maestros, planner communities, estudios creativos pequeños, agencias) — no en investigación de usuario propia de THÖREN, que todavía no existe. Cada sección **"Qué lo convencería de cambiar"** es, por naturaleza, una hipótesis de producto — se marca explícitamente **[HIPÓTESIS]** y debe validarse con entrevistas reales antes de diseñar features específicas alrededor de ella.
 
 ---
 
@@ -22,7 +22,7 @@ Vende stickers (y productos relacionados: pegatinas, calcomanías, sticker sheet
 
 **Cómo descubre productos:** comunidades de vendedores de Etsy (foros, grupos de Facebook, subreddits de "Etsy sellers"), contenido de creadores en TikTok/YouTube mostrando su flujo de trabajo ("cómo hago mis stickers"), búsquedas directas tipo "cómo crear línea de corte para stickers".
 
-**Qué lo convencería de cambiar [HIPÓTESIS]:** ver, en una demo o video corto, que el archivo exportado de Impulso no requiere ningún paso manual de "simular" la línea de corte — que es un dato real desde el diseño, no una guía visual — y que eso reduce directamente el riesgo de un lote de impresión desperdiciado.
+**Qué lo convencería de cambiar [HIPÓTESIS]:** ver, en una demo o video corto, que el archivo exportado de THÖREN no requiere ningún paso manual de "simular" la línea de corte — que es un dato real desde el diseño, no una guía visual — y que eso reduce directamente el riesgo de un lote de impresión desperdiciado.
 
 ## Teacher Creator
 
@@ -82,7 +82,7 @@ Un pequeño negocio o estudio (2-10 personas, o un solo fundador con ayuda ocasi
 
 **Cómo descubre productos:** recomendaciones de otros negocios del rubro, comunidades B2B de papelería/regalo, búsquedas orientadas a "herramienta de diseño para equipos pequeños", ferias/eventos del sector.
 
-**Qué lo convencería de cambiar [HIPÓTESIS]:** que Impulso ofrezca, con el tiempo, varios módulos (Sticker Builder + futuros Bundle Builder/Journal Builder) bajo una misma cuenta y coherencia de marca — hoy esto no es posible (sin cuentas, sin colaboración, ver `../product/05-Technical-Debt.md`), así que este segmento probablemente NO es viable para Impulso en su etapa Alpha/Beta actual, y su conversión depende de capacidades que hoy son deuda técnica deliberada, no features en desarrollo activo.
+**Qué lo convencería de cambiar [HIPÓTESIS]:** que THÖREN ofrezca, con el tiempo, varios módulos (Sticker Builder + futuros Bundle Builder/Journal Builder) bajo una misma cuenta y coherencia de marca — hoy esto no es posible (sin cuentas, sin colaboración, ver `../product/05-Technical-Debt.md`), así que este segmento probablemente NO es viable para THÖREN en su etapa Alpha/Beta actual, y su conversión depende de capacidades que hoy son deuda técnica deliberada, no features en desarrollo activo.
 
 ## Agency
 
@@ -102,7 +102,7 @@ Agencia de diseño/marketing pequeña o mediana que produce piezas de producto f
 
 **Cómo descubre productos:** recomendaciones dentro de la industria de diseño/marketing, comunidades profesionales (LinkedIn, foros de diseño), casos de uso mostrados por herramientas en conferencias/eventos del sector.
 
-**Qué lo convencería de cambiar [HIPÓTESIS]:** que Impulso reduzca el tiempo de setup técnico de producción sin sacrificar el control que un diseñador de agencia espera tener — y que el archivo exportado sea genuinamente agnóstico de proveedor de impresión (a diferencia de Kittl Print), condición no negociable para un cliente que ya tiene su propia imprenta de confianza. Este segmento probablemente requiere primero que exista colaboración/cuentas de equipo (ver `../product/05-Technical-Debt.md`) antes de ser viable — no es un ICP de la etapa Alpha/Beta, sino de una etapa posterior si se valida la demanda.
+**Qué lo convencería de cambiar [HIPÓTESIS]:** que THÖREN reduzca el tiempo de setup técnico de producción sin sacrificar el control que un diseñador de agencia espera tener — y que el archivo exportado sea genuinamente agnóstico de proveedor de impresión (a diferencia de Kittl Print), condición no negociable para un cliente que ya tiene su propia imprenta de confianza. Este segmento probablemente requiere primero que exista colaboración/cuentas de equipo (ver `../product/05-Technical-Debt.md`) antes de ser viable — no es un ICP de la etapa Alpha/Beta, sino de una etapa posterior si se valida la demanda.
 
 ---
 

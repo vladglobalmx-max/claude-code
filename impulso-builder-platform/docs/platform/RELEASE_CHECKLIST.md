@@ -1,4 +1,4 @@
-# Release Checklist — Impulso Sticker Builder Professional (Fase 4.2)
+# Release Checklist — THÖREN Sticker Builder (Fase 4.2)
 
 Checklist técnico para cortar una nueva versión del producto comercial. Para el checklist específico de la publicación en Gumroad (copy, precio, listado), ver `GUMROAD_LAUNCH_PLAN.md`.
 

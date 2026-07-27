@@ -1,4 +1,4 @@
-# Buyer Validation Report — Impulso Sticker Builder Professional v1.0.0
+# Buyer Validation Report — THÖREN Sticker Builder v1.0.0
 
 **Estado: APROBADA.** El propietario del producto confirmó personalmente, sobre el ZIP de distribución real y en su propia máquina (no en el entorno de desarrollo), que la validación manual de comprador quedó completada y que la aplicación funciona correctamente.
 
@@ -57,6 +57,6 @@ Un proyecto de prueba específico —reutilizado extensamente a lo largo de toda
 
 ## Confirmación final
 
-> "La validación manual del comprador quedó completada. Confirmo que probé personalmente Impulso Sticker Builder Professional y la aplicación funciona correctamente."
+> "La validación manual del comprador quedó completada. Confirmo que probé personalmente THÖREN Sticker Builder y la aplicación funciona correctamente."
 >
 > — Propietario del producto, autorizando el hito Final Release Preparation — Version 1.0.0.

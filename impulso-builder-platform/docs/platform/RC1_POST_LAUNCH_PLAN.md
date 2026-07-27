@@ -28,7 +28,7 @@ Qué hacer después de publicar en Gumroad. El checklist de publicación en sí 
 
 ## Lista priorizada de mejoras basada en futuros usuarios (framework, vacío por diseño)
 
-Esta lista NO se puede poblar todavía — no existe un solo comprador real. Poblarla con ideas internas violaría exactamente el criterio que motivó Release Candidate 1.0 ("¿esto ayuda a que una persona compre y use Impulso?" — ideas sin validar no responden esa pregunta). El formato queda listo para cuando exista feedback real:
+Esta lista NO se puede poblar todavía — no existe un solo comprador real. Poblarla con ideas internas violaría exactamente el criterio que motivó Release Candidate 1.0 ("¿esto ayuda a que una persona compre y use THÖREN?" — ideas sin validar no responden esa pregunta). El formato queda listo para cuando exista feedback real:
 
 | # | Reportado por (cuántos compradores) | Qué pidieron/qué les costó | Clasificación (A/B/C/D, mismo criterio YAGNI de Fase 4.2) | Decisión |
 |---|---|---|---|---|

@@ -1,6 +1,6 @@
 # V1 Commercial Recommendation — Fase 4.1
 
-> Recomendación concreta y accionable para la primera venta real de Impulso, complementando ADR-0026 a 0029. Cubre identidad/cuentas, offline/activación, soporte/recuperación, UX comercial, y responde explícitamente las 14 decisiones obligatorias de la fase. No deja ninguna decisión abierta sin recomendación.
+> Recomendación concreta y accionable para la primera venta real de THÖREN, complementando ADR-0026 a 0029. Cubre identidad/cuentas, offline/activación, soporte/recuperación, UX comercial, y responde explícitamente las 14 decisiones obligatorias de la fase. No deja ninguna decisión abierta sin recomendación.
 
 ## 1. Identidad y cuentas (sección 10)
 
@@ -9,13 +9,13 @@ Comparadas las 3 rutas:
 - **B. Cuenta opcional** (compra primero; cuenta solo para recuperación/updates) — balance correcto para V1.
 - **C. Cuenta obligatoria** (mayor control, mayor fricción, dependencia online) — prematuro sin evidencia de que los compradores lo toleren para una "mini app".
 
-**Recomendación**: **Ruta B, con una implementación aún más mínima en 4.1-4.3: ninguna cuenta técnica existe todavía.** La "cuenta" en V1 es, de hecho, la cuenta de Gumroad del comprador (Gumroad ya guarda su historial de compras y permite re-descargar). Impulso no construye autenticación productiva en esta fase (prohibido explícitamente). Los contratos de dominio (`Entitlement.subjectId`) se diseñan ya independientes de cualquier proveedor de identidad específico, para que una cuenta propia futura (Fase 4.5) solo tenga que rellenar `subjectId` con un `userId` real en vez de un `deviceId` — sin romper el modelo.
+**Recomendación**: **Ruta B, con una implementación aún más mínima en 4.1-4.3: ninguna cuenta técnica existe todavía.** La "cuenta" en V1 es, de hecho, la cuenta de Gumroad del comprador (Gumroad ya guarda su historial de compras y permite re-descargar). THÖREN no construye autenticación productiva en esta fase (prohibido explícitamente). Los contratos de dominio (`Entitlement.subjectId`) se diseñan ya independientes de cualquier proveedor de identidad específico, para que una cuenta propia futura (Fase 4.5) solo tenga que rellenar `subjectId` con un `userId` real en vez de un `deviceId` — sin romper el modelo.
 
 ## 2. Estrategia offline y activación (sección 15)
 
 - **Qué funciona offline**: todo. La app ya es 100% funcional sin red (confirmado por auditoría — cero llamadas de red en runtime hoy). La capa comercial V1 no introduce ninguna dependencia de red: `licensingMode: "delivery-only"` no valida nada en ningún momento.
 - **Cuánto tiempo puede operar sin validación**: indefinidamente, en V1, porque no hay validación que expire.
-- **Cómo se recupera una licencia**: en V1, re-descargando desde el historial de compras de Gumroad — no es responsabilidad de Impulso.
+- **Cómo se recupera una licencia**: en V1, re-descargando desde el historial de compras de Gumroad — no es responsabilidad de THÖREN.
 - **Qué ocurre si el servicio comercial está caído**: no aplica en V1 (no hay servicio comercial del que depender en runtime).
 - **Qué ocurre si un usuario cambia de equipo**: puede volver a descargar/usar el mismo enlace sin restricción técnica.
 - **Qué se guarda localmente**: nada relacionado con licensing en V1 (no hay licensing técnico). Los proyectos del usuario siguen guardándose exactamente como hoy (IndexedDB, sin cambios).
@@ -31,7 +31,7 @@ Procesos conceptuales para V1 (todos manuales, sin automatización — explícit
 | Comprador pierde acceso | Redirigir a "Recibos" de Gumroad (su cuenta o el email de confirmación) |
 | Cambio de dispositivo | Ninguna acción necesaria — sin restricción técnica de dispositivo en V1 |
 | Compra no reconocida | Gestionado por Gumroad (su propio soporte de pagos/disputas) |
-| Reembolso | Gestionado por Gumroad; Impulso no necesita replicar ese estado (sin Entitlement técnico que revocar en V1) |
+| Reembolso | Gestionado por Gumroad; THÖREN no necesita replicar ese estado (sin Entitlement técnico que revocar en V1) |
 | Licencia "revocada" | No aplica en V1 (nada que revocar técnicamente) |
 | Aplicación sin conexión | No es un caso de soporte — funciona por diseño |
 | Actualización fallida | Soporte manual por email: reenviar el enlace/build correcto |
@@ -66,7 +66,7 @@ En V1, con una sola edición y `delivery-only`, la mayoría de estos flujos **no
 | 10 | Estrategia de empaquetado | **Un solo build, manifest-driven** (ADR-0027) — nunca forks de código por edición/cliente |
 | 11 | Estrategia de actualización | **`updatePolicy: "included-minor"`**: actualizaciones menores incluidas indefinidamente con la compra; mayores (nueva edición con features nuevas) a evaluar cuando exista evidencia de demanda, nunca decidido unilateralmente ahora |
 | 12 | Política de soporte | **`supportPolicy: "email"`**, manual, sin automatización — ver tabla de la sección 3 arriba |
-| 13 | Datos mínimos recopilados | **Ninguno propio de Impulso.** Solo lo que Gumroad ya recopila para procesar el pago (email, país por impuestos) — Impulso no agrega telemetría productiva en 4.1 (ver política de privacidad, sección 16 del enunciado, cubierta en `05-Technical-Debt.md`/Roadmap) |
+| 13 | Datos mínimos recopilados | **Ninguno propio de THÖREN.** Solo lo que Gumroad ya recopila para procesar el pago (email, país por impuestos) — THÖREN no agrega telemetría productiva en 4.1 (ver política de privacidad, sección 16 del enunciado, cubierta en `05-Technical-Debt.md`/Roadmap) |
 | 14 | Siguiente fase exacta | **Fase 4.2 — Product Manifest & Capabilities**: decidir la mecánica real de entrega del manifest, construir el `CapabilityProvider` real (con default "todo concedido" para no romper nada), y conectar el primer manifest real a `apps/sticker-builder` — todavía sin backend/pagos/segunda edición real |
 
 ## 6. Versionado y actualizaciones (sección 14)
@@ -93,7 +93,7 @@ Con una sola edición en V1, no hay hoy ningún caso real de "proyecto de edici�
 ## 8. Privacidad y telemetría (sección 16)
 
 Separación de categorías (ninguna implementada en 4.1 — diseño para cuándo exista telemetría real, probablemente Fase 4.6+):
-- **Analytics de marketing** — vive en Bookfluence/Gumroad (fuera de la app de Impulso), no en el runtime del Builder.
+- **Analytics de marketing** — vive en Bookfluence/Gumroad (fuera de la app de THÖREN), no en el runtime del Builder.
 - **Activación** — no aplica en V1 (`delivery-only`, sin evento de activación técnica).
 - **Diagnóstico / crash reporting** — no implementado en 4.1.
 - **Uso de features** — no implementado en 4.1.

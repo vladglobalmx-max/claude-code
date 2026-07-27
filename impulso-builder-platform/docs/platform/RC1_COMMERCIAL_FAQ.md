@@ -18,7 +18,7 @@ No. Ninguna cuenta, ningún login, ninguna activación por clave de licencia.
 PNG y SVG para pantalla; PDF profesional (con sangrado y marcas de corte reales) o PNG por hoja para producción de impresión. Ver capturas y la guía de exportación incluida.
 
 **¿Puedo vender los stickers que diseño con esto?**
-Sí. Los diseños que creas son tuyos — puedes venderlos comercialmente sin regalías hacia Impulso. Ver `LICENCIA-DE-USO.md` (incluida en la descarga) para los términos completos.
+Sí. Los diseños que creas son tuyos — puedes venderlos comercialmente sin regalías hacia THÖREN. Ver `LICENCIA-DE-USO.md` (incluida en la descarga) para los términos completos.
 
 **¿En qué sistemas funciona?**
 Windows, macOS y Linux, con Google Chrome, Microsoft Edge o Brave instalado. No es una app nativa de escritorio — se abre con un launcher incluido que la sirve en tu propio navegador, sin subir nada a internet.

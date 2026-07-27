@@ -1,4 +1,4 @@
-# Commercial Security Checklist — Impulso Sticker Builder (Fase 4.2)
+# Commercial Security Checklist — THÖREN Sticker Builder (Fase 4.2)
 
 Checklist ejecutado y verificado sobre el paquete real producido por `pnpm build:commercial` (no una descripción teórica). Repetir esta lista antes de cada release que se suba a Gumroad.
 

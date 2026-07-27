@@ -46,7 +46,7 @@ interface CommercialProduct {
 
 ### Notas por campo
 - **`version` vs. las versiones de paquete**: `CommercialProduct.version` es la versión del *producto vendido* (ej. "1.0.0" para el primer release comercial de Sticker Builder Professional). Es independiente de que `@impulso/print-engine` esté en 0.5.0 o `apps/sticker-builder` en 0.16.0 — esos son versiones de *código*, no de *producto vendido*. Un mismo `productVersion` puede corresponder a distintas combinaciones de versiones de paquete a lo largo del tiempo (parches internos que no cambian lo que el comprador percibe).
-- **`priceReference` es solo informativo, nunca autoritativo**: el precio real de cobro vive en el canal (Gumroad, etc.) — este campo existe para que la documentación/catálogo interno tenga un valor de referencia, no para que ningún código de Impulso calcule o aplique un cobro. Duplicar el precio aquí y dejarlo desactualizado respecto al canal real es un riesgo aceptado de mantenimiento manual, no un bug de arquitectura.
+- **`priceReference` es solo informativo, nunca autoritativo**: el precio real de cobro vive en el canal (Gumroad, etc.) — este campo existe para que la documentación/catálogo interno tenga un valor de referencia, no para que ningún código de THÖREN calcule o aplique un cobro. Duplicar el precio aquí y dejarlo desactualizado respecto al canal real es un riesgo aceptado de mantenimiento manual, no un bug de arquitectura.
 - **`entitlementRequirements.featureIds` vs. `includedFeatures`**: `includedFeatures` es catálogo/marketing ("qué trae este producto"); `entitlementRequirements.featureIds` es lo que la capa de Capabilities (4) realmente necesita ver concedido para desbloquear el producto — en V1 son idénticos por definición (todo lo que el producto anuncia, lo concede), pero se modelan separados desde ahora para no reñir el schema cuando un futuro producto incluya una feature marketing-only (ej. "acceso anticipado a novedades") que no corresponde a ningún `CapabilityId` técnico.
 - **`updatePolicy`**: ver `V1_COMMERCIAL_RECOMMENDATION.md` para la política elegida para V1 (`included-minor`: actualizaciones menores incluidas indefinidamente con la compra, mayores a evaluar).
 - **`lifecycleStatus`**: permite retirar un producto del catálogo (`retired`) sin borrar el registro histórico — importante para compradores existentes que necesiten reinstalar/recuperar una versión de un producto ya descontinuado.
@@ -55,7 +55,7 @@ interface CommercialProduct {
 
 Ejemplos concretos evaluados para este modelo (ninguno implica compromiso de construirlos, solo que el modelo los admite sin cambios):
 - **App individual**: Sticker Builder (única app real hoy).
-- **Bundle**: "Impulso Creator Bundle" (Sticker Builder + un segundo Builder futuro) — `productType: "bundle"`, `includedModules` con 2+ entradas.
+- **Bundle**: "THÖREN Creator Bundle" (Sticker Builder + un segundo Builder futuro) — `productType: "bundle"`, `includedModules` con 2+ entradas.
 - **Ediciones especializadas**: "Sticker Builder — Internal Global Supplier Edition" — `edition: "internal"`, mismo código, manifest distinto.
 - **Templates premium / asset packs**: `productType: "template-pack"`/`"asset-pack"` — no incluyen ningún `Module` (no son un Builder), solo contenido consumido por un Module ya poseído; su `entitlementRequirements` podría exigir poseer el Module base como precondición (a diseñar en Fase 4.2+, no resuelto aquí).
 

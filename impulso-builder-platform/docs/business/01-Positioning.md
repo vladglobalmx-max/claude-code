@@ -1,14 +1,14 @@
 # 01 — Positioning
 
-> Documento estratégico de negocio. Complementa (no reemplaza) [`../product/01-Product-Vision.md`](../product/01-Product-Vision.md) — la Visión de Producto explica qué es Impulso y para quién; este documento explica dónde se para Impulso frente al mercado y la competencia real. Ver [`03-Competitive-Landscape.md`](03-Competitive-Landscape.md) para el análisis competitivo completo del que se derivan las afirmaciones de este documento; las conclusiones que dependen de validación externa se marcan **[HIPÓTESIS]**, igual que allí.
+> Documento estratégico de negocio. Complementa (no reemplaza) [`../product/01-Product-Vision.md`](../product/01-Product-Vision.md) — la Visión de Producto explica qué es THÖREN y para quién; este documento explica dónde se para THÖREN frente al mercado y la competencia real. Ver [`03-Competitive-Landscape.md`](03-Competitive-Landscape.md) para el análisis competitivo completo del que se derivan las afirmaciones de este documento; las conclusiones que dependen de validación externa se marcan **[HIPÓTESIS]**, igual que allí.
 
 ---
 
-## ¿Por qué existe Impulso?
+## ¿Por qué existe THÖREN?
 
 Porque hoy, crear un producto físico personalizado (empezando por un sticker) obliga a elegir entre dos extremos: una herramienta de diseño profesional con una curva de aprendizaje que no tiene relación con la simplicidad real de la tarea, o una herramienta genérica de "arrastrar y soltar" que no entiende nada sobre producción física — el resultado se ve bien en pantalla, pero no hay garantía de que sea imprimible tal cual.
 
-Impulso existe para eliminar esa elección falsa: una herramienta tan simple como un editor casual, con el rigor de producción de una herramienta profesional, construida desde el primer día para poder repetirse en más de un tipo de producto sin reconstruirse cada vez (ver [`../product/03-Architecture-Map.md`](../product/03-Architecture-Map.md)).
+THÖREN existe para eliminar esa elección falsa: una herramienta tan simple como un editor casual, con el rigor de producción de una herramienta profesional, construida desde el primer día para poder repetirse en más de un tipo de producto sin reconstruirse cada vez (ver [`../product/03-Architecture-Map.md`](../product/03-Architecture-Map.md)).
 
 ## ¿Qué categoría estamos creando?
 
@@ -22,13 +22,13 @@ No competimos limpiamente dentro de ninguna categoría ya nombrada del mercado (
 
 Canva **no genera líneas de corte reales** — su propia documentación de ayuda es explícita: "Canva doesn't generate cut lines as Illustrator does". El usuario debe simular manualmente el die-line con una forma que sirve solo de guía visual para el proveedor de impresión, no como un dato de producción real. Además, Canva es deliberadamente generalista: ningún flujo, plantilla o restricción está pensada específicamente para las reglas físicas de un sticker (tamaño real, sangrado, material).
 
-Impulso resuelve esto modelando la línea de corte como un dato de primera clase desde el Document Schema (un `path` con `metadata.role: "die-line"`, ver ADR-0002) — no una guía visual añadida, sino parte de la estructura misma del documento. Y resuelve la sobrecarga de Canva por diseño: una herramienta enfocada en un objetivo (stickers listos para imprenta), no una que también hace presentaciones, videos y posts de redes sociales.
+THÖREN resuelve esto modelando la línea de corte como un dato de primera clase desde el Document Schema (un `path` con `metadata.role: "die-line"`, ver ADR-0002) — no una guía visual añadida, sino parte de la estructura misma del documento. Y resuelve la sobrecarga de Canva por diseño: una herramienta enfocada en un objetivo (stickers listos para imprenta), no una que también hace presentaciones, videos y posts de redes sociales.
 
 ## ¿Qué problema resolvemos mejor que Kittl?
 
 Aquí la honestidad importa: Kittl **ya tiene** un sticker maker con plantillas de die-cut/kiss-cut y su propio servicio de impresión (Kittl Print) — no es un espacio vacío, y no podemos afirmar "tenemos línea de corte y ellos no".
 
-La diferencia real es estructural, no de funcionalidad puntual: Kittl es un producto monolítico enfocado en merch/POD en general — stickers es una funcionalidad más dentro de una herramienta de propósito amplio, atada (para el camino más simple) a su propio servicio de impresión. Impulso está construido, desde el Document Schema hacia arriba, para que un módulo nuevo (no solo stickers) se agregue sin reescribir el núcleo — la promesa de una **plataforma de módulos especializados**, no de una herramienta que va acumulando funcionalidades de categorías distintas dentro del mismo producto. Y el archivo que produce Impulso no depende de ningún servicio de impresión propio para ser útil — el objetivo es que el archivo exportado sea tan agnóstico del proveedor de impresión como el propio Renderer lo es de la librería de canvas (ver ADR-0001).
+La diferencia real es estructural, no de funcionalidad puntual: Kittl es un producto monolítico enfocado en merch/POD en general — stickers es una funcionalidad más dentro de una herramienta de propósito amplio, atada (para el camino más simple) a su propio servicio de impresión. THÖREN está construido, desde el Document Schema hacia arriba, para que un módulo nuevo (no solo stickers) se agregue sin reescribir el núcleo — la promesa de una **plataforma de módulos especializados**, no de una herramienta que va acumulando funcionalidades de categorías distintas dentro del mismo producto. Y el archivo que produce THÖREN no depende de ningún servicio de impresión propio para ser útil — el objetivo es que el archivo exportado sea tan agnóstico del proveedor de impresión como el propio Renderer lo es de la librería de canvas (ver ADR-0001).
 
 **[HIPÓTESIS]** que "no depender de nuestro propio fulfillment" o "arquitectura de plataforma multi-producto" sean diferenciadores que el usuario final perciba y valore activamente, en vez de un detalle de arquitectura invisible para quien solo quiere su sticker — no validado con usuarios.
 
@@ -36,7 +36,7 @@ La diferencia real es estructural, no de funcionalidad puntual: Kittl es un prod
 
 Creative Fabrica es, en su núcleo, un **marketplace de assets por suscripción** (fuentes, SVGs, plantillas) con un editor complementario (Creative Fabrica Studio) para consumir ese catálogo — no una herramienta centrada en el rigor de producción de un tipo de producto específico. No se encontró evidencia pública de que su editor priorice líneas de corte, sangrado o especificaciones físicas de un sticker de la misma forma que Kittl o Canva.
 
-Impulso no compite por el catálogo de assets (Creative Fabrica lleva desde 2016 construyendo el suyo, con más de un millón de productos) — compite ofreciendo la **herramienta de creación** con el rigor de producción que el catálogo por sí solo no resuelve. Alguien puede tener la fuente y el SVG perfectos de Creative Fabrica y aun así no tener un archivo listo para imprenta sin una herramienta que entienda sangrado/línea de corte/especificación física.
+THÖREN no compite por el catálogo de assets (Creative Fabrica lleva desde 2016 construyendo el suyo, con más de un millón de productos) — compite ofreciendo la **herramienta de creación** con el rigor de producción que el catálogo por sí solo no resuelve. Alguien puede tener la fuente y el SVG perfectos de Creative Fabrica y aun así no tener un archivo listo para imprenta sin una herramienta que entienda sangrado/línea de corte/especificación física.
 
 ## ¿Cuál es nuestra ventaja estructural?
 
@@ -49,8 +49,8 @@ Impulso no compite por el catálogo de assets (Creative Fabrica lleva desde 2016
 
 ## ¿Qué jamás intentaremos competir?
 
-- **No competiremos por ser el editor de diseño más amplio y genérico** (el terreno de Canva) — más superficie de casos de uso no relacionados va directamente en contra de la simplicidad que Impulso protege (ver [`../product/02-Product-Principles.md`](../product/02-Product-Principles.md), "Simplicidad").
+- **No competiremos por ser el editor de diseño más amplio y genérico** (el terreno de Canva) — más superficie de casos de uso no relacionados va directamente en contra de la simplicidad que THÖREN protege (ver [`../product/02-Product-Principles.md`](../product/02-Product-Principles.md), "Simplicidad").
 - **No competiremos por tener el catálogo de assets más grande** (el terreno de Creative Fabrica) — construir y curar un millón de productos de contenido es un negocio distinto al de construir la herramienta de creación.
-- **No competiremos por ser el mejor generador de mockups/imágenes de presentación** (el terreno de Placeit) — es un problema adyacente, no el problema central que Impulso resuelve (ver [`../product/01-Product-Vision.md`](../product/01-Product-Vision.md), "Qué NO intenta resolver").
-- **No competiremos operando nuestro propio servicio de impresión/fulfillment como el camino principal** (a diferencia de Kittl Print) — Impulso termina en "aquí está tu archivo listo"; qué proveedor de impresión usa cada persona es su elección, no una dependencia que el producto intente capturar, hasta que exista una razón de negocio real y explícitamente decidida para cambiar eso (ver [`../product/05-Technical-Debt.md`](../product/05-Technical-Debt.md)).
-- **No competiremos por ser una herramienta de diseño profesional para diseñadores avanzados** (el terreno de Illustrator/Figma) — quien ya tiene su flujo resuelto ahí tiene necesidades (plugins avanzados, integración con su propio pipeline) que compiten directamente con la simplicidad que Impulso protege.
+- **No competiremos por ser el mejor generador de mockups/imágenes de presentación** (el terreno de Placeit) — es un problema adyacente, no el problema central que THÖREN resuelve (ver [`../product/01-Product-Vision.md`](../product/01-Product-Vision.md), "Qué NO intenta resolver").
+- **No competiremos operando nuestro propio servicio de impresión/fulfillment como el camino principal** (a diferencia de Kittl Print) — THÖREN termina en "aquí está tu archivo listo"; qué proveedor de impresión usa cada persona es su elección, no una dependencia que el producto intente capturar, hasta que exista una razón de negocio real y explícitamente decidida para cambiar eso (ver [`../product/05-Technical-Debt.md`](../product/05-Technical-Debt.md)).
+- **No competiremos por ser una herramienta de diseño profesional para diseñadores avanzados** (el terreno de Illustrator/Figma) — quien ya tiene su flujo resuelto ahí tiene necesidades (plugins avanzados, integración con su propio pipeline) que compiten directamente con la simplicidad que THÖREN protege.

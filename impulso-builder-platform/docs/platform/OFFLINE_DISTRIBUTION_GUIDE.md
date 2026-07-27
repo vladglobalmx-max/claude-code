@@ -1,4 +1,4 @@
-# Offline Distribution Guide — Impulso Sticker Builder (Fase 4.2)
+# Offline Distribution Guide — THÖREN Sticker Builder (Fase 4.2)
 
 Documento técnico. Referencia interna del equipo — para la guía dirigida al comprador ver `apps/sticker-builder/commercial-assets/docs/01-como-empezar.md` y `06-requisitos-y-limitaciones.md`.
 
@@ -16,7 +16,7 @@ Cada paquete comercial incluye dos launchers en su raíz (ver `commercial-assets
 
 Ambos hacen lo mismo: levantan un servidor HTTP estático (`python -m http.server 4173` / `python3 -m http.server 4173`) sirviendo la carpeta del paquete, abren el navegador por defecto en `http://localhost:4173/`, y mantienen el proceso vivo mientras la ventana de terminal esté abierta.
 
-**¿Por qué el puerto 4173 específicamente, y por qué debe ser siempre el mismo?** IndexedDB (donde vive `ProjectStore`/`AssetBinaryStore`, es decir, todos los proyectos guardados del comprador) está particionado por origen completo: protocolo + host + **puerto**. Si una versión futura de Impulso usara un puerto distinto, el comprador "perdería" (en realidad: dejaría de ver) todos sus proyectos guardados al actualizar, porque estarían en el origen `localhost:4173` mientras la nueva versión corre en, por ejemplo, `localhost:5000`. Fijar el puerto en 4173 en todas las versiones (el mismo que ya usa `vite preview` en el flujo de desarrollo/E2E) es lo que garantiza continuidad de datos entre actualizaciones sin necesitar ningún mecanismo de migración.
+**¿Por qué el puerto 4173 específicamente, y por qué debe ser siempre el mismo?** IndexedDB (donde vive `ProjectStore`/`AssetBinaryStore`, es decir, todos los proyectos guardados del comprador) está particionado por origen completo: protocolo + host + **puerto**. Si una versión futura de THÖREN usara un puerto distinto, el comprador "perdería" (en realidad: dejaría de ver) todos sus proyectos guardados al actualizar, porque estarían en el origen `localhost:4173` mientras la nueva versión corre en, por ejemplo, `localhost:5000`. Fijar el puerto en 4173 en todas las versiones (el mismo que ya usa `vite preview` en el flujo de desarrollo/E2E) es lo que garantiza continuidad de datos entre actualizaciones sin necesitar ningún mecanismo de migración.
 
 ## Verificación real hecha (no solo diseño en el papel)
 
@@ -26,7 +26,7 @@ Ambos hacen lo mismo: levantan un servidor HTTP estático (`python -m http.serve
 
 ## Re-verificación — Release Candidate 1.0
 
-Validado empíricamente (no solo por el argumento del puerto fijo): se creó y guardó un proyecto real vía el launcher, se dejó apagar el servidor por completo (proceso terminado), y se volvió a levantar el launcher en un proceso de servidor nuevo — el proyecto seguía visible en "Mis proyectos" sin ninguna acción de recuperación. Esto es exactamente lo que ocurre al actualizar Impulso a una versión nueva (nuevo paquete, mismo puerto 4173).
+Validado empíricamente (no solo por el argumento del puerto fijo): se creó y guardó un proyecto real vía el launcher, se dejó apagar el servidor por completo (proceso terminado), y se volvió a levantar el launcher en un proceso de servidor nuevo — el proyecto seguía visible en "Mis proyectos" sin ninguna acción de recuperación. Esto es exactamente lo que ocurre al actualizar THÖREN a una versión nueva (nuevo paquete, mismo puerto 4173).
 
 ## Limitación conocida y documentada: Python
 

@@ -13,7 +13,7 @@ Si vendes stickers (Etsy, ferias, redes sociales, tu propia tienda), sabes
 el problema: diseñar es la parte fácil. Preparar el archivo para que una
 imprenta lo acepte sin devolverlo — eso es lo que realmente cuesta tiempo.
 
-Impulso Sticker Builder Professional resuelve las dos partes:
+THÖREN Sticker Builder resuelve las dos partes:
 
 ✦ Un editor de stickers completo y rápido — formas, texto, imágenes,
   capas, alineación, plantillas de tamaños comunes, grid y guías
@@ -56,7 +56,7 @@ completa en español, soporte por correo.
 
 ## Comparativa frente al flujo manual
 
-| Sin Impulso (flujo manual típico) | Con Impulso Sticker Builder Professional |
+| Sin THÖREN (flujo manual típico) | Con THÖREN Sticker Builder |
 |---|---|
 | Diseñar en una herramienta (Canva/Photoshop) y luego preparar el archivo a mano en otra (Illustrator) para agregar sangrado/marcas de corte | Diseñar y exportar listo para imprenta, en la misma herramienta |
 | Calcular manualmente cuántas copias caben en una hoja y acomodarlas una por una | El wizard imposiciona automáticamente (tú eliges cantidad y tamaño de hoja) |
@@ -80,5 +80,5 @@ Personas sin formación en diseño profesional que necesitan resultados de calid
 - **"¿Por qué pagar por esto si puedo usar Canva/Illustrator?"** — Canva no prepara archivos de impresión reales (sangrado, marcas de corte, imposición) sin plugins/trucos manuales. Illustrator lo hace, pero cuesta una suscripción mensual y tiene una curva de aprendizaje mucho más alta para algo tan específico como stickers.
 - **"¿Necesito saber de diseño gráfico para usarlo?"** — No. La interfaz está pensada para alguien sin experiencia previa; los términos técnicos (sangrado, marcas de corte) se explican en la documentación incluida, en español simple.
 - **"¿Funciona en mi computadora?"** — Windows, macOS y Linux, siempre que tengas Google Chrome, Edge o Brave. Ver requisitos completos en la documentación del paquete.
-- **"¿Qué pasa si no me gusta?"** — Consulta la política de reembolsos de Gumroad (gestionada por Gumroad, no por Impulso directamente en esta versión).
+- **"¿Qué pasa si no me gusta?"** — Consulta la política de reembolsos de Gumroad (gestionada por Gumroad, no por THÖREN directamente en esta versión).
 - **"¿Hay una versión de prueba?"** — No en esta versión (V1). Las capturas y la descripción reflejan honestamente el producto real, sin exagerar capacidades.

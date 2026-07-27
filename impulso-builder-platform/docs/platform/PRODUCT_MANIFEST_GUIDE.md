@@ -1,6 +1,6 @@
 # Product Manifest Guide — `commercial-product.json` (Fase 4.2)
 
-Cómo leer y modificar el manifest real de Impulso Sticker Builder. Para el contrato formal (Zod) ver `packages/commercial-schema/src/productManifest.ts`; para la decisión arquitectónica original, ADR-0027 (y su enmienda de Fase 4.2).
+Cómo leer y modificar el manifest real de THÖREN Sticker Builder. Para el contrato formal (Zod) ver `packages/commercial-schema/src/productManifest.ts`; para la decisión arquitectónica original, ADR-0027 (y su enmienda de Fase 4.2).
 
 ## Ubicación
 
@@ -17,7 +17,7 @@ Cómo leer y modificar el manifest real de Impulso Sticker Builder. Para el cont
 | `edition` | `"professional"` | Ver sección "Standard vs Professional" abajo. |
 | `modules` | `["sticker-builder"]` | Qué módulos del monorepo entrega este producto — hoy uno solo; el campo ya soporta bundles futuros. |
 | `capabilities` | `["sticker.core", "print.pdf", ...]` | La lista real de capabilities que `CapabilityProvider` concederá — ver `CAPABILITY_PROVIDER_GUIDE.md`. |
-| `branding.displayName`/`shortName` | `"Impulso Sticker Builder Professional"` | Usado en el título del diálogo de bienvenida y el "Estado comercial" en la app. |
+| `branding.displayName`/`shortName` | `"THÖREN Sticker Builder"` | Usado en el título del diálogo de bienvenida y el "Estado comercial" en la app. |
 | `support.email` | `"soporte@bookfluence.shop"` | Único canal de soporte en V1 — mostrado en la bienvenida y en la documentación del comprador. |
 | `updateChannel` | `"stable"` | Reservado para cuando exista más de un canal de actualización (beta/stable) — hoy siempre `"stable"`. |
 | `licensingMode` | `"delivery-only"` | Ver ADR-0028 — sin activación, sin validación online, sin cuenta técnica en V1. |

@@ -12,7 +12,7 @@ Material de apoyo para publicar en Gumroad. No se produjo ningún video (fuera d
 | 0:18–0:22 | Indicador "Guardando…" → "Guardado" (sin tocar nada) | "Se guarda solo" |
 | 0:22–0:32 | Clic en "Exportar para impresión" → elegir "Sticker Sheet" → avanzar hasta el Preview mostrando varias copias en una hoja | "Listo para tu imprenta: sangrado, marcas de corte, varias copias por hoja" |
 | 0:32–0:38 | Paso final: botón de descarga → archivo PDF descargado | "Un PDF real, listo para producción" |
-| 0:38–0:45 | Pantalla final: logo/nombre + "Impulso Sticker Builder Professional — pago único, funciona offline" | Precio + link de Gumroad |
+| 0:38–0:45 | Pantalla final: logo/nombre + "THÖREN Sticker Builder — pago único, funciona offline" | Precio + link de Gumroad |
 
 **Notas para quien grabe:**
 - Grabar sobre un proyecto ya preparado (no perder tiempo de grabación esperando cargas reales) — usar un diseño simple, de alto contraste, reconocible como sticker (ej. un ícono o logo simple, no texto largo).

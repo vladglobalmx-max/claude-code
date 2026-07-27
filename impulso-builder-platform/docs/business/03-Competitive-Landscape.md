@@ -1,6 +1,6 @@
 # 03 — Competitive Landscape
 
-> Análisis de los cuatro competidores relevantes para Sticker Builder (el primer módulo de Impulso Platform), acotado exactamente a los pedidos: **Canva, Kittl, Creative Fabrica, Placeit**. Toda afirmación de hecho (pricing, modelo de negocio, público declarado) está respaldada por fuentes públicas verificadas (ver "Fuentes" al final). Toda conclusión estratégica que dependa de investigación de mercado, entrevistas de usuario o datos que Impulso no tiene todavía se marca explícitamente como **[HIPÓTESIS]** — no se presenta como hecho.
+> Análisis de los cuatro competidores relevantes para Sticker Builder (el primer módulo de Impulso Platform), acotado exactamente a los pedidos: **Canva, Kittl, Creative Fabrica, Placeit**. Toda afirmación de hecho (pricing, modelo de negocio, público declarado) está respaldada por fuentes públicas verificadas (ver "Fuentes" al final). Toda conclusión estratégica que dependa de investigación de mercado, entrevistas de usuario o datos que THÖREN no tiene todavía se marca explícitamente como **[HIPÓTESIS]** — no se presenta como hecho.
 
 ---
 
@@ -23,7 +23,7 @@
 
 **Modelo de negocio:** freemium con 4 niveles (Free / Pro $15/mes / Business $20 por asiento/mes / Enterprise a medida), más ingresos por servicios de impresión de productos físicos, comisiones de marketplace de creadores, y contratos enterprise.
 
-**Oportunidad para Impulso:** el hueco es exactamente donde Canva es débil por diseño — alguien que necesita un archivo GENUINAMENTE imprimible (línea de corte real, no una guía manual) para un producto físico específico, sin tener que aprender ni navegar una herramienta pensada para todo lo demás. **[HIPÓTESIS]** que ese "hueco de rigor de producción" sea suficientemente grande y doloroso como para que alguien cambie de Canva a una herramienta nueva — requiere validación con usuarios reales de Sticker Builder.
+**Oportunidad para THÖREN:** el hueco es exactamente donde Canva es débil por diseño — alguien que necesita un archivo GENUINAMENTE imprimible (línea de corte real, no una guía manual) para un producto físico específico, sin tener que aprender ni navegar una herramienta pensada para todo lo demás. **[HIPÓTESIS]** que ese "hueco de rigor de producción" sea suficientemente grande y doloroso como para que alguien cambie de Canva a una herramienta nueva — requiere validación con usuarios reales de Sticker Builder.
 
 ## Kittl
 
@@ -44,7 +44,7 @@
 
 **Modelo de negocio:** freemium (Free / Pro $12/mes anual / Expert $24/mes anual / Business a medida) + ingresos de Kittl Print (fulfillment).
 
-**Oportunidad para Impulso:** Kittl es la prueba de que el mercado de "diseño para producción física, con IA" ya tiene un jugador serio y capitalizado — no es un espacio vacío. La diferenciación de Impulso no puede ser "tenemos línea de corte y ellos no" (Kittl sí la tiene). Tiene que ser estructural: una plataforma pensada desde el núcleo para expandirse a MUCHOS tipos de producto (no solo merch/POD) sin repetir el trabajo de cada editor, y sin depender de que el usuario use un servicio de impresión propio para obtener el mejor resultado. **[HIPÓTESIS]**: que "no atarme a tu propia imprenta" sea un diferenciador que los usuarios valoren activamente — no confirmado, Kittl Print puede ser percibido como una conveniencia, no una desventaja, por buena parte de su público.
+**Oportunidad para THÖREN:** Kittl es la prueba de que el mercado de "diseño para producción física, con IA" ya tiene un jugador serio y capitalizado — no es un espacio vacío. La diferenciación de THÖREN no puede ser "tenemos línea de corte y ellos no" (Kittl sí la tiene). Tiene que ser estructural: una plataforma pensada desde el núcleo para expandirse a MUCHOS tipos de producto (no solo merch/POD) sin repetir el trabajo de cada editor, y sin depender de que el usuario use un servicio de impresión propio para obtener el mejor resultado. **[HIPÓTESIS]**: que "no atarme a tu propia imprenta" sea un diferenciador que los usuarios valoren activamente — no confirmado, Kittl Print puede ser percibido como una conveniencia, no una desventaja, por buena parte de su público.
 
 ## Creative Fabrica
 
@@ -64,7 +64,7 @@
 
 **Modelo de negocio:** suscripción de acceso ilimitado a la biblioteca ($19–29/mes) + marketplace de comisiones para vendedores de assets.
 
-**Oportunidad para Impulso:** Creative Fabrica valida que existe una audiencia grande y activa de crafters/vendedores de productos físicos pequeños (el mismo público objetivo de Sticker Builder, ver `02-Ideal-Customer-Profiles.md`) dispuesta a pagar una suscripción mensual por herramientas/contenido de este espacio. La oportunidad no es competir por el catálogo de assets (Creative Fabrica tiene años de ventaja ahí) sino ofrecer la herramienta de CREACIÓN con el rigor de producción que su Studio no prioriza. **[HIPÓTESIS]**: una integración futura donde Impulso consuma assets de una biblioteca como Creative Fabrica (en vez de competir con su catálogo) podría ser más viable que competir de frente — no evaluado ni validado todavía.
+**Oportunidad para THÖREN:** Creative Fabrica valida que existe una audiencia grande y activa de crafters/vendedores de productos físicos pequeños (el mismo público objetivo de Sticker Builder, ver `02-Ideal-Customer-Profiles.md`) dispuesta a pagar una suscripción mensual por herramientas/contenido de este espacio. La oportunidad no es competir por el catálogo de assets (Creative Fabrica tiene años de ventaja ahí) sino ofrecer la herramienta de CREACIÓN con el rigor de producción que su Studio no prioriza. **[HIPÓTESIS]**: una integración futura donde THÖREN consuma assets de una biblioteca como Creative Fabrica (en vez de competir con su catálogo) podría ser más viable que competir de frente — no evaluado ni validado todavía.
 
 ## Placeit (por Envato)
 
@@ -83,7 +83,7 @@
 
 **Modelo de negocio:** suscripción (Free limitado con marca de agua / Unlimited $14.95/mes o $89.69/año) con licencia comercial incluida.
 
-**Oportunidad para Impulso:** Placeit no es un competidor directo de creación — es, potencialmente, un **complemento** en el flujo del mismo usuario (diseñar en Impulso → mostrar el mockup en Placeit o una herramienta equivalente antes de vender). **[HIPÓTESIS]**: una futura integración o funcionalidad de mockup propia dentro de Impulso podría cerrar ese último paso del flujo sin depender de una herramienta externa — no evaluado, y explícitamente fuera de alcance del roadmap actual (ver `../product/04-Roadmap.md`).
+**Oportunidad para THÖREN:** Placeit no es un competidor directo de creación — es, potencialmente, un **complemento** en el flujo del mismo usuario (diseñar en THÖREN → mostrar el mockup en Placeit o una herramienta equivalente antes de vender). **[HIPÓTESIS]**: una futura integración o funcionalidad de mockup propia dentro de THÖREN podría cerrar ese último paso del flujo sin depender de una herramienta externa — no evaluado, y explícitamente fuera de alcance del roadmap actual (ver `../product/04-Roadmap.md`).
 
 ---
 
@@ -96,14 +96,14 @@
 | **Modelo de negocio** | Freemium SaaS + servicios de impresión + marketplace | Freemium SaaS + fulfillment propio (Kittl Print) | Suscripción de biblioteca + comisión de marketplace | Suscripción de plantillas/mockups |
 | **Arquitectura de producto** | Monolítica, un producto para todo | Monolítica, enfocada en merch/POD | Marketplace + un editor general (Studio) | Monolítica, un producto (mockups) |
 | **Público principal** | Masivo, generalista | Vendedores POD/merch, agencias | Crafters/vendedores de assets | Emprendedores e-commerce/POD |
-| **Oportunidad para Impulso** | Rigor de producción real donde Canva solo simula | Diferenciarse por arquitectura de plataforma multi-producto, no por tener die-line (ya la tienen) | Ser la herramienta de creación, no competir por el catálogo de assets | Posible complemento futuro, no competidor directo |
+| **Oportunidad para THÖREN** | Rigor de producción real donde Canva solo simula | Diferenciarse por arquitectura de plataforma multi-producto, no por tener die-line (ya la tienen) | Ser la herramienta de creación, no competir por el catálogo de assets | Posible complemento futuro, no competidor directo |
 
 ## Qué NO se pudo verificar (marcado explícitamente)
 
 - **[HIPÓTESIS]** Qué tan "portable" (compatible con cualquier imprenta externa) es realmente un archivo exportado de Kittl fuera de su propio Kittl Print — no verificado públicamente.
 - **[HIPÓTESIS]** Si Creative Fabrica Studio tiene alguna funcionalidad de línea de corte/producción física no cubierta por las fuentes consultadas — no se encontró evidencia pública en ninguna dirección.
 - **[HIPÓTESIS]** Tamaño real de mercado, cuota de cada competidor, o tasas de conversión/abandono específicas del nicho de stickers dentro de cada plataforma — ninguna fuente pública consultada lo desglosa a ese nivel.
-- **[HIPÓTESIS]** Cuál de estos cuatro pierde más usuarios frente a una alternativa especializada como Impulso, y por qué — requiere investigación de mercado directa (entrevistas, encuestas), no inferible de información pública de posicionamiento/pricing.
+- **[HIPÓTESIS]** Cuál de estos cuatro pierde más usuarios frente a una alternativa especializada como THÖREN, y por qué — requiere investigación de mercado directa (entrevistas, encuestas), no inferible de información pública de posicionamiento/pricing.
 
 ## Fuentes
 

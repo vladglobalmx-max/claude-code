@@ -1,4 +1,4 @@
-# Commercial Walkthrough Verification — Impulso Sticker Builder Professional v1.0.0 (Fase 4.2)
+# Commercial Walkthrough Verification — THÖREN Sticker Builder v1.0.0 (Fase 4.2)
 
 Prueba de recorrido completo contra el `.zip` real (`impulso-sticker-builder-v1.0.0.zip`, `buildId: 1.0.0+ccc194c5074b`), ejecutado con el launcher real (`ABRIR-IMPULSO-MAC-LINUX.command`) y Chromium real vía Playwright — no contra `vite dev`/`vite preview`. Cero mocks en la aplicación misma.
 
@@ -47,7 +47,7 @@ Durante la validación de Release Candidate 1.0 se ejecutó por primera vez el r
 La autorización de Fase 4.2 pide el *diseño* de un protocolo de prueba con una persona no técnica, no ejecutarlo con una persona real todavía (eso corresponde a una validación de mercado posterior a la publicación). Protocolo propuesto:
 
 ### Perfil del participante
-Alguien que vende o quiere vender stickers (Etsy, ferias, redes sociales), sin experiencia en programación ni en herramientas de diseño profesional (Illustrator/Photoshop). Sin haber visto Impulso antes.
+Alguien que vende o quiere vender stickers (Etsy, ferias, redes sociales), sin experiencia en programación ni en herramientas de diseño profesional (Illustrator/Photoshop). Sin haber visto THÖREN antes.
 
 ### Setup
 - Entregarle únicamente el `.zip` descargado (simular la entrega real de Gumroad) y `LEEME-PRIMERO.md` como único punto de partida — sin explicación verbal previa.

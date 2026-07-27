@@ -34,4 +34,4 @@ No se elige base de datos en esta fase. Entidades mínimas que un backend eventu
 | Soporte (tiempo humano, no cotizado en $) | Bajo (manual) | Bajo-medio | Medio (empieza a justificar automatización) | Alto sin automatización — reevaluar |
 | Mantenimiento (tiempo humano) | Bajo | Bajo-medio | Medio | Medio-alto |
 
-**Supuestos declarados**: todas las filas asumen los tiers gratuitos/iniciales típicos de este tipo de servicio se mantienen vigentes — no se verificó ningún precio actual (fuera de alcance de esta fase, sección 26 lo permite explícitamente marcando todo como estimación conceptual). El único costo variable real y no evitable es la comisión de Gumroad por transacción, externa a Impulso y no cotizada aquí.
+**Supuestos declarados**: todas las filas asumen los tiers gratuitos/iniciales típicos de este tipo de servicio se mantienen vigentes — no se verificó ningún precio actual (fuera de alcance de esta fase, sección 26 lo permite explícitamente marcando todo como estimación conceptual). El único costo variable real y no evitable es la comisión de Gumroad por transacción, externa a THÖREN y no cotizada aquí.

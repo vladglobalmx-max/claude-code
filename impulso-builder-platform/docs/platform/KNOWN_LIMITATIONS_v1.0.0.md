@@ -1,4 +1,4 @@
-# Known Limitations — Impulso Sticker Builder Professional v1.0.0
+# Known Limitations — THÖREN Sticker Builder v1.0.0
 
 Documento interno de referencia para soporte/negocio. Es la contraparte de `docs/06-requisitos-y-limitaciones.md` (la versión dirigida al comprador, dentro del paquete) — mismo contenido de fondo, con una limitación adicional de conocimiento interno para soporte al final.
 
@@ -14,7 +14,7 @@ Documento interno de referencia para soporte/negocio. Es la contraparte de `docs
 
 - **Solo navegadores basados en Chromium (Chrome/Edge/Brave) están verificados.** Firefox/Safari no fueron parte de la matriz de verificación de esta versión.
 - **El launcher de Windows depende de tener Python instalado por separado** (no es un instalador todo-en-uno). Se comunica con un mensaje claro si falta, en vez de fallar en silencio.
-- **Puerto fijo 4173 para el servidor local del launcher.** Si otro proceso (de una instalación anterior de Impulso que quedó corriendo, u otra app) ya ocupa ese puerto, el launcher puede fallar a arrancar o quedar sirviendo contenido obsoleto — el comprador necesita cerrar el proceso anterior manualmente. Documentado en `docs/05-problemas-frecuentes-y-soporte.md` dentro del paquete.
+- **Puerto fijo 4173 para el servidor local del launcher.** Si otro proceso (de una instalación anterior de THÖREN que quedó corriendo, u otra app) ya ocupa ese puerto, el launcher puede fallar a arrancar o quedar sirviendo contenido obsoleto — el comprador necesita cerrar el proceso anterior manualmente. Documentado en `docs/05-problemas-frecuentes-y-soporte.md` dentro del paquete.
 
 ## Hallazgo sin resolver de la validación de RC1 (referencia interna para soporte)
 

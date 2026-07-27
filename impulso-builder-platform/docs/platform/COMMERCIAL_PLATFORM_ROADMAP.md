@@ -32,7 +32,7 @@
 - **Dependencias**: 4.3.
 - **Riesgos**: dependencia de una API externa de terceros no probada todavía — mitigado evaluando antes de comprometerse (regla explícita de la fase 4.1: "no prometer viabilidad sin haberla probado").
 - **Criterios de cierre**: al menos un flujo de compra real (aunque sea de prueba/sandbox de Gumroad) resulta en una experiencia funcional de principio a fin.
-- **Qué NO incluye**: checkout embebido dentro de Impulso (Gumroad sigue siendo el checkout), webhooks productivos si no hay backend todavía disponible.
+- **Qué NO incluye**: checkout embebido dentro de THÖREN (Gumroad sigue siendo el checkout), webhooks productivos si no hay backend todavía disponible.
 
 ## 4.5 — Account & Recovery
 - **Objetivo**: decidir e implementar, si la evidencia de 4.1-4.4 lo justifica, una cuenta real (propia o vía Bookfluence).

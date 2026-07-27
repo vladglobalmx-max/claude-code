@@ -1,4 +1,4 @@
-# Gumroad Launch Plan — Impulso Sticker Builder Professional v1.0.0 (Fase 4.2)
+# Gumroad Launch Plan — THÖREN Sticker Builder v1.0.0 (Fase 4.2)
 
 Copy comercial, recomendación de precio y checklist de publicación. **Este documento no publica nada por sí mismo** — la autorización de Fase 4.2 prohíbe explícitamente publicar en Gumroad durante esta fase; queda listo para que un humano lo use en el momento en que se autorice la publicación.
 
@@ -7,7 +7,7 @@ Copy comercial, recomendación de precio y checklist de publicación. **Este doc
 **Precio recomendado: USD $29 (pago único), con un precio de lanzamiento de USD $19 durante las primeras 2 semanas o los primeros 50 compradores (lo que ocurra primero).**
 
 Justificación:
-- **Comparables de mercado** (orden de magnitud, no cotización verificada — mismo criterio que `COST_MODEL.md`): herramientas de escritorio/web enfocadas en preparación de archivos para impresión (bleed, marcas de corte, imposición en hoja) para vendedores independientes/Etsy suelen ubicarse entre $20-60 USD en pago único cuando no son suites generalistas de diseño. Herramientas generalistas de diseño (Canva Pro, Kittl) son suscripción y no comparables directas — Impulso compite en la categoría "impresión lista para producción", no en la de "editor gráfico genérico".
+- **Comparables de mercado** (orden de magnitud, no cotización verificada — mismo criterio que `COST_MODEL.md`): herramientas de escritorio/web enfocadas en preparación de archivos para impresión (bleed, marcas de corte, imposición en hoja) para vendedores independientes/Etsy suelen ubicarse entre $20-60 USD en pago único cuando no son suites generalistas de diseño. Herramientas generalistas de diseño (Canva Pro, Kittl) son suscripción y no comparables directas — THÖREN compite en la categoría "impresión lista para producción", no en la de "editor gráfico genérico".
 - **Sin recurrencia de ingreso**: al ser pago único sin suscripción (decisión ya tomada, ADR-0028/29), el precio debe reflejar el valor completo de por vida del producto, no un valor mensual fraccionado.
 - **Primer producto de la marca**: sin reputación previa ni reseñas, un precio de lanzamiento más bajo ($19) reduce la fricción de la primera decena de compradores y genera las primeras reseñas/testimonios reales antes de subir al precio de catálogo ($29).
 - **Margen sobre Gumroad**: Gumroad cobra comisión por transacción (variable según plan, no cotizada aquí) — a $19-29, el margen neto sigue siendo saludable incluso después de la comisión, dado que el costo marginal de entregar una copia adicional es $0 (descarga digital, sin backend).
@@ -18,7 +18,7 @@ Justificación:
 ## 2. Copy de la página de producto (Gumroad, en español)
 
 ### Título
-Impulso Sticker Builder Professional — Diseña y exporta stickers listos para imprenta
+THÖREN Sticker Builder — Diseña y exporta stickers listos para imprenta
 
 ### Subtítulo / tagline
 Editor de stickers con exportación profesional a PDF: sangrado, marcas de corte e imposición en hoja. Sin cuenta, sin suscripción, funciona offline.
@@ -29,7 +29,7 @@ Editor de stickers con exportación profesional a PDF: sangrado, marcas de corte
 ¿Diseñas stickers para vender (Etsy, ferias, tu propia tienda) y necesitas
 archivos que tu imprenta pueda usar sin devolvértelos por errores técnicos?
 
-Impulso Sticker Builder Professional es un editor de stickers completo que
+THÖREN Sticker Builder es un editor de stickers completo que
 además sabe preparar archivos de verdad para producción:
 
 ✦ Editor completo — formas, texto, imágenes, capas, alineación, plantillas

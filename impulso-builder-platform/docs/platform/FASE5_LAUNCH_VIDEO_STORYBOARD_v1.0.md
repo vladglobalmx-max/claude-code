@@ -1,6 +1,6 @@
 # Video Oficial de Lanzamiento — Storyboard v1.0 (Fase 5)
 
-Estado: **pendiente de aprobación**. No se ha producido ningún video. Este documento es el entregable de revisión de Fase 5 — storyboard completo, guion de narración, guion visual, recursos, tiempos, texto en pantalla, música, ritmo de edición y animaciones. La producción del video final no comienza hasta recibir aprobación explícita de este storyboard.
+Estado: **storyboard APROBADO** como base oficial del Video de Lanzamiento v1.0. Las 4 decisiones pendientes de la primera entrega ya están resueltas (ver §7) y quedan reflejadas en el cuerpo de este documento. Sigue pendiente de producir: el video final. Antes de renderizar la versión definitiva, el usuario revisará y aprobará un **animatic/versión preliminar** (ver §9) — nada se renderiza en calidad final sin ese paso intermedio.
 
 Precede a este documento la aprobación formal de **THÖREN Hero v1.0 Final** (congelada, sin más iteraciones estéticas) — el video reutiliza esa Hero como asset de marca, sin recrearla.
 
@@ -31,9 +31,12 @@ Antes de escribir una sola escena, se revisó que el mensaje de marca sea el mis
 |---|---|
 | **Duración total aproximada** | 2:40 (160 segundos) |
 | **Formato** | 1920×1080, 16:9, MP4 (H.264), 30fps mínimo (recomendado 60fps para las capturas de pantalla, ver §5) |
-| **Narración** | Sí — voz en off en español, tono calmado y directo (no vendedor/gritón). Sincronizada con música y texto en pantalla, nunca los tres compitiendo a la vez. |
+| **Narración** | Voz **humana** en español, tono calmado y directo (no vendedor/gritón) — decisión firme, sin TTS para esta versión principal (ver §7.3). Sincronizada con música y texto en pantalla, nunca los tres compitiendo a la vez. |
 | **¿Responde las 3 preguntas en los primeros 60s?** | Sí — ver marcador "✔ 60s" en la tabla de la Escena 3. |
 | **Interfaces/funciones mostradas** | Únicamente reales, capturadas de la app en ejecución. Cero mockups falsos, cero funciones inexistentes. |
+| **Producto físico** | Fotografía/video **real** de stickers impresos sobre productos reales — no se reutiliza ni extiende el ilustrado de la Hero (ver §7.1 y el brief de producción, `FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md`). |
+| **Precio/CTA comercial** | No aparece en el video (ver §7.2) — el cierre solo invita a conocer THÖREN; el precio vive en Gumroad/página de venta, donde puede cambiar sin volver obsoleto el video. |
+| **Antes del render final** | Obligatorio: animatic/versión preliminar aprobado por el usuario (§9). |
 
 ---
 
@@ -149,8 +152,9 @@ Mismo tratamiento de capturas reales, ritmo ahora más pausado (1 corte cada 4-6
 **Texto en pantalla:**
 > "De la idea al producto."
 > THÖREN Sticker Builder
+> Conoce THÖREN Sticker Builder.
 
-*(Opcional, si se aprueba mostrar precio/CTA en el video — decisión pendiente del usuario, ver §7):* "Disponible ahora en Gumroad."
+Decisión firme (§7.2): **sin precio ni CTA de compra/Gumroad en el video.** El cierre invita únicamente a conocer el producto — el precio se comunica en Gumroad y en la página de venta, donde puede actualizarse sin que el video quede desactualizado o atado a una oferta de lanzamiento.
 
 **Narración (VO):**
 > "THÖREN Sticker Builder. De la idea al producto."
@@ -173,15 +177,12 @@ Mismo tratamiento de capturas reales, ritmo ahora más pausado (1 corte cada 4-6
 5. Preflight detectando y resolviendo un aviso real (Escena 4) — requiere preparar deliberadamente un proyecto con un problema real de preflight para capturarlo (no fabricar un mensaje falso).
 6. Wizard de imposición en hoja, paso de Preview con varias copias (Escena 4).
 
-### Recurso pendiente de decisión (no se puede generar automáticamente)
-- **Producto físico terminado** (Escenas 3 y 4): la Hero usa un tratamiento CSS ilustrado con look fotográfico (grano, luz direccional, rotación orgánica) en lugar de fotografía real. Para el video hay dos caminos, y requieren una decisión del usuario antes de producir (ver §7):
-  - **(a) Fotografía/video real** de stickers impresos aplicados a un producto — máxima credibilidad, pero requiere impresión física y una sesión de grabación fuera de este proceso.
-  - **(b) Extender el mismo tratamiento ilustrado de la Hero** a una animación corta (rotación leve del producto, luz que se desplaza) — mantiene 100% de consistencia visual con la Hero ya aprobada, sin depender de producción física.
-  - Mezclar ambos estilos en el mismo video rompería la consistencia de marca que se pidió auditar en §0 — debe elegirse uno solo.
+### Recurso pendiente de producción humana (decisión ya tomada, ver §7.1)
+- **Producto físico terminado** (Escenas 3 y 4): decisión firme — **fotografía/video real** de stickers impresos aplicados a productos reales (botella de skincare, frasco cosmético, caja premium, laptop, empaque artesanal). No se reutiliza ni extiende el tratamiento CSS ilustrado de la Hero — esa Hero ya cumplió su función de marca; el video debe aumentar credibilidad con producto auténtico, no con otra ilustración. Ver el brief de producción completo en `FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md` (impresión, productos a conseguir, ángulos, iluminación, estilo).
 
 ### Audio
-- Pista musical instrumental con licencia (ver §6 para especificación de estilo — no se nombra una pista con copyright específica sin conocer la librería/licencia disponible).
-- Grabación de voz en off en español neutro, tono calmado (locutor profesional o TTS de alta calidad si no hay presupuesto de locutor — a decidir).
+- Pista musical: por ahora solo referencia creativa de estilo (§6) — **no se integra ningún archivo con licencia todavía**. La plataforma (Artlist, Epidemic Sound u otra) se evalúa y contrata en el momento de producir el video final, no antes.
+- Voz en off: **locutor humano**, español neutro, tono calmado — no TTS para esta versión principal (§7.3). Voces generadas por IA quedan abiertas a evaluación futura solo si se producen versiones en otros idiomas.
 
 ---
 
@@ -205,23 +206,44 @@ No se recomienda una pista específica con copyright sin conocer la librería/li
 
 ---
 
-## 7. Decisiones pendientes del usuario antes de producir
+## 7. Decisiones resueltas (aprobadas por el usuario)
 
-1. **Tratamiento del "producto físico"** (§4): fotografía real vs. extensión del ilustrado de la Hero.
-2. **¿Incluir precio/CTA de Gumroad en el cierre del video?** (Escena 6) — la Hero explícitamente no lo incluye (por diseño, para no atarse a un modelo de precio en un asset de marca de larga vida); el video sí podría, al ser un asset de lanzamiento con fecha, pero es una decisión de alcance distinta a la de la Hero.
-3. **Locutor humano vs. voz sintética (TTS) de alta calidad** para la narración.
-4. **Licencia de música**: ¿hay ya una librería contratada (Epidemic Sound/Artlist/otra) o debe presupuestarse?
+### 7.1 Producto físico
+**Fotografía/video real**, no ilustrado. Stickers reales impresos y aplicados sobre productos reales — botella de skincare, frasco cosmético, caja premium, laptop, empaque artesanal. La Hero ya cumplió su función de marca; el video existe para aumentar credibilidad, y una segunda pieza ilustrada no lo lograría. Brief de producción completo: `FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md`.
 
-Ninguna de estas decisiones bloquea la aprobación del storyboard en sí — pueden resolverse en paralelo o inmediatamente después, antes de iniciar la producción real.
+### 7.2 Precio
+**No aparece en el video.** El precio puede cambiar y el video debe seguir siendo válido durante años sin reeditarse. El cierre (Escena 6) invita únicamente a conocer THÖREN; el precio vive en Gumroad y en la página de venta.
+
+### 7.3 Locución
+**Voz humana**, no sintética. Aunque la calidad de TTS ha mejorado, la primera impresión de THÖREN debe transmitir cercanía, confianza y calidad. Voces generadas por IA quedan abiertas a evaluación futura únicamente si se producen versiones en otros idiomas — la pieza principal en español debe sentirse humana.
+
+### 7.4 Música
+**Solo referencia creativa por ahora** (§6: género, tempo, arco dinámico, mood). No se compromete ninguna librería ni archivo con licencia en esta fase — la plataforma (Artlist, Epidemic Sound u otra) se evalúa y contrata al momento de producir el video final.
 
 ---
 
 ## 8. Qué falta para pasar de este storyboard al video terminado
 
 Fuera de alcance de este documento (requiere producción humana/herramientas de edición de video, no generable por este proceso):
-- Grabación de las capturas de pantalla listadas en §4.
-- Resolución de las 4 decisiones de §7.
-- Grabación o generación de la voz en off a partir del guion de narración de la sección 3 (ya completo y listo para grabar tal cual).
+- Sesión de fotografía/video real de producto físico (`FASE5_PHYSICAL_PRODUCTION_BRIEF_v1.0.md`).
+- Grabación de las capturas de pantalla listadas en §4 (en curso — ver §9, se preparan como parte de los recursos de producción y del animatic).
+- Grabación de la voz en off humana a partir del guion de narración de la sección 3 (ya completo y listo para grabar tal cual).
+- Contratación de música con licencia, una vez decidida la plataforma.
 - Edición final: montaje, corrección de color, mezcla de audio, exportación.
 
 Este documento deja listo: la estructura completa, los tiempos, el guion de narración palabra por palabra, el texto en pantalla exacto, el guion visual escena por escena, la lista de recursos y las especificaciones de estilo — todo lo que se puede decidir y escribir antes de tocar una herramienta de edición.
+
+---
+
+## 9. Animatic / versión preliminar (gate obligatorio antes del render final)
+
+Antes de producir el Video Oficial de Lanzamiento v1.0 en calidad final, el usuario revisará un **animatic**: una versión preliminar de baja fidelidad que valida ritmo, tiempos, transiciones, narrativa y claridad del mensaje — no busca calidad visual final.
+
+Composición del animatic (mientras la producción real de fotografía/locución/música no está lista):
+- **Capturas de pantalla reales** de la app en ejecución para las Escenas 3-4 (mismo software, mismo flujo — esto sí es real, no un placeholder).
+- **Hero oficial** para las Escenas 2 y 6 (asset final, ya aprobado).
+- **Tarjetas de marcador de posición** explícitas ("PENDIENTE: fotografía real de producto físico") en los huecos de las Escenas 3-4 y 6 donde iría el producto físico — para no fingir un resultado que todavía no existe.
+- **Subtítulos en pantalla** con el guion de narración completo (§3), en lugar de una voz grabada — permite validar tiempos y sincronía sin esperar al locutor.
+- **Sin música** (o un lecho silencioso de referencia) — la música es la última pieza en integrarse, después de aprobado el animatic.
+
+Solo después de que el usuario apruebe explícitamente el animatic se autoriza: contratar locución humana, gestionar la sesión de fotografía real, licenciar música, y producir el render final del Video Oficial de Lanzamiento v1.0.

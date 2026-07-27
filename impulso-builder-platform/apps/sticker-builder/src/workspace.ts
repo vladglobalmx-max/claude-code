@@ -35,6 +35,13 @@ export interface MountWorkspaceOptions {
   onOpenProject: (project: Project, meta?: { isNew?: boolean }) => void;
   now?: () => string;
   generateId?: () => string;
+  /** Genera el thumbnail de un proyecto recién importado desde un respaldo
+   * (ver `handleImportBackup` más abajo) — inyectable para evitar la
+   * rasterización real de Konva en tests (jsdom no implementa
+   * `HTMLCanvasElement.toBlob`), mismo criterio que `AppDependencies.
+   * generateThumbnail` en `app.ts`. Por defecto `createThumbnailGenerator(...)`
+   * resolviendo binarios desde `assetStore`. */
+  generateThumbnail?: (project: Project) => Promise<Blob>;
 }
 
 function formatDate(iso: string): string {
@@ -59,6 +66,7 @@ function formatDate(iso: string): string {
 export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOptions): Workspace {
   const now = options.now ?? (() => new Date().toISOString());
   const generateId = options.generateId ?? (() => crypto.randomUUID());
+  const generateThumbnail = options.generateThumbnail ?? createThumbnailGenerator({ resolve: (assetId) => options.assetStore.get(assetId) });
 
   const root = document.createElement("div");
   root.className = "workspace-screen";
@@ -224,7 +232,20 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
     // entrada nueva e independiente, sin importar si el proyecto original
     // sigue presente.
     const freshProject = cloneProjectWithNewIds(imported.project, { now: now(), generateId });
-    await options.projectStore.save(freshProject);
+    // Bug real encontrado en la validación de comprador en vivo de RC1: un
+    // proyecto recién importado se guardaba SIN thumbnail (nunca se
+    // generaba uno) — su tarjeta en "Mis proyectos" quedaba con el ícono de
+    // imagen rota hasta que el comprador lo abría y guardaba manualmente al
+    // menos una vez. Un fallo generando el thumbnail nunca debe impedir que
+    // el respaldo se importe (mismo criterio que `persistProject` en
+    // `app.ts`) — solo se pierde la miniatura, no el proyecto.
+    let importThumbnail: Blob | undefined;
+    try {
+      importThumbnail = await generateThumbnail(freshProject);
+    } catch (error) {
+      console.error("No se pudo generar la miniatura del proyecto importado:", error);
+    }
+    await options.projectStore.save(freshProject, importThumbnail);
     if (imported.missingAssetIds.length > 0) {
       window.alert(
         `El proyecto se importó, pero ${imported.missingAssetIds.length} asset(s) ya faltaban en el respaldo y no pudieron restaurarse.`,

@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.7] — Release Candidate 1.0: validación de comprador en vivo — el proyecto importado desde un respaldo se quedaba sin miniatura
+
+Encontrado durante la validación de comprador en vivo, en la prueba de "Importar proyecto" inmediatamente después de "Exportar respaldo": la tarjeta del proyecto recién importado se mostraba con el ícono de imagen rota en "Mis proyectos" — el proyecto en sí abría y funcionaba con normalidad, solo la miniatura de la lista fallaba.
+
+### Corregido (bug real, menor — cosmético, sin pérdida de datos ni funcionalidad)
+- `handleImportBackup` (`workspace.ts`) guardaba el proyecto recién importado sin generar nunca un thumbnail — a diferencia de cualquier guardado hecho desde el editor (`persistProject`, `app.ts`), que sí genera uno en cada autosave. Corregido generando un thumbnail real inmediatamente después de importar, con el mismo criterio de "nunca bloquear la operación principal" que ya usa `persistProject` (un fallo generando el thumbnail se registra pero nunca impide que el respaldo se importe). `MountWorkspaceOptions` gana un nuevo campo opcional `generateThumbnail` (mismo patrón que `AppDependencies` en `app.ts`) para poder inyectar un generador falso en tests. Regresión agregada en `workspace.test.ts` + verificación manual en Chromium real (round-trip completo: crear proyecto con imagen → exportar respaldo → importar → ambas tarjetas con miniatura real).
+
 ## [0.17.6] — Release Candidate 1.0: validación de comprador en vivo — las imágenes desaparecían al reabrir un proyecto guardado
 
 Encontrado durante la validación de comprador en vivo, inmediatamente después de confirmar el fix de 0.17.5: al cerrar la app por completo y volver a abrir un proyecto guardado desde "Mis proyectos", cualquier imagen importada desaparecía — quedaba como un placeholder invisible (rectángulo punteado), aunque el objeto seguía presente en la capa y el thumbnail de "Mis proyectos" sí la mostraba correctamente.

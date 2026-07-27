@@ -95,6 +95,12 @@ function container(): HTMLDivElement {
   return div;
 }
 
+/** jsdom no implementa `HTMLCanvasElement.toBlob` — mismo criterio que
+ * `app.test.ts`/`shell.test.ts` para evitar la rasterización real de Konva
+ * al ejercitar `handleImportBackup` (regresión RC1: genera un thumbnail
+ * real para el proyecto importado). */
+const fakeGenerateThumbnail = async () => new Blob(["png"], { type: "image/png" });
+
 async function flush(): Promise<void> {
   for (let i = 0; i < 6; i++) await Promise.resolve();
 }
@@ -471,7 +477,14 @@ describe("mountWorkspace", () => {
       const file = new File([raw], "respaldo.json", { type: "application/json" });
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      mountWorkspace(div, {
+        projectStore,
+        templateStore,
+        assetStore,
+        moduleId: "sticker-builder",
+        onOpenProject: vi.fn(),
+        generateThumbnail: fakeGenerateThumbnail,
+      });
       await flush();
 
       const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;
@@ -487,6 +500,33 @@ describe("mountWorkspace", () => {
       expect(names).toContain("Proyecto restaurado");
     });
 
+    it("regresión RC1: 'Importar proyecto' genera una miniatura real para la tarjeta nueva (antes quedaba con el ícono de imagen rota)", async () => {
+      // Bug real encontrado en la validación de comprador en vivo de RC1:
+      // `handleImportBackup` nunca generaba un thumbnail para el proyecto
+      // importado (a diferencia de guardar/editar en el editor, que sí lo
+      // hace en cada autosave vía `persistProject`) — su tarjeta en "Mis
+      // proyectos" se quedaba con el ícono de imagen rota hasta que el
+      // comprador la abría y guardaba manualmente al menos una vez.
+      const original = buildProject("project_for_thumbnail", { metadata: { ...metadata, name: "Con miniatura" } });
+      const raw = await serializeProjectBackup(original, assetStore, () => "2026-07-25T00:00:00.000Z");
+      const file = new File([raw], "respaldo.json", { type: "application/json" });
+      const generateThumbnail = vi.fn(fakeGenerateThumbnail);
+
+      const div = container();
+      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn(), generateThumbnail });
+      await flush();
+
+      const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;
+      Object.defineProperty(input, "files", { value: [file], writable: false });
+      input.dispatchEvent(new Event("change"));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flush();
+
+      expect(generateThumbnail).toHaveBeenCalledTimes(1);
+      const thumbnail = div.querySelector(".workspace-card-thumbnail") as HTMLImageElement;
+      expect(thumbnail.src).not.toBe("");
+    });
+
     it("regresión RC1: importar un respaldo cuyo proyecto original SIGUE existiendo agrega una tarjeta nueva, no sobrescribe la existente", async () => {
       // Bug real encontrado durante la validación de Release Candidate 1.0:
       // `handleImportBackup` guardaba `imported.project` con el mismo id
@@ -500,7 +540,14 @@ describe("mountWorkspace", () => {
       const file = new File([raw], "respaldo.json", { type: "application/json" });
 
       const div = container();
-      mountWorkspace(div, { projectStore, templateStore, assetStore, moduleId: "sticker-builder", onOpenProject: vi.fn() });
+      mountWorkspace(div, {
+        projectStore,
+        templateStore,
+        assetStore,
+        moduleId: "sticker-builder",
+        onOpenProject: vi.fn(),
+        generateThumbnail: fakeGenerateThumbnail,
+      });
       await flush();
 
       const input = div.querySelector(".workspace-import-btn + input[type='file']") as HTMLInputElement;

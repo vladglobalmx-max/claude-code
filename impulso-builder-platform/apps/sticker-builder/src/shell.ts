@@ -125,6 +125,7 @@ export function mountShell(options: MountShellOptions): Shell {
     now,
     generateId,
     onOpenProject: openEditor,
+    generateThumbnail: options.generateThumbnail,
   });
 
   showWorkspace();

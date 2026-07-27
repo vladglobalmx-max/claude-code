@@ -1,13 +1,13 @@
-# Release Notes — Impulso Sticker Builder Professional v1.0.0
+# Release Notes — THÖREN Sticker Builder v1.0.0
 
 Versión: **1.0.0**
 Edición: Professional (pago único)
 Canal: Gumroad
-Commit: `6e1f02e254cc2be55e9982c73c005788f1d62cdf`
-Build ID: `1.0.0+6e1f02e254cc`
-Fecha de generación del paquete final: 2026-07-27
+Commit: `938bfe2ef83f7d9968bfe0d8960ed26006549b3f`
+Build ID: `1.0.0+938bfe2ef83f`
+Fecha de generación del paquete final: 2026-07-27 (re-generado tras Brand Integration — THÖREN; el commit anterior de este documento, `6e1f02e254cc`, sigue marcado por el tag `v1.0.0` y documenta el estado de código previo al rebranding, sin cambios de funcionalidad entre ambos).
 
-Esta es la primera versión comercial de Impulso Sticker Builder — el resultado de las Fases 4.1/4.2 (arquitectura y empaquetado comercial) y de la validación de Release Candidate 1.0, que incluyó una validación manual de comprador en vivo (no solo pruebas automatizadas) directamente sobre el ZIP de distribución, en la máquina real del comprador.
+Esta es la primera versión comercial de THÖREN Sticker Builder — el resultado de las Fases 4.1/4.2 (arquitectura y empaquetado comercial), de la validación de Release Candidate 1.0 (incluyó una validación manual de comprador en vivo, no solo pruebas automatizadas, directamente sobre el ZIP de distribución, en la máquina real del comprador), y del hito Brand Integration — THÖREN (identidad visual aprobada integrada en la app, sin cambios de funcionalidad ni arquitectura).
 
 ## Qué incluye v1.0.0
 
@@ -33,6 +33,10 @@ Todo lo siguiente fue encontrado durante validaciones reales (no solo suites aut
 - **Menor** — Un proyecto recién importado desde un respaldo no generaba una miniatura para su tarjeta en "Mis proyectos" (quedaba con el ícono de imagen rota hasta el primer guardado manual).
 
 Ver `apps/sticker-builder/CHANGELOG.md` para el detalle técnico completo de cada corrección, con la causa raíz y la verificación específica de cada una.
+
+## Brand Integration — THÖREN
+
+Tras el cierre de RC1 (y antes de cualquier publicación), se aprobó e integró la identidad visual THÖREN: nombre comercial "THÖREN Sticker Builder" (marca visible única, sin "by Impulso" en la interfaz), símbolo Þ, paleta y tipografía propias (Familjen Grotesk + Schibsted Grotesk, autoalojadas). Cambio puramente visual/de branding/documentación — mismo comportamiento, misma arquitectura, mismo motor de impresión que RC1. Ver `apps/sticker-builder/CHANGELOG.md` (`[0.17.8]`) para el detalle completo.
 
 ## Limitaciones conocidas
 

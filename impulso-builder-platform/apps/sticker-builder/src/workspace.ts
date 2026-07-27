@@ -71,8 +71,18 @@ export function mountWorkspace(container: HTMLElement, options: MountWorkspaceOp
   const root = document.createElement("div");
   root.className = "workspace-screen";
 
+  // Brand Integration — THÖREN: única marca visible en la interfaz (ver
+  // propuesta de sistema visual aprobada). Elemento propio, aditivo, fuera
+  // del layout flex de `.workspace-header` — no reestructura ningún nodo
+  // existente ni su distribución (space-between).
+  const brandMark = document.createElement("div");
+  brandMark.className = "brand-mark";
+  brandMark.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="23" y="11" width="7" height="42" rx="3.5" fill="currentColor"/><path d="M30 22 C40 22 45 27 45 32 C45 37 40 42 30 42" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></svg><span>THÖREN</span>`;
+  root.appendChild(brandMark);
+
   const header = document.createElement("div");
   header.className = "workspace-header";
+
   const title = document.createElement("h1");
   title.textContent = "Mis proyectos";
   header.appendChild(title);

@@ -1,10 +1,10 @@
 @echo off
-REM Impulso Sticker Builder Professional -- launcher para Windows.
+REM THOREN Sticker Builder -- launcher para Windows.
 REM
 REM Por que existe este script (no basta con abrir index.html directamente):
 REM los navegadores modernos bloquean los modulos de JavaScript bajo el
 REM protocolo file:// (politica de seguridad del navegador, no un limite de
-REM Impulso) -- hace falta un servidor local minimo. Este script NO envia
+REM THOREN) -- hace falta un servidor local minimo. Este script NO envia
 REM nada a internet: solo sirve los archivos de esta misma carpeta a tu
 REM propio navegador, en tu propia maquina.
 REM
@@ -27,7 +27,7 @@ if %ERRORLEVEL% EQU 0 (
     set PYCMD=py -3
   ) else (
     echo No se encontro Python en este equipo.
-    echo Impulso necesita Python para abrirse en Windows.
+    echo THOREN necesita Python para abrirse en Windows.
     echo Instalalo desde https://www.python.org/downloads/ marcando
     echo "Add Python to PATH", y vuelve a intentarlo.
     pause
@@ -42,11 +42,11 @@ if not exist "%DIR%index.html" (
 )
 
 cd /d "%DIR%"
-start "Impulso Sticker Builder (servidor local)" %PYCMD% -m http.server %PORT%
+start "THOREN Sticker Builder (servidor local)" %PYCMD% -m http.server %PORT%
 
 timeout /t 1 /nobreak >nul
 start "" "http://localhost:%PORT%/index.html"
 
-echo Impulso Sticker Builder esta corriendo en http://localhost:%PORT%/ -- NO cierres
-echo la ventana negra "Impulso Sticker Builder (servidor local)" mientras lo uses.
+echo THOREN Sticker Builder esta corriendo en http://localhost:%PORT%/ -- NO cierres
+echo la ventana negra "THOREN Sticker Builder (servidor local)" mientras lo uses.
 pause

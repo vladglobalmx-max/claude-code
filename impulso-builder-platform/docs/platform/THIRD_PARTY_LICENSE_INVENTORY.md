@@ -1,12 +1,20 @@
-# Third-Party License Inventory — Impulso Sticker Builder (Fase 4.2)
+# Third-Party License Inventory — THÖREN Sticker Builder (Fase 4.2 + Brand Integration)
 
 > Inventario de todo contenido/código de terceros que termina dentro del paquete comercial (`dist/` de `apps/sticker-builder`, empaquetado por `build:commercial`). Fuente de verdad para `legal/LICENCIAS-DE-TERCEROS.md` dentro del ZIP de entrega (ver Commercial Build Guide).
 
 ## 1. Assets creativos (fuentes, iconos, imágenes, plantillas)
 
-**Ninguno.** Auditoría exhaustiva (Fase 4.2, sección 10): cero archivos `.ttf`/`.otf`/`.woff*`/`.png`/`.jpg`/`.svg` en todo el monorepo fuera de `node_modules`/`dist`/`coverage`. La interfaz usa:
-- **Tipografía**: `font-family: system-ui, sans-serif` (la fuente del sistema operativo del usuario, nunca un archivo redistribuido).
-- **Iconografía**: emoji Unicode nativos (ej. ✏️ en Capas) y SVG inline generados en código (nunca un archivo de icon pack de terceros).
+**Dos tipografías** (agregadas en el hito Brand Integration — THÖREN, actualiza la auditoría "cero fuentes" de Fase 4.2): archivos `.woff2` autoalojados en `apps/sticker-builder/public/fonts/`, servidos por la propia app (sin CDN de terceros, sin llamada de red):
+
+| Archivo | Fuente | Licencia | Origen |
+|---|---|---|---|
+| `familjen-grotesk.woff2` | Familjen Grotesk | SIL Open Font License 1.1 | Google Fonts |
+| `schibsted-grotesk.woff2` | Schibsted Grotesk | SIL Open Font License 1.1 | Google Fonts |
+
+La OFL 1.1 permite el uso, estudio, modificación y redistribución de la fuente agrupada dentro de software comercial, sin costo ni atribución visible obligatoria en la interfaz. Texto completo: [https://openfontlicense.org](https://openfontlicense.org).
+
+Fuera de estas dos fuentes:
+- **Iconografía**: el símbolo de marca (Þ) y el resto de la iconografía son SVG inline generados en código (nunca un archivo de icon pack de terceros) — mismo enfoque de Fase 4.2, sin cambios.
 - **Templates/proyecto de ejemplo**: `demoProject.ts`/`builtInTemplates.ts`/`projectPresets.ts` construyen `Rectangle`/`Ellipse`/`Text` 100% programáticamente — ningún asset de imagen incluido.
 
 No hay, por lo tanto, ningún riesgo de licencia de contenido de terceros (Creative Fabrica u otro banco de assets) — no se usó ninguno.

@@ -1,4 +1,4 @@
-# Cómo exportar (pantalla) — Impulso Sticker Builder Professional
+# Cómo exportar (pantalla) — THÖREN Sticker Builder
 
 Este es el botón **"Exportar"** (rápido) de la barra superior del editor — para cuando necesitas una imagen para pantalla: compartirla, subirla a una tienda online, guardarla para ti. Si tu archivo va a una imprenta real, ver `03-exportar-para-impresion.md` en su lugar.
 

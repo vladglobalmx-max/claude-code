@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.8] — Brand Integration: THÖREN
+
+Integración de la identidad visual THÖREN aprobada, sobre la v1.0.0 ya congelada. Cambios puramente visuales/de branding/documentación — sin nueva funcionalidad, sin refactor estructural, sin tocar el motor de impresión ni ningún otro módulo.
+
+### Cambiado
+- Nombre comercial visible: "Impulso Sticker Builder Professional" → **"THÖREN Sticker Builder"** (`commercial-product.json` → `branding.displayName`/`shortName`, propagado automáticamente al diálogo de bienvenida y al estado comercial de "Mis proyectos" — únicos 2 puntos de lectura en la app). "by Impulso" eliminado de toda la interfaz; la única marca visible ahora es THÖREN.
+- Nueva marca (`.brand-mark`, símbolo Þ + wordmark) agregada como elemento propio en "Mis proyectos" — aditiva, no reestructura el layout existente.
+- Tipografía propia autoalojada (Familjen Grotesk + Schibsted Grotesk, SIL OFL 1.1, sin CDN de terceros) aplicada a toda la interfaz; acento de color (Ember `#9C4E27`/`#C97A4F`) aplicado a "Nuevo proyecto", el diálogo de bienvenida y su foco.
+- Favicon: símbolo Þ (mismo símbolo aprobado, sin rediseño) en vez del sticker genérico anterior.
+- Launchers renombrados: `ABRIR-IMPULSO-WINDOWS.bat`/`ABRIR-IMPULSO-MAC-LINUX.command` → `ABRIR-THOREN-WINDOWS.bat`/`ABRIR-THOREN-MAC-LINUX.command` (y todo su texto interno).
+- ZIP comercial renombrado: `impulso-sticker-builder-v<version>.zip` → `thoren-sticker-builder-v<version>.zip`.
+- Documentación del comprador y documentos legales (EULA, Aviso de Privacidad, Licencias de Terceros, LEEME-PRIMERO, notas de versión) actualizados a "THÖREN Sticker Builder". **Global Supplier MTY S.A. de C.V.** agregada como entidad legal (copyright/EULA/privacidad/licencias de terceros/documentación) — nunca como parte del logotipo principal.
+- Texto de ejemplo del proyecto demo y mensajes de error de respaldo ("no es un respaldo válido de...") actualizados de "Impulso" a "THÖREN".
+
 ## [0.17.7] — Release Candidate 1.0: validación de comprador en vivo — el proyecto importado desde un respaldo se quedaba sin miniatura
 
 Encontrado durante la validación de comprador en vivo, en la prueba de "Importar proyecto" inmediatamente después de "Exportar respaldo": la tarjeta del proyecto recién importado se mostraba con el ícono de imagen rota en "Mis proyectos" — el proyecto en sí abría y funcionaba con normalidad, solo la miniatura de la lista fallaba.

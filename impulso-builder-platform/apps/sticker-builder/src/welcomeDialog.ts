@@ -59,7 +59,7 @@ export function mountWelcomeDialog(container: HTMLElement, options: MountWelcome
   const title = document.createElement("h2");
   title.id = titleId;
   title.tabIndex = -1;
-  const displayName = options.manifest?.branding.displayName ?? "Impulso Sticker Builder";
+  const displayName = options.manifest?.branding.displayName ?? "THÖREN Sticker Builder";
   const version = options.manifest?.productVersion;
   title.textContent = version ? `Bienvenido a ${displayName} (v${version})` : `Bienvenido a ${displayName}`;
   dialog.appendChild(title);

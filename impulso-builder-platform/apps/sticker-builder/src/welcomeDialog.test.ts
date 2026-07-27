@@ -11,7 +11,7 @@ function fakeManifest(overrides: Partial<ProductManifest> = {}): ProductManifest
     edition: "professional",
     modules: ["sticker-builder"],
     capabilities: [],
-    branding: { displayName: "Impulso Sticker Builder Professional", shortName: "Impulso Sticker Builder" },
+    branding: { displayName: "THÖREN Sticker Builder", shortName: "THÖREN" },
     support: { email: "soporte@example.com", docsUrl: null },
     updateChannel: "stable",
     licensingMode: "delivery-only",
@@ -85,7 +85,7 @@ describe("mountWelcomeDialog", () => {
 
     const overlay = div.querySelector(".welcome-dialog-overlay") as HTMLElement;
     expect(overlay.style.display).not.toBe("none");
-    expect(div.querySelector(".welcome-dialog-title, h2")?.textContent).toContain("Impulso Sticker Builder Professional");
+    expect(div.querySelector(".welcome-dialog-title, h2")?.textContent).toContain("THÖREN Sticker Builder");
     expect(div.querySelector("h2")?.textContent).toContain("1.0.0");
   });
 
@@ -106,7 +106,7 @@ describe("mountWelcomeDialog", () => {
     const div = container();
     const dialog = mountWelcomeDialog(div, { manifest: null, storage });
     expect(() => dialog.showIfFirstRun()).not.toThrow();
-    expect(div.querySelector("h2")?.textContent).toContain("Impulso Sticker Builder");
+    expect(div.querySelector("h2")?.textContent).toContain("THÖREN Sticker Builder");
   });
 
   it("click en 'Comenzar' cierra el diálogo, marca visto, y restaura el foco previo", () => {

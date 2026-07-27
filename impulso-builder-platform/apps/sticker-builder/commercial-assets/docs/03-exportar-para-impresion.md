@@ -1,6 +1,6 @@
 # Guía de usuario — Exportar para impresión
 
-> Guía para quien usa Impulso Sticker Builder Professional. Para dudas técnicas más allá de esta guía, escribe a soporte (ver `06-requisitos-y-limitaciones.md` y el correo de soporte indicado en `commercial-product.json`).
+> Guía para quien usa THÖREN Sticker Builder. Para dudas técnicas más allá de esta guía, escribe a soporte (ver `06-requisitos-y-limitaciones.md` y el correo de soporte indicado en `commercial-product.json`).
 
 ## ¿Cuándo usar "Exportar para impresión" y cuándo usar "Exportar"?
 

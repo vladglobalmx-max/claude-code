@@ -1,12 +1,12 @@
-# Licencia de Uso — Impulso Sticker Builder Professional
+# Licencia de Uso — THÖREN Sticker Builder
 
 **Versión del producto:** 1.0.0 · **Última actualización:** ver `version.json` dentro de este paquete.
 
-> **Aviso importante:** este documento es una licencia de uso en lenguaje simple, redactada para la primera versión comercial de Impulso. **No sustituye asesoría legal profesional.** Si tienes dudas legales específicas sobre tu caso, consulta a un abogado. Estos términos no contradicen ni reemplazan los Términos de Servicio de Gumroad, que también aplican a tu compra.
+> **Aviso importante:** este documento es una licencia de uso en lenguaje simple, redactada para la primera versión comercial de THÖREN. **No sustituye asesoría legal profesional.** Si tienes dudas legales específicas sobre tu caso, consulta a un abogado. Estos términos no contradicen ni reemplazan los Términos de Servicio de Gumroad, que también aplican a tu compra.
 
 ## 1. Qué estás comprando
 
-Compraste una **licencia de uso** de la aplicación Impulso Sticker Builder Professional — **no** el software en sí, ni su código fuente. Impulso Platform conserva todos los derechos de propiedad sobre la aplicación.
+Compraste una **licencia de uso** de la aplicación THÖREN Sticker Builder — **no** el software en sí, ni su código fuente. **Global Supplier MTY S.A. de C.V.** ("el vendedor"), a través de su plataforma Impulso, conserva todos los derechos de propiedad sobre la aplicación.
 
 ## 2. Qué puedes hacer
 
@@ -17,19 +17,19 @@ Compraste una **licencia de uso** de la aplicación Impulso Sticker Builder Prof
 
 ## 3. Qué no puedes hacer
 
-- Redistribuir, revender, o compartir públicamente el software de Impulso Sticker Builder Professional en sí (el instalador/paquete que descargaste).
+- Redistribuir, revender, o compartir públicamente el software de THÖREN Sticker Builder en sí (el instalador/paquete que descargaste).
 - Realizar ingeniería inversa del código con el fin de eludir el modelo de licencia o crear un producto competidor a partir de él.
-- Usar el nombre o la marca "Impulso" para promocionar tus propios productos sin autorización.
+- Usar el nombre o la marca "THÖREN" para promocionar tus propios productos sin autorización.
 
 ## 4. Derechos sobre tus diseños
 
-**Los diseños que creas con Impulso son tuyos.** Impulso Platform no reclama ningún derecho de propiedad intelectual sobre los stickers, imágenes o textos que diseñes con la aplicación. Eres libre de usarlos comercialmente (venderlos como stickers impresos, usarlos en tu marca, etc.), sujeto a que el propio contenido que insertes (imágenes que subas, tipografías del sistema que uses) no infrinja derechos de terceros — esa responsabilidad es tuya, no de Impulso.
+**Los diseños que creas con THÖREN son tuyos.** Global Supplier MTY S.A. de C.V. no reclama ningún derecho de propiedad intelectual sobre los stickers, imágenes o textos que diseñes con la aplicación. Eres libre de usarlos comercialmente (venderlos como stickers impresos, usarlos en tu marca, etc.), sujeto a que el propio contenido que insertes (imágenes que subas, tipografías del sistema que uses) no infrinja derechos de terceros — esa responsabilidad es tuya, no de THÖREN.
 
 ## 5. Limitación de responsabilidad
 
-Impulso Sticker Builder Professional se entrega "tal cual" ("as is"), sin garantías de ningún tipo, expresas o implícitas. En la máxima medida permitida por la ley, Impulso Platform no será responsable por daños indirectos, incidentales o consecuentes derivados del uso o la imposibilidad de uso de la aplicación — incluyendo, sin limitarse a, pérdida de datos, pérdida de ganancias, o problemas con archivos de impresión enviados a un proveedor externo.
+THÖREN Sticker Builder se entrega "tal cual" ("as is"), sin garantías de ningún tipo, expresas o implícitas. En la máxima medida permitida por la ley, Global Supplier MTY S.A. de C.V. no será responsable por daños indirectos, incidentales o consecuentes derivados del uso o la imposibilidad de uso de la aplicación — incluyendo, sin limitarse a, pérdida de datos, pérdida de ganancias, o problemas con archivos de impresión enviados a un proveedor externo.
 
-**Nota honesta sobre impresión:** Impulso genera archivos técnicamente correctos según los estándares que documenta (sangrado, marcas de corte, color RGB no certificado — ver la Guía de Exportación para Impresión), pero el resultado final impreso depende de tu proveedor de impresión, su configuración, y su equipo. Impulso no garantiza resultados de impresión específicos.
+**Nota honesta sobre impresión:** THÖREN genera archivos técnicamente correctos según los estándares que documenta (sangrado, marcas de corte, color RGB no certificado — ver la Guía de Exportación para Impresión), pero el resultado final impreso depende de tu proveedor de impresión, su configuración, y su equipo. THÖREN no garantiza resultados de impresión específicos.
 
 ## 6. Política de soporte
 
@@ -41,12 +41,14 @@ Tu compra incluye actualizaciones menores de la misma edición sin costo adicion
 
 ## 8. Terminación
 
-Esta licencia termina automáticamente si incumples estos términos. En Gumroad, un reembolso aprobado revoca el acceso a futuras descargas del producto (gestionado por Gumroad, no por Impulso directamente en esta versión — ver ADR-0028, `licensingMode: "delivery-only"`).
+Esta licencia termina automáticamente si incumples estos términos. En Gumroad, un reembolso aprobado revoca el acceso a futuras descargas del producto (gestionado por Gumroad, no directamente por el vendedor en esta versión — ver ADR-0028, `licensingMode: "delivery-only"`).
 
 ## 9. Ley aplicable
 
-Estos términos se rigen por las leyes aplicables al domicilio del vendedor, sin perjuicio de los derechos que la legislación de protección al consumidor de tu país de residencia pueda otorgarte.
+Estos términos se rigen por las leyes aplicables al domicilio del vendedor (**Global Supplier MTY S.A. de C.V.**), sin perjuicio de los derechos que la legislación de protección al consumidor de tu país de residencia pueda otorgarte.
 
 ---
 
 *Este documento puede actualizarse en versiones futuras del producto. La versión vigente al momento de tu compra es la que aplica a tu licencia.*
+
+**© Global Supplier MTY S.A. de C.V.** — THÖREN Sticker Builder, desarrollado sobre la plataforma Impulso.

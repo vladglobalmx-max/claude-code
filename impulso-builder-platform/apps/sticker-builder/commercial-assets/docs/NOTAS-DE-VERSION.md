@@ -1,8 +1,8 @@
-# Notas de versión — Impulso Sticker Builder Professional
+# Notas de versión — THÖREN Sticker Builder
 
 ## v1.0.0
 
-Primera versión comercial de Impulso Sticker Builder.
+Primera versión comercial de THÖREN Sticker Builder.
 
 **Incluye:**
 - Editor de stickers completo: formas, texto, imágenes, capas, alineación, plantillas.
@@ -19,3 +19,5 @@ Primera versión comercial de Impulso Sticker Builder.
 ---
 
 *Este archivo se actualiza con cada versión nueva. Consulta siempre la versión que viene dentro de tu descarga más reciente antes de actualizar.*
+
+© Global Supplier MTY S.A. de C.V. — desarrollado sobre la plataforma Impulso.

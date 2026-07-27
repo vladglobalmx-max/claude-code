@@ -1,8 +1,8 @@
-# Aviso de Privacidad — Impulso Sticker Builder Professional
+# Aviso de Privacidad — THÖREN Sticker Builder
 
-> Aviso mínimo para la V1 comercial. **No sustituye asesoría legal.** Impulso Sticker Builder Professional es una aplicación que corre enteramente en tu computadora — este aviso describe exactamente eso, sin generalidades.
+> Aviso mínimo para la V1 comercial. **No sustituye asesoría legal.** THÖREN Sticker Builder es una aplicación que corre enteramente en tu computadora — este aviso describe exactamente eso, sin generalidades.
 
-## Qué datos NO recopila Impulso
+## Qué datos NO recopila THÖREN
 
 Por diseño (ver ADR-0026/ADR-0028 del proyecto), la aplicación:
 - **No sube tu contenido creativo** — ningún diseño, imagen, texto o proyecto sale de tu computadora sin que tú lo exportes/descargues explícitamente.
@@ -16,7 +16,7 @@ Por diseño (ver ADR-0026/ADR-0028 del proyecto), la aplicación:
 
 - **Tus proyectos y assets** se guardan localmente en tu navegador (IndexedDB), en tu propia computadora. Nadie más tiene acceso a ellos salvo que tú los exportes o los compartas.
 - **Una preferencia mínima** ("¿ya viste la pantalla de bienvenida?") se guarda en `localStorage`, también localmente.
-- **Los datos de tu compra** (email, método de pago, país) los procesa **Gumroad**, no Impulso directamente — consulta la [política de privacidad de Gumroad](https://gumroad.com/privacy) para esos datos.
+- **Los datos de tu compra** (email, método de pago, país) los procesa **Gumroad**, no el vendedor directamente — consulta la [política de privacidad de Gumroad](https://gumroad.com/privacy) para esos datos.
 
 ## Soporte
 
@@ -24,7 +24,11 @@ Si nos escribes para pedir soporte, solo usamos la información que tú decidas 
 
 ## Futuro
 
-Si una versión futura de Impulso agrega telemetría de diagnóstico opcional (errores/uso agregado, nunca contenido creativo), este aviso se actualizará antes de que esa versión se publique, y será opt-in, no automático (ver `docs/product/05-Technical-Debt.md`/Roadmap de la Commercial Platform para el diseño ya evaluado).
+Si una versión futura de THÖREN agrega telemetría de diagnóstico opcional (errores/uso agregado, nunca contenido creativo), este aviso se actualizará antes de que esa versión se publique, y será opt-in, no automático (ver `docs/product/05-Technical-Debt.md`/Roadmap de la Commercial Platform para el diseño ya evaluado).
+
+## Responsable
+
+**Global Supplier MTY S.A. de C.V.** es el responsable del tratamiento de los datos mínimos descritos en este aviso, como titular de THÖREN Sticker Builder (desarrollado sobre la plataforma Impulso).
 
 ---
 

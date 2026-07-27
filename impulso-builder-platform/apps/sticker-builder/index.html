@@ -3,17 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Impulso Sticker Builder</title>
-    <!-- Fase 4.2, sección 11 (branding comercial) — favicon propio mínimo
-         (SVG inline, sin archivo binario ni asset de terceros): un
-         "sticker" simplificado sobre el mismo fondo oscuro (#1c1917) usado
-         en toda la app. -->
+    <title>THÖREN Sticker Builder</title>
+    <!-- Brand Integration — THÖREN: favicon propio mínimo (SVG inline, sin
+         archivo binario ni asset de terceros) — el símbolo Þ (thorn) de la
+         identidad THÖREN, en Ember (#C97A4F) sobre el mismo fondo oscuro
+         (#1c1917) usado ya en toda la app. Mismo símbolo aprobado en la
+         propuesta visual, sin rediseño. -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c1917'/%3E%3Ccircle cx='32' cy='30' r='16' fill='white'/%3E%3Cpath d='M40 38 L52 50 L38 46 Z' fill='white'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c1917'/%3E%3Crect x='23' y='11' width='7' height='42' rx='3.5' fill='%23C97A4F'/%3E%3Cpath d='M30 22 C40 22 45 27 45 32 C45 37 40 42 30 42' fill='none' stroke='%23C97A4F' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E"
     />
 
     <style>
+      /* Brand Integration — THÖREN: tipografía propia autoalojada (sin CDN
+         de terceros), del sistema visual ya aprobado. Familjen Grotesk
+         (Ostmodern) para wordmark/títulos, Schibsted Grotesk (Schibsted
+         Media) para el resto de la interfaz — ambas SIL Open Font License,
+         ver legal/LICENCIAS-DE-TERCEROS.md dentro del paquete. */
+      @font-face {
+        font-family: "Familjen Grotesk";
+        src: url("/fonts/familjen-grotesk.woff2") format("woff2");
+        font-weight: 500 700;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Schibsted Grotesk";
+        src: url("/fonts/schibsted-grotesk.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+        font-display: swap;
+      }
       /*
        * Tokens visuales (Epic 7 / Fase 7.3 — Assisted Placement): primer
        * conjunto de custom properties del proyecto (antes de esta fase no
@@ -27,12 +47,20 @@
       :root {
         --impulso-snap-guide-color: #ff2d78;
         --impulso-grid-line-color: rgba(28, 25, 23, 0.12);
+        /* Brand Integration — THÖREN: paleta aprobada (ver propuesta de
+           sistema visual). Tokens propios, separados de los de arriba —
+           esos son funcionales (guías del canvas), estos son de marca. */
+        --thoren-ember: #9c4e27;
+        --thoren-ember-light: #c97a4f;
+        --thoren-basalt: #23282b;
+        --thoren-font-display: "Familjen Grotesk", system-ui, sans-serif;
+        --thoren-font-body: "Schibsted Grotesk", system-ui, sans-serif;
       }
       html, body {
         margin: 0;
         height: 100%;
         background: #e5e5e5;
-        font-family: system-ui, sans-serif;
+        font-family: var(--thoren-font-body);
         font-size: 14px;
         color: #1c1917;
       }
@@ -57,15 +85,39 @@
         margin-bottom: 16px;
       }
       .workspace-header h1 {
+        font-family: var(--thoren-font-display);
+        font-weight: 700;
         font-size: 1.4em;
         margin: 0;
+      }
+      /* Brand Integration — THÖREN: única marca visible de la interfaz
+         (ver propuesta de sistema visual aprobada). El símbolo Þ (thorn)
+         es el mismo aprobado, sin rediseño — solo reutilizado aquí. */
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .brand-mark svg {
+        width: 20px;
+        height: 20px;
+        color: var(--thoren-ember);
+        flex: none;
+      }
+      .brand-mark span {
+        font-family: var(--thoren-font-display);
+        font-weight: 700;
+        font-size: 1.05em;
+        letter-spacing: 0.01em;
+        color: #1c1917;
       }
       .workspace-new-btn {
         font: inherit;
         padding: 8px 16px;
         cursor: pointer;
         border: none;
-        background: #1c1917;
+        background: var(--thoren-ember);
         color: #ffffff;
         border-radius: 6px;
       }
@@ -371,18 +423,19 @@
         width: 90%;
       }
       .welcome-dialog h2 {
+        font-family: var(--thoren-font-display);
+        font-weight: 700;
         margin: 0 0 12px;
         font-size: 1.2em;
       }
       /* El título recibe foco programático al abrirse (para que lectores de
          pantalla lo anuncien) — sin esta regla, el navegador dibuja su
          contorno de foco por defecto (un recuadro crudo sin relación con el
-         diseño), justo en lo primero que ve un comprador nuevo. Se sustituye
-         por el mismo tratamiento de foco ya usado en el resto de la app
-         (`.alignment-button:focus-visible`), nunca se elimina el indicador —
-         solo se le da una apariencia coherente con la marca. */
+         diseño), justo en lo primero que ve un comprador nuevo. Nunca se
+         elimina el indicador — solo se le da una apariencia coherente con
+         la marca (Brand Integration — THÖREN: color de acento aprobado). */
       .welcome-dialog h2:focus-visible {
-        outline: 2px solid #1c1917;
+        outline: 2px solid var(--thoren-ember);
         outline-offset: 3px;
         border-radius: 2px;
       }
@@ -399,7 +452,7 @@
         padding: 8px 20px;
         cursor: pointer;
         border: none;
-        background: #1c1917;
+        background: var(--thoren-ember);
         color: #ffffff;
         border-radius: 6px;
         margin-top: 8px;

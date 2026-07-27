@@ -446,7 +446,7 @@ describe("mountWorkspace", () => {
 
       const status = div.querySelector(".workspace-commercial-status") as HTMLElement;
       expect(status).not.toBeNull();
-      expect(status.textContent).toContain("Impulso Sticker Builder");
+      expect(status.textContent).toContain("THÖREN Sticker Builder");
       expect(status.textContent).toContain("Gumroad");
       expect(status.textContent).not.toContain("activado");
     });

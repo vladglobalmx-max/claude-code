@@ -118,17 +118,17 @@ export async function importProjectBackup(
   try {
     json = JSON.parse(raw);
   } catch {
-    throw new ProjectBackupError("El archivo no es un respaldo válido de Impulso (no es JSON).");
+    throw new ProjectBackupError("El archivo no es un respaldo válido de THÖREN (no es JSON).");
   }
 
   if (typeof json !== "object" || json === null || !("project" in json) || !("backupSchemaVersion" in json)) {
-    throw new ProjectBackupError("El archivo no tiene el formato de un respaldo de proyecto de Impulso.");
+    throw new ProjectBackupError("El archivo no tiene el formato de un respaldo de proyecto de THÖREN.");
   }
 
   const envelope = json as Partial<ProjectBackupEnvelope>;
   if (envelope.backupSchemaVersion !== PROJECT_BACKUP_SCHEMA_VERSION) {
     throw new ProjectBackupError(
-      `Este respaldo usa una versión no soportada (${String(envelope.backupSchemaVersion)}). Esta versión de Impulso solo admite la versión ${PROJECT_BACKUP_SCHEMA_VERSION}.`,
+      `Este respaldo usa una versión no soportada (${String(envelope.backupSchemaVersion)}). Esta versión de THÖREN solo admite la versión ${PROJECT_BACKUP_SCHEMA_VERSION}.`,
     );
   }
 

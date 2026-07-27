@@ -72,7 +72,7 @@ export function createDemoProject(): Project {
                   id: ObjectIdSchema.parse("label"),
                   type: "text",
                   transform: { x: 90, y: 145, rotation: 0, scaleX: 1, scaleY: 1 },
-                  content: "Impulso",
+                  content: "THÖREN",
                   fontFamily: "sans-serif",
                   fontSize: 28,
                   fontWeight: 700,

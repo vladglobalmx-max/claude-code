@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Build comercial reproducible (Fase 4.2, secciones 6/7/23/24/25/26 de la
 // autorización) — ver docs/platform/COMMERCIAL_BUILD_GUIDE.md. Produce:
-//   dist-commercial/impulso-sticker-builder-v<version>/   (paquete sin comprimir)
-//   dist-commercial/impulso-sticker-builder-v<version>.zip
+//   dist-commercial/thoren-sticker-builder-v<version>/   (paquete sin comprimir)
+//   dist-commercial/thoren-sticker-builder-v<version>.zip
 //   dist-commercial/CHECKSUMS.sha256
 //
 // Pasos, en orden: (1) validar el manifest — build-time, obligatorio, ver
@@ -120,7 +120,7 @@ function main() {
     },
   };
 
-  const packageName = `impulso-sticker-builder-v${manifest.productVersion}`;
+  const packageName = `thoren-sticker-builder-v${manifest.productVersion}`;
   const packageDir = path.join(OUT_DIR, packageName);
 
   log(`Armando el paquete en ${packageDir}...`);
@@ -133,12 +133,12 @@ function main() {
   // Launchers en la raíz del paquete — deben ser lo primero que el
   // comprador ve y puede hacer doble clic, ver docs/01-como-empezar.md.
   cpSync(
-    path.join(COMMERCIAL_ASSETS_DIR, "launchers", "ABRIR-IMPULSO-WINDOWS.bat"),
-    path.join(packageDir, "ABRIR-IMPULSO-WINDOWS.bat"),
+    path.join(COMMERCIAL_ASSETS_DIR, "launchers", "ABRIR-THOREN-WINDOWS.bat"),
+    path.join(packageDir, "ABRIR-THOREN-WINDOWS.bat"),
   );
   cpSync(
-    path.join(COMMERCIAL_ASSETS_DIR, "launchers", "ABRIR-IMPULSO-MAC-LINUX.command"),
-    path.join(packageDir, "ABRIR-IMPULSO-MAC-LINUX.command"),
+    path.join(COMMERCIAL_ASSETS_DIR, "launchers", "ABRIR-THOREN-MAC-LINUX.command"),
+    path.join(packageDir, "ABRIR-THOREN-MAC-LINUX.command"),
   );
 
   cpSync(path.join(COMMERCIAL_ASSETS_DIR, "LEEME-PRIMERO.md"), path.join(packageDir, "LEEME-PRIMERO.md"));

@@ -1,4 +1,4 @@
-# Requisitos del sistema y limitaciones conocidas — Impulso Sticker Builder Professional
+# Requisitos del sistema y limitaciones conocidas — THÖREN Sticker Builder
 
 ## Requisitos del sistema
 
@@ -13,7 +13,7 @@
 
 ## Limitaciones conocidas (honestas, de esta versión 1.0.0)
 
-- **Navegadores no basados en Chromium (Firefox, Safari) no están verificados.** Es posible que Impulso funcione en ellos, pero no ha sido probado — usa Chrome/Edge/Brave para la experiencia garantizada.
+- **Navegadores no basados en Chromium (Firefox, Safari) no están verificados.** Es posible que THÖREN funcione en ellos, pero no ha sido probado — usa Chrome/Edge/Brave para la experiencia garantizada.
 - **El launcher en Windows requiere Python instalado por separado.** No es un instalador todo-en-uno; esto es una limitación conocida de esta primera versión, no un error.
 - **No hay sincronización automática entre dispositivos.** Cada computadora guarda sus proyectos de forma independiente. Usa "Exportar respaldo" / "Importar proyecto" para mover proyectos entre computadoras (ver `04-actualizar-y-respaldar.md`).
 - **No hay actualización automática.** Actualizar es siempre una acción manual desde tu biblioteca de Gumroad (ver `04-actualizar-y-respaldar.md`).

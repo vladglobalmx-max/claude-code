@@ -58,8 +58,10 @@ async function insertAndStyle({ content, fontFamily, fontSize, color }) {
 }
 
 // a single, minimal centered wordmark badge — clean small-brand label,
-// deliberately restrained (no second line) to keep the demo design premium
-await insertAndStyle({ content: 'AURELIA', fontFamily: 'Familjen Grotesk', fontSize: 30, color: '#23282B' });
+// deliberately restrained (no second line) to keep the demo design premium.
+// RC2: swapped from "AURELIA" to "VELARA" (premium skincare/apothecary) —
+// a more aspirational demo brand a real seller would be proud to run.
+await insertAndStyle({ content: 'VELARA', fontFamily: 'Familjen Grotesk', fontSize: 30, color: '#23282B' });
 
 // "Ajustar a pantalla" anchors the zoomed content from its pre-zoom
 // top-left corner instead of re-centering, so at high multiples (400%
@@ -88,7 +90,7 @@ const [download] = await Promise.all([
   page.waitForEvent('download'),
   page.getByRole('button', { name: /^Exportar$/i }).last().click(),
 ]);
-await download.saveAs(`${OUT}/aurelia-badge.png`);
-console.log('captured aurelia-badge.png (real export)');
+await download.saveAs(`${OUT}/velara-badge.png`);
+console.log('captured velara-badge.png (real export)');
 
 await browser.close();

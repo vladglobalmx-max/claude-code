@@ -38,12 +38,13 @@ describe("createSalonAppointmentSealProject", () => {
     expect(monogram?.style.fill).toBe("#B76E79");
   });
 
-  it("el anillo perimetral contiene 'SALÓN' y 'MARINA' en Work Sans, casi negro (#2B2224)", () => {
+  it("el anillo perimetral contiene 'SALÓN' y 'MARINA' en Work Sans peso 700, casi negro (#2B2224) — DEC-013: peso sobre tamaño", () => {
     const project = createSalonAppointmentSealProject({ now: NOW, generateId });
     const ring = project.document.pages[0]!.layers[0]!.objects.filter((o) => o.metadata.role === "ring-text");
     expect(ring.map((o) => o.type === "text" && o.content)).toEqual(["SALÓN", "MARINA"]);
     for (const obj of ring) {
       expect(obj.type === "text" && obj.fontFamily).toBe("Work Sans");
+      expect(obj.type === "text" && obj.fontWeight).toBe(700);
       expect(obj.style.fill).toBe("#2B2224");
     }
   });

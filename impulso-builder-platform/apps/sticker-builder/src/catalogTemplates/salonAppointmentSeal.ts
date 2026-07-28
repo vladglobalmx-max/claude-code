@@ -24,8 +24,15 @@ export interface CreateSalonAppointmentSealProjectOptions {
  * (catálogo 3.1, `TEMPLATE_BATCH_03.md` Template 12) — Lote 3 del
  * `THOREN_CATALOG_PRODUCTION_PLAN_v1.md`. Primer template del catálogo en
  * usar `arrangeRingText` (anillo de texto perimetral de 360°, ver
- * `THOREN_DECISION_LOG.md`) — se somete a
- * `THOREN_VISUAL_ACCEPTANCE.md` antes de replicar el patrón a 10.1.
+ * `THOREN_DECISION_LOG.md`) — aprobado vía `THOREN_VISUAL_ACCEPTANCE.md`
+ * como patrón base para el resto del Lote 3 (10.1 Sello Corporativo).
+ *
+ * El peso 700 del anillo (en vez del tamaño original de fuente) es la
+ * variante ganadora de la comparación estética previa a la aprobación —
+ * ver DEC-013 en `THOREN_DECISION_LOG.md`: para anillos de texto cortos
+ * en sellos de ~30mm, se prioriza aumentar el peso tipográfico antes que
+ * el tamaño cuando el monograma central debe conservar la jerarquía
+ * principal.
  *
  * El "versalitas" y el "tracking amplio" del batch para el texto
  * perimetral se aproximan con contenido en mayúsculas y el tracking por
@@ -91,8 +98,8 @@ export function createSalonAppointmentSealProject(options: CreateSalonAppointmen
           centerY: centerPx,
           radius: ringRadius,
           fragments: [
-            { content: "SALÓN", fontFamily: FONT_RING, fontSize: ringFontSize, fontWeight: 400, fill: COLOR_INK, role: "ring-text", name: "Anillo — Salón" },
-            { content: "MARINA", fontFamily: FONT_RING, fontSize: ringFontSize, fontWeight: 400, fill: COLOR_INK, role: "ring-text", name: "Anillo — Marina" },
+            { content: "SALÓN", fontFamily: FONT_RING, fontSize: ringFontSize, fontWeight: 700, fill: COLOR_INK, role: "ring-text", name: "Anillo — Salón" },
+            { content: "MARINA", fontFamily: FONT_RING, fontSize: ringFontSize, fontWeight: 700, fill: COLOR_INK, role: "ring-text", name: "Anillo — Marina" },
           ],
         }),
       ];

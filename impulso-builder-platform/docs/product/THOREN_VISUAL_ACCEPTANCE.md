@@ -64,6 +64,22 @@ Cada ejecución de este checklist se registra en el reporte de producción del l
 - **Resultado por punto** (1-8) — aprobado / aprobado con observaciones / rechazado, con una nota breve cuando no sea "aprobado" sin más.
 - **Veredicto final**: aprobado (se puede replicar la capacidad al resto del lote) / aprobado con ajustes (se replica después de aplicar una corrección puntual) / rechazado (la capacidad requiere rediseño antes de continuar).
 
+## Historial de ejecuciones
+
+### Lote 3 — `arrangeRingText` (anillo de texto perimetral de 360°)
+
+- **Template(s) real(es) usado(s)**: 3.1 Sello de Cita — Salón de Belleza (`TEMPLATE_BATCH_03.md`, Template 12), exportado en PNG y SVG reales desde Chromium (canvas del editor + exportaciones descargadas vía el diálogo de exportación).
+- **Resultado por punto**:
+  1. **Legibilidad** — aprobado con ajustes → la primera exportación reveló un defecto real (ancho de fragmento insuficiente causando word-wrap invisible: "SALÓN" se recortaba a "SALÓ", "MARINA" a "MARIN" en el PNG/canvas, aunque el SVG y el `Project` seguían siendo correctos); corregido en el estimado por defecto de `arrangeRingText` (ver `kit/ringText.ts`) y reverificado.
+  2. **Balance visual** — aprobado con ajustes → la comparación de 4 variantes estéticas determinó que aumentar el peso tipográfico del anillo (`fontWeight` 400→700) da el balance correcto frente al monograma; ver DEC-013.
+  3. **Espaciado** — aprobado → respeta sangrado y área segura (3mm); el radio del anillo no toca el troquel.
+  4. **Consistencia con Design Language** — aprobado.
+  5. **Calidad de exportación PNG** — aprobado (tras la corrección del punto 1).
+  6. **Calidad de exportación SVG** — aprobado — el SVG fue correcto en todo momento, incluso durante el defecto del punto 1.
+  7. **Escalabilidad** — aprobado.
+  8. **Fidelidad respecto a la especificación del batch** — aprobado — monograma en su proporción ~40% del diámetro (sin reducir, ver DEC-013), anillo de 360° con el nombre completo del salón.
+- **Veredicto final**: **aprobado** — la capacidad `arrangeRingText` queda aprobada como patrón base para el resto del Lote 3 (10.1 Sello Corporativo) y para futuros lotes con anillos de texto perimetral. Ver DEC-013 (decisión permanente de dirección de arte derivada de esta ejecución) y `THOREN_LOTE_03_REPORTE.md` para el detalle completo de la comparación de variantes.
+
 ## Estado
 
-**Checklist aprobado, vigente a partir del Lote 3.** Se activa la primera vez en el Lote 3 (`arrangeRingText`), y en cada lote posterior que introduzca una capacidad visual genuinamente nueva.
+**Checklist aprobado, vigente a partir del Lote 3.** Se activa la primera vez en el Lote 3 (`arrangeRingText`) — ejecución completa y aprobada sobre 3.1, ver "Historial de ejecuciones" arriba — y en cada lote posterior que introduzca una capacidad visual genuinamente nueva.

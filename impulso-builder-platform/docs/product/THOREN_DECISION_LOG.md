@@ -20,6 +20,7 @@
 | DEC-010 | 2026-07-28 | Lote 2 → Lote 10 (12.4) | Reasignación por pestaña de plegado (troquel no estándar) |
 | DEC-011 | 2026-07-28 | Plan maestro (vigente desde el Lote 3) | Creación de `THOREN_VISUAL_ACCEPTANCE.md` como checklist de aprobación humana para capacidades visuales nuevas |
 | DEC-012 | 2026-07-28 | Lote 3 → Lote 8 (4.2) | Reasignación por ícono de check (iconografía Nivel 3, no anillo de texto) |
+| DEC-013 | 2026-07-28 | Lote 3 (3.1) | En anillos de texto cortos de sellos ~30mm, priorizar peso tipográfico sobre tamaño cuando el monograma debe conservar la jerarquía principal |
 
 ---
 
@@ -165,4 +166,16 @@
 - **Impacto**: El Lote 8 ya agrupaba símbolos normados (Advertencia General, Frágil Técnico) que reutilizan el pipeline de ilustración del Lote 4 — el ícono de check de 4.2 encaja en el mismo patrón sin necesitar una capacidad nueva adicional en ese lote.
 - **¿Modifica infraestructura?**: No todavía — el pipeline de ilustración se construye en el Lote 4, no aquí.
 - **¿Modifica documentación?**: Sí — `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (Lotes 3 y 8).
+
+## DEC-013 — Peso tipográfico sobre tamaño en anillos de texto cortos (sellos ~30mm)
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Lote 3 (3.1 Sello de Cita — Salón de Belleza), primer template en usar `arrangeRingText` — decisión tomada durante su revisión con `THOREN_VISUAL_ACCEPTANCE.md`.
+- **Decisión tomada**: Cuando un anillo de texto perimetral corto (2 palabras o menos) necesita más presencia visual en un sello de ~30mm de diámetro, se aumenta el **peso tipográfico** (`fontWeight`) del anillo, no su **tamaño** (`fontSize`), siempre que el monograma o elemento central del sello deba conservar la jerarquía visual principal. Para 3.1, esto significó `fontWeight: 700` (en vez de 400) manteniendo `fontSize: 8` sin cambios.
+- **Justificación**: Se compararon 4 variantes reales (exportadas en Chromium) contra la base: (a) tamaño +3 (`fontSize` 8→11), (b) peso +300 (`fontWeight` 400→700), (c) separadores decorativos (`•`) entre los fragmentos del anillo, (d) monograma reducido de ~40% a ~32% del diámetro para dar más aire. Aumentar el tamaño acerca el peso visual del anillo al del monograma más de lo que la jerarquía del batch sugiere ("el monograma es el elemento dominante"); aumentar el peso da la misma sensación de mayor presencia sin ocupar más espacio ni competir con el monograma. Los separadores resultaron casi imperceptibles a 30mm reales y no aportaron un beneficio claro. Reducir el monograma creó más aire pero se alejó de la proporción ~40% que especifica `TEMPLATE_BATCH_03.md` (fidelidad al batch, punto 8 de `THOREN_VISUAL_ACCEPTANCE.md`).
+- **Alternativas consideradas**: (a) Tamaño +3 — rechazada, compite con la jerarquía del monograma; (b) separadores decorativos — rechazada, beneficio no perceptible a esta escala física; (c) monograma más pequeño (más aire) — rechazada, se aleja de la fidelidad al batch; (d) mantener la base sin cambios — descartada porque el peso 700 sí ofrece un beneficio claro y medible (mejor legibilidad/presencia) sin ningún costo en los otros puntos del checklist.
+- **Impacto**: Se establece como criterio de dirección de arte reutilizable para el resto del Lote 3 (10.1 Sello Corporativo) y para cualquier lote futuro con anillos de texto cortos en sellos de escala similar (~25-35mm) — no es exclusivo de 3.1.
+- **¿Modifica infraestructura?**: No — `arrangeRingText` no cambió; solo los parámetros (`fontWeight`) con los que los templates la invocan.
+- **¿Modifica documentación?**: Sí — `THOREN_VISUAL_ACCEPTANCE.md` (registro de la ejecución del checklist sobre 3.1) y `THOREN_LOTE_03_REPORTE.md`.
+- **¿Aplica a futuros templates?**: Sí — cualquier sello de ~25-35mm con anillo de texto corto y un elemento central que deba conservar la jerarquía principal.
 - **¿Aplica a futuros templates?**: Sí — tercera confirmación consecutiva (tras DEC-005 y DEC-010) de que la especificación completa del batch, no la entrada corta del catálogo ni el nombre del template ("Sello..."), determina en qué lote encaja.

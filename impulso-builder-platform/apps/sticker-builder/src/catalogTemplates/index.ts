@@ -12,6 +12,9 @@ import { createHandmadeGiftSealProject } from "./handmadeGiftSeal.js";
 import { createKraftHandmadeEtsyProject } from "./kraftHandmadeEtsy.js";
 import { createEtsyNeutralPackagingProject } from "./etsyNeutralPackaging.js";
 import { createSalonAppointmentSealProject } from "./salonAppointmentSeal.js";
+import { createCorporateSealProject } from "./corporateSeal.js";
+import { createHomemadeStampProject } from "./homemadeStamp.js";
+import { createWeddingEnvelopeSealProject } from "./weddingEnvelopeSeal.js";
 import { buildCatalogTemplateDescriptor } from "./kit/descriptorFactory.js";
 import type { CatalogTemplateSeed } from "./kit/types.js";
 
@@ -185,6 +188,45 @@ export const CATALOG_TEMPLATES: readonly CatalogTemplateSeed[] = [
     useCase: "Tarjeta de cita, sobre o bolsa de producto de un salón de belleza",
     suggestedColors: ["#B76E79", "#2B2224", "#F7E9EA"],
     buildProject: createSalonAppointmentSealProject,
+  },
+  {
+    id: "catalog_corporate-seal",
+    name: "Sello Corporativo",
+    description: "Sello circular formal con monograma central y anillo de texto perimetral con el nombre de la empresa.",
+    tags: ["corporate", "business", "seal", "monogram"],
+    category: "Business",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Pequeñas y medianas empresas, despachos profesionales, oficinas corporativas",
+    useCase: "Cierre de sobres corporativos, documentos impresos, carpetas de presentación",
+    suggestedColors: ["#1F2933", "#FFFFFF", "#4B6673"],
+    buildProject: createCorporateSealProject,
+  },
+  {
+    id: "catalog_homemade-stamp",
+    name: "Sello \"Hecho en Casa\"",
+    description: "Sello circular cálido y universal para comunicar producción local o casera en cualquier punto de venta ajeno.",
+    tags: ["homemade", "artisan", "seal", "retail"],
+    category: "Retail",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Productores locales que venden en tiendas/mercados de terceros, reposteros, manufactura casera",
+    useCase: "Bolsa de papel, caja de repostería o empaque de manufactura casera vendida en consignación",
+    suggestedColors: ["#8B5E3C", "#F5EEDD", "#2B2B2B"],
+    buildProject: createHomemadeStampProject,
+  },
+  {
+    id: "catalog_wedding-envelope-seal",
+    name: "Sello de Sobre de Invitación",
+    description: "Sello elegante de iniciales entrelazadas para cerrar el sobre de una invitación de boda.",
+    tags: ["wedding", "monogram", "seal", "envelope"],
+    category: "Wedding",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Parejas planeando su boda, wedding planners",
+    useCase: "Sobre de invitación o papelería formal de boda",
+    suggestedColors: ["#D4AF37", "#FFFFFF", "#2B2224"],
+    buildProject: createWeddingEnvelopeSealProject,
   },
 ];
 

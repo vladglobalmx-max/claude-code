@@ -5,10 +5,14 @@ import { test, expect } from "@playwright/test";
  * contenido (`THOREN_CATALOG_PRODUCTION_PLAN_v1.md`) — 4 sellos circulares,
  * mismo patrón parametrizado que `template-catalog-lote1.spec.ts` /
  * `template-catalog-lote2.spec.ts`. Introduce `arrangeRingText` (anillo de
- * texto perimetral de 360°) — primer template en usarla (Sello de Cita —
- * Salón de Belleza) se somete además a `THOREN_VISUAL_ACCEPTANCE.md` con
- * una captura de pantalla real del canvas, no solo la exportación
- * automatizada de PNG/SVG.
+ * texto perimetral de 360°), usada por 2 de los 4 (Sello de Cita — Salón
+ * de Belleza, Sello Corporativo); los otros 2 (Sello "Hecho en Casa",
+ * Sello de Sobre de Invitación) resultaron ser sellos de un solo elemento
+ * central sin anillo real al leer su especificación completa (ver
+ * `THOREN_DECISION_LOG.md` DEC-012) y reutilizan patrones ya aprobados.
+ * El primer template en usar `arrangeRingText` (Sello de Cita) se sometió
+ * además a `THOREN_VISUAL_ACCEPTANCE.md` con una captura de pantalla real
+ * del canvas, no solo la exportación automatizada de PNG/SVG.
  */
 
 interface Lote3Case {
@@ -16,7 +20,12 @@ interface Lote3Case {
   expectedLayerCount: number;
 }
 
-const LOTE_3_CASES: Lote3Case[] = [{ name: "Sello de Cita — Salón de Belleza", expectedLayerCount: 4 }];
+const LOTE_3_CASES: Lote3Case[] = [
+  { name: "Sello de Cita — Salón de Belleza", expectedLayerCount: 4 },
+  { name: "Sello Corporativo", expectedLayerCount: 4 },
+  { name: "Sello \"Hecho en Casa\"", expectedLayerCount: 2 },
+  { name: "Sello de Sobre de Invitación", expectedLayerCount: 2 },
+];
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");

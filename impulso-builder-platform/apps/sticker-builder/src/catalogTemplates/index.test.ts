@@ -7,8 +7,8 @@ const NOW = "2026-07-19T00:00:00.000Z";
 const fakeThumbnail = async () => new Blob(["png"], { type: "image/png" });
 
 describe("CATALOG_TEMPLATES", () => {
-  it("incluye el piloto, el Lote 1 completo y el Lote 2 completo (11 templates)", () => {
-    expect(CATALOG_TEMPLATES).toHaveLength(11);
+  it("incluye el piloto, el Lote 1 completo, el Lote 2 completo y el primer template del Lote 3 (12 templates)", () => {
+    expect(CATALOG_TEMPLATES).toHaveLength(12);
     expect(CATALOG_TEMPLATES.map((t) => t.id)).toEqual([
       "catalog_serum-facial-premium",
       "catalog_lip-balm-natural",
@@ -21,6 +21,7 @@ describe("CATALOG_TEMPLATES", () => {
       "catalog_handmade-gift-seal",
       "catalog_kraft-handmade-etsy",
       "catalog_etsy-neutral-packaging",
+      "catalog_salon-appointment-seal",
     ]);
   });
 });

@@ -11,6 +11,7 @@ import { createCorporateSimpleLabelProject } from "./corporateSimpleLabel.js";
 import { createHandmadeGiftSealProject } from "./handmadeGiftSeal.js";
 import { createKraftHandmadeEtsyProject } from "./kraftHandmadeEtsy.js";
 import { createEtsyNeutralPackagingProject } from "./etsyNeutralPackaging.js";
+import { createSalonAppointmentSealProject } from "./salonAppointmentSeal.js";
 import { buildCatalogTemplateDescriptor } from "./kit/descriptorFactory.js";
 import type { CatalogTemplateSeed } from "./kit/types.js";
 
@@ -171,6 +172,19 @@ export const CATALOG_TEMPLATES: readonly CatalogTemplateSeed[] = [
     useCase: "Cierre de empaque de cualquier pedido de marketplace de artesanías",
     suggestedColors: ["#9C4E27", "#F7F5EF", "#23282B"],
     buildProject: createEtsyNeutralPackagingProject,
+  },
+  {
+    id: "catalog_salon-appointment-seal",
+    name: "Sello de Cita — Salón de Belleza",
+    description: "Sello circular con monograma central y anillo de texto perimetral con el nombre del salón.",
+    tags: ["beauty-salon", "monogram", "seal", "appointment"],
+    category: "Beauty",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Salones de belleza independientes, estilistas y barberías boutique, spas pequeños",
+    useCase: "Tarjeta de cita, sobre o bolsa de producto de un salón de belleza",
+    suggestedColors: ["#B76E79", "#2B2224", "#F7E9EA"],
+    buildProject: createSalonAppointmentSealProject,
   },
 ];
 

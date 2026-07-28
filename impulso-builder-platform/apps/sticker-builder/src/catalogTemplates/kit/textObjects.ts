@@ -18,6 +18,11 @@ export interface CreateTextObjectOptions {
   y: number;
   width: number;
   height: number;
+  /** Rotación en grados (convención de Konva/canvas: sentido horario,
+   * pivote en `(x,y)`) — default 0. Necesaria para texto perimetral
+   * (`arrangeRingText`, Lote 3); ningún consumidor previo a esa capacidad
+   * la usa. */
+  rotation?: number;
 }
 
 /**
@@ -40,7 +45,7 @@ export function createTextObject(options: CreateTextObjectOptions): TextObject {
     textAlign: options.textAlign ?? "left",
     lineHeight: options.lineHeight ?? 1.2,
     size: { width, height },
-    transform: { x, y, rotation: 0, scaleX: 1, scaleY: 1 },
+    transform: { x, y, rotation: options.rotation ?? 0, scaleX: 1, scaleY: 1 },
     style: { fill, strokeWidth: 0, opacity: 1, blendMode: "normal" },
     metadata: buildElementMetadata({ now, role, name }),
     pluginData: {},

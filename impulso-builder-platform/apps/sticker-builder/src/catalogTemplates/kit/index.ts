@@ -23,6 +23,7 @@ export {
   type CreateDividerLineOptions,
 } from "./graphicElements.js";
 export { createDieLineObjects, type DieLineShape, type CreateDieLineObjectsOptions } from "./dieLine.js";
+export { arrangeRingText, type RingTextFragment, type ArrangeRingTextOptions } from "./ringText.js";
 export { stackVertically, textLineHeight, type StackItem, type StackedPosition, type VerticalStackResult } from "./layout.js";
 export {
   type VisualFamily,

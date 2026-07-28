@@ -23,6 +23,7 @@
 | DEC-013 | 2026-07-28 | Lote 3 (3.1) | En anillos de texto cortos de sellos ~30mm, priorizar peso tipográfico sobre tamaño cuando el monograma debe conservar la jerarquía principal |
 | DEC-014 | 2026-07-28 | Lote 3 (3.1, 6.3) | Verificación visual obligatoria de cualquier `TextObject` con ancho estimado, antes de dar por terminado un template |
 | DEC-015 | 2026-07-28 | Cierre de Lotes 1-3 / Plan maestro | `arrangeRingText` validado como parte del estándar oficial de producción; producción pausada — checkpoint de Beta Comercial (DEC-006) antes del Lote 4 |
+| DEC-016 | 2026-07-28 | Beta Comercial | `THOREN_BETA_RETROSPECTIVE.md` obligatorio al cerrar la beta, con análisis siempre segmentado por las 5 categorías de participantes, nunca solo como promedio global |
 
 ---
 
@@ -168,6 +169,7 @@
 - **Impacto**: El Lote 8 ya agrupaba símbolos normados (Advertencia General, Frágil Técnico) que reutilizan el pipeline de ilustración del Lote 4 — el ícono de check de 4.2 encaja en el mismo patrón sin necesitar una capacidad nueva adicional en ese lote.
 - **¿Modifica infraestructura?**: No todavía — el pipeline de ilustración se construye en el Lote 4, no aquí.
 - **¿Modifica documentación?**: Sí — `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (Lotes 3 y 8).
+- **¿Aplica a futuros templates?**: Sí — tercera confirmación consecutiva (tras DEC-005 y DEC-010) de que la especificación completa del batch, no la entrada corta del catálogo ni el nombre del template ("Sello..."), determina en qué lote encaja.
 
 ## DEC-013 — Peso tipográfico sobre tamaño en anillos de texto cortos (sellos ~30mm)
 
@@ -204,4 +206,15 @@
 - **¿Modifica infraestructura?**: No.
 - **¿Modifica documentación?**: Sí — crea `THOREN_BETA_COMMERCIAL_PLAN.md`.
 - **¿Aplica a futuros templates?**: No aplica (decisión de secuencia de proyecto, no de producción de templates).
-- **¿Aplica a futuros templates?**: Sí — tercera confirmación consecutiva (tras DEC-005 y DEC-010) de que la especificación completa del batch, no la entrada corta del catálogo ni el nombre del template ("Sello..."), determina en qué lote encaja.
+
+## DEC-016 — `THOREN_BETA_RETROSPECTIVE.md` obligatorio al cerrar la Beta Comercial, análisis siempre segmentado por categoría
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Beta Comercial (aprobación de `THOREN_BETA_COMMERCIAL_PLAN.md`).
+- **Decisión tomada**: Al finalizar la Beta Comercial se genera `THOREN_BETA_RETROSPECTIVE.md`, con al menos: hipótesis iniciales, qué confirmó el mercado, qué refutó el mercado, qué sorprendió al equipo, resultados por categoría, cambios de prioridad del catálogo, solicitudes recurrentes de los participantes, funcionalidades explícitamente descartadas, decisiones tomadas a partir de la evidencia, y roadmap actualizado para la siguiente etapa. El análisis de resultados se mantiene **siempre segmentado por las 5 categorías de participantes** definidas en `THOREN_BETA_COMMERCIAL_PLAN.md` §3 (Cosmetics/Beauty, Business, Etsy Sellers/Retail/Crafts, Product Labels, Wedding) — nunca se reporta solo como promedio global.
+- **Justificación**: Un promedio global sobre 15-25 participantes de 5 perfiles distintos puede ocultar exactamente la señal que la beta busca (qué categoría genera más interés real, punto 1 de los objetivos del plan) — si 4 de 5 participantes de Wedding valoran su categoría pero el resto no dice nada relevante, un promedio global lo diluye a "feedback mixto" en vez de mostrar la señal real y accionable. Mantener la segmentación es la única forma de que el resultado sirva para su propósito declarado: reordenar la prioridad de los Lotes 4-12 con evidencia real, no con una cifra agregada sin poder explicativo.
+- **Alternativas consideradas**: (a) Un reporte de cierre libre, sin estructura fija — rechazada, mismo criterio ya aplicado a los reportes de producción de lote (formato de 10 puntos): una estructura fija obligatoria es más fácil de auditar y comparar que un texto libre distinto cada vez. (b) Reportar solo promedios globales con el detalle por categoría como anexo opcional — rechazada explícitamente por el usuario; la segmentación debe ser el análisis principal, no un anexo.
+- **Impacto**: Ningún cierre de Beta Comercial se considera completo sin este documento — es la condición de entrada al criterio 2 de reanudación del Lote 4 ya definido en `THOREN_BETA_COMMERCIAL_PLAN.md` §11 ("revisión de los resultados... documentada en un reporte de cierre").
+- **¿Modifica infraestructura?**: No.
+- **¿Modifica documentación?**: Sí — añade una sección a `THOREN_BETA_COMMERCIAL_PLAN.md` describiendo este entregable; el documento en sí (`THOREN_BETA_RETROSPECTIVE.md`) se escribe al cerrar la beta, no ahora (no hay evidencia real todavía).
+- **¿Aplica a futuros templates?**: No aplica (decisión de proceso de la Beta Comercial, no de producción de templates).

@@ -132,8 +132,27 @@ La producción del Lote 4 se reanuda cuando se cumplan **todas** las siguientes 
    - **(b) Reordenar la prioridad de los Lotes 4-12** hacia la categoría/capacidad que la beta mostró como de mayor interés real — sin alterar la arquitectura ni la infraestructura ya aprobadas (regla heredada del plan maestro, sin excepción).
 5. Si la tasa de activación o completación sin ayuda (punto 7) quedó por debajo del umbral definido, se prioriza investigar y resolver esa fricción de producto **antes** de cualquier lote nuevo — ninguna cantidad de templates adicionales compensa un flujo de uso que ya falla para los usuarios actuales.
 
+## 12. Cierre de la beta — `THOREN_BETA_RETROSPECTIVE.md` (obligatorio)
+
+Al finalizar la Beta Comercial (todos los participantes reclutados respondieron o se agotó el plazo de seguimiento, ver punto 8) se genera `THOREN_BETA_RETROSPECTIVE.md` antes de tomar cualquier decisión sobre el Lote 4 — registrado como práctica permanente en `THOREN_DECISION_LOG.md` DEC-016. Debe incluir, como mínimo:
+
+- Hipótesis iniciales (las de este documento, puntos 1 y 3-5).
+- Qué confirmó el mercado.
+- Qué refutó el mercado.
+- Qué sorprendió al equipo.
+- Resultados por categoría.
+- Cambios de prioridad del catálogo.
+- Solicitudes recurrentes de los participantes.
+- Funcionalidades que explícitamente se decidió no incorporar.
+- Decisiones tomadas a partir de la evidencia.
+- Roadmap actualizado para la siguiente etapa.
+
+**Regla de análisis, sin excepción**: cada una de estas secciones se reporta **segmentada por las 5 categorías de participantes** definidas en el punto 3 (Cosmetics/Beauty, Business, Etsy Sellers/Retail/Crafts, Product Labels, Wedding) — nunca únicamente como promedio o conclusión global. Un promedio agregado sobre un grupo de 15-25 participantes de perfiles tan distintos diluye exactamente la señal que esta beta busca (qué categoría genera más interés real); la segmentación es la forma en que el resultado queda accionable para reordenar la prioridad de los Lotes 4-12 (punto 11).
+
+Este documento no se redacta ahora — no existe evidencia real todavía (mismo criterio ya usado en `RC1_POST_LAUNCH_PLAN.md` para su tabla de mejoras: "no se puede poblar todavía"). Se escribe únicamente al cerrar la beta, con datos reales de los participantes.
+
 ---
 
 ## Estado
 
-**Plan de Beta Comercial listo para aprobación.** No se recluta ningún participante ni se publica nada en Gumroad hasta que el usuario apruebe este documento explícitamente.
+**Plan de Beta Comercial aprobado.** Reclutamiento de participantes y preparación en Gumroad autorizados conforme al alcance de este documento (punto 2). `THOREN_BETA_RETROSPECTIVE.md` es un entregable obligatorio al cierre (punto 12) antes de decidir cualquier cosa sobre el Lote 4.

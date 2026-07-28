@@ -1,43 +1,21 @@
 import type { Project } from "@impulso/document-schema";
-import type { TemplateDescriptor, TemplateDifficulty, TemplateShape, TemplateStore } from "@impulso/template-library";
+import type { TemplateStore } from "@impulso/template-library";
 import { createSerumFacialPremiumProject } from "./serumFacialPremium.js";
+import { buildCatalogTemplateDescriptor } from "./kit/descriptorFactory.js";
+import type { CatalogTemplateSeed } from "./kit/types.js";
 
-/**
- * Un template del catálogo de contenido de THÖREN (`TEMPLATE_CATALOG_v1.md`,
- * 63 templates especificados en `docs/product/TEMPLATE_BATCH_01.md` a
- * `TEMPLATE_BATCH_13.md`) — distinto de `BuiltInTemplateSeed`
- * (`builtInTemplates.ts`), que solo describe un tamaño/forma en blanco.
- * Aquí `buildProject` construye el `Project` completo con su contenido de
- * diseño real (tipografía, layout, paleta), no solo la línea de corte.
- *
- * Este es el estándar de producción establecido por el piloto (Serum
- * Facial Premium, ver `THOREN_PILOT_TEMPLATE_STANDARD.md`) — cada uno de
- * los 62 templates restantes del catálogo se integra agregando una entrada
- * más a `CATALOG_TEMPLATES`, nunca modificando el mecanismo de siembra en
- * sí (`seedCatalogTemplates`, ya genérico).
- */
-export interface CatalogTemplateSeed {
-  /** Id fijo y estable del catálogo — mismo criterio de idempotencia que
-   * `BuiltInTemplateSeed.id` (ver `seedBuiltInTemplates`). */
-  id: string;
-  name: string;
-  description?: string;
-  tags: string[];
-  category: string;
-  shape: TemplateShape;
-  difficulty: TemplateDifficulty;
-  targetAudience?: string;
-  useCase?: string;
-  suggestedColors?: string[];
-  buildProject: (options: { now: string; generateId: () => string }) => Project;
-}
+/** Re-exportado desde `kit/types.ts` (donde vive ahora, ver
+ * `THOREN_PRODUCTION_INFRASTRUCTURE.md`) para que ningún import existente
+ * de `CatalogTemplateSeed` desde este módulo se rompa. */
+export type { CatalogTemplateSeed };
 
 /**
  * Metadata real tomada de `TEMPLATE_BATCH_02.md` (Template 7, catálogo
  * 2.1) y de `TEMPLATE_CATALOG_v1.md` — no inventada para el piloto. Es el
  * único template del catálogo de 63 integrado como código real hasta este
- * punto (Etapa 2 del proyecto, piloto en curso — ver
- * `THOREN_PILOT_TEMPLATE_STANDARD.md`).
+ * punto (Etapa 2 del proyecto — ver `THOREN_PILOT_TEMPLATE_STANDARD.md`
+ * y, para la infraestructura de producción usada a partir de aquí,
+ * `THOREN_PRODUCTION_INFRASTRUCTURE.md`).
  */
 export const CATALOG_TEMPLATES: readonly CatalogTemplateSeed[] = [
   {
@@ -67,6 +45,11 @@ export interface SeedCatalogTemplatesOptions {
  * `seedBuiltInTemplates`. Se guardan como `builtIn: true` (vienen con la
  * app, no los crea un usuario, no se pueden borrar desde la galería) —
  * misma semántica que los 3 tamaños en blanco, con metadata real además.
+ * El mapeo seed -> `TemplateDescriptor` vive en
+ * `kit/descriptorFactory.ts` (`buildCatalogTemplateDescriptor`) — este
+ * loop es, deliberadamente, el único código que los 62 templates
+ * restantes necesitarán tocar (agregar una entrada a `CATALOG_TEMPLATES`),
+ * nunca este mecanismo de siembra en sí.
  */
 export async function seedCatalogTemplates(store: TemplateStore, options: SeedCatalogTemplatesOptions): Promise<void> {
   const { now, generateThumbnail } = options;
@@ -80,24 +63,7 @@ export async function seedCatalogTemplates(store: TemplateStore, options: SeedCa
 
     const project = seed.buildProject({ now, generateId });
     const thumbnail = await generateThumbnail(project);
-
-    const descriptor: TemplateDescriptor = {
-      id: seed.id,
-      moduleId: "sticker-builder",
-      name: seed.name,
-      description: seed.description,
-      tags: seed.tags,
-      builtIn: true,
-      createdAt: now,
-      updatedAt: now,
-      category: seed.category,
-      shape: seed.shape,
-      difficulty: seed.difficulty,
-      targetAudience: seed.targetAudience,
-      useCase: seed.useCase,
-      suggestedColors: seed.suggestedColors,
-      authorId: "thoren",
-    };
+    const descriptor = buildCatalogTemplateDescriptor(seed, { moduleId: "sticker-builder", now });
 
     await store.save(descriptor, { project, thumbnail });
   }

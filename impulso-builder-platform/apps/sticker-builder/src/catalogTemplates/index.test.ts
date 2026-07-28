@@ -7,9 +7,16 @@ const NOW = "2026-07-19T00:00:00.000Z";
 const fakeThumbnail = async () => new Blob(["png"], { type: "image/png" });
 
 describe("CATALOG_TEMPLATES", () => {
-  it("incluye exactamente el template piloto (Serum Facial Premium)", () => {
-    expect(CATALOG_TEMPLATES).toHaveLength(1);
-    expect(CATALOG_TEMPLATES[0]!.id).toBe("catalog_serum-facial-premium");
+  it("incluye el piloto (Serum Facial Premium) y el Lote 1 completo (5 templates, cero ilustración)", () => {
+    expect(CATALOG_TEMPLATES).toHaveLength(6);
+    expect(CATALOG_TEMPLATES.map((t) => t.id)).toEqual([
+      "catalog_serum-facial-premium",
+      "catalog_lip-balm-natural",
+      "catalog_spa-wellness",
+      "catalog_neutral-minimal-label",
+      "catalog_closure-seal",
+      "catalog_thank-you-preference",
+    ]);
   });
 });
 
@@ -61,7 +68,19 @@ describe("seedCatalogTemplates", () => {
     await seedCatalogTemplates(store, { now: NOW, generateThumbnail });
     await seedCatalogTemplates(store, { now: NOW, generateThumbnail });
 
-    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(1);
-    expect(generateThumbnail).toHaveBeenCalledTimes(1);
+    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(CATALOG_TEMPLATES.length);
+    expect(generateThumbnail).toHaveBeenCalledTimes(CATALOG_TEMPLATES.length);
+  });
+
+  it("cada template de CATALOG_TEMPLATES (incluido todo el Lote 1) produce un Project válido y queda sembrado como builtIn", async () => {
+    const store = createMemoryTemplateStore();
+    await seedCatalogTemplates(store, { now: NOW, generateThumbnail: fakeThumbnail });
+
+    for (const seed of CATALOG_TEMPLATES) {
+      const descriptor = await store.getDescriptor(seed.id);
+      const content = await store.getContent(seed.id);
+      expect(descriptor?.builtIn, `${seed.id} debería ser builtIn`).toBe(true);
+      expect(() => validateProject(content!.project), `${seed.id} debería producir un Project válido`).not.toThrow();
+    }
   });
 });

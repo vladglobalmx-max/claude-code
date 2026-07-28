@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMemoryTemplateStore } from "@impulso/template-library";
 import { BUILT_IN_STICKER_TEMPLATES, seedBuiltInTemplates, createLazyBuiltInTemplateSeeder } from "./builtInTemplates.js";
+import { CATALOG_TEMPLATES } from "./catalogTemplates/index.js";
+
+const TOTAL_SEEDABLE = BUILT_IN_STICKER_TEMPLATES.length + CATALOG_TEMPLATES.length;
 
 const NOW = "2026-07-19T00:00:00.000Z";
 const fakeThumbnail = async () => new Blob(["png"], { type: "image/png" });
@@ -64,9 +67,9 @@ describe("createLazyBuiltInTemplateSeeder", () => {
 
     await seeder.ensureSeeded();
 
-    // 3 tamaños en blanco + 1 template de catálogo (Serum Facial Premium,
-    // el piloto — ver catalogTemplates/index.ts).
-    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(4);
+    // 3 tamaños en blanco + todos los templates del catálogo de contenido
+    // (el piloto y el Lote 1 — ver catalogTemplates/index.ts).
+    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(TOTAL_SEEDABLE);
     expect(await store.getDescriptor("catalog_serum-facial-premium")).toBeDefined();
   });
 
@@ -78,9 +81,9 @@ describe("createLazyBuiltInTemplateSeeder", () => {
     await seeder.ensureSeeded();
     await seeder.ensureSeeded();
 
-    // 3 built-in + 1 catálogo = 4 llamadas, una sola vez (la segunda
-    // llamada a ensureSeeded() es un no-op).
-    expect(generateThumbnail).toHaveBeenCalledTimes(4);
+    // 3 built-in + N del catálogo, una sola vez (la segunda llamada a
+    // ensureSeeded() es un no-op).
+    expect(generateThumbnail).toHaveBeenCalledTimes(TOTAL_SEEDABLE);
   });
 
   it("nunca lanza: un fallo de sembrado se registra y se traga (para ambas fuentes de templates)", async () => {

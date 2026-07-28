@@ -9,12 +9,31 @@
 3. Cada lote termina con una validación explícita y una aprobación del usuario antes de iniciar el siguiente — no se avanza al lote N+1 sin que el lote N esté completamente terminado, probado y aprobado (mismo criterio ya usado para el piloto).
 4. Una sola fuente de verdad: cualquier mejora a la infraestructura detectada durante un lote se documenta como actualización de `THOREN_PRODUCTION_INFRASTRUCTURE.md` (no como un documento paralelo), y el `kit/` sigue siendo el único lugar donde vive lógica reutilizable.
 
+## Punto de control: Beta Comercial tras los Lotes 1-3
+
+Decisión estratégica añadida a la aprobación de este plan: tras completar y aprobar los Lotes 1, 2 y 3 (16 templates: los 11 sin ilustración de los Lotes 1-2 más los 5 sellos con anillo de texto del Lote 3), la producción se **pausa** para ejecutar una Beta Comercial antes de continuar con el Lote 4. Objetivo: validar con usuarios reales — publicar los primeros templates, medir uso y fricción real, detectar qué familias generan más interés, y confirmar (o corregir) las decisiones de diseño ya tomadas, antes de invertir en las capacidades más costosas del plan (ilustración, troqueles personalizados). La Beta Comercial puede reordenar la **prioridad** de los Lotes 4-12 según lo que el mercado muestre (ej. producir primero la familia con mayor interés detectado) — no puede alterar la arquitectura ni la infraestructura ya aprobadas (regla 1-2 siguen vigentes sin excepción); es un ajuste de secuencia, no de estándar. El alcance detallado de la Beta Comercial (qué se publica, cómo se mide, qué constituye éxito) se define como su propio entregable al cerrar el Lote 3, no en este documento.
+
+## Reporte de producción por lote (obligatorio, al cerrar cada uno de los 12 lotes)
+
+Cada lote, al terminar, entrega un reporte breve con al menos:
+
+1. **Tiempo invertido** — real, contrastado contra la estimación de este plan.
+2. **Templates producidos** — lista final, con cualquier cambio de alcance frente al plan original.
+3. **Componentes reutilizados** — de `catalogTemplates/kit/`, cuáles y cuántas veces.
+4. **Componentes nuevos creados** — si los hubo, y si ya quedaron incorporados a `kit/`.
+5. **Riesgos encontrados** — reales, no solo los ya anticipados en este plan.
+6. **Riesgos eliminados** — qué clase de error este lote ya no puede producir en los siguientes.
+7. **Cobertura de pruebas** — cifras reales (typecheck/tests/coverage/e2e).
+8. **Regresiones detectadas** — y cómo se resolvieron.
+9. **Mejoras incorporadas a la infraestructura** — cambios reales a `kit/` u otro documento maestro, si los hubo.
+10. **Recomendaciones para el siguiente lote** — ajustes de alcance, tiempo o secuencia sugeridos antes de iniciarlo.
+
 ## Resumen de los 12 lotes
 
 | # | Nombre | Templates | Capacidad nueva principal | Riesgo relativo |
 |---|---|---|---|---|
-| 1 | Cero ilustración — layout puro | 6 | Ninguna (validación horizontal del kit) | Muy bajo |
-| 2 | Cero ilustración — marco/textura/logo | 5 | Placeholder de logo, textura de fondo simple | Bajo |
+| 1 | Cero ilustración — layout puro | 5 | Ninguna (validación horizontal del kit) | Muy bajo |
+| 2 | Cero ilustración — marco/textura/logo | 6 | Placeholder de logo, textura de fondo simple | Bajo |
 | 3 | Sellos con anillo de texto | 5 | `arrangeRingText` (texto perimetral) | Medio |
 | 4 | Primera integración de ilustración (línea fina) | 6 | Integración real con `@impulso/asset-library` | Medio-alto (primera vez) |
 | 5 | Ilustración línea fina — continuación | 5 | Ninguna nueva (reusa Lote 4) | Bajo (ya validado) |
@@ -34,11 +53,13 @@ Estimación total agregada: **~95-120 días-persona** de producción (suma de lo
 
 ## Lote 1 — Cero ilustración, layout puro
 
+**Nota de alcance (post-ejecución):** 13.3 Sello de Regalo Hecho a Mano se reasignó al Lote 2 al leer su especificación completa (`TEMPLATE_BATCH_09.md`, Template 43) — a diferencia de lo que sugería la entrada corta de `TEMPLATE_CATALOG_v1.md`, el batch completo sí exige una textura de papel kraft (sección 5, "Assets necesarios"), lo cual pertenece por definición al perfil del Lote 2 ("cero ilustración, con marco/textura/logo"), no al de este lote (cero ilustración Y cero textura). Ver el reporte de producción del Lote 1 para el detalle.
+
 ### 1. Templates incluidos
-2.5 Bálsamo Labial Natural · 3.2 Spa & Bienestar · 7.1 Etiqueta Neutral Minimalista · 8.1 Sello de Cierre · 10.3 Gracias por tu Preferencia · 13.3 Sello de Regalo Hecho a Mano
+2.5 Bálsamo Labial Natural · 3.2 Spa & Bienestar · 7.1 Etiqueta Neutral Minimalista · 8.1 Sello de Cierre · 10.3 Gracias por tu Preferencia
 
 ### 2. Justificación del agrupamiento
-Los 6 templates declaran explícitamente "sin ilustración" o su equivalente (espacio negativo, tipografía pura, línea divisoria opcional) en `TEMPLATE_CATALOG_v1.md` — son, estructuralmente, la misma clase de template que el piloto (Serum Facial Premium): troquel estándar (círculo/rectángulo, sin formas personalizadas) + roles de texto + opcionalmente una línea divisoria. Es el lote de menor riesgo posible y sirve para confirmar, con una muestra más amplia que un solo template, que el kit realmente escala horizontalmente sin fricción.
+Los 5 templates declaran explícitamente "sin ilustración" o su equivalente (espacio negativo, tipografía pura, línea divisoria opcional) en `TEMPLATE_CATALOG_v1.md` — son, estructuralmente, la misma clase de template que el piloto (Serum Facial Premium): troquel estándar (círculo/rectángulo, sin formas personalizadas) + roles de texto + opcionalmente una línea divisoria. Es el lote de menor riesgo posible y sirve para confirmar, con una muestra más amplia que un solo template, que el kit realmente escala horizontalmente sin fricción.
 
 ### 3. Componentes reutilizados
 `createCatalogProject`, `createDieLineObjects` (circle/rectangle), `createTextObject`, `createDividerLine`, `stackVertically`/`textLineHeight`, `buildCatalogTemplateDescriptor`, `validateCatalogProject`.
@@ -50,20 +71,22 @@ Ninguno esperado. Si durante la producción aparece un patrón repetido 2+ veces
 Mínimos. El principal riesgo no es técnico sino de **falso sentido de seguridad**: al ser el lote más fácil, no ejercita todavía ninguna de las capacidades nuevas que sí necesitarán los lotes 3+ (texto perimetral, ilustración, troqueles personalizados) — se documenta explícitamente para no inferir de este lote que el resto del catálogo será igual de simple.
 
 ### 6. Tiempo estimado
-Sin infraestructura nueva que construir: ~0.5-1 día por template × 6 = **4-6 días**.
+Sin infraestructura nueva que construir: ~0.5-1 día por template × 5 = **2.5-5 días** (ajustado de 6 a 5 templates, ver nota de alcance).
 
 ### 7. Estrategia de validación
-Igual que el piloto pero batcheada: un archivo de test por template (schema, roles, paleta, tipografía) + un solo spec de Playwright parametrizado sobre los 6 ids (extendiendo el patrón de `template-catalog-pilot.spec.ts` en vez de duplicar 6 specs completos) cubriendo galería → crear → editar → guardar → exportar PNG/SVG para cada uno.
+Igual que el piloto pero batcheada: un archivo de test por template (schema, roles, paleta, tipografía) + un solo spec de Playwright parametrizado sobre los ids del lote (extendiendo el patrón de `template-catalog-pilot.spec.ts` en vez de duplicar un spec completo por template) cubriendo galería → crear → Capas → guardar → exportar PNG/SVG para cada uno.
 
 ### 8. Criterios de aprobación para pasar al Lote 2
-Los 6 templates pasan validación unitaria + e2e; cero regresiones en la suite existente; cobertura se mantiene sobre umbral; **cero componentes nuevos realmente necesarios** (confirma que la infraestructura actual cubre esta clase de template sin fricción, la hipótesis central del lote).
+Los 5 templates pasan validación unitaria + e2e; cero regresiones en la suite existente; cobertura se mantiene sobre umbral; **cero componentes nuevos realmente necesarios** (confirma que la infraestructura actual cubre esta clase de template sin fricción, la hipótesis central del lote).
 
 ---
 
 ## Lote 2 — Cero ilustración, con marco/textura/logo
 
+**Nota de alcance (post-ejecución del Lote 1):** incluye 13.3 Sello de Regalo Hecho a Mano, reasignado desde el Lote 1 — su especificación completa (`TEMPLATE_BATCH_09.md`, Template 43) exige una textura de papel kraft (misma textura ya especificada para 7.2 Etiqueta Kraft Genérica), encajando exactamente en el perfil de este lote.
+
 ### 1. Templates incluidos
-7.2 Etiqueta Kraft Genérica · 7.3 Etiqueta Corporativa Simple · 12.4 Mesa de Dulces · 14.1 Kraft Hecho a Mano · 14.3 Empaque Artesanal Etsy
+7.2 Etiqueta Kraft Genérica · 7.3 Etiqueta Corporativa Simple · 12.4 Mesa de Dulces · 13.3 Sello de Regalo Hecho a Mano · 14.1 Kraft Hecho a Mano · 14.3 Empaque Artesanal Etsy
 
 ### 2. Justificación del agrupamiento
 Mismo perfil que el Lote 1 (sin ilustración real) pero cada uno introduce un elemento visual menor que el piloto no necesitó: un bloque reservado para el logo del comprador (no diseñado por THÖREN, un placeholder), o una textura de fondo sutil tipo papel kraft. Se agrupan separados del Lote 1 para aislar estas dos capacidades pequeñas sin retrasar la validación del Lote 1.
@@ -78,13 +101,13 @@ Un helper de "textura de fondo sutil" (kraft/papel) si se confirma que se repite
 Bajo. El único riesgo real es decidir bien el límite entre "placeholder de logo del comprador" (no es contenido de THÖREN, no debe ser un asset del template) vs. contenido propio del template — debe quedar claro en cada `Project` cuál es cuál (via `metadata.role`, ej. `"user-logo-placeholder"` vs. cualquier asset propio).
 
 ### 6. Tiempo estimado
-~0.5-1 día por template × 5 = **4-6 días**.
+~0.5-1 día por template × 6 = **3-6 días** (ajustado de 5 a 6 templates, ver nota de alcance).
 
 ### 7. Estrategia de validación
-Mismo patrón que el Lote 1, más una aserción explícita de que el placeholder de logo nunca se confunde con un asset real embebido (evita que export SVG/PNG intente resolver un asset inexistente).
+Mismo patrón que el Lote 1, más una aserción explícita de que el placeholder de logo nunca se confunde con un asset real embebido (evita que export SVG/PNG intente resolver un asset inexistente), y (para 7.2/13.3/14.1) una verificación de que la textura kraft compartida se referencia una sola vez, no se reproduce por template.
 
 ### 8. Criterios de aprobación para pasar al Lote 3
-Los 5 templates pasan validación completa; el criterio de "placeholder vs. asset real" queda documentado y es consistente entre los 5; cero regresiones.
+Los 6 templates pasan validación completa; el criterio de "placeholder vs. asset real" queda documentado y es consistente entre todos; cero regresiones.
 
 ---
 

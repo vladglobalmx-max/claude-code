@@ -21,6 +21,8 @@
 | DEC-011 | 2026-07-28 | Plan maestro (vigente desde el Lote 3) | Creación de `THOREN_VISUAL_ACCEPTANCE.md` como checklist de aprobación humana para capacidades visuales nuevas |
 | DEC-012 | 2026-07-28 | Lote 3 → Lote 8 (4.2) | Reasignación por ícono de check (iconografía Nivel 3, no anillo de texto) |
 | DEC-013 | 2026-07-28 | Lote 3 (3.1) | En anillos de texto cortos de sellos ~30mm, priorizar peso tipográfico sobre tamaño cuando el monograma debe conservar la jerarquía principal |
+| DEC-014 | 2026-07-28 | Lote 3 (3.1, 6.3) | Verificación visual obligatoria de cualquier `TextObject` con ancho estimado, antes de dar por terminado un template |
+| DEC-015 | 2026-07-28 | Cierre de Lotes 1-3 / Plan maestro | `arrangeRingText` validado como parte del estándar oficial de producción; producción pausada — checkpoint de Beta Comercial (DEC-006) antes del Lote 4 |
 
 ---
 
@@ -178,4 +180,28 @@
 - **¿Modifica infraestructura?**: No — `arrangeRingText` no cambió; solo los parámetros (`fontWeight`) con los que los templates la invocan.
 - **¿Modifica documentación?**: Sí — `THOREN_VISUAL_ACCEPTANCE.md` (registro de la ejecución del checklist sobre 3.1) y `THOREN_LOTE_03_REPORTE.md`.
 - **¿Aplica a futuros templates?**: Sí — cualquier sello de ~25-35mm con anillo de texto corto y un elemento central que deba conservar la jerarquía principal.
+
+## DEC-014 — Verificación visual obligatoria de `TextObject`s con ancho estimado
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Lote 3 — encontrado primero en 3.1 (fragmentos de `arrangeRingText`) y de forma independiente en 6.3 Sello "Hecho en Casa" (un `TextObject` plano, sin relación con `arrangeRingText`).
+- **Decisión tomada**: Antes de dar por terminado cualquier template que incluya un `TextObject` cuyo ancho (`size.width`) se haya estimado en vez de medido contra la fuente real, se genera una exportación PNG real en Chromium y se revisa visualmente que el contenido completo se vea, sin recorte por word-wrap invisible. Esta verificación es independiente de `THOREN_VISUAL_ACCEPTANCE.md` (que solo se activa por capacidad visual nueva) — aplica a **cualquier** template con esta característica, sea o no la primera vez que se usa el patrón.
+- **Justificación**: El mismo defecto (`Konva.Text` hace word-wrap dentro de su caja por defecto; si el ancho estimado es insuficiente, el contenido sobrante en la segunda línea queda invisible en el PNG/canvas, aunque el SVG y el `Project` sigan siendo correctos) apareció dos veces en el Lote 3 de forma independiente — una vez en `arrangeRingText` (3.1: "SALÓN"→"SALÓ"), una vez en un `TextObject` plano ya validado en lotes anteriores (6.3: "Hecho en casa"→"Hecho en"). Dos ocurrencias independientes confirman que no es un caso aislado de una capacidad nueva, sino un riesgo sistémico de cualquier caja de texto con ancho estimado — mismo criterio de "patrón confirmado tras dos ocurrencias" ya usado para DEC-005/DEC-010 (revisar el batch completo) y ahora para este.
+- **Alternativas consideradas**: (a) Confiar en que los tests unitarios (que solo verifican `size.width`/contenido del `Project`, no el render) ya cubren esto — rechazada, ambos defectos pasaron sus tests unitarios sin problema, ya que el `Project` era correcto; el defecto solo es visible en el render real. (b) Limitar la verificación solo a templates que activan `THOREN_VISUAL_ACCEPTANCE.md` — rechazada, el defecto de 6.3 ocurrió en un patrón ya aprobado (texto plano centrado), fuera del alcance de ese checklist.
+- **Impacto**: Se agrega un paso de verificación ligero (captura de PNG real) a cualquier template con `TextObject`s de ancho estimado, sin necesitar el checklist completo de 8 puntos de `THOREN_VISUAL_ACCEPTANCE.md` — más barato de ejecutar, aplicable a todos los lotes restantes.
+- **¿Modifica infraestructura?**: No.
+- **¿Modifica documentación?**: Sí — este documento; recomendado también anotarlo en `THOREN_PRODUCTION_INFRASTRUCTURE.md` cuando se actualice para el Lote 4.
+- **¿Aplica a futuros templates?**: Sí — cualquier template futuro con al menos un `TextObject` de ancho estimado (no medido), sin importar si introduce o no una capacidad visual nueva.
+
+## DEC-015 — Cierre de Lotes 1-3, validación de `arrangeRingText`, checkpoint de Beta Comercial
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Cierre de Etapa 2 (Lotes 1-3 del catálogo de contenido) / Plan Maestro.
+- **Decisión tomada**: (1) `arrangeRingText` queda validada como parte del estándar oficial de producción del catálogo — su implementación, validación técnica (`THOREN_VISUAL_ACCEPTANCE.md`) y revisión visual (comparación de variantes, DEC-013) demostraron que cumple el nivel de calidad requerido. (2) La producción de templates se pausa — no se inicia el Lote 4. (3) Se entra oficialmente al punto de control de Beta Comercial ya definido en `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (DEC-006): validar el catálogo actual (14 templates de los Lotes 1-3) con usuarios reales antes de invertir en la integración de ilustración (Lote 4).
+- **Justificación**: Con los Lotes 1-3 completos (15 templates incluido el piloto), el catálogo ya cubre 8 categorías comerciales distintas sin necesitar ninguna capacidad todavía no validada (ilustración, troqueles personalizados) — es la base más amplia posible para una validación de mercado real antes de comprometer las capacidades más costosas del plan.
+- **Alternativas consideradas**: (a) Continuar directo al Lote 4 sin pausa, confiando en el diseño ya aprobado — rechazada por el usuario; el plan maestro ya reservaba este punto de control explícitamente (DEC-006), y validar con usuarios reales antes de invertir en ilustración reduce el riesgo de construir capacidades caras sobre supuestos no confirmados. (b) Publicar una beta sin definir de antemano objetivos/métricas/criterios de reanudación — rechazada, generaría una validación no accionable (sin criterio claro de qué hacer con el resultado).
+- **Impacto**: Bloquea el inicio del Lote 4 hasta que la Beta Comercial se ejecute y sus resultados se evalúen contra los criterios que `THOREN_BETA_COMMERCIAL_PLAN.md` defina. No afecta la arquitectura ni la infraestructura ya aprobadas (regla ya establecida en el plan maestro: la beta puede reordenar prioridad de lotes, nunca alterar el estándar).
+- **¿Modifica infraestructura?**: No.
+- **¿Modifica documentación?**: Sí — crea `THOREN_BETA_COMMERCIAL_PLAN.md`.
+- **¿Aplica a futuros templates?**: No aplica (decisión de secuencia de proyecto, no de producción de templates).
 - **¿Aplica a futuros templates?**: Sí — tercera confirmación consecutiva (tras DEC-005 y DEC-010) de que la especificación completa del batch, no la entrada corta del catálogo ni el nombre del template ("Sello..."), determina en qué lote encaja.

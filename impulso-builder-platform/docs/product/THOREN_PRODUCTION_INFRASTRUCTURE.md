@@ -105,3 +105,9 @@ Este porcentaje se estima sobre el esfuerzo de ingeniería/código por template,
 ## Estado
 
 **Infraestructura de producción terminada, probada y lista para aprobación.** No se produce ningún template adicional del catálogo hasta recibir esa aprobación.
+
+---
+
+## Actualización — Lote 2 (`createDieLineObjects` con `fill`/`stroke`/`strokeWidth` opcionales)
+
+Con la infraestructura ya aprobada y en producción, el Lote 2 (`THOREN_CATALOG_PRODUCTION_PLAN_v1.md`, `THOREN_LOTE_02_REPORTE.md`) extendió `kit/dieLine.ts`: `createDieLineObjects` ahora acepta `fill`/`stroke`/`strokeWidth` opcionales (default preservado: `"#ffffff"`/`"#cccccc"`/0.5, sin romper ningún consumidor existente). Resuelve la "textura de papel kraft" que 3 templates del catálogo especifican, aproximándola como un color sólido de fondo en el propio die-line en vez de una imagen tileable real — decisión documentada en `THOREN_DECISION_LOG.md` DEC-009, que también explica por qué no se adelantó la integración real de `@impulso/asset-library` (reservada al Lote 4). Es la única extensión de `kit/` que produjo el Lote 2; el resto de sus 5 templates se construyó con la infraestructura ya existente.

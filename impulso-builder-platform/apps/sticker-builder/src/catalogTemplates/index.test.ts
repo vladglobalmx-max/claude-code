@@ -7,8 +7,8 @@ const NOW = "2026-07-19T00:00:00.000Z";
 const fakeThumbnail = async () => new Blob(["png"], { type: "image/png" });
 
 describe("CATALOG_TEMPLATES", () => {
-  it("incluye el piloto (Serum Facial Premium) y el Lote 1 completo (5 templates, cero ilustración)", () => {
-    expect(CATALOG_TEMPLATES).toHaveLength(6);
+  it("incluye el piloto, el Lote 1 completo y el Lote 2 completo (11 templates)", () => {
+    expect(CATALOG_TEMPLATES).toHaveLength(11);
     expect(CATALOG_TEMPLATES.map((t) => t.id)).toEqual([
       "catalog_serum-facial-premium",
       "catalog_lip-balm-natural",
@@ -16,6 +16,11 @@ describe("CATALOG_TEMPLATES", () => {
       "catalog_neutral-minimal-label",
       "catalog_closure-seal",
       "catalog_thank-you-preference",
+      "catalog_kraft-generic-label",
+      "catalog_corporate-simple-label",
+      "catalog_handmade-gift-seal",
+      "catalog_kraft-handmade-etsy",
+      "catalog_etsy-neutral-packaging",
     ]);
   });
 });

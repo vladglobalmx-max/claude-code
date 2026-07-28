@@ -11,7 +11,7 @@
 
 ## Punto de control: Beta Comercial tras los Lotes 1-3
 
-Decisión estratégica añadida a la aprobación de este plan: tras completar y aprobar los Lotes 1, 2 y 3 (16 templates: los 11 sin ilustración de los Lotes 1-2 más los 5 sellos con anillo de texto del Lote 3), la producción se **pausa** para ejecutar una Beta Comercial antes de continuar con el Lote 4. Objetivo: validar con usuarios reales — publicar los primeros templates, medir uso y fricción real, detectar qué familias generan más interés, y confirmar (o corregir) las decisiones de diseño ya tomadas, antes de invertir en las capacidades más costosas del plan (ilustración, troqueles personalizados). La Beta Comercial puede reordenar la **prioridad** de los Lotes 4-12 según lo que el mercado muestre (ej. producir primero la familia con mayor interés detectado) — no puede alterar la arquitectura ni la infraestructura ya aprobadas (regla 1-2 siguen vigentes sin excepción); es un ajuste de secuencia, no de estándar. El alcance detallado de la Beta Comercial (qué se publica, cómo se mide, qué constituye éxito) se define como su propio entregable al cerrar el Lote 3, no en este documento.
+Decisión estratégica añadida a la aprobación de este plan: tras completar y aprobar los Lotes 1, 2 y 3 (15 templates: los 10 sin ilustración de los Lotes 1-2 más los 5 sellos con anillo de texto del Lote 3 — ver nota de alcance del Lote 2 sobre la reasignación de 12.4 al Lote 10), la producción se **pausa** para ejecutar una Beta Comercial antes de continuar con el Lote 4. Objetivo: validar con usuarios reales — publicar los primeros templates, medir uso y fricción real, detectar qué familias generan más interés, y confirmar (o corregir) las decisiones de diseño ya tomadas, antes de invertir en las capacidades más costosas del plan (ilustración, troqueles personalizados). La Beta Comercial puede reordenar la **prioridad** de los Lotes 4-12 según lo que el mercado muestre (ej. producir primero la familia con mayor interés detectado) — no puede alterar la arquitectura ni la infraestructura ya aprobadas (regla 1-2 siguen vigentes sin excepción); es un ajuste de secuencia, no de estándar. El alcance detallado de la Beta Comercial (qué se publica, cómo se mide, qué constituye éxito) se define como su propio entregable al cerrar el Lote 3, no en este documento.
 
 ## Reporte de producción por lote (obligatorio, al cerrar cada uno de los 12 lotes)
 
@@ -33,7 +33,7 @@ Cada lote, al terminar, entrega un reporte breve con al menos:
 | # | Nombre | Templates | Capacidad nueva principal | Riesgo relativo |
 |---|---|---|---|---|
 | 1 | Cero ilustración — layout puro | 5 | Ninguna (validación horizontal del kit) | Muy bajo |
-| 2 | Cero ilustración — marco/textura/logo | 6 | Placeholder de logo, textura de fondo simple | Bajo |
+| 2 | Cero ilustración — marco/textura/logo | 5 | Placeholder de logo, fill de textura kraft en el die-line | Bajo |
 | 3 | Sellos con anillo de texto | 5 | `arrangeRingText` (texto perimetral) | Medio |
 | 4 | Primera integración de ilustración (línea fina) | 6 | Integración real con `@impulso/asset-library` | Medio-alto (primera vez) |
 | 5 | Ilustración línea fina — continuación | 5 | Ninguna nueva (reusa Lote 4) | Bajo (ya validado) |
@@ -41,7 +41,7 @@ Cada lote, al terminar, entrega un reporte breve con al menos:
 | 7 | Ilustración festiva — continuación | 4 | Ninguna nueva (reusa Lote 6) | Bajo |
 | 8 | Técnico Funcional / Normado / campos alineados a la izquierda | 7 | `leftAlignedFieldList`, franja diagonal, símbolos normados | Medio-alto (exactitud normativa) |
 | 9 | Troqueles personalizados geométricos | 4 | `PathObject` de troquel (rombo/estrella/corazón/óvalo) + spike de print-engine | Alto |
-| 10 | Troqueles personalizados irregulares/compuestos | 4 | Formas orgánicas + faja con pliegues + set multi-pieza | Alto |
+| 10 | Troqueles personalizados irregulares/compuestos | 5 | Formas orgánicas + faja con pliegues + set multi-pieza | Alto |
 | 11 | QR & Smart Labels + zonas reservadas | 5 | Zona de alto contraste reservada (sin generación real de QR) | Medio |
 | 12 | Ilustración compleja + patrón repetible + cierre | 6 | `tileMotif` (patrón repetible), ilustración de personaje | Medio-alto |
 
@@ -85,8 +85,10 @@ Los 5 templates pasan validación unitaria + e2e; cero regresiones en la suite e
 
 **Nota de alcance (post-ejecución del Lote 1):** incluye 13.3 Sello de Regalo Hecho a Mano, reasignado desde el Lote 1 — su especificación completa (`TEMPLATE_BATCH_09.md`, Template 43) exige una textura de papel kraft (misma textura ya especificada para 7.2 Etiqueta Kraft Genérica), encajando exactamente en el perfil de este lote.
 
+**Nota de alcance (pre-ejecución del Lote 2, DEC-010):** 12.4 Mesa de Dulces se reasigna, a su vez, del Lote 2 al Lote 10 — su especificación completa (`TEMPLATE_BATCH_08.md`, Template 39) exige una pestaña de plegado en la base (línea de doblez además de la línea de corte, y un troquel que ya no es un rectángulo estándar), exactamente el tipo de capacidad que el Lote 10 ya reservaba para 2.3 Jabón Artesanal en Barra. Ver `THOREN_DECISION_LOG.md` DEC-010.
+
 ### 1. Templates incluidos
-7.2 Etiqueta Kraft Genérica · 7.3 Etiqueta Corporativa Simple · 12.4 Mesa de Dulces · 13.3 Sello de Regalo Hecho a Mano · 14.1 Kraft Hecho a Mano · 14.3 Empaque Artesanal Etsy
+7.2 Etiqueta Kraft Genérica · 7.3 Etiqueta Corporativa Simple · 13.3 Sello de Regalo Hecho a Mano · 14.1 Kraft Hecho a Mano · 14.3 Empaque Artesanal Etsy
 
 ### 2. Justificación del agrupamiento
 Mismo perfil que el Lote 1 (sin ilustración real) pero cada uno introduce un elemento visual menor que el piloto no necesitó: un bloque reservado para el logo del comprador (no diseñado por THÖREN, un placeholder), o una textura de fondo sutil tipo papel kraft. Se agrupan separados del Lote 1 para aislar estas dos capacidades pequeñas sin retrasar la validación del Lote 1.
@@ -95,19 +97,19 @@ Mismo perfil que el Lote 1 (sin ilustración real) pero cada uno introduce un el
 Todo lo del Lote 1, más `createRectangle` como placeholder de logo (ya existe, sin cambios).
 
 ### 4. Componentes nuevos que puedan surgir
-Un helper de "textura de fondo sutil" (kraft/papel) si se confirma que se repite lo suficiente como para justificarlo en `kit/` — de lo contrario, se resuelve como una imagen de fondo vía `@impulso/asset-library` sin nuevo código de kit, adelantando ligeramente la integración de assets que formalmente empieza en el Lote 4.
+La textura kraft se resuelve extendiendo `createDieLineObjects` con un `fill`/`stroke` opcionales (default preservado, sin romper ningún consumidor existente) — el die-line circular de un sticker plano ES su superficie visible, así que tintar su relleno de crema kraft resuelve la "textura" sin necesitar todavía una imagen tileable real ni tocar `@impulso/asset-library` (esa integración real sigue reservada al Lote 4, con su propia validación dedicada). Ver `THOREN_DECISION_LOG.md` DEC-009.
 
 ### 5. Riesgos técnicos
 Bajo. El único riesgo real es decidir bien el límite entre "placeholder de logo del comprador" (no es contenido de THÖREN, no debe ser un asset del template) vs. contenido propio del template — debe quedar claro en cada `Project` cuál es cuál (via `metadata.role`, ej. `"user-logo-placeholder"` vs. cualquier asset propio).
 
 ### 6. Tiempo estimado
-~0.5-1 día por template × 6 = **3-6 días** (ajustado de 5 a 6 templates, ver nota de alcance).
+~0.5-1 día por template × 5 = **2.5-5 días** (ajustado de 6 a 5 templates tras la reasignación de 12.4).
 
 ### 7. Estrategia de validación
-Mismo patrón que el Lote 1, más una aserción explícita de que el placeholder de logo nunca se confunde con un asset real embebido (evita que export SVG/PNG intente resolver un asset inexistente), y (para 7.2/13.3/14.1) una verificación de que la textura kraft compartida se referencia una sola vez, no se reproduce por template.
+Mismo patrón que el Lote 1, más una aserción explícita de que el placeholder de logo nunca se confunde con un asset real embebido (evita que export SVG/PNG intente resolver un asset inexistente), y (para 7.2/13.3/14.1) una verificación de que el fill kraft del die-line es el mismo tono exacto en los 3 templates.
 
 ### 8. Criterios de aprobación para pasar al Lote 3
-Los 6 templates pasan validación completa; el criterio de "placeholder vs. asset real" queda documentado y es consistente entre todos; cero regresiones.
+Los 5 templates pasan validación completa; el criterio de "placeholder vs. asset real" queda documentado y es consistente entre todos; cero regresiones.
 
 ---
 
@@ -309,11 +311,13 @@ El spike de `print-engine` con `PathObject` pasa con una exportación real corre
 
 ## Lote 10 — Troqueles personalizados irregulares/compuestos
 
+**Nota de alcance (pre-ejecución del Lote 2, DEC-010):** incluye 12.4 Mesa de Dulces, reasignado desde el Lote 2 — su pestaña de plegado en la base es exactamente la misma clase de problema (línea de doblez + troquel no estándar) ya reservada aquí para 2.3 Jabón Artesanal en Barra, y le da a la convención de "línea de plegado" un segundo caso real contra el cual validarse antes de generalizarla.
+
 ### 1. Templates incluidos
-2.3 Jabón Artesanal en Barra (faja con muescas de plegado) · 13.1 Decoración de Scrapbook (formas libres, posible set multi-pieza) · 13.2 Sticker Decorativo para Manualidades (borde festoneado) · 17.3 Día de Muertos (calavera o flor de cempasúchil)
+2.3 Jabón Artesanal en Barra (faja con muescas de plegado) · 12.4 Mesa de Dulces (pestaña de plegado en la base) · 13.1 Decoración de Scrapbook (formas libres, posible set multi-pieza) · 13.2 Sticker Decorativo para Manualidades (borde festoneado) · 17.3 Día de Muertos (calavera o flor de cempasúchil)
 
 ### 2. Justificación del agrupamiento
-Construyen sobre la verificación de `print-engine` ya hecha en el Lote 9, pero añaden complejidad adicional que el Lote 9 deliberadamente no cubrió: formas orgánicas (calavera, flor), un borde festoneado (una variante repetitiva de curvas sobre un círculo, no una forma simple), y dos casos estructuralmente distintos de "más de una pieza por template" — la faja de jabón requiere líneas de plegado además de la línea de corte, y el set de scrapbook puede representar varias piezas pequeñas en un mismo `Project` en vez de una sola. Se agrupan al final de los troqueles personalizados porque cada uno es, en algún sentido, un caso especial adicional sobre lo ya resuelto en el Lote 9.
+Construyen sobre la verificación de `print-engine` ya hecha en el Lote 9, pero añaden complejidad adicional que el Lote 9 deliberadamente no cubrió: formas orgánicas (calavera, flor), un borde festoneado (una variante repetitiva de curvas sobre un círculo, no una forma simple), y casos estructuralmente distintos de "más de una pieza/pliegue por template" — la faja de jabón y la tarjeta de mesa de dulces requieren líneas de plegado además de la línea de corte (dos casos reales para validar la misma convención), y el set de scrapbook puede representar varias piezas pequeñas en un mismo `Project` en vez de una sola. Se agrupan al final de los troqueles personalizados porque cada uno es, en algún sentido, un caso especial adicional sobre lo ya resuelto en el Lote 9.
 
 ### 3. Componentes reutilizados
 Los generadores de `PathObject` y el criterio de verificación de `print-engine` del Lote 9; el pipeline de ilustración de los Lotes 4-7 para el motivo de calavera/cempasúchil.

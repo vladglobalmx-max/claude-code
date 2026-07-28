@@ -24,4 +24,24 @@ describe("createDieLineObjects", () => {
     const objects = createDieLineObjects({ ids: ids(), now: NOW, shape, widthMm: 50, heightMm: 50 });
     expect(objects).toEqual([]);
   });
+
+  it("respeta fill/stroke/strokeWidth por defecto cuando no se pasan (compatibilidad hacia atrás)", () => {
+    const objects = createDieLineObjects({ ids: ids(), now: NOW, shape: "circle", widthMm: 40, heightMm: 40 });
+    const dieLine = objects[0];
+    if (dieLine?.type === "ellipse") {
+      expect(dieLine.style.fill).toBe("#ffffff");
+      expect(dieLine.style.stroke).toBe("#cccccc");
+      expect(dieLine.style.strokeWidth).toBe(0.5);
+    }
+  });
+
+  it("acepta fill/stroke/strokeWidth explícitos (DEC-009 — aproximación de textura kraft como color sólido)", () => {
+    const objects = createDieLineObjects({ ids: ids(), now: NOW, shape: "circle", widthMm: 45, heightMm: 45, fill: "#F5EFE3", stroke: "#8B6F47", strokeWidth: 0.4 });
+    const dieLine = objects[0];
+    if (dieLine?.type === "ellipse") {
+      expect(dieLine.style.fill).toBe("#F5EFE3");
+      expect(dieLine.style.stroke).toBe("#8B6F47");
+      expect(dieLine.style.strokeWidth).toBe(0.4);
+    }
+  });
 });

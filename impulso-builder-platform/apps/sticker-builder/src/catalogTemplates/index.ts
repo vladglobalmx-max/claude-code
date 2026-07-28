@@ -6,6 +6,11 @@ import { createSpaWellnessProject } from "./spaWellness.js";
 import { createNeutralMinimalLabelProject } from "./neutralMinimalLabel.js";
 import { createClosureSealProject } from "./closureSeal.js";
 import { createThankYouPreferenceProject } from "./thankYouPreference.js";
+import { createKraftGenericLabelProject } from "./kraftGenericLabel.js";
+import { createCorporateSimpleLabelProject } from "./corporateSimpleLabel.js";
+import { createHandmadeGiftSealProject } from "./handmadeGiftSeal.js";
+import { createKraftHandmadeEtsyProject } from "./kraftHandmadeEtsy.js";
+import { createEtsyNeutralPackagingProject } from "./etsyNeutralPackaging.js";
 import { buildCatalogTemplateDescriptor } from "./kit/descriptorFactory.js";
 import type { CatalogTemplateSeed } from "./kit/types.js";
 
@@ -17,11 +22,11 @@ export type { CatalogTemplateSeed };
 /**
  * Metadata real tomada de `TEMPLATE_CATALOG_v1.md` y de cada
  * `TEMPLATE_BATCH_XX.md` correspondiente — nunca inventada. El Serum
- * Facial Premium es el Template Piloto Oficial (Etapa 2); los 5 restantes
- * son el Lote 1 del `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (todos "cero
- * ilustración, layout puro" — construidos enteramente sobre
- * `catalogTemplates/kit/` sin ningún componente nuevo, ver el reporte de
- * producción del Lote 1).
+ * Facial Premium es el Template Piloto Oficial (Etapa 2); los siguientes 5
+ * son el Lote 1 (cero ilustración, layout puro); los 5 finales son el
+ * Lote 2 (cero ilustración, con marco/textura kraft/placeholder de logo —
+ * ver `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` y el reporte de producción de
+ * cada lote).
  */
 export const CATALOG_TEMPLATES: readonly CatalogTemplateSeed[] = [
   {
@@ -101,6 +106,71 @@ export const CATALOG_TEMPLATES: readonly CatalogTemplateSeed[] = [
     useCase: "Sello en factura, bolsa o material de atención al cliente",
     suggestedColors: ["#2B2224", "#F7F5EF", "#B76E79"],
     buildProject: createThankYouPreferenceProject,
+  },
+  {
+    id: "catalog_kraft-generic-label",
+    name: "Etiqueta Kraft Genérica",
+    description: "Versión cálida/artesanal de la etiqueta neutral, sobre fondo tipo papel kraft.",
+    tags: ["kraft", "generic", "artisan", "product-label"],
+    category: "Product Labels",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Makers y pequeños productores en general",
+    useCase: "Producto artesanal sin categoría específica en el catálogo",
+    suggestedColors: ["#8B6F47", "#F5EFE3", "#2B2216"],
+    buildProject: createKraftGenericLabelProject,
+  },
+  {
+    id: "catalog_corporate-simple-label",
+    name: "Etiqueta Corporativa Simple",
+    description: "Versión formal/corporativa de la etiqueta neutral, con espacio para logo y datos de contacto.",
+    tags: ["corporate", "generic", "business", "product-label"],
+    category: "Product Labels",
+    shape: "square",
+    difficulty: "Básico",
+    targetAudience: "Pequeñas empresas B2B",
+    useCase: "Producto de marca corporativa sin plantilla de industria específica",
+    suggestedColors: ["#1F2933", "#FFFFFF", "#4B6673"],
+    buildProject: createCorporateSimpleLabelProject,
+  },
+  {
+    id: "catalog_handmade-gift-seal",
+    name: "Sello de Regalo Hecho a Mano",
+    description: "Sello simple para identificar un regalo hecho a mano.",
+    tags: ["gift", "handmade", "craft", "seal"],
+    category: "Crafts",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Cualquier persona que regale algo hecho a mano",
+    useCase: "Etiqueta en regalo artesanal para un familiar/amigo",
+    suggestedColors: ["#8B6F47", "#F5EFE3", "#C0392B"],
+    buildProject: createHandmadeGiftSealProject,
+  },
+  {
+    id: "catalog_kraft-handmade-etsy",
+    name: "Kraft Hecho a Mano",
+    description: "Estética kraft/orgánica consistente, pensada para vendedores de artículos hechos a mano en marketplaces.",
+    tags: ["etsy", "handmade", "kraft", "seller"],
+    category: "Etsy Sellers",
+    shape: "circle",
+    difficulty: "Básico",
+    targetAudience: "Vendedores de Etsy de productos hechos a mano",
+    useCase: "Etiqueta de empaque para pedidos de Etsy u otro marketplace de artesanías",
+    suggestedColors: ["#8B6F47", "#F5EFE3", "#2B2216"],
+    buildProject: createKraftHandmadeEtsyProject,
+  },
+  {
+    id: "catalog_etsy-neutral-packaging",
+    name: "Empaque Artesanal Etsy",
+    description: "Sticker de empaque genérico con espacio para logo de tienda de marketplace.",
+    tags: ["etsy", "packaging", "shop", "seller"],
+    category: "Etsy Sellers",
+    shape: "square",
+    difficulty: "Básico",
+    targetAudience: "Vendedores de Etsy en general, sin importar la categoría de producto",
+    useCase: "Cierre de empaque de cualquier pedido de marketplace de artesanías",
+    suggestedColors: ["#9C4E27", "#F7F5EF", "#23282B"],
+    buildProject: createEtsyNeutralPackagingProject,
   },
 ];
 

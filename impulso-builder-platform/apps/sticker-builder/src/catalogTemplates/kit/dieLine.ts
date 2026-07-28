@@ -11,6 +11,15 @@ export interface CreateDieLineObjectsOptions {
   shape: DieLineShape;
   widthMm: number;
   heightMm: number;
+  /** Color de relleno del die-line — default `"#ffffff"` (sticker en
+   * blanco/transparente). El die-line circular de un sticker plano ES su
+   * superficie visible, así que tintarlo es la forma más simple de
+   * aproximar una "textura de fondo" de color sólido (ej. crema kraft)
+   * sin necesitar todavía una imagen tileable real vía
+   * `@impulso/asset-library` — ver `THOREN_DECISION_LOG.md` DEC-009. */
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
 }
 
 /**
@@ -40,9 +49,9 @@ export function createDieLineObjects(options: CreateDieLineObjectsOptions): Scen
       y: 0,
       width: toPixels(options.widthMm, "mm"),
       height: toPixels(options.heightMm, "mm"),
-      fill: "#ffffff",
-      stroke: "#cccccc",
-      strokeWidth: 0.5,
+      fill: options.fill ?? "#ffffff",
+      stroke: options.stroke ?? "#cccccc",
+      strokeWidth: options.strokeWidth ?? 0.5,
       role: "die-line",
       name: "Línea de corte",
     }),

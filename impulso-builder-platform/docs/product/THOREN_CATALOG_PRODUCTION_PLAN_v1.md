@@ -11,7 +11,7 @@
 
 ## Punto de control: Beta Comercial tras los Lotes 1-3
 
-Decisión estratégica añadida a la aprobación de este plan: tras completar y aprobar los Lotes 1, 2 y 3 (15 templates: los 10 sin ilustración de los Lotes 1-2 más los 5 sellos con anillo de texto del Lote 3 — ver nota de alcance del Lote 2 sobre la reasignación de 12.4 al Lote 10), la producción se **pausa** para ejecutar una Beta Comercial antes de continuar con el Lote 4. Objetivo: validar con usuarios reales — publicar los primeros templates, medir uso y fricción real, detectar qué familias generan más interés, y confirmar (o corregir) las decisiones de diseño ya tomadas, antes de invertir en las capacidades más costosas del plan (ilustración, troqueles personalizados). La Beta Comercial puede reordenar la **prioridad** de los Lotes 4-12 según lo que el mercado muestre (ej. producir primero la familia con mayor interés detectado) — no puede alterar la arquitectura ni la infraestructura ya aprobadas (regla 1-2 siguen vigentes sin excepción); es un ajuste de secuencia, no de estándar. El alcance detallado de la Beta Comercial (qué se publica, cómo se mide, qué constituye éxito) se define como su propio entregable al cerrar el Lote 3, no en este documento.
+Decisión estratégica añadida a la aprobación de este plan: tras completar y aprobar los Lotes 1, 2 y 3 (14 templates: los 10 sin ilustración de los Lotes 1-2 más los 4 sellos del Lote 3 — ver notas de alcance del Lote 2 sobre la reasignación de 12.4 al Lote 10, y del Lote 3 sobre la reasignación de 4.2 al Lote 8), la producción se **pausa** para ejecutar una Beta Comercial antes de continuar con el Lote 4. Objetivo: validar con usuarios reales — publicar los primeros templates, medir uso y fricción real, detectar qué familias generan más interés, y confirmar (o corregir) las decisiones de diseño ya tomadas, antes de invertir en las capacidades más costosas del plan (ilustración, troqueles personalizados). La Beta Comercial puede reordenar la **prioridad** de los Lotes 4-12 según lo que el mercado muestre (ej. producir primero la familia con mayor interés detectado) — no puede alterar la arquitectura ni la infraestructura ya aprobadas (regla 1-2 siguen vigentes sin excepción); es un ajuste de secuencia, no de estándar. El alcance detallado de la Beta Comercial (qué se publica, cómo se mide, qué constituye éxito) se define como su propio entregable al cerrar el Lote 3, no en este documento.
 
 ## Reporte de producción por lote (obligatorio, al cerrar cada uno de los 12 lotes)
 
@@ -34,12 +34,12 @@ Cada lote, al terminar, entrega un reporte breve con al menos:
 |---|---|---|---|---|
 | 1 | Cero ilustración — layout puro | 5 | Ninguna (validación horizontal del kit) | Muy bajo |
 | 2 | Cero ilustración — marco/textura/logo | 5 | Placeholder de logo, fill de textura kraft en el die-line | Bajo |
-| 3 | Sellos con anillo de texto | 5 | `arrangeRingText` (texto perimetral) | Medio |
+| 3 | Sellos con anillo de texto | 4 | `arrangeRingText` (texto perimetral) | Medio |
 | 4 | Primera integración de ilustración (línea fina) | 6 | Integración real con `@impulso/asset-library` | Medio-alto (primera vez) |
 | 5 | Ilustración línea fina — continuación | 5 | Ninguna nueva (reusa Lote 4) | Bajo (ya validado) |
 | 6 | Ilustración color plano/alto contraste + variantes | 5 | Marco ornamentado, tipografía monoespaciada de dato | Medio |
 | 7 | Ilustración festiva — continuación | 4 | Ninguna nueva (reusa Lote 6) | Bajo |
-| 8 | Técnico Funcional / Normado / campos alineados a la izquierda | 7 | `leftAlignedFieldList`, franja diagonal, símbolos normados | Medio-alto (exactitud normativa) |
+| 8 | Técnico Funcional / Normado / campos alineados a la izquierda | 8 | `leftAlignedFieldList`, franja diagonal, símbolos normados, ícono de check | Medio-alto (exactitud normativa) |
 | 9 | Troqueles personalizados geométricos | 4 | `PathObject` de troquel (rombo/estrella/corazón/óvalo) + spike de print-engine | Alto |
 | 10 | Troqueles personalizados irregulares/compuestos | 5 | Formas orgánicas + faja con pliegues + set multi-pieza | Alto |
 | 11 | QR & Smart Labels + zonas reservadas | 5 | Zona de alto contraste reservada (sin generación real de QR) | Medio |
@@ -115,11 +115,15 @@ Los 5 templates pasan validación completa; el criterio de "placeholder vs. asse
 
 ## Lote 3 — Sellos con anillo de texto
 
+**Nota de alcance (pre-ejecución del Lote 3, DEC-012):** 4.2 Sello de Calidad Industrial se reasigna al Lote 8 — su especificación completa exige un ícono de check (`assets necesarios: 1 ícono SVG de check`), Nivel 3 de iconografía según `THOREN_DESIGN_LANGUAGE_GUIDE.md` §4.1, no una capacidad de texto perimetral; encaja mejor junto a los símbolos normados/técnicos que el Lote 8 ya agrupa. Ver `THOREN_DECISION_LOG.md` DEC-012.
+
+**Corrección de caracterización (mismo análisis previo a codear):** al leer las especificaciones completas, solo 3.1 y 10.1 usan realmente un anillo de texto perimetral de 360°. 6.3 Sello "Hecho en Casa" y 12.1 Sello de Sobre de Invitación resultan ser sellos de un solo elemento central (texto + textura de fondo, o monograma solo) sin ninguna zona perimetral — se mantienen en este lote porque no introducen ningún riesgo nuevo (reutilizan capacidades ya aprobadas en los Lotes 1-2, incluida la aproximación de textura vía `fill` del die-line, DEC-009), no porque usen la capacidad nueva del lote.
+
 ### 1. Templates incluidos
-3.1 Sello de Cita — Salón de Belleza · 4.2 Sello de Calidad Industrial · 6.3 Sello "Hecho en Casa" · 10.1 Sello Corporativo · 12.1 Sello de Sobre de Invitación
+3.1 Sello de Cita — Salón de Belleza (anillo 360°) · 6.3 Sello "Hecho en Casa" (sin anillo — texto + textura) · 10.1 Sello Corporativo (anillo 360°) · 12.1 Sello de Sobre de Invitación (sin anillo — monograma solo)
 
 ### 2. Justificación del agrupamiento
-Los 5 comparten un patrón de composición que el piloto nunca necesitó: un anillo de texto alrededor del perímetro del troquel circular (ej. "anillo de texto con nombre de empresa", "iniciales entrelazadas o monograma... anillo de texto perimetral"). Es la primera capacidad genuinamente nueva del catálogo — se agrupa en un lote pequeño para poder construirla, probarla y aprobarla una sola vez antes de reutilizarla.
+3.1 y 10.1 comparten un patrón de composición que el piloto nunca necesitó: un anillo de texto alrededor del perímetro del troquel circular (ej. "anillo de texto con nombre de empresa", "iniciales entrelazadas o monograma... anillo de texto perimetral"). Es la primera capacidad genuinamente nueva del catálogo — se agrupa en un lote pequeño para poder construirla, probarla y aprobarla una sola vez antes de reutilizarla. 6.3 y 12.1 se agrupan aquí por conveniencia de calendario (mismo perfil "sello circular, cero riesgo nuevo"), no porque necesiten la capacidad nueva.
 
 ### 3. Componentes reutilizados
 `createCatalogProject`, `createDieLineObjects` (circle), `createTextObject`, `buildCatalogTemplateDescriptor`, `validateCatalogProject`.
@@ -131,13 +135,13 @@ Los 5 comparten un patrón de composición que el piloto nunca necesitó: un ani
 Medio: el riesgo no es de implementación (la geometría de posicionar N objetos en un círculo es trigonometría simple) sino de **calidad visual de la aproximación** — un "anillo de texto" hecho con fragmentos rectos rotados puede leerse bien o puede leerse incorrecto según el ángulo/espaciado elegido; requiere una revisión visual manual del primer template producido antes de aplicar el patrón a los otros 4.
 
 ### 6. Tiempo estimado
-Construcción de `arrangeRingText` (~1-1.5 días) + revisión visual del primer template (~0.5 día) + ~1 día por template restante × 4 = **6.5-7.5 días**.
+Construcción de `arrangeRingText` (~1-1.5 días) + revisión visual del primer template (~0.5 día) + ~1 día por template restante × 3 = **5.5-6.5 días** (ajustado de 5 a 4 templates tras la reasignación de 4.2).
 
 ### 7. Estrategia de validación
-Test unitario de `arrangeRingText` (ángulos/posiciones correctos para N fragmentos dados); test por template; una comprobación visual manual explícita (captura de pantalla o export PNG revisado por una persona) del primer template antes de producir los 4 restantes con el mismo patrón.
+Test unitario de `arrangeRingText` (ángulos/posiciones correctos para N fragmentos dados); test por template; el `THOREN_VISUAL_ACCEPTANCE.md` completo (checklist de 8 puntos) ejecutado sobre 3.1 (el primer template con anillo real) antes de replicar el patrón a 10.1.
 
 ### 8. Criterios de aprobación para pasar al Lote 4
-`arrangeRingText` probado de forma aislada y aprobado visualmente en al menos un template real; los 5 templates completos pasan validación; cero regresiones.
+`arrangeRingText` probado de forma aislada y aprobado mediante `THOREN_VISUAL_ACCEPTANCE.md` en 3.1; los 4 templates completos pasan validación; cero regresiones.
 
 ---
 
@@ -255,11 +259,13 @@ Los 4 templates pasan validación completa; cero regresiones.
 
 ## Lote 8 — Técnico Funcional / Normado / campos alineados a la izquierda
 
+**Nota de alcance (pre-ejecución del Lote 3, DEC-012):** incluye 4.2 Sello de Calidad Industrial, reasignado desde el Lote 3 — necesita un ícono de check (Nivel 3 de iconografía) igual que los símbolos normados que este lote ya agrupa, y reutiliza el mismo pipeline de ilustración del Lote 4.
+
 ### 1. Templates incluidos
-4.1 Identificación de Equipo Industrial · 5.1 Advertencia General · 5.2 Manejo con Cuidado — Frágil Técnico · 9.3 Este Lado Arriba · 10.2 Tarjeta de Presentación Adhesiva · 16.1 Sello "Buen Trabajo" · 16.2 Etiqueta de Útiles Escolares
+4.1 Identificación de Equipo Industrial · 4.2 Sello de Calidad Industrial · 5.1 Advertencia General · 5.2 Manejo con Cuidado — Frágil Técnico · 9.3 Este Lado Arriba · 10.2 Tarjeta de Presentación Adhesiva · 16.1 Sello "Buen Trabajo" · 16.2 Etiqueta de Útiles Escolares
 
 ### 2. Justificación del agrupamiento
-Es el único lote de todo el plan donde aplica la excepción documentada en `THOREN_DESIGN_LANGUAGE_GUIDE.md` §5.2: alineación izquierda funcional en vez de la composición centrada usada en el resto del catálogo — tanto para listas de datos técnicos (Identificación de Equipo) como para el formato de tarjeta de presentación (10.2). Se agrupan junto con los símbolos de convención normada (Advertencia General, Frágil Técnico) porque ambos requieren el mismo nivel de rigor "sin interpretación creativa" que exige la familia Técnico Funcional, aunque su capacidad técnica nueva (alineación izquierda vs. símbolo normado) sea distinta.
+Es el único lote de todo el plan donde aplica la excepción documentada en `THOREN_DESIGN_LANGUAGE_GUIDE.md` §5.2: alineación izquierda funcional en vez de la composición centrada usada en el resto del catálogo — tanto para listas de datos técnicos (Identificación de Equipo) como para el formato de tarjeta de presentación (10.2). Se agrupan junto con los símbolos de convención normada (Advertencia General, Frágil Técnico) y con el ícono de certificación (Sello de Calidad Industrial) porque los tres requieren el mismo nivel de rigor "sin interpretación creativa" que exige la familia Técnico Funcional, aunque su capacidad técnica nueva (alineación izquierda vs. símbolo normado vs. ícono de check) sea distinta.
 
 ### 3. Componentes reutilizados
 `createCatalogProject`, `createDieLineObjects`, `createTextObject`, `createRectangle`, más el pipeline de ilustración del Lote 4 (para los íconos normados y el ícono pequeño de 16.2).
@@ -271,10 +277,10 @@ Es el único lote de todo el plan donde aplica la excepción documentada en `THO
 Medio-alto: el riesgo dominante no es de código sino de **exactitud normativa** — un símbolo de advertencia o de manejo frágil mal proporcionado no es solo un defecto estético, es un error de comunicación de seguridad. Requiere verificar cada símbolo contra una referencia de convención real (no inventar la proporción) y una revisión manual explícita antes de aprobar, distinta de la validación automática de estructura.
 
 ### 6. Tiempo estimado
-`leftAlignedFieldList` (~1.5 días) + franja diagonal (~0.5 día) + ~1.5-2 días por template (tiempo extra por la verificación de convención) × 7 = **~13-16 días**.
+`leftAlignedFieldList` (~1.5 días) + franja diagonal (~0.5 día) + ~1.5-2 días por template (tiempo extra por la verificación de convención) × 8 = **~14.5-18 días** (ajustado de 7 a 8 templates tras la reasignación de 4.2).
 
 ### 7. Estrategia de validación
-Test unitario de `leftAlignedFieldList` (orden, alineación); validación estructural estándar; **revisión manual documentada** (captura + comparación contra la referencia de convención) para 5.1 y 5.2 específicamente, antes de dar el lote por aprobado.
+Test unitario de `leftAlignedFieldList` (orden, alineación); validación estructural estándar; **`THOREN_VISUAL_ACCEPTANCE.md`** ejecutado para 4.2, 5.1 y 5.2 específicamente (símbolos/íconos con exigencia de exactitud), antes de dar el lote por aprobado.
 
 ### 8. Criterios de aprobación para pasar al Lote 9
 `leftAlignedFieldList` probado y documentado; los símbolos normados de 5.1/5.2 confirmados contra su referencia de convención real (sign-off explícito, no solo test automatizado); los 7 templates pasan validación completa.

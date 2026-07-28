@@ -19,6 +19,7 @@
 | DEC-009 | 2026-07-28 | Lote 2 (7.2, 13.3, 14.1) | Textura kraft aproximada como `fill` del die-line, no como imagen tileable real |
 | DEC-010 | 2026-07-28 | Lote 2 → Lote 10 (12.4) | Reasignación por pestaña de plegado (troquel no estándar) |
 | DEC-011 | 2026-07-28 | Plan maestro (vigente desde el Lote 3) | Creación de `THOREN_VISUAL_ACCEPTANCE.md` como checklist de aprobación humana para capacidades visuales nuevas |
+| DEC-012 | 2026-07-28 | Lote 3 → Lote 8 (4.2) | Reasignación por ícono de check (iconografía Nivel 3, no anillo de texto) |
 
 ---
 
@@ -153,3 +154,15 @@
 - **¿Modifica infraestructura?**: No.
 - **¿Modifica documentación?**: Sí — crea `THOREN_VISUAL_ACCEPTANCE.md`.
 - **¿Aplica a futuros templates?**: Sí — a cualquier lote futuro (4, 6, 9, 10, 12 y cualquier otro) que introduzca una capacidad visual genuinamente nueva.
+
+## DEC-012 — Reasignación de 4.2 Sello de Calidad Industrial del Lote 3 al Lote 8
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Lote 3 → Lote 8 — 4.2 Sello de Calidad Industrial (`TEMPLATE_BATCH_04.md`, Template 16)
+- **Decisión tomada**: Mover 4.2 del Lote 3 (sellos con anillo de texto) al Lote 8 (Técnico Funcional / Normado).
+- **Justificación**: Su especificación completa exige un ícono de check ("1 ícono SVG de check, trazo grueso sólido") — iconografía Nivel 3 ("gráfico de alto contraste") según `THOREN_DESIGN_LANGUAGE_GUIDE.md` §4.1, no la capacidad de texto perimetral (`arrangeRingText`) que define el Lote 3. Al leer los 5 batches completos del Lote 3 antes de codear (práctica ya obligatoria desde DEC-005/DEC-010), se confirmó además que solo 3.1 y 10.1 usan realmente un anillo de 360°; 6.3 y 12.1 son sellos de un solo elemento central sin ninguna zona perimetral, pero no requieren reasignación porque no introducen ningún riesgo nuevo (a diferencia de 4.2, que sí introduce una necesidad de icono real).
+- **Alternativas consideradas**: (a) Producir el ícono de check como parte del Lote 3, adelantando la primera integración de ilustración fuera de su lote asignado (Lote 4) — rechazada, mismo principio que DEC-009 y DEC-010; (b) omitir el ícono y dejar el sello solo con anillo de texto, contradiciendo el batch (que declara el check como "elemento más reconocible a distancia") — rechazada, viola el estándar sin excepciones.
+- **Impacto**: El Lote 8 ya agrupaba símbolos normados (Advertencia General, Frágil Técnico) que reutilizan el pipeline de ilustración del Lote 4 — el ícono de check de 4.2 encaja en el mismo patrón sin necesitar una capacidad nueva adicional en ese lote.
+- **¿Modifica infraestructura?**: No todavía — el pipeline de ilustración se construye en el Lote 4, no aquí.
+- **¿Modifica documentación?**: Sí — `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (Lotes 3 y 8).
+- **¿Aplica a futuros templates?**: Sí — tercera confirmación consecutiva (tras DEC-005 y DEC-010) de que la especificación completa del batch, no la entrada corta del catálogo ni el nombre del template ("Sello..."), determina en qué lote encaja.

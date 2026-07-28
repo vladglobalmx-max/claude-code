@@ -18,6 +18,7 @@
 | DEC-008 | 2026-07-28 | Plan maestro | Creación de este Decision Log como práctica permanente |
 | DEC-009 | 2026-07-28 | Lote 2 (7.2, 13.3, 14.1) | Textura kraft aproximada como `fill` del die-line, no como imagen tileable real |
 | DEC-010 | 2026-07-28 | Lote 2 → Lote 10 (12.4) | Reasignación por pestaña de plegado (troquel no estándar) |
+| DEC-011 | 2026-07-28 | Plan maestro (vigente desde el Lote 3) | Creación de `THOREN_VISUAL_ACCEPTANCE.md` como checklist de aprobación humana para capacidades visuales nuevas |
 
 ---
 
@@ -140,3 +141,15 @@
 - **¿Modifica infraestructura?**: No todavía — la convención de línea de plegado sigue pendiente de decidirse en el Lote 10.
 - **¿Modifica documentación?**: Sí — `THOREN_CATALOG_PRODUCTION_PLAN_v1.md` (Lotes 2 y 10).
 - **¿Aplica a futuros templates?**: Sí — refuerza el criterio de DEC-005: leer siempre la especificación completa del batch antes de confirmar el lote de un template.
+
+## DEC-011 — Creación de `THOREN_VISUAL_ACCEPTANCE.md` como checklist de aprobación humana
+
+- **Fecha**: 2026-07-28
+- **Template/Lote relacionado**: Plan Maestro de Producción (vigente a partir del Lote 3, con `arrangeRingText` como primera capacidad evaluada)
+- **Decisión tomada**: Mantener un checklist de 8 puntos (legibilidad, balance visual, espaciado, consistencia con Design Language, calidad PNG, calidad SVG, escalabilidad, fidelidad al batch) que se ejecuta —con revisión humana, no automatizable— cada vez que un lote introduce una capacidad visual genuinamente nueva.
+- **Justificación**: Después de dos lotes cuya validación fue enteramente automatizada (estructura, roles, paleta, tipografía), el Lote 3 introduce la primera capacidad con riesgo real de calidad puramente visual (`arrangeRingText`, una aproximación de texto curvo con fragmentos rectos rotados, ver DEC-004) — ningún test automatizado puede confirmar que esa aproximación "se ve bien", solo que es estructuralmente válida.
+- **Alternativas consideradas**: (a) Confiar solo en la suite automatizada y la revisión ad hoc ya mencionada en el plan maestro (Lote 3, "revisión visual manual") sin un checklist formal — rechazada por el usuario, que quiere un criterio explícito y repetible, no una revisión informal distinta cada vez; (b) aplicar el checklist a todos los templates de todos los lotes, sin importar si repiten una capacidad ya validada — rechazada, sería trabajo redundante sin beneficio real una vez que una capacidad ya fue aprobada visualmente.
+- **Impacto**: Cada lote que introduce una capacidad visual nueva debe decidir explícitamente si la activa, y documentar el resultado en su propio reporte de producción — no es opcional una vez que la capacidad calza en la regla de activación.
+- **¿Modifica infraestructura?**: No.
+- **¿Modifica documentación?**: Sí — crea `THOREN_VISUAL_ACCEPTANCE.md`.
+- **¿Aplica a futuros templates?**: Sí — a cualquier lote futuro (4, 6, 9, 10, 12 y cualquier otro) que introduzca una capacidad visual genuinamente nueva.

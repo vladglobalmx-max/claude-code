@@ -75,6 +75,69 @@ export function testTemplateStoreContract(name: string, createStore: () => Templ
     expect(stickerOnly.map((d) => d.id)).toEqual(["tpl_sticker"]);
   });
 
+  it(`${name}: listDescriptors({category}) filtra por categoría de catálogo`, async () => {
+    const store = await createStore();
+    await store.save(buildTemplateDescriptor("tpl_cosmetics", { category: "Cosmetics" }), {
+      project: buildTemplateProject(),
+    });
+    await store.save(buildTemplateDescriptor("tpl_wedding", { category: "Wedding" }), {
+      project: buildTemplateProject(),
+    });
+
+    const cosmeticsOnly = await store.listDescriptors({ category: "Cosmetics" });
+    expect(cosmeticsOnly.map((d) => d.id)).toEqual(["tpl_cosmetics"]);
+  });
+
+  it(`${name}: listDescriptors({shape}) filtra por forma de troquel`, async () => {
+    const store = await createStore();
+    await store.save(buildTemplateDescriptor("tpl_circle", { shape: "circle" }), {
+      project: buildTemplateProject(),
+    });
+    await store.save(buildTemplateDescriptor("tpl_square", { shape: "square" }), {
+      project: buildTemplateProject(),
+    });
+
+    const circleOnly = await store.listDescriptors({ shape: "circle" });
+    expect(circleOnly.map((d) => d.id)).toEqual(["tpl_circle"]);
+  });
+
+  it(`${name}: listDescriptors({moduleId, category}) combina filtros (AND)`, async () => {
+    const store = await createStore();
+    await store.save(
+      buildTemplateDescriptor("tpl_match", { moduleId: "sticker-builder", category: "Cosmetics" }),
+      { project: buildTemplateProject() },
+    );
+    await store.save(
+      buildTemplateDescriptor("tpl_wrong_module", { moduleId: "planner-builder", category: "Cosmetics" }),
+      { project: buildTemplateProject({ moduleId: "planner-builder" }) },
+    );
+    await store.save(
+      buildTemplateDescriptor("tpl_wrong_category", { moduleId: "sticker-builder", category: "Wedding" }),
+      { project: buildTemplateProject() },
+    );
+
+    const matched = await store.listDescriptors({ moduleId: "sticker-builder", category: "Cosmetics" });
+    expect(matched.map((d) => d.id)).toEqual(["tpl_match"]);
+  });
+
+  it(`${name}: un descriptor guardado sin campos extendidos (registro legado) se lee sin error`, async () => {
+    const store = await createStore();
+    // Simula un TemplateDescriptor guardado ANTES de la extensión de
+    // metadata (los 3 built-in originales, cualquier plantilla de usuario
+    // ya guardada) — ningún campo nuevo presente en absoluto.
+    const legacyDescriptor = buildTemplateDescriptor("tpl_legacy");
+    await store.save(legacyDescriptor, { project: buildTemplateProject() });
+
+    const read = await store.getDescriptor("tpl_legacy");
+    expect(read).toEqual(legacyDescriptor);
+    expect(read?.category).toBeUndefined();
+
+    // Filtrar por un campo extendido sobre un registro legado no lanza —
+    // simplemente no lo incluye (undefined !== "Cosmetics").
+    const filtered = await store.listDescriptors({ category: "Cosmetics" });
+    expect(filtered.map((d) => d.id)).not.toContain("tpl_legacy");
+  });
+
   it(`${name}: delete() de un id existente lo remueve (descriptor y contenido)`, async () => {
     const store = await createStore();
     await store.save(buildTemplateDescriptor("tpl_1"), { project: buildTemplateProject() });

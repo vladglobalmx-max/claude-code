@@ -13,19 +13,33 @@ import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template
 import { createMemoryProjectStore, type ProjectStore } from "@impulso/project-library";
 import { mountApp, moveIndexBy, type AppElements } from "./app.js";
 import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
+import { CATALOG_TEMPLATES } from "./catalogTemplates/index.js";
 import { createProjectFromSize } from "./projectPresets.js";
 
-/** Pre-siembra el store con los 3 Templates incorporados ya "existentes"
- * (mismos ids que `BUILT_IN_STICKER_TEMPLATES`) — así `seedBuiltInTemplates`
- * (disparada al hacer click en "Nuevo") los salta a todos y nunca llama a
+/** Pre-siembra el store con los 3 Templates incorporados en blanco Y los
+ * templates del catálogo de contenido (ej. Serum Facial Premium, ver
+ * `catalogTemplates/index.ts`) ya "existentes" (mismos ids de catálogo) —
+ * así tanto `seedBuiltInTemplates` como `seedCatalogTemplates` (ambas
+ * disparadas al hacer click en "Nuevo") los saltan a todos y nunca llaman a
  * `generateThumbnail`/`exportProject`, que necesita rasterizar un PNG real
- * (`HTMLCanvasElement.toBlob`, no implementado por jsdom). Los tests de
- * `seedBuiltInTemplates` en sí viven en `builtInTemplates.test.ts`. */
+ * (`HTMLCanvasElement.toBlob`, no implementado por jsdom — si se omite
+ * pre-sembrar aunque sea uno, esa promesa de thumbnail nunca se resuelve
+ * en jsdom, no solo lanza, y el diálogo de "Nuevo proyecto" nunca llega a
+ * abrirse: ver `THOREN_PILOT_TEMPLATE_STANDARD.md` §7 para el detalle
+ * completo de este hallazgo). Los tests de `seedBuiltInTemplates`/
+ * `seedCatalogTemplates` en sí viven en `builtInTemplates.test.ts` y
+ * `catalogTemplates/index.test.ts`. */
 async function preSeedBuiltIns(store: TemplateStore, now: string): Promise<void> {
   for (const seed of BUILT_IN_STICKER_TEMPLATES) {
     await store.save(
       { id: seed.id, moduleId: "sticker-builder", name: seed.name, tags: [], builtIn: true, createdAt: now, updatedAt: now },
       { project: createProjectFromSize({ widthMm: seed.widthMm, heightMm: seed.heightMm, shape: seed.shape, now }) },
+    );
+  }
+  for (const seed of CATALOG_TEMPLATES) {
+    await store.save(
+      { id: seed.id, moduleId: "sticker-builder", name: seed.name, tags: seed.tags, builtIn: true, createdAt: now, updatedAt: now },
+      { project: seed.buildProject({ now, generateId: () => `${seed.id}-fixture` }) },
     );
   }
 }

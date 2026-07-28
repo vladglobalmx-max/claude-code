@@ -58,13 +58,16 @@ describe("seedBuiltInTemplates", () => {
 });
 
 describe("createLazyBuiltInTemplateSeeder", () => {
-  it("siembra los built-in la primera vez que se llama a ensureSeeded()", async () => {
+  it("siembra los built-in y los templates de catálogo la primera vez que se llama a ensureSeeded()", async () => {
     const store = createMemoryTemplateStore();
     const seeder = createLazyBuiltInTemplateSeeder(store, { now: () => NOW, generateThumbnail: fakeThumbnail });
 
     await seeder.ensureSeeded();
 
-    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(3);
+    // 3 tamaños en blanco + 1 template de catálogo (Serum Facial Premium,
+    // el piloto — ver catalogTemplates/index.ts).
+    expect(await store.listDescriptors({ moduleId: "sticker-builder" })).toHaveLength(4);
+    expect(await store.getDescriptor("catalog_serum-facial-premium")).toBeDefined();
   });
 
   it("no vuelve a sembrar en llamadas posteriores de la misma instancia", async () => {
@@ -75,10 +78,12 @@ describe("createLazyBuiltInTemplateSeeder", () => {
     await seeder.ensureSeeded();
     await seeder.ensureSeeded();
 
-    expect(generateThumbnail).toHaveBeenCalledTimes(3);
+    // 3 built-in + 1 catálogo = 4 llamadas, una sola vez (la segunda
+    // llamada a ensureSeeded() es un no-op).
+    expect(generateThumbnail).toHaveBeenCalledTimes(4);
   });
 
-  it("nunca lanza: un fallo de sembrado se registra y se traga", async () => {
+  it("nunca lanza: un fallo de sembrado se registra y se traga (para ambas fuentes de templates)", async () => {
     const store = createMemoryTemplateStore();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const seeder = createLazyBuiltInTemplateSeeder(store, {
@@ -89,7 +94,10 @@ describe("createLazyBuiltInTemplateSeeder", () => {
     });
 
     await expect(seeder.ensureSeeded()).resolves.toBeUndefined();
-    expect(consoleError).toHaveBeenCalledOnce();
+    // Un fallo en seedBuiltInTemplates y otro en seedCatalogTemplates —
+    // cada fuente de siembra se registra y se traga independientemente
+    // (ver createLazyBuiltInTemplateSeeder).
+    expect(consoleError).toHaveBeenCalledTimes(2);
     consoleError.mockRestore();
   });
 });

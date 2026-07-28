@@ -1,6 +1,7 @@
 import type { Project } from "@impulso/document-schema";
 import type { TemplateStore } from "@impulso/template-library";
 import { createProjectFromSize, type StickerShape } from "./projectPresets.js";
+import { seedCatalogTemplates } from "./catalogTemplates/index.js";
 
 export interface BuiltInTemplateSeed {
   /** Id fijo y estable del Template en el catálogo — se usa SOLO para
@@ -79,21 +80,25 @@ export async function seedBuiltInTemplates(store: TemplateStore, options: SeedBu
 }
 
 export interface LazyBuiltInTemplateSeeder {
-  /** Siembra los built-in a lo sumo una vez por instancia — nunca lanza:
-   * un fallo (cuota agotada, error de rasterización) se registra y se
-   * traga, para que quien llame pueda seguir con su flujo (abrir la
+  /** Siembra los built-in y los templates del catálogo de contenido (ver
+   * `catalogTemplates/index.ts`) a lo sumo una vez por instancia — nunca
+   * lanza: un fallo (cuota agotada, error de rasterización) se registra y
+   * se traga, para que quien llame pueda seguir con su flujo (abrir la
    * galería de Templates) sin importar si sembrar tuvo éxito. */
   ensureSeeded(): Promise<void>;
 }
 
 /**
- * Envuelve `seedBuiltInTemplates` en el patrón "perezoso, una sola vez,
- * nunca lanza" que tanto `workspace.ts` como `app.ts` necesitan antes de
- * abrir su propia galería de "Nuevo proyecto" — cada mount tiene su propia
- * instancia (su propio flag `seeded`), pero eso es inofensivo: el segundo
- * intento simplemente encuentra los 3 built-in ya sembrados en el store y
- * no hace nada (ver `seedBuiltInTemplates`, idempotente por `id` de
- * catálogo).
+ * Envuelve `seedBuiltInTemplates` + `seedCatalogTemplates` en el patrón
+ * "perezoso, una sola vez, nunca lanza" que tanto `workspace.ts` como
+ * `app.ts` necesitan antes de abrir su propia galería de "Nuevo proyecto"
+ * — cada mount tiene su propia instancia (su propio flag `seeded`), pero
+ * eso es inofensivo: el segundo intento simplemente encuentra los templates
+ * ya sembrados en el store y no hace nada (ambas funciones son idempotentes
+ * por `id` de catálogo). Ambos sembrados se ejecutan uno tras otro en la
+ * misma llamada — no hay ninguna razón para separarlos en dos wrappers
+ * distintos, y `app.ts`/`workspace.ts` no necesitan saber que hay dos
+ * fuentes de templates incorporados en vez de una.
  */
 export function createLazyBuiltInTemplateSeeder(
   store: TemplateStore,
@@ -108,6 +113,11 @@ export function createLazyBuiltInTemplateSeeder(
         await seedBuiltInTemplates(store, { now: options.now(), generateThumbnail: options.generateThumbnail });
       } catch (error) {
         console.error("No se pudieron sembrar los Templates incorporados:", error);
+      }
+      try {
+        await seedCatalogTemplates(store, { now: options.now(), generateThumbnail: options.generateThumbnail });
+      } catch (error) {
+        console.error("No se pudieron sembrar los Templates del catálogo:", error);
       }
     },
   };

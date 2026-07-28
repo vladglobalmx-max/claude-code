@@ -7,9 +7,11 @@ export function createMemoryTemplateStore(): TemplateStore {
 
   return {
     async listDescriptors(filter) {
-      const all = Array.from(descriptors.values());
-      if (!filter?.moduleId) return all;
-      return all.filter((descriptor) => descriptor.moduleId === filter.moduleId);
+      let all = Array.from(descriptors.values());
+      if (filter?.moduleId) all = all.filter((descriptor) => descriptor.moduleId === filter.moduleId);
+      if (filter?.category) all = all.filter((descriptor) => descriptor.category === filter.category);
+      if (filter?.shape) all = all.filter((descriptor) => descriptor.shape === filter.shape);
+      return all;
     },
     async getDescriptor(id) {
       return descriptors.get(id);

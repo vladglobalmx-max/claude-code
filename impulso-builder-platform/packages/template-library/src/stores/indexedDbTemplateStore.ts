@@ -41,9 +41,11 @@ export function createIndexedDbTemplateStore(options: IndexedDbTemplateStoreOpti
 
   return {
     async listDescriptors(filter) {
-      const all = await withStore<TemplateDescriptor[]>(DESCRIPTOR_STORE_NAME, "readonly", (store) => store.getAll());
-      if (!filter?.moduleId) return all;
-      return all.filter((descriptor) => descriptor.moduleId === filter.moduleId);
+      let all = await withStore<TemplateDescriptor[]>(DESCRIPTOR_STORE_NAME, "readonly", (store) => store.getAll());
+      if (filter?.moduleId) all = all.filter((descriptor) => descriptor.moduleId === filter.moduleId);
+      if (filter?.category) all = all.filter((descriptor) => descriptor.category === filter.category);
+      if (filter?.shape) all = all.filter((descriptor) => descriptor.shape === filter.shape);
+      return all;
     },
     async getDescriptor(id) {
       return withStore<TemplateDescriptor | undefined>(DESCRIPTOR_STORE_NAME, "readonly", (store) => store.get(id));

@@ -14,6 +14,7 @@ import { createMemoryTemplateStore, type TemplateStore } from "@impulso/template
 import { createMemoryAssetStore, type AssetBinaryStore } from "@impulso/asset-library";
 import { mountWorkspace } from "./workspace.js";
 import { BUILT_IN_STICKER_TEMPLATES } from "./builtInTemplates.js";
+import { CATALOG_TEMPLATES } from "./catalogTemplates/index.js";
 import { createProjectFromSize } from "./projectPresets.js";
 import { serializeProjectBackup } from "./projectBackup.js";
 
@@ -26,16 +27,25 @@ vi.mock("@impulso/export-engine", async () => {
   };
 });
 
-/** Pre-siembra el store con los 3 Templates incorporados ya "existentes" —
- * evita que `mountWorkspace`'s propio sembrado perezoso (ver ADR-0014)
- * dispare la rasterización real de un PNG (`HTMLCanvasElement.toBlob`, no
- * implementado por jsdom — cuelga la Promise para siempre, no la rechaza,
- * ver `builtInTemplates.test.ts`/ADR-0013). */
+/** Pre-siembra el store con los 3 Templates incorporados en blanco Y los
+ * templates del catálogo de contenido (ej. Serum Facial Premium — ver
+ * `catalogTemplates/index.ts`) ya "existentes" — evita que `mountWorkspace`'s
+ * propio sembrado perezoso (ver ADR-0014) dispare la rasterización real de
+ * un PNG (`HTMLCanvasElement.toBlob`, no implementado por jsdom — cuelga la
+ * Promise para siempre, no la rechaza, ver `builtInTemplates.test.ts`/
+ * ADR-0013). Omitir cualquiera de las dos fuentes de siembra aquí hace que
+ * la galería de "Nuevo proyecto" nunca termine de abrirse en el test. */
 async function preSeedBuiltIns(store: TemplateStore, now: string): Promise<void> {
   for (const seed of BUILT_IN_STICKER_TEMPLATES) {
     await store.save(
       { id: seed.id, moduleId: "sticker-builder", name: seed.name, tags: [], builtIn: true, createdAt: now, updatedAt: now },
       { project: createProjectFromSize({ widthMm: seed.widthMm, heightMm: seed.heightMm, shape: seed.shape, now }) },
+    );
+  }
+  for (const seed of CATALOG_TEMPLATES) {
+    await store.save(
+      { id: seed.id, moduleId: "sticker-builder", name: seed.name, tags: seed.tags, builtIn: true, createdAt: now, updatedAt: now },
+      { project: seed.buildProject({ now, generateId: () => `${seed.id}-fixture` }) },
     );
   }
 }

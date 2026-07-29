@@ -2,7 +2,7 @@
 
 Mensajes listos para enviar, uno por cada una de las 5 categorías definidas en `THOREN_BETA_COMMERCIAL_PLAN.md` §3. Cada categoría tiene una versión de correo electrónico (más completa) y una versión breve para WhatsApp/mensaje directo. Todos comparten la misma estructura obligatoria: qué es THÖREN en términos simples, que es una beta privada, a quién buscamos, cuánto tiempo toma, qué se le pide hacer, y que el acceso es gratuito por invitación.
 
-**Cómo usar este documento**: copiar el bloque correspondiente a la categoría de cada participante, completar `[Nombre]` y `[enlace privado]` con los datos reales, y enviar por el canal indicado. Nada de esto se envía todavía — es material listo para cuando el usuario decida ejecutar el reclutamiento.
+**Cómo usar este documento**: copiar el bloque correspondiente a la categoría de cada participante, completar `[Nombre]`, `[enlace privado]` (el mismo enlace no listado para todos) y `[código]` (el código individual de un solo uso de esa persona, ej. `BETA-BEAUTY-01` — ver `THOREN_GUMROAD_BETA_CHECKLIST.md` §6, nunca el mismo código para dos participantes) con los datos reales, y enviar por el canal indicado. Nada de esto se envía todavía — es material listo para cuando el usuario decida ejecutar el reclutamiento.
 
 ---
 
@@ -18,8 +18,8 @@ Hola [Nombre],
 Te escribo porque estamos preparando el lanzamiento de THÖREN, un editor
 para diseñar y exportar etiquetas y sellos listos para imprenta —pensado
 para marcas de skincare, salones de belleza y spas que necesitan que sus
-productos y detalles se vean profesionales sin depender de un diseñador
-cada vez.
+productos y detalles se vean profesionales sin tener que comenzar un
+diseño desde cero cada vez.
 
 Antes de lanzarlo al público, queremos probarlo con un grupo pequeño y
 privado de personas reales que sí lo necesiten pronto. Por eso te
@@ -39,7 +39,7 @@ disponible al público todavía). Solo te pediríamos:
 Todo el proceso te toma entre 20 y 40 minutos.
 
 Tu acceso privado y gratuito: [enlace privado]
-(Usa el código [código] al momento de "comprar" — no se cobra nada.)
+(Usa el código [código] al momento de registrar u obtener tu acceso — no se cobra nada.)
 
 Cualquier duda, respóndeme directo a este correo.
 
@@ -75,7 +75,7 @@ Te escribo porque estamos preparando el lanzamiento de THÖREN, un editor
 para diseñar y exportar sellos y etiquetas listos para imprenta —
 pensado para pequeñas empresas y despachos que quieren que su
 correspondencia y material impreso se vea consistente con su marca,
-sin depender de un diseñador cada vez que necesitan algo.
+sin tener que comenzar un diseño desde cero cada vez.
 
 Antes de lanzarlo al público, queremos probarlo con un grupo pequeño y
 privado de personas reales que sí lo necesiten pronto. Por eso te
@@ -95,7 +95,7 @@ disponible al público todavía). Solo te pediríamos:
 Todo el proceso te toma entre 20 y 40 minutos.
 
 Tu acceso privado y gratuito: [enlace privado]
-(Usa el código [código] al momento de "comprar" — no se cobra nada.)
+(Usa el código [código] al momento de registrar u obtener tu acceso — no se cobra nada.)
 
 Cualquier duda, respóndeme directo a este correo.
 
@@ -132,7 +132,7 @@ Te escribo porque estamos preparando el lanzamiento de THÖREN, un editor
 para diseñar y exportar etiquetas y sellos de empaque listos para
 imprenta — pensado para vendedores de Etsy, productores locales y gente
 que hace las cosas a mano, que necesita que su empaque se vea cuidado
-sin pagar un diseñador cada vez.
+sin tener que comenzar un diseño desde cero cada vez.
 
 Antes de lanzarlo al público, queremos probarlo con un grupo pequeño y
 privado de personas reales que sí lo necesiten pronto. Por eso te
@@ -152,7 +152,7 @@ disponible al público todavía). Solo te pediríamos:
 Todo el proceso te toma entre 20 y 40 minutos.
 
 Tu acceso privado y gratuito: [enlace privado]
-(Usa el código [código] al momento de "comprar" — no se cobra nada.)
+(Usa el código [código] al momento de registrar u obtener tu acceso — no se cobra nada.)
 
 Cualquier duda, respóndeme directo a este correo.
 
@@ -208,7 +208,7 @@ disponible al público todavía). Solo te pediríamos:
 Todo el proceso te toma entre 20 y 40 minutos.
 
 Tu acceso privado y gratuito: [enlace privado]
-(Usa el código [código] al momento de "comprar" — no se cobra nada.)
+(Usa el código [código] al momento de registrar u obtener tu acceso — no se cobra nada.)
 
 Cualquier duda, respóndeme directo a este correo.
 
@@ -244,8 +244,8 @@ Hola [Nombre],
 Te escribo porque estamos preparando el lanzamiento de THÖREN, un editor
 para diseñar y exportar sellos listos para imprenta — pensado para
 parejas planeando su boda (o wedding planners) que quieren que el sello
-de sus invitaciones se vea elegante y personal, sin encargar un diseño
-carísimo.
+de sus invitaciones se vea elegante y personal, sin tener que comenzar
+un diseño desde cero cada vez.
 
 Antes de lanzarlo al público, queremos probarlo con un grupo pequeño y
 privado de personas reales que sí lo necesiten pronto. Por eso te
@@ -265,7 +265,7 @@ disponible al público todavía). Solo te pediríamos:
 Todo el proceso te toma entre 20 y 40 minutos.
 
 Tu acceso privado y gratuito: [enlace privado]
-(Usa el código [código] al momento de "comprar" — no se cobra nada.)
+(Usa el código [código] al momento de registrar u obtener tu acceso — no se cobra nada.)
 
 Cualquier duda, respóndeme directo a este correo.
 

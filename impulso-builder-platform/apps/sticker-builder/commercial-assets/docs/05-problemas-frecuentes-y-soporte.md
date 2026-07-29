@@ -5,6 +5,9 @@
 **No me abre el navegador / la ventana de terminal se cierra sola.**
 En Windows, esto casi siempre significa que no tienes Python instalado (el launcher lo necesita — ver `06-requisitos-y-limitaciones.md`). El launcher te muestra un mensaje explicándolo antes de cerrarse. Instala Python desde [python.org](https://www.python.org/downloads/) (marca la casilla "Add Python to PATH" durante la instalación) y vuelve a intentar.
 
+**El navegador se abre pero dice "ERR_CONNECTION_REFUSED" / "la página localhost ha rechazado la conexión".**
+En Windows, esto pasa cuando el sistema tiene instalado un acceso directo vacío llamado `python` (el "alias de ejecución de aplicaciones" de la Microsoft Store), que no es un Python real. El launcher detecta este caso y te avisa con un mensaje claro en vez de abrir un navegador que no puede conectarse. Instala Python real desde [python.org](https://www.python.org/downloads/) (marca "Add Python to PATH") y vuelve a intentar.
+
 **Doble clic en `index.html` no funciona / me sale una pantalla en blanco o errores en la consola.**
 Es esperado — no abras `index.html` directamente. Usa siempre el launcher (`ABRIR-THOREN-WINDOWS.bat` o `ABRIR-THOREN-MAC-LINUX.command`). Ver la explicación técnica en `01-como-empezar.md`.
 

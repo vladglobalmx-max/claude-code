@@ -44,11 +44,15 @@ function buildDieLine(id: string): SceneObject {
   } as SceneObject;
 }
 
-/** El perfil por defecto "Sticker Sheet" tiene `cutPath.mode: "die-cut"` —
- * sin un object marcado como die-line, Preflight SIEMPRE bloquea con
- * `cut_path_missing` (comportamiento real y esperado, no un caso especial
- * de test). `withDieLine: true` (default) incluye uno para poder ejercer
- * el camino feliz completo del flujo. */
+/** El perfil por defecto "Sticker Sheet" tiene `cutPath.mode: "die-cut"`.
+ * Si la página NO tiene ningún object `die-line`, `productionExportDialog`
+ * degrada automáticamente `cutPath.mode` a `"none"` al construir el
+ * `PrintJob` — templates cuadrados/rectangulares se arman deliberadamente
+ * sin ese object porque su troquel coincide con el borde de la página
+ * (`catalogTemplates/kit/dieLine.ts`), así que exigir uno ahí sería un
+ * falso positivo de Preflight, no un caso real de error. `withDieLine:
+ * true` (default) incluye uno para poder ejercer el camino feliz completo
+ * del flujo con `cutPath.mode` sin modificar. */
 function buildProject(withDieLine = true): Project {
   const objects = withDieLine ? [buildRect("obj_1"), buildDieLine("die_1")] : [buildRect("obj_1")];
   return {
@@ -343,7 +347,12 @@ describe("mountProductionExportDialog", () => {
   });
 
   it("el paso de Preflight bloquea 'Siguiente' mientras haya errores bloqueantes", async () => {
-    const project = buildProject(false); // sin die-line -> cut_path_missing bloquea
+    // 2 objects die-line -> ambiguo (`cut_path_multiple_candidates`) --
+    // a diferencia de "ningún die-line" (que ahora se resuelve solo,
+    // ver comentario de `buildProject`), esto SIEMPRE debe seguir
+    // bloqueando: Preflight no puede elegir automáticamente cuál usar.
+    const project = buildProject(true);
+    project.document.pages[0]!.layers[0]!.objects.push(buildDieLine("die_2"));
     const dialog = mount();
     dialog.open(project, "Mi Sticker");
     (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // config
@@ -354,6 +363,20 @@ describe("mountProductionExportDialog", () => {
 
     expect(container.querySelector(".production-export-issues-error")).not.toBeNull();
     expect((container.querySelector(".production-export-next") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("un template SIN die-line no bloquea Preflight con el perfil por defecto (regresión: falso positivo cut_path_missing en templates cuadrados/rectangulares)", async () => {
+    const project = buildProject(false); // sin die-line, ej. un template cuadrado/rectangular real del catálogo
+    const dialog = mount();
+    dialog.open(project, "Mi Sticker"); // pendingProfileId por defecto: "sticker-sheet" (cutPath.mode: "die-cut")
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // profile -> config
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // config -> preview
+    (container.querySelector(".production-export-next") as HTMLButtonElement).click(); // preview -> preflight
+    (container.querySelector(".production-export-body button") as HTMLButtonElement).click(); // correr preflight
+    await flush();
+
+    expect(container.querySelector(".production-export-issues-error")).toBeNull();
+    expect((container.querySelector(".production-export-next") as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("destroy() remueve el overlay del contenedor", () => {

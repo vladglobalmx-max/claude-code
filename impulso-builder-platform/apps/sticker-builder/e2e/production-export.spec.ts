@@ -78,13 +78,16 @@ test("al cambiar de paso, el foco se mueve al título (h2) del paso nuevo — an
   await expect(page.locator(".production-export-dialog h2")).toBeFocused();
 });
 
-test("Preflight bloquea 'Siguiente' con un proyecto en blanco (cut_path_missing) — el motivo se muestra en texto, no solo color", async ({ page }) => {
+test("Preflight bloquea 'Siguiente' con un separador de imposición inválido (imposition_invalid) — el motivo se muestra en texto, no solo color", async ({ page }) => {
   await openProductionExportDialog(page);
   await page.click(".production-export-next"); // -> config
+  const gapXInput = page.locator('label:has-text("gap X") input');
+  await gapXInput.fill("-1");
+  await gapXInput.press("Tab");
   await page.click(".production-export-next"); // -> preview
   await page.click(".production-export-next"); // -> preflight
   await page.click(".production-export-body button"); // "Correr Preflight"
-  await expect(page.locator(".production-export-issues-error")).toContainText("cut path");
+  await expect(page.locator(".production-export-issues-error")).toContainText("separador");
   await expect(page.locator(".production-export-next")).toBeDisabled();
 });
 
@@ -279,6 +282,9 @@ test("la región de progreso usa aria-live='polite' (nunca 'assertive', sección
 test("los errores de Preflight se distinguen por encabezado de texto, no solo por color (sección 36)", async ({ page }) => {
   await openProductionExportDialog(page);
   await page.click(".production-export-next"); // -> config
+  const gapXInput = page.locator('label:has-text("gap X") input');
+  await gapXInput.fill("-1");
+  await gapXInput.press("Tab");
   await page.click(".production-export-next"); // -> preview
   await page.click(".production-export-next"); // -> preflight
   await page.click(".production-export-body button"); // correr preflight

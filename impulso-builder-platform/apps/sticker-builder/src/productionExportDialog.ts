@@ -22,7 +22,15 @@
 import type { Project } from "@impulso/document-schema";
 import type { ExportAssetResolver } from "@impulso/export-engine";
 import { triggerBrowserDownload } from "@impulso/export-engine";
-import { PRINT_PROFILES, createPrintJob, type FontChecker, type ImageDimensionsProbe, type PreflightIssue, type PrintJob } from "@impulso/print-engine";
+import {
+  PRINT_PROFILES,
+  createPrintJob,
+  resolveDieLineSource,
+  type FontChecker,
+  type ImageDimensionsProbe,
+  type PreflightIssue,
+  type PrintJob,
+} from "@impulso/print-engine";
 import { mountProductionExportController, type ExportStep, type ProductionExportState } from "./productionExportController.js";
 import { mountProductionPreview, type ProductionPreview } from "./productionPreview.js";
 
@@ -598,12 +606,28 @@ export function mountProductionExportDialog(container: HTMLElement, options: Mou
       if (!currentProject) return;
       const page = currentProject.document.pages[0];
       if (!page) return;
+      // Templates cuadrados/rectangulares se construyen deliberadamente
+      // SIN object `die-line` (su troquel coincide con el borde de la
+      // página, ver `catalogTemplates/kit/dieLine.ts`) — si el perfil
+      // elegido pide cutPath ("sticker-sheet") y ninguna página tiene
+      // die-line, ese perfil bloquearía Preflight con un falso positivo
+      // (`cut_path_missing`) para cualquier template sin troquel
+      // personalizado, no solo para un caso mal armado. Se degrada el
+      // default a "none" solo cuando el die-line está total y
+      // genuinamente ausente — si hay candidatos ambiguos
+      // (`resolveDieLineSource` status "multiple"), Preflight debe seguir
+      // reportándolo, así que no se toca en ese caso.
+      const defaultCutPath = PRINT_PROFILES[pendingProfileId].cutPath;
+      const missingDieLine =
+        defaultCutPath.mode !== "none" &&
+        currentProject.document.pages.some((p) => resolveDieLineSource(p, defaultCutPath.source).status === "not-found");
       const printJob = createPrintJob({
         documentId: currentProject.document.id,
         pageIds: currentProject.document.pages.map((p) => p.id),
         dimensions: { width: page.size.width, height: page.size.height, unit: page.unit },
         profile: pendingProfileId,
         now,
+        overrides: missingDieLine ? { cutPath: { ...defaultCutPath, mode: "none" } } : undefined,
       });
       controller.open(currentProject, printJob);
       controller.setStep("config");

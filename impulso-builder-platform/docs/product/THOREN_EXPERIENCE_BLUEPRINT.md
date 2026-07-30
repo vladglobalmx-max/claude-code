@@ -1,8 +1,9 @@
 # THÖREN 2.0 — El Guion de la Experiencia
 
-**Fecha:** 2026-07-30
+**Fecha:** 2026-07-30 (revisión 2)
 **Naturaleza de este documento:** el guion de una película, no una especificación funcional. Ni un componente, ni un layout, ni una tecnología aparecen aquí. Esto describe lo que alguien *siente* y *vive*, segundo por segundo, desde que abre THÖREN hasta que tiene su primer diseño terminado en las manos.
-**Precondición:** este documento asume `THOREN_VISION_2.md` como verdad ya aprobada — la promesa ("Obtén un diseño profesional en menos de un minuto") y la filosofía ("THÖREN no es un lienzo. Es un resultado que ya llegó terminado.") son el guion de fondo contra el que se mide cada escena.
+**Precondición:** este documento asume `THOREN_VISION_2.md` (la promesa: *"Obtén un diseño profesional en menos de un minuto"*) y `THOREN_PRODUCT_PHILOSOPHY.md` (la restricción permanente: *"la experiencia de trabajar con el mejor diseñador del mundo, condensada en un minuto"*, simplicidad y suposición inteligente por defecto) como verdad ya aprobada.
+**Nota de revisión:** esta es una segunda pasada completa, no un parche. Cada escena de la versión anterior fue sometida a la misma pregunta: *"¿esto se comporta como un diseñador experto o como un software?"* Tres escenas fallaban esa prueba y fueron rediseñadas de raíz, no solo ajustadas: (1) intención e identidad ya no son dos preguntas separadas, son una sola conversación; (2) el color ya nunca se pregunta antes de mostrar algo, se propone y después se ajusta; (3) la pregunta de destino de impresión ya no vive antes de la revelación — se difiere a después del éxito, como una extensión opcional. La visión, la promesa y el recorrido general (Elegir → Personalizar → Obtener) no cambiaron.
 **Regla de lectura:** si en algún punto de este documento aparece la tentación de nombrar un botón, un ícono o una pantalla — es la señal de que nos adelantamos. Este documento se detiene justo antes de esa línea, siempre.
 
 ---
@@ -18,43 +19,43 @@ Todo lo que sigue es lo que Marcela vive, momento a momento, la primera vez que 
 ## El guion completo, segundo por segundo
 
 **0:00 — El instante de abrir.**
-No hay pantalla de carga que mirar, no hay un logo que espera en silencio a que algo pase, no hay un párrafo de bienvenida que leer. En el instante en que Marcela abre THÖREN, ya está frente a una sola pregunta, formulada como la haría una persona, no un sistema: *"¿Para qué necesitas esto hoy?"* Debajo, un puñado de escenas de la vida real — no íconos, no formas geométricas — cada una ya bonita por sí misma, cada una diciendo en una frase corta a quién le habla: una boda, un negocio propio, un regalo hecho a mano, un evento. Marcela reconoce la suya de inmediato. No tuvo que pensar "¿qué forma necesito?" — pensó "esto es lo mío", que es una pregunta completamente distinta y mucho más fácil de responder.
+No hay pantalla de carga que mirar, no hay un logo que espera en silencio a que algo pase, no hay un párrafo de bienvenida que leer. En el instante en que Marcela abre THÖREN, ya está frente a una sola invitación, formulada como la haría una persona, no un formulario: *"Cuéntame qué estás celebrando o creando, y para quién es."* Debajo, disponibles pero nunca obligatorios, un puñado de atajos visuales para quien prefiera tocar antes que escribir — una boda, un negocio propio, un regalo hecho a mano — cada uno ya bonito por sí mismo. Pero la invitación central es una sola frase abierta, no la primera casilla de un trámite.
 
 **0:05 — La primera emoción.**
-Lo que Marcela siente en este instante no es curiosidad técnica ("a ver qué tiene esta app") sino alivio de reconocimiento ("esto ya me entendió"). Es la misma sensación de cuando entras a una tienda y alguien te pregunta exactamente lo que necesitabas que te preguntaran, en vez de "¿en qué le puedo ayudar?" genérico. Cinco segundos adentro, y THÖREN ya demostró que sabe para quién existe.
+Lo que Marcela siente en este instante no es curiosidad técnica ("a ver qué tiene esta app") sino la sensación de estar frente a alguien que ya sabe escuchar, no frente a algo que necesita ser operado. No hay todavía ninguna respuesta de su parte, pero la sola forma de la pregunta —humana, abierta, sin campos separados esperando ser llenados uno por uno— ya le dice que esto no va a sentirse como rellenar nada.
 
-**0:08 — Toca "Para una boda".**
-No hay una pantalla de carga entre una cosa y la siguiente — la transición es inmediata, como pasar la página de un libro, no como esperar a que algo cargue. THÖREN no le devuelve una lista de plantillas para escoger todavía. Le devuelve una sola pregunta más, breve, humana: *"¿Cómo se llaman los novios?"* Un espacio para escribir, y nada más alrededor que la distraiga. Ninguna otra decisión pendiente, ningún otro campo esperando ser llenado al mismo tiempo.
+**0:10 — Responde en una sola frase.**
+Marcela escribe (o toca "Para una boda" y, en el mismo aliento, añade "Marcela y Andrés" sin que se le presente como una pregunta nueva ni una pantalla distinta) — de cualquiera de las dos formas, THÖREN recibe en un solo movimiento tanto la ocasión como lo que la hace personal. No hubo una pregunta, una espera, y luego una segunda pregunta. Hubo una sola conversación breve, exactamente como se lo contaría a una amiga que le está ayudando: "es para la boda de Marcela y Andrés" ya lo dice todo de una vez, y THÖREN nunca le pide que lo repita en partes.
 
-**0:12 — Escribe "Marcela & Andrés".**
-Este es el instante bisagra de toda la experiencia. En cuanto termina de escribir, sin tener que confirmar nada, sin tener que presionar nada explícito, empieza a ver — apareciendo una tras otra, con una calma que se siente deliberada, nunca apurada — varias versiones ya completas de un sello con "Marcela & Andrés" escrito de formas distintas, cada una ya elegante, cada una ya lista, como si alguien las hubiera estado preparando en privado mientras ella escribía.
+**0:14 — El primer "wow".**
+Sin ningún paso intermedio, sin que se le pregunte nada sobre colores, tonos o estilos, empiezan a aparecer — una tras otra, con una calma que se siente deliberada, nunca apurada — varias versiones ya completas de un sello con "Marcela & Andrés" escrito de formas distintas. Cada una ya tiene un color y un tono resueltos con buen criterio propio, coherente con lo que significa una boda — nadie le preguntó "¿qué color quieres?" antes de esto, y por eso el asombro es mayor: lo que ve ya se siente terminado, no un borrador esperando sus indicaciones. La sorpresa no viene de una animación llamativa — viene de la velocidad y la calidad con la que algo tan personal ya se ve resuelto, a partir de una sola frase.
 
-**0:16 — El primer "wow".**
-Esto es exactamente el efecto que se busca, y ocurre aquí, no después. Marcela no diseñó nada. Escribió un nombre. Y ese nombre ya existe, hermosamente resuelto, en varias formas distintas frente a ella. La sorpresa no viene de una animación llamativa ni de un efecto visual — viene de la velocidad y la calidad con la que algo tan personal (su propio nombre, el de la boda de alguien que le importa) ya se ve terminado. Es el mismo tipo de sorpresa que sentirías si le dieras tu nombre a un artesano y en segundos te mostrara tu monograma ya grabado.
+**0:20 — Recorre las propuestas.**
+Marcela pasa de una versión a otra con un solo gesto, como si hojeara postales. No hay ninguna de estas versiones que se vea "a medio hacer" o "genérica" — todas están ya completamente resueltas, con tipografía cuidada, con espacio bien distribuido, con un tono elegante apropiado para una boda, ya coloreadas, ya listas. Ella no está comparando calidad — todas tienen la misma calidad. Está comparando *personalidad*: cuál se siente más como ellos. Esta es la única comparación real de todo el recorrido, y existe porque el gusto personal no es algo que nadie más que ella pueda decidir.
 
-**0:24 — Recorre las propuestas.**
-Marcela pasa de una versión a otra con un solo gesto, como si hojeara postales. No hay ninguna de estas versiones que se vea "a medio hacer" o "genérica" — todas están ya completamente resueltas, con tipografía cuidada, con espacio bien distribuido, con un tono elegante apropiado para una boda. Ella no está comparando calidad — todas tienen la misma calidad. Está comparando *personalidad*: cuál se siente más como ellos.
+**0:26 — Elige una.**
+La elige, y eso es todo lo que esa elección exige de ella. No aparece, en este instante, ninguna pregunta adicional sobre color o tono — ya lo vio resuelto desde el segundo 0:14, y ya lo comparó junto con todo lo demás mientras recorría las propuestas.
 
-**0:31 — Elige una.**
-En el instante en que la elige, THÖREN le hace una única pregunta más, opcional, casi al pasar: *"¿Hay un color que quieras que aparezca?"* — con un puñado de tonos ya curados para el tono de una boda (nunca una rueda de color infinita para explorar). Marcela toca un dorado suave. El sello entero se transforma frente a ella, con la misma calma de antes.
+**0:29 — Un ajuste que nunca fue obligatorio.**
+Junto a la propuesta ya elegida, existe una invitación discreta y completamente opcional: "pruébalo en otro tono", disponible para quien quiera jugar con eso, pero nunca presentada como una decisión pendiente. Es la diferencia entre preguntar "¿qué color quieres?" (una pregunta abstracta, antes de que exista nada) y ofrecer "¿quieres verlo en otro tono?" (una invitación concreta, sobre algo que ya existe y que ya le gustó). Marcela, en este caso, no la toca — ya le gustó como está.
 
-**0:36 — La primera duda que no ocurre.**
-En cualquier otro momento de esta experiencia, Marcela podría preguntarse "¿esto va a quedar bien impreso de verdad?" — esa duda nunca llega a formularse, porque nada en la experiencia le sugiere que hay algo técnico de lo que preocuparse. No ha visto una sola palabra sobre sangrado, tamaño de hoja, o resolución. La confianza no viene de que se lo explicaran — viene de que nunca hizo falta explicarlo.
+**0:33 — La primera duda que no ocurre.**
+En cualquier otro momento de esta experiencia, Marcela podría preguntarse "¿esto va a quedar bien impreso de verdad?" — esa duda nunca llega a formularse, porque nada en la experiencia le ha dado, hasta ahora, ninguna razón para pensar en algo técnico. No ha visto una sola palabra sobre sangrado, tamaño de hoja, o resolución, ni tampoco ninguna pregunta sobre cómo va a imprimir esto. La confianza no viene de que se lo explicaran — viene de que nunca hizo falta explicarlo, y de que nada interrumpió el camino hacia el resultado para preguntárselo.
 
-**0:42 — La pregunta que sí le pertenece.**
-THÖREN le hace la única pregunta técnica real que existe en todo el recorrido, y la hace en su idioma, no en el de una imprenta: *"¿Vas a imprimir esto tú en casa, o lo vas a mandar a imprimir en cantidad?"* Marcela responde "en cantidad" porque son 40 piezas. Eso es todo lo que necesitaba decidir sobre el aspecto técnico de su pedido — una frase, no un formulario.
+**0:36 — La revelación.**
+Aparece su sello terminado, grande, con la clase de presentación con la que se muestra algo de lo que alguien debería sentirse orgulloso — no una vista previa de trabajo, sino algo que se siente como el final de una historia corta. Este es el clímax emocional de todo el recorrido, y nada lo interrumpe justo antes: ninguna pregunta logística, ninguna decisión pendiente, ningún formulario de último momento. Solo el resultado, entregado con la misma confianza con la que un diseñador experto entregaría un trabajo terminado.
 
-**0:48 — La revelación.**
-Aparece su sello terminado, grande, con la clase de presentación con la que se muestra algo de lo que alguien debería sentirse orgulloso — no una vista previa de trabajo, sino algo que se siente como el final de una historia corta. Si esto fuera a colgarse literalmente de un sobre de invitación, así es como debería sentirse verlo por primera vez: como el objeto real, no como un archivo.
+**0:42 — Una sola acción posible.**
+Debajo de la revelación, una sola cosa que hacer: obtener su diseño. Sin elegir formato, sin elegir perfil técnico — el archivo que recibe ya es válido y de calidad para el caso más común: verse bien en pantalla o imprimirse en casa.
 
-**0:54 — Una sola acción posible.**
-Debajo de la revelación, una sola cosa que hacer: obtener su diseño. No hay una decisión de formato que tomar, no hay un perfil que elegir — todo eso ya quedó resuelto en el segundo 0:42, en una frase que Marcela sí entendió.
+**0:47 — Lo tiene.**
+Su archivo está listo. En menos de un minuto real de reloj, Marcela pasó de "tengo que hacer etiquetas para una boda y no sé diseñar" a tener en sus manos algo que se ve como si lo hubiera hecho un profesional. No aprendió a usar nada. No tomó ninguna decisión que no le perteneciera. Tuvo una conversación breve, y al final de esa conversación había un resultado — y ese resultado llegó sin que nada logístico se interpusiera en el camino.
 
-**0:59 — Lo tiene.**
-Su archivo está listo. En menos de un minuto real de reloj, Marcela pasó de "tengo que hacer 40 etiquetas para una boda y no sé diseñar" a tener en sus manos algo que se ve como si lo hubiera hecho un profesional. No aprendió a usar nada. No tocó nada que se sintiera como una herramienta. Tuvo una conversación breve, y al final de esa conversación había un resultado.
+**0:52 — La extensión que solo aparece porque ya tuvo éxito.**
+Solo ahora, con su resultado ya en las manos y ya feliz con él, THÖREN le hace la única pregunta con sabor técnico de todo el recorrido, y la hace en su idioma, ofreciéndola como una ayuda, nunca como un trámite pendiente: *"Si vas a necesitar varias copias para mandar a imprimir, puedo prepararlo también para eso."* Marcela responde que sí, porque son 40 piezas — y THÖREN resuelve en silencio todo lo que eso implica (cuántas caben en una hoja, cómo se separan, qué necesita una imprenta para cortarlas bien) sin que ella tenga que enterarse de ninguno de esos detalles. Si no lo necesitara, la pregunta simplemente no le habría costado nada — ya tenía su resultado antes de que apareciera.
 
-**1:05 — El instante que decide si regresa mañana.**
-Justo después de obtener su diseño, sin que se sienta como una venta ni como una interrupción, THÖREN le muestra algo pequeño y honesto: *"¿Sabías que puedes usar el mismo estilo para las etiquetas de las velas del recuerdo?"* — una sugerencia que ya sabe su nombre, su ocasión, su color elegido. Marcela no tiene que decidir en este momento — pero la idea queda sembrada: la próxima vez que necesite algo, esto va a ser todavía más rápido, porque THÖREN ya la conoce.
+**1:00 — El instante que decide si regresa mañana.**
+Justo después, sin que se sienta como una venta ni como una interrupción, THÖREN le muestra algo pequeño y honesto: *"¿Sabías que puedes usar el mismo estilo para las etiquetas de las velas del recuerdo?"* — una sugerencia que ya sabe su nombre, su ocasión, su estilo elegido. Marcela no tiene que decidir en este momento — pero la idea queda sembrada: la próxima vez que necesite algo, esto va a ser todavía más rápido, porque THÖREN ya la conoce.
 
 ---
 
@@ -62,68 +63,68 @@ Justo después de obtener su diseño, sin que se sienta como una venta ni como u
 
 ### 1. ¿Qué ve exactamente al abrir la aplicación?
 
-Ve una pregunta, no un producto. No ve un logo esperando ser admirado, no ve una explicación de qué es THÖREN, no ve una lista de proyectos anteriores (no tiene ninguno, y aunque los tuviera, esa no es la primera parada). Ve, de inmediato, "¿para qué necesitas esto hoy?", con opciones que hablan de su vida, no de la geometría del producto.
+Ve una sola invitación conversacional, no un producto ni un formulario. No ve un logo esperando ser admirado, no ve una lista de proyectos anteriores, y —a diferencia de una versión anterior de este mismo guion— no ve tampoco dos preguntas separadas esperando su turno. Ve una sola frase abierta que ya puede responder contándolo todo de una vez, con atajos visuales disponibles pero nunca obligatorios para quien prefiera tocar.
 
 ### 2. ¿Qué emoción queremos provocar en los primeros 5 segundos?
 
-Reconocimiento, no asombro todavía. El asombro llega después (segundo 16). En los primeros cinco segundos, lo que buscamos es que Marcela sienta "esto ya sabe para quién es" — la sensación de haber encontrado, sin buscar, algo hecho a su medida.
+Reconocimiento, no asombro todavía. El asombro llega después (segundo 14, más rápido que antes porque ya no hay una segunda pregunta que esperar). En los primeros cinco segundos, lo que buscamos es que Marcela sienta que puede hablar con naturalidad, en una sola frase, sin que se le pida llenar nada por partes.
 
 ### 3. ¿Qué debe suceder para que entienda inmediatamente el valor del producto?
 
-Tiene que ver su propio nombre (o el de su ocasión) ya resuelto profesionalmente, en segundos, sin haber hecho ningún trabajo de diseño. El valor de THÖREN no se explica — se demuestra, una sola vez, con datos reales de ella, en el primer minuto. Cualquier intento de "explicar" el valor con palabras en vez de demostrarlo con un resultado ya es una señal de que el producto está fallando en su propio trabajo.
+Tiene que ver su propio nombre (o el de su ocasión) ya resuelto profesionalmente —incluyendo el color y el tono, sin que se le haya preguntado nada al respecto— en segundos, a partir de una sola frase suya. El valor de THÖREN no se explica, y tampoco se negocia campo por campo — se demuestra, una sola vez, de una sola vez, con datos reales de ella.
 
 ### 4. ¿Cómo evitamos que tenga que aprender a usar la aplicación?
 
-Eliminando la posibilidad de equivocarse. En cada instante del recorrido solo existe una cosa que hacer — nunca dos caminos entre los que elegir sin saber cuál es el correcto, nunca un control cuyo efecto no sea evidente de inmediato. No hay nada que "aprender" porque no hay ningún mecanismo oculto: cada acción de Marcela (escribir, tocar) tiene una consecuencia visible e inmediata. Aprender a usar THÖREN es indistinguible de simplemente usarlo una vez.
+Eliminando la posibilidad de equivocarse, y ahora también eliminando cualquier estructura que se parezca a "un campo, luego otro campo". En cada instante del recorrido solo existe una cosa que hacer, y esa cosa siempre puede expresarse en lenguaje natural, de una sola vez, sin que haga falta descomponerla en pasos separados para que THÖREN la entienda.
 
 ### 5. ¿Cómo convertimos la creación en una conversación y no en un formulario?
 
-Un formulario pide varios datos a la vez y los valida al final. Una conversación pide un dato, reacciona a él, y solo entonces pregunta lo siguiente — y a veces ni siquiera pregunta, porque ya puede inferir la respuesta. Todo el recorrido de Marcela fue una secuencia de preguntas breves, una a la vez, cada una respondida antes de que la siguiente apareciera, cada una con una reacción visible antes de continuar. Nunca vio dos preguntas al mismo tiempo. Nunca tuvo que "enviar" nada para que un resultado apareciera — el resultado ya estaba apareciendo mientras ella respondía.
+Un formulario pide varios datos a la vez, o los pide uno por uno en una secuencia rígida, y los valida al final. Una conversación real permite decir varias cosas en una sola frase, sin obligar a separarlas artificialmente. La versión anterior de este guion todavía pedía la ocasión y el nombre como dos turnos distintos — eso, aunque breve, seguía siendo la estructura de un formulario con buenos modales. En esta versión, Marcela dice lo que necesita en una sola frase, exactamente como se lo diría a una persona, y THÖREN extrae de ahí todo lo que necesita sin pedirle que lo repita en partes.
 
 ### 6. ¿En qué momento aparece el primer efecto "wow"?
 
-Al segundo 16, cuando su propio nombre aparece ya resuelto en varias propuestas, sin que ella haya hecho nada más que escribirlo. No antes (antes solo ha respondido preguntas) y no debería demorarse más — cuanto más tarde llegue el primer "wow", más tiempo tuvo Marcela para empezar a dudar de si esto valía la pena.
+Al segundo 14 (antes que en la versión anterior, porque ya no existe una segunda pregunta separada que esperar) — cuando su propio nombre aparece ya resuelto, ya coloreado, ya con buen criterio, en varias propuestas, sin que ella haya hecho nada más que contar en una frase lo que necesitaba. Nadie le preguntó por un color antes de esto — y esa ausencia de pregunta es, en sí misma, parte de lo que genera el asombro.
 
 ### 7. ¿Qué decisiones toma el usuario y cuáles toma THÖREN automáticamente?
 
-Marcela tomó exactamente cuatro decisiones en todo el recorrido: la ocasión, el nombre, cuál propuesta le gustó más, y un color opcional. Nada más le pertenecía. THÖREN decidió todo lo demás: la composición, la tipografía, el espaciado, el tamaño físico correcto, el sangrado, las marcas de corte, cómo acomodar 40 piezas en una hoja, y qué formato de archivo generar. La única otra cosa que Marcela decidió — "en cantidad" vs. "en casa" — no es una decisión de diseño, es una decisión de contexto de vida, y por eso sí le pertenecía a ella.
+Marcela tomó, en total, dos decisiones irreducibles en todo el recorrido: qué necesita y para quién (dichas en una sola frase), y cuál propuesta ya terminada le gustó más. Todo lo demás fue una suposición inteligente de THÖREN, no una pregunta: el color y el tono (propuestos, nunca preguntados, con solo un ajuste posterior completamente opcional), la composición, la tipografía, el tamaño físico correcto, el sangrado, las marcas de corte, y cómo acomodar varias piezas en una hoja cuando hizo falta. La única pregunta adicional que existió —si iba a necesitar varias copias para imprenta— llegó después de que ya tenía su resultado, nunca antes, y por eso no cuenta como una decisión que le costara nada en el camino hacia el éxito.
 
 ### 8. ¿Cómo reducimos la carga cognitiva al mínimo?
 
-Nunca mostrando más de una decisión a la vez, nunca usando una palabra que Marcela no usaría en una conversación normal, y nunca exigiéndole retener información de un paso para usarla en otro (cada pantalla es autosuficiente — no tiene que recordar nada de la anterior). La carga cognitiva no se reduce simplificando el lenguaje de una interfaz compleja — se reduce eliminando la complejidad misma de la experiencia que ella ve.
+Bajando el número de momentos donde Marcela debe detenerse a pensar de cinco a dos, y asegurando que ninguno de esos dos le pida imaginar algo que todavía no existe (como "qué color", preguntado en abstracto) — solo le pedimos reaccionar a algo real que ya está frente a ella, o contar en una frase algo que ya sabe de memoria (qué necesita, para quién es).
 
 ### 9. ¿Qué momentos generan confianza?
 
-Tres, específicamente: el segundo 5 (la sensación de haber sido entendida antes de empezar), el segundo 16 (ver algo real y personal ya resuelto con calidad), y el segundo 42 (la única pregunta técnica formulada en un idioma que ella entiende, sin necesidad de saber qué es una imposición). La confianza en THÖREN no viene de que le expliquen que el motor técnico es correcto — viene de que nunca le dieron una razón para dudarlo.
+Cuatro, específicamente: el segundo 5 (la sensación de poder hablar con naturalidad, sin que la interrumpan con una segunda pregunta), el segundo 14 (ver algo real y personal ya resuelto — incluyendo el color — sin haber tenido que decidirlo), el segundo 36 (la revelación, sin ninguna pausa logística justo antes), y el segundo 52 (la única pregunta técnica de todo el recorrido, formulada después de que ya hay un éxito del que partir, nunca antes). La confianza no viene de explicaciones — viene de que nada se sintió nunca como un trámite pendiente antes de recibir algo.
 
 ### 10. ¿Cómo hacemos que el usuario sienta que el software está trabajando para él?
 
-Haciendo visible el trabajo, no el proceso. Marcela nunca ve un estado de carga vacío ni una barra de progreso abstracta — ve resultados apareciendo, uno tras otro, como si alguien estuviera trabajando activamente frente a ella. La sensación de "está trabajando para mí" viene de que cada segundo de espera (los pocos que existen) está lleno de evidencia de trabajo real en curso, nunca de silencio.
+Haciendo visible el trabajo, no el proceso, y además nunca pidiéndole que haga el trabajo de imaginar algo antes de que exista. Marcela nunca ve un estado de carga vacío, nunca tiene que describir en palabras un color que todavía no puede ver, y nunca tiene que resolver una pregunta logística antes de que THÖREN le haya demostrado, primero, que ya resolvió todo lo demás por su cuenta.
 
 ### 11. ¿Qué ocurre cuando termina su primer diseño?
 
-Una revelación, no una notificación. El resultado final se muestra con la misma seriedad con la que se mostraría un producto terminado en una vitrina — grande, con espacio alrededor, sin competir por atención con ningún otro elemento. Es el clímax emocional de todo el recorrido, y debe sentirse como tal: el momento en que cuatro decisiones pequeñas se convirtieron en algo que Marcela puede enseñarle a alguien más con orgullo.
+Una revelación sin interrupciones previas, no una notificación al final de un trámite. El resultado final se muestra con la misma seriedad con la que se mostraría un producto terminado en una vitrina — y, a diferencia de una versión anterior de este guion, nada logístico se interpone entre el último ajuste de gusto personal (elegir su propuesta favorita) y este momento. Es el clímax emocional de todo el recorrido, y ahora llega sin fricción de último minuto.
 
 ### 12. ¿Qué hace que quiera crear otro inmediatamente?
 
-Que la siguiente vez sea, de forma visible, más rápida que la primera — porque THÖREN ya sabe quién es ella. La sugerencia del segundo 1:05 no vende una función nueva: reconoce que ya existe una relación (su nombre, su boda, su color) y ofrece continuarla, no empezarla de cero. Volver a THÖREN se siente como continuar una conversación que ya empezó, no como abrir una herramienta otra vez.
+Que la siguiente vez sea, de forma visible, más rápida que la primera — porque THÖREN ya sabe quién es ella. La sugerencia del segundo 1:00 no vende una función nueva: reconoce que ya existe una relación (su nombre, su boda, su estilo) y ofrece continuarla, no empezarla de cero.
 
 ### 13. ¿Qué pequeñas sorpresas o microexperiencias hacen que el producto se sienta premium?
 
-La ausencia de fricción en sí misma es la sorpresa más grande — pero además: el ritmo pausado y deliberado con el que aparecen las propuestas (nunca instantáneo de forma brusca, nunca lento al punto de la duda), la reacción inmediata y visible a cada palabra que escribe, la calidad pareja de absolutamente todas las opciones que se le muestran (nunca tiene que descartar una por verse "mal hecha"), y el hecho de que la única pregunta técnica de todo el recorrido esté formulada en su idioma en vez del idioma de una imprenta. Ninguna de estas cosas es un efecto especial — todas son la ausencia cuidadosa de algo que normalmente sí estaría ahí.
+La ausencia de fricción en sí misma sigue siendo la sorpresa más grande — reforzada ahora por dos ausencias adicionales muy específicas: nunca se le pidió imaginar un color antes de verlo, y nunca se le interrumpió el camino al resultado con una pregunta de logística de impresión. Ambas ausencias se sienten, sin que Marcela sepa nombrarlas, como la diferencia entre un software que pide permiso constantemente y un diseñador experto que simplemente resuelve y muestra.
 
 ### 14. ¿Qué cosas jamás deberían aparecer en la experiencia principal, aunque existan técnicamente?
 
-Cualquier palabra que Marcela no usaría hablando con una amiga sobre su pedido de boda: sangrado, imposición, capas, perfil de exportación, resolución, formato de archivo, línea de troquel, área segura. Cualquier pantalla que muestre más de una decisión pendiente a la vez. Cualquier momento de espera sin evidencia visible de que algo está ocurriendo. Cualquier posibilidad de que Marcela termine su recorrido con una pieza que no se vea ya profesionalmente terminada — no debería existir un camino, ni siquiera uno accidental, que lleve a un resultado mediocre. Y, sobre todo: cualquier instante en el que ella sienta que tiene que averiguar algo por su cuenta para poder continuar.
+Todo lo ya identificado antes (sangrado, imposición, capas, perfil de exportación, línea de troquel, área segura, y cualquier pantalla con más de una decisión pendiente a la vez) — más, explícitamente ahora: cualquier pregunta que le pida a Marcela imaginar o describir algo abstracto (un color, un estilo) antes de que exista algo concreto que ver; y cualquier pregunta de logística de producción (cómo va a imprimir esto, cuántas copias) formulada *antes* de que ya tenga un resultado exitoso del cual partir. Ninguna de las dos debería aparecer jamás como condición previa al éxito de un minuto.
 
 ### 15. ¿Cuál es el recorrido perfecto para alguien que jamás ha usado un software de diseño?
 
-Exactamente el que acaba de vivir Marcela. No una versión simplificada de un software de diseño — una experiencia que nunca se presenta como software de diseño en absoluto. Alguien que jamás ha diseñado nada no necesita una versión más fácil de Illustrator. Necesita no darse cuenta de que, técnicamente, acaba de usar una herramienta de producción de impresión de nivel profesional. Si en algún momento del recorrido Marcela piensa "estoy usando un programa de diseño", ya perdimos. Si en cambio piensa "hice algo muy bonito para la boda de mi amiga en un minuto", ganamos.
+Exactamente el que acaba de vivir Marcela en esta versión revisada: una sola conversación breve, un asombro temprano sin condiciones previas, una elección real de gusto personal, una revelación sin interrupciones logísticas, y solo después —si de verdad hace falta— una extensión opcional para producción en volumen. Nada de esto se presenta nunca como software de diseño. Si en algún momento del recorrido Marcela piensa "estoy respondiendo preguntas de una aplicación", ya perdimos. Si en cambio piensa "le conté lo que necesitaba y ya estaba listo", ganamos.
 
 ---
 
 ## Cierre: la prueba de esta película
 
-Si alguien lee este guion completo y no puede, cerrando los ojos, imaginar con claridad cómo se siente cada segundo del recorrido de Marcela — el documento falló, sin importar cuántas preguntas responda formalmente. La prueba no es si cada una de las 15 preguntas tiene una respuesta escrita. La prueba es si, al terminar de leerlo, ya sabemos exactamente qué película estamos construyendo, escena por escena, antes de haber diseñado un solo fotograma.
+Si alguien lee este guion completo y no puede, cerrando los ojos, imaginar con claridad cómo se siente cada segundo del recorrido de Marcela —sin encontrar, en ningún punto, un momento que se sienta como rellenar un campo o responder un trámite— el documento falló, sin importar cuántas preguntas responda formalmente. La prueba, ahora más estricta que en la primera versión, es esta: en cada escena, ¿esto se comporta como un diseñador experto, o como un software? Las tres escenas que fallaban esa prueba en la versión anterior ya no existen en su forma original — fueron rediseñadas, no maquilladas.
 
-Cuando esta experiencia —tal como está descrita aquí, sin cambios que la hagan parecer "más un producto de software"— se sienta extraordinaria, ese es el momento de empezar a diseñar la interfaz que la hace visible. No antes.
+Este documento es ahora el documento maestro de experiencia de THÖREN. Cuando esta experiencia —tal como está descrita aquí— se sienta extraordinaria, ese es el momento de empezar a diseñar la interacción y la interfaz que la hacen visible. No antes.

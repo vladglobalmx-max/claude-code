@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="THÖREN — obtén un diseño profesional en menos de un minuto. Beta de experiencia para pruebas con usuarios reales." />
+  <meta name="theme-color" content="#faf6ef" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>THÖREN — Beta</title>
+</head>
+<body>
+  <h1 class="visually-hidden">THÖREN</h1>
+
+  <div id="stage">
+    <div class="said" id="saidLine"></div>
+
+    <section class="screen active" id="screen-start">
+      <p class="invite">Cuéntame qué estás celebrando o creando, y para quién es.</p>
+      <input
+        class="entry-field"
+        id="entryField"
+        placeholder="Es para la boda de…"
+        aria-label="Cuéntame qué estás celebrando o creando, y para quién es"
+        autocomplete="off"
+      />
+      <div class="chips">
+        <button class="chip" data-fill="Es para la boda de ">Una boda</button>
+        <button class="chip" data-fill="Es para mi marca, ">Mi marca</button>
+        <button class="chip" data-fill="Es un regalo hecho a mano para ">Un regalo hecho a mano</button>
+      </div>
+      <button class="go" id="goBtn" aria-label="Continuar">→</button>
+    </section>
+
+    <section class="screen" id="screen-thinking" aria-label="Preparando propuestas">
+      <div class="pulse"></div>
+    </section>
+
+    <section class="screen" id="screen-proposals">
+      <p class="prompt-line">¿Cuál se siente más como esto?</p>
+      <div class="cards" id="cardsRow">
+        <button class="card" data-style="1" aria-label="Propuesta 1"><span class="seal style-1"><span></span></span></button>
+        <button class="card" data-style="2" aria-label="Propuesta 2"><span class="seal style-2"><span></span></span></button>
+        <button class="card" data-style="3" aria-label="Propuesta 3"><span class="seal style-3"><span></span></span></button>
+      </div>
+      <button class="choose-cta" id="chooseBtn">Elegir esta</button>
+    </section>
+
+    <section class="screen" id="screen-reveal">
+      <p class="reveal-caption" id="revealCaption"></p>
+      <div class="reveal-seal" id="revealSeal"><span></span></div>
+      <button class="obtain" id="obtainBtn">Obtener</button>
+    </section>
+
+    <section class="screen" id="screen-done">
+      <p class="done-line" id="doneLine">Esto ya es tuyo.</p>
+      <div class="print-ask" id="printAsk">
+        <p>¿Vas a necesitar varias copias para imprenta?</p>
+        <div class="print-choices">
+          <button data-ans="yes">Sí</button>
+          <button data-ans="no">No por ahora</button>
+        </div>
+      </div>
+      <p class="closing" id="closingLine">La próxima vez, esto será todavía más rápido.</p>
+    </section>
+  </div>
+
+  <!-- Solo visibles con ?beta=true — ver src/main.js. Invisibles en la
+       experiencia normal que se comparte con un usuario externo. -->
+  <div id="betaPanel" class="beta-panel" hidden aria-hidden="true">
+    <span id="betaVersion"></span>
+    <span id="betaBuildDate"></span>
+    <span id="betaElapsed"></span>
+  </div>
+  <button id="betaReset" class="beta-reset" hidden>Beta Reset</button>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

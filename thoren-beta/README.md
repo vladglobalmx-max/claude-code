@@ -1,16 +1,16 @@
 # THÖREN — Beta de experiencia
 
-Beta funcional del prototipo navegable de THÖREN 2.0 (Concepto E), lista para compartir con Vladimir y con al menos un usuario externo. Es exactamente la misma experiencia validada en el prototipo — el mismo ritmo, las mismas pausas, transiciones, revelación, silencios y microinteracciones — empaquetada como una aplicación real, instalable con un solo comando y desplegable en Vercel.
+Beta funcional del prototipo navegable de THÖREN 2.0 (Concepto E), lista para compartirse mediante un enlace público. Es exactamente la misma experiencia validada en el prototipo — el mismo ritmo, las mismas pausas, transiciones, revelación, silencios y microinteracciones — empaquetada como una aplicación web **completamente independiente**: no depende de Claude, de Artifacts, ni de ningún otro repositorio. Se instala con `npm install` y se despliega en Vercel como cualquier proyecto Vite. Ver [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) para la guía completa de instalación, despliegue y configuración de dominio.
 
-No introduce funciones nuevas, no cambia el flujo ni la filosofía. Deriva directamente de `THOREN_EXPERIENCE_BLUEPRINT.md` y `THOREN_INTERACTION_SYSTEM.md` (en `impulso-builder-platform/docs/product/`).
+No introduce funciones nuevas, no cambia el flujo ni la filosofía.
 
-**Desde Fase 3 (Experience Integration, ver `CHANGELOG_FASE3.md`), ninguna propuesta es estática.** Cada propuesta que ves proviene del Motor Creativo real (`@impulso/creative-engine`, aprobado en Fase 1/Fase 2) — la experiencia es la misma, pero el contenido detrás ya es genuino.
+**Desde Fase 3 (Experience Integration, ver `CHANGELOG_FASE3.md`), ninguna propuesta es estática.** Cada propuesta que ves proviene del Motor Creativo real (aprobado en Fase 1/Fase 2 del proyecto THÖREN) — la experiencia es la misma, pero el contenido detrás ya es genuino.
 
 ## Requisitos
 
 - Node.js 18 o superior (probado con Node 22).
 - npm (incluido con Node).
-- **El repositorio completo clonado**, no solo esta carpeta: `thoren-beta` consume el código fuente real de `@impulso/creative-engine` desde `../impulso-builder-platform/packages/` (directorio hermano en el mismo repositorio) vía un alias de Vite — ver "Cómo vive el Motor Creativo detrás de esta Beta" más abajo.
+- Nada más. Solo esta carpeta — no requiere ningún otro repositorio ni herramienta de desarrollo adicional.
 
 ## 1. Ejecutar en local
 
@@ -52,7 +52,7 @@ vercel --prod     # despliegue de producción
 
 ## Cómo vive el Motor Creativo detrás de esta Beta
 
-`vite.config.js` resuelve `@impulso/creative-engine` y `@impulso/document-schema` directamente contra el código fuente TypeScript de `impulso-builder-platform/packages/` (viven como carpetas hermanas dentro de este mismo repositorio) — Vite lo transpila igual que cualquier otro módulo, sin build intermedio ni copia manual. `@impulso/export-engine` se resuelve contra un shim propio en `src/vendor/` que reexporta únicamente `buildSvgDocument` (el camino SVG, independiente de Konva) desde su archivo real, para no arrastrar `@impulso/renderer-konva`/Konva al bundle del navegador. `node:crypto` (que `creative-engine` usa en Node/Vitest) se resuelve, solo en el navegador, contra un shim que llama a `crypto.randomUUID()` nativo. Ninguno de los tres paquetes del monorepo se modifica — ver `CHANGELOG_FASE3.md` para el detalle completo y su justificación.
+`vite.config.js` resuelve `@impulso/creative-engine` y `@impulso/document-schema` contra una copia vendorizada y congelada de su código fuente TypeScript, incluida en este mismo repositorio en `src/vendor/engine/` (instantánea del motor aprobado en Fase 1/Fase 2, sin ningún archivo de test) — Vite lo transpila igual que cualquier otro módulo del proyecto, sin build intermedio. `@impulso/export-engine` se resuelve contra un shim propio en `src/vendor/` que reexporta únicamente `buildSvgDocument` (el camino SVG, independiente de Konva) desde la misma copia vendorizada, para no arrastrar Konva al bundle del navegador. `node:crypto` (que el motor usa en Node/Vitest) se resuelve, solo en el navegador, contra un shim que llama a `crypto.randomUUID()` nativo. Ver `CHANGELOG_FASE3.md` para el detalle histórico de esta integración, y `DEPLOYMENT_GUIDE.md` para qué implica mantener esta copia si el motor original vuelve a tocarse.
 
 ## 4. Modo beta (`?beta=true`)
 
@@ -98,11 +98,15 @@ thoren-beta/
 │   ├── main.js              # orquestación del DOM: pantallas, ritmo, transiciones
 │   ├── engine.js            # adaptador del Motor Creativo real + instrumentación
 │   ├── telemetry.js         # eventos/tiempos internos, silenciosos salvo ?beta=true
-│   ├── engine.test.js        # pruebas de integración contra @impulso/creative-engine real
+│   ├── engine.test.js        # pruebas de integración contra el Motor Creativo real
 │   ├── telemetry.test.js
 │   ├── vendor/
 │   │   ├── exportEngineSvgOnly.js  # shim: solo buildSvgDocument, sin Konva
-│   │   └── nodeCryptoShim.js       # shim: node:crypto -> crypto.randomUUID() del navegador
+│   │   ├── nodeCryptoShim.js       # shim: node:crypto -> crypto.randomUUID() del navegador
+│   │   └── engine/                 # copia vendorizada y congelada del Motor Creativo
+│   │       ├── document-schema/src/
+│   │       ├── creative-engine/src/
+│   │       └── export-engine-svg/
 │   └── style.css        # todos los estilos, tokens de marca, modo claro/oscuro
 ├── public/
 │   ├── favicon.svg

@@ -4,25 +4,26 @@ import { fileURLToPath, URL } from "node:url";
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url)));
 
-const monorepoPackages = fileURLToPath(new URL("../impulso-builder-platform/packages", import.meta.url));
+const vendoredEngine = fileURLToPath(new URL("./src/vendor/engine", import.meta.url));
 
 /**
- * Fase 3 (Experience Integration, ver docs/product/THOREN_IMPLEMENTATION_PLAN.md):
- * el Motor Creativo real que vive detrás de esta Beta ES el paquete
- * `@impulso/creative-engine` aprobado en Fase 1/Fase 2 — no una
- * reimplementación. Este alias resuelve esos specifiers directamente
- * contra el código fuente TypeScript del monorepo (viven como directorios
- * hermanos en el mismo repositorio), y Vite lo transpila igual que
- * cualquier otro módulo. `@impulso/export-engine` se resuelve contra un
- * shim propio de este proyecto (ver src/vendor/) para no arrastrar Konva
- * al bundle del navegador — nunca se modifica ningún archivo del
- * monorepo para lograr esto.
+ * El Motor Creativo real que vive detrás de esta Beta ES el motor
+ * aprobado en Fase 1/Fase 2 (ver docs/product/THOREN_STICKER_BUILDER_COMPONENT.md
+ * y docs/product/THOREN_IMPLEMENTATION_PLAN.md del monorepo Impulso) — no
+ * una reimplementación. `thoren-beta` es un proyecto web independiente
+ * (no depende de Claude, Artifacts, ni de ningún otro repositorio): estos
+ * alias resuelven los specifiers contra una copia vendorizada y congelada
+ * del código fuente TypeScript de ese motor, ya incluida en este mismo
+ * repositorio (`src/vendor/engine/`). Vite la transpila igual que
+ * cualquier otro módulo del proyecto. `@impulso/export-engine` se resuelve
+ * contra un shim propio (ver src/vendor/) para no arrastrar Konva al
+ * bundle del navegador.
  */
 export default defineConfig({
   resolve: {
     alias: {
-      "@impulso/creative-engine": `${monorepoPackages}/creative-engine/src/index.ts`,
-      "@impulso/document-schema": `${monorepoPackages}/document-schema/src/index.ts`,
+      "@impulso/creative-engine": `${vendoredEngine}/creative-engine/src/index.ts`,
+      "@impulso/document-schema": `${vendoredEngine}/document-schema/src/index.ts`,
       "@impulso/export-engine": fileURLToPath(new URL("./src/vendor/exportEngineSvgOnly.js", import.meta.url)),
       "node:crypto": fileURLToPath(new URL("./src/vendor/nodeCryptoShim.js", import.meta.url)),
     },

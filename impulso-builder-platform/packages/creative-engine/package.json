@@ -2,7 +2,7 @@
   "name": "@impulso/creative-engine",
   "version": "0.1.0",
   "private": true,
-  "description": "Motor Creativo de THÖREN 2.0 (ver docs/product/THOREN_CREATIVE_ENGINE.md). Fase 1: núcleo de composición básica + exportación SVG, reutilizando @impulso/document-schema y @impulso/export-engine sin modificarlos.",
+  "description": "Motor Creativo de THÖREN 2.0 (ver docs/product/THOREN_CREATIVE_ENGINE.md). Fase 1: núcleo de composición básica + exportación SVG. Fase 2: Intérprete de intención determinista, receta Elegante-Boda con 3 arquetipos, Selector trivial y Filtro de calidad básico.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "demo": "vitest run src/demo.test.ts",
+    "demo": "vitest run src/demo.test.ts src/demoFase2.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

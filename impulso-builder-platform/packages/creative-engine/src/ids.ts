@@ -34,3 +34,9 @@ export function nextObjectId(): ObjectId {
 export function nextProjectId(): ProjectId {
   return ProjectIdSchema.parse(`project_${randomUUID()}`);
 }
+/** `Composition` (Fase 2) no es una entidad de `@impulso/document-schema` — vive y muere dentro
+ * de una sesión de generación (THOREN_TECHNICAL_ARCHITECTURE.md §5), así que su id es una simple
+ * cadena opaca, sin schema propio que la valide. */
+export function nextCompositionId(): string {
+  return `composition_${randomUUID()}`;
+}

@@ -24,4 +24,4 @@ Extensión de `schemaVersion: 1` en el lugar (no un bump a `2`) — nada consum�
 - 37 tests, 100% de cobertura (líneas/statements/funciones/branches): round-trip de serialización (`JSON.stringify`/`JSON.parse`/`parse*`) para los 4 tipos, y validación de cada caso inválido relevante (enums, formatos, campos requeridos).
 
 ### Fuera de alcance (deliberado, Fase 4.1)
-- Ninguna lógica de evaluación de capabilities, ningún emisor/verificador de Entitlement, ningún adaptador de proveedor de comercio (Gumroad, etc.) — ver `docs/platform/COMMERCIAL_PLATFORM_ROADMAP.md` para cuándo se introduce cada uno.
+- Ninguna lógica de evaluación de capabilities, ningún emisor/verificador de Entitlement, ningún adaptador de proveedor de comercio (Gumroad, etc.) — ver `docs/archive/sticker-builder/commercial-platform/COMMERCIAL_PLATFORM_ROADMAP.md` (archivado tras `THOREN_PRODUCT_DIRECTION.md`) para el plan histórico de introducción de cada uno.

@@ -77,7 +77,7 @@
 ## 3. Qué este dashboard deliberadamente no mide
 
 - **Preferencia estética** ("¿te gustó el diseño?") — explícitamente fuera del objetivo de la prueba (`THOREN_USABILITY_TEST_PLAN.md` §1).
-- **Cualquier promedio que combine perfiles distintos en un solo número sin desglose.** Toda métrica de este documento se reporta también desglosada por perfil (`Sin conocimientos de diseño` / `Usa Canva` / `Dueño de negocio`) — nunca solo como un agregado global, por la misma razón ya documentada en `THOREN_DECISION_LOG.md` DEC-016 para la Beta Comercial: un promedio puede ocultar exactamente la señal que se busca.
+- **Cualquier promedio que combine perfiles distintos en un solo número sin desglose.** Toda métrica de este documento se reporta también desglosada por perfil (`Sin conocimientos de diseño` / `Usa Canva` / `Dueño de negocio`) — nunca solo como un agregado global, por la misma razón ya documentada en DEC-016 de `THOREN_DECISION_LOG.md` (archivado en `../archive/sticker-builder/DECISION_LOG.md`) para la Beta Comercial: un promedio puede ocultar exactamente la señal que se busca.
 - **Volumen de uso o retención a largo plazo.** Fuera de alcance de una Beta de validación de experiencia — pertenecen a una eventual fase comercial, no a esta.
 
 ## 4. Registro de mediciones

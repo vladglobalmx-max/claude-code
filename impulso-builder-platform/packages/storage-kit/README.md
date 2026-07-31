@@ -13,7 +13,7 @@
 
 ## 2. Por qué existe recién ahora
 
-Con dos consumidores (Asset Library, Template Library) la duplicación podía ser coincidencia. Con un tercero real (Project Library) confirmándola, extraerla deja de ser especulativo — mismo criterio de "no generalizar antes de tiempo" ya aplicado en todo el proyecto (ver `docs/product/02-Product-Principles.md`).
+Con dos consumidores (Asset Library, Template Library) la duplicación podía ser coincidencia. Con un tercero real (Project Library) confirmándola, extraerla deja de ser especulativo — mismo criterio de "no generalizar antes de tiempo" ya aplicado en todo el proyecto (ver "Simplicidad" en `docs/ENGINEERING_STANDARDS.md` §"Principios de producto").
 
 ## 3. Uso
 

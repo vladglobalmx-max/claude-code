@@ -201,7 +201,7 @@
 
 > [`../adr/0011-asset-library.md`](../adr/0011-asset-library.md) · Epic 2
 
-**Contexto:** Epic 1 embebía imágenes como data URL dentro de `customProperties` — deuda deliberada. `docs/product/03-Architecture-Map.md` ya nombraba "Asset Library" como pilar planeado.
+**Contexto:** Epic 1 embebía imágenes como data URL dentro de `customProperties` — deuda deliberada. `docs/product/03-Architecture-Map.md` (archivado en `../archive/pre-reinvention-platform/`) ya nombraba "Asset Library" como pilar planeado.
 
 **Problema:** ¿Cómo construir un pilar de plataforma reutilizable para gestionar binarios (no solo imágenes, a futuro fuentes/patrones/mockups) sin acoplarlo a Sticker Builder?
 

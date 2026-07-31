@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-07-31
 **Naturaleza de este documento:** un protocolo operativo para la Fase de Validación de Usuario (Fase 4), no un documento conceptual. No reabre ni modifica `THOREN_PRODUCT_PHILOSOPHY.md`, `THOREN_EXPERIENCE_BLUEPRINT.md`, `THOREN_INTERACTION_SYSTEM.md`, `THOREN_CREATIVE_ENGINE.md`, `THOREN_TECHNICAL_ARCHITECTURE.md` ni `THOREN_IMPLEMENTATION_PLAN.md` — todos siguen congelados como fuente de verdad. Tampoco reabre `THOREN_USABILITY_TEST_PLAN.md`, cuyo protocolo de sesión (perfiles, guion del moderador, plantilla de registro) sigue vigente tal cual — este documento extiende esa plantilla de una sola ronda de prueba hacia un proceso continuo de feedback durante toda la Beta.
-**Alcance:** la Beta de experiencia de THÖREN 2.0 (Concepto E / Motor Creativo conversacional, `thoren-beta/`) — no la Beta Comercial del catálogo de Sticker Builder (`THOREN_BETA_COMMERCIAL_PLAN.md`), que es una iniciativa distinta con su propio proceso ya definido. Ver `THOREN_PROJECT_STATUS_v1.0.md` para la relación entre ambas.
+**Alcance:** la Beta de experiencia de THÖREN 2.0 (Concepto E / Motor Creativo conversacional, `thoren-beta/`) — no la Beta Comercial del catálogo de Sticker Builder (`THOREN_BETA_COMMERCIAL_PLAN.md`, archivado en `../archive/sticker-builder/commercial/` tras `THOREN_PRODUCT_DIRECTION.md`), que era una iniciativa distinta con su propio proceso ya definido. Ver `THOREN_PROJECT_STATUS_v1.0.md` para la relación entre ambas.
 **Precondición de todo este documento:** la Beta está en **congelamiento funcional** — ninguna observación, sin importar cuán convincente parezca en el momento, modifica el producto durante la ronda de validación. Este marco existe para documentar y clasificar evidencia, no para iterar en vivo.
 
 ---

@@ -115,6 +115,10 @@ Se confirmó que, para cada decisión vigente del Dominio A, existe exactamente 
 
 Ninguna de estas doce responsabilidades se repite en un segundo documento. `THOREN_DECISION_LOG.md` (decisiones de producción de catálogo, Dominio B) y `docs/platform/STATE_001.md`/ADRs (calidad de arquitectura, Dominio C) cubren preguntas distintas, en dominios distintos, y no compiten por la misma autoridad.
 
+### 6.6 Cierre de la pausa de §6.3, con evidencia (nota añadida el 2026-07-31, posterior a la auditoría original)
+
+La "decisión de alcance pendiente" de §6.3 quedó resuelta: `THOREN_PRODUCT_DIRECTION.md` (2026-07-31) recomendó y el responsable de producto aprobó el escenario D — Sticker Builder deja de existir como producto comercial independiente y pasa a ser un componente interno de THÖREN. La consolidación documental que ejecuta esa decisión (`THOREN_DOCUMENT_CONSOLIDATION.md` → `THOREN_DOCUMENT_STRUCTURE_v1.0.md`) archivó íntegro todo el Dominio B (catálogo de 63 plantillas, RC1/Gumroad, estrategia comercial) en `docs/archive/`, sin perder ningún documento, y fusionó el conocimiento de ingeniería reutilizable en `THOREN_STICKER_BUILDER_COMPONENT.md`. El resto de este documento (secciones 0-6.5) se conserva sin editar como el registro exacto del estado en el momento de esta auditoría — la sección 0 y la fila del Dominio B en cualquier tabla anterior deben leerse ahora a la luz de esta nota, no reescritas retroactivamente.
+
 ---
 
 ## 7. Criterio final

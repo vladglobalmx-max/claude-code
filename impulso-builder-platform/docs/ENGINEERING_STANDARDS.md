@@ -1,5 +1,16 @@
 # Estándar de ingeniería — Impulso Builder Platform
 
+## Principios de producto (fusionado desde `docs/product/02-Product-Principles.md`, consolidación documental 2026-07-31)
+
+Estos principios guían toda decisión de producto y arquitectura — cuando dos opciones compitan, la que respete mejor estos principios gana, incluso si la otra es más rápida de construir hoy. No dependen del nombre o posicionamiento comercial del producto que los aplica.
+
+- **Simplicidad.** La opción correcta es la más simple que resuelve el problema real — simplicidad para quien usa el producto primero, simplicidad de implementación cuando no compite con eso. Ej.: el Document Schema modela solo 6 tipos de objeto genéricos (`rectangle`/`ellipse`/`path`/`image`/`text`/`group`) en vez de un tipo especial por cada necesidad de módulo — lo específico se expresa con `metadata.role` (ADR-0002).
+- **Velocidad.** Tanto velocidad de desarrollo (decisiones suficientemente buenas y reversibles, no perfectas) como velocidad de producto (la app se siente instantánea). Ej.: resize/rotación se previsualizan moviendo el nodo Konva directamente, sin el ciclo completo de validación del Engine en cada frame de arrastre — solo se confirma al soltar (ADR-0007/ADR-0008).
+- **Modularidad.** El núcleo (Engine) no sabe nada específico de ningún módulo; un módulo nuevo se agrega sin reescribir lo existente. Arquitectura de dependencia en una sola dirección — `Document Schema → Engine → Renderer → Konva` (ADR-0001) — verificada activamente con `madge --circular`, no solo declarada.
+- **AI Provider Agnostic.** El día que el producto incorpore capacidades de IA (generación de imágenes, sugerencias, autocompletado), ninguna debe acoplarlo a un proveedor específico de forma irreversible — se define detrás de un contrato/adaptador propio, igual que `RendererAdapter` (ADR-0001), para que cambiar de proveedor (o correr sin ninguno) sea cuestión de conectar un adaptador distinto. Documentado desde antes de que exista la primera funcionalidad de IA, por la misma razón que Document Schema → Engine → Renderer se diseñó antes de la primera línea de código: retrofitear esta separación después de que el acoplamiento ya existe es mucho más caro.
+- **Offline First (cuando aplique).** La funcionalidad esencial (crear, editar, guardar, exportar un documento) funciona sin depender de un servidor. "Cuando aplique" reconoce que capacidades futuras que requieren red por naturaleza (sincronización, colaboración) no están sujetas a este principio de la misma forma. La abstracción `StorageProvider` (planeada) existe para que, el día que se agregue sincronización remota, el modo offline siga siendo válido, no reemplazado.
+- **Calidad comercial** y **Performance First** ya están cubiertos como reglas operativas en las secciones de abajo (estándar de paquete, Performance Budget) — se listan aquí solo para que quede explícito que también son principios de producto, no únicamente reglas técnicas.
+
 Regla permanente, vigente desde Foundation 2 en adelante, para **todo paquete** de este monorepo (`packages/*`, `apps/*`):
 
 1. Debe compilar sin errores (`tsc --noEmit` limpio).

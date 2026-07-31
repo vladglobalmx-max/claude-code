@@ -30,3 +30,11 @@ Y se entrega siempre en el mismo formato: qué funciona muy bien, qué puede mej
 | [0007](0007-technical-production-preview-fase-9-3.md) | Technical Production Preview Foundations (Epic 9 / Fase 9.3) | 2026-07-20 |
 | [0008](0008-production-export-experience-fase-9-4.md) | Production Export Experience (Epic 9 / Fase 9.4) | 2026-07-21 |
 | [0009](0009-production-export-hardening-fase-9-5.md) | Production Export Hardening (Epic 9 / Fase 9.5) | 2026-07-21 |
+
+### Archivada (consolidación documental 2026-07-31)
+
+Auditoría específica de la experiencia de compra/entrega comercial de un producto que ya no se vende de forma independiente (`THOREN_PRODUCT_DIRECTION.md`, escenario D). Se conserva íntegra, reubicada en [`docs/archive/ux-audits-commercial/`](../archive/ux-audits-commercial):
+
+| Auditoría | Bloque | Fecha |
+|---|---|---|
+| [0010](../archive/ux-audits-commercial/0010-first-commercial-delivery-experience-fase-4-2.md) | First Commercial Delivery Experience (Fase 4.2) | 2026-07-21 |

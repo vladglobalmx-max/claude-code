@@ -1,0 +1,38 @@
+{
+  "name": "@impulso/creative-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor Creativo de THÖREN 2.0 (ver docs/product/THOREN_CREATIVE_ENGINE.md). Fase 1: núcleo de composición básica + exportación SVG, reutilizando @impulso/document-schema y @impulso/export-engine sin modificarlos.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "demo": "vitest run src/demo.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@impulso/document-schema": "workspace:*",
+    "@impulso/export-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.15",
+    "@vitest/coverage-v8": "^2.0.5",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

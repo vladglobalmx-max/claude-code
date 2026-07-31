@@ -4,10 +4,13 @@ Beta funcional del prototipo navegable de THÖREN 2.0 (Concepto E), lista para c
 
 No introduce funciones nuevas, no cambia el flujo ni la filosofía. Deriva directamente de `THOREN_EXPERIENCE_BLUEPRINT.md` y `THOREN_INTERACTION_SYSTEM.md` (en `impulso-builder-platform/docs/product/`).
 
+**Desde Fase 3 (Experience Integration, ver `CHANGELOG_FASE3.md`), ninguna propuesta es estática.** Cada propuesta que ves proviene del Motor Creativo real (`@impulso/creative-engine`, aprobado en Fase 1/Fase 2) — la experiencia es la misma, pero el contenido detrás ya es genuino.
+
 ## Requisitos
 
 - Node.js 18 o superior (probado con Node 22).
 - npm (incluido con Node).
+- **El repositorio completo clonado**, no solo esta carpeta: `thoren-beta` consume el código fuente real de `@impulso/creative-engine` desde `../impulso-builder-platform/packages/` (directorio hermano en el mismo repositorio) vía un alias de Vite — ver "Cómo vive el Motor Creativo detrás de esta Beta" más abajo.
 
 ## 1. Ejecutar en local
 
@@ -45,7 +48,11 @@ vercel --prod     # despliegue de producción
 
 ### Variables de entorno
 
-**Ninguna.** Esta beta no tiene backend, no llama a ninguna API externa y no usa claves de ningún tipo — todo el contenido es estático/simulado en el navegador, tal como pidió el plan de validación (sin motores reales, sin IA real).
+**Ninguna.** Esta beta no tiene backend, no llama a ninguna API externa y no usa claves de ningún tipo — el Motor Creativo real corre íntegramente en el navegador de la persona (nunca en un servidor), sin IA generativa (es determinista, ver Fase 2).
+
+## Cómo vive el Motor Creativo detrás de esta Beta
+
+`vite.config.js` resuelve `@impulso/creative-engine` y `@impulso/document-schema` directamente contra el código fuente TypeScript de `impulso-builder-platform/packages/` (viven como carpetas hermanas dentro de este mismo repositorio) — Vite lo transpila igual que cualquier otro módulo, sin build intermedio ni copia manual. `@impulso/export-engine` se resuelve contra un shim propio en `src/vendor/` que reexporta únicamente `buildSvgDocument` (el camino SVG, independiente de Konva) desde su archivo real, para no arrastrar `@impulso/renderer-konva`/Konva al bundle del navegador. `node:crypto` (que `creative-engine` usa en Node/Vitest) se resuelve, solo en el navegador, contra un shim que llama a `crypto.randomUUID()` nativo. Ninguno de los tres paquetes del monorepo se modifica — ver `CHANGELOG_FASE3.md` para el detalle completo y su justificación.
 
 ## 4. Modo beta (`?beta=true`)
 
@@ -73,17 +80,34 @@ Ninguno de los dos existe en el DOM de forma visible sin el parámetro — quien
 
 `npm audit` reporta una vulnerabilidad conocida de Vite/esbuild (`GHSA-67mh-4wv8-2f99`) que afecta **únicamente al servidor de desarrollo local** (`npm run dev`), no a la build de producción que se despliega en Vercel. No se forzó la actualización a la versión mayor siguiente de Vite para no arriesgar cambios de comportamiento fuera del alcance de esta beta (ver regla de `THOREN_USABILITY_TEST_PLAN.md`: nada se modifica sin evidencia que lo justifique).
 
+## Pruebas
+
+```bash
+npm run test           # suite completa (vitest)
+npm run test:coverage  # con cobertura
+```
+
+`engine.js` y `telemetry.js` están cubiertos al 100% por pruebas que llaman al Motor Creativo **real** (no simulado) — ver `src/engine.test.js`. `main.js` (la orquestación del DOM) se verifica mediante un recorrido real en Chromium (Playwright), documentado en `CHANGELOG_FASE3.md`, no con pruebas unitarias — es la estrategia correcta para lógica de interacción, no una omisión.
+
 ## Estructura del proyecto
 
 ```
 thoren-beta/
 ├── index.html          # documento único, con las 6 pantallas de la experiencia
 ├── src/
-│   ├── main.js          # toda la lógica de estado, ritmo y transiciones
+│   ├── main.js              # orquestación del DOM: pantallas, ritmo, transiciones
+│   ├── engine.js            # adaptador del Motor Creativo real + instrumentación
+│   ├── telemetry.js         # eventos/tiempos internos, silenciosos salvo ?beta=true
+│   ├── engine.test.js        # pruebas de integración contra @impulso/creative-engine real
+│   ├── telemetry.test.js
+│   ├── vendor/
+│   │   ├── exportEngineSvgOnly.js  # shim: solo buildSvgDocument, sin Konva
+│   │   └── nodeCryptoShim.js       # shim: node:crypto -> crypto.randomUUID() del navegador
 │   └── style.css        # todos los estilos, tokens de marca, modo claro/oscuro
 ├── public/
 │   ├── favicon.svg
 │   └── robots.txt
-├── vite.config.js       # inyecta versión y fecha de build para el panel ?beta=true
-└── vercel.json          # configuración explícita de build para Vercel
+├── vite.config.js       # alias al Motor Creativo real + versión/fecha de build + vitest
+├── vercel.json          # configuración explícita de build para Vercel
+└── CHANGELOG_FASE3.md   # qué cambió y qué no cambió en la integración
 ```

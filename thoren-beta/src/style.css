@@ -164,16 +164,20 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
 .card.dimmed { filter: saturate(0.7) opacity(0.55); }
 .card:focus-visible { outline: 2px solid var(--terracotta); outline-offset: 3px; }
 
-.seal { width: 66%; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
-.seal span { font-family: var(--serif); font-weight: 600; }
-
-.seal.style-1 { background: radial-gradient(circle at 40% 35%, #fbeedb, #ecd3ab 78%); border: 1.5px solid var(--terracotta); }
-.seal.style-1 span { color: var(--terracotta-deep); font-size: clamp(16px, 4vw, 26px); }
-.seal.style-2 { background: linear-gradient(160deg, #f3ead9, #dcc79f); }
-.seal.style-2 span { color: #6b4a2a; font-size: clamp(14px, 3.4vw, 22px); }
-.seal.style-2::before { content: ""; position: absolute; inset: -10%; border: 1px solid rgba(107, 74, 42, 0.25); border-radius: 50%; }
-.seal.style-3 { background: var(--ink); }
-.seal.style-3 span { color: var(--paper); font-size: clamp(14px, 3.4vw, 22px); letter-spacing: 0.02em; }
+/*
+ * El "seal" muestra el SVG real que produjo el Motor Creativo (ver
+ * engine.js) — ya no hay tres fondos CSS fijos por posición: cada
+ * arquetipo real trae su propio fondo/forma (círculo, marco rectangular o
+ * composición asimétrica), así que el contenedor solo enmarca con una
+ * esquina suavemente redondeada uniforme, sin forzar un círculo que solo
+ * le quedaba bien a uno de los tres.
+ */
+.seal {
+  width: 82%; aspect-ratio: 1; border-radius: 14%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; position: relative;
+  box-shadow: 0 1px 0 rgba(28, 25, 23, 0.06);
+}
+.seal svg { width: 100%; height: 100%; display: block; }
 
 .choose-cta {
   opacity: 0; pointer-events: none;
@@ -196,14 +200,15 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
 }
 .reveal-caption.show { opacity: 1; }
 .reveal-seal {
-  width: clamp(150px, 44vw, 220px); height: clamp(150px, 44vw, 220px); border-radius: 50%;
+  width: clamp(150px, 44vw, 220px); height: clamp(150px, 44vw, 220px); border-radius: 14%;
+  overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   transform: scale(0.82); opacity: 0;
   transition: transform var(--dur-l) var(--ease), opacity var(--dur-l) var(--ease);
   box-shadow: 0 50px 90px -20px rgba(0, 0, 0, 0.65);
 }
 .reveal-seal.show { transform: scale(1); opacity: 1; }
-.reveal-seal span { font-family: var(--serif); font-size: clamp(24px, 7vw, 36px); font-weight: 600; color: var(--terracotta-deep); }
+.reveal-seal svg { width: 100%; height: 100%; display: block; }
 
 .obtain {
   margin-top: 12px; opacity: 0; pointer-events: none;
@@ -257,6 +262,13 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
   opacity: 0.85;
 }
 .beta-reset:hover { opacity: 1; border-color: var(--terracotta); color: var(--terracotta); }
+.beta-telemetry {
+  margin: 4px 0 0; padding: 6px 0 0; border-top: 1px solid var(--line);
+  font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.5;
+  color: var(--ink-faint); text-align: left; white-space: pre;
+  max-height: 40vh; overflow: auto; max-width: 46vw;
+}
+.beta-telemetry:empty { display: none; }
 
 /* [hidden] debe ganarle a las reglas de display de arriba — por defecto
    ninguno de los dos elementos de beta existe visualmente para un

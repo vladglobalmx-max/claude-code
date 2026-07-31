@@ -38,16 +38,16 @@
     <section class="screen" id="screen-proposals">
       <p class="prompt-line">¿Cuál se siente más como esto?</p>
       <div class="cards" id="cardsRow">
-        <button class="card" data-style="1" aria-label="Propuesta 1"><span class="seal style-1"><span></span></span></button>
-        <button class="card" data-style="2" aria-label="Propuesta 2"><span class="seal style-2"><span></span></span></button>
-        <button class="card" data-style="3" aria-label="Propuesta 3"><span class="seal style-3"><span></span></span></button>
+        <button class="card" aria-label="Propuesta 1"><span class="seal"></span></button>
+        <button class="card" aria-label="Propuesta 2"><span class="seal"></span></button>
+        <button class="card" aria-label="Propuesta 3"><span class="seal"></span></button>
       </div>
       <button class="choose-cta" id="chooseBtn">Elegir esta</button>
     </section>
 
     <section class="screen" id="screen-reveal">
       <p class="reveal-caption" id="revealCaption"></p>
-      <div class="reveal-seal" id="revealSeal"><span></span></div>
+      <div class="reveal-seal" id="revealSeal"></div>
       <button class="obtain" id="obtainBtn">Obtener</button>
     </section>
 
@@ -70,6 +70,7 @@
     <span id="betaVersion"></span>
     <span id="betaBuildDate"></span>
     <span id="betaElapsed"></span>
+    <pre id="betaTelemetry" class="beta-telemetry"></pre>
   </div>
   <button id="betaReset" class="beta-reset" hidden>Beta Reset</button>
 

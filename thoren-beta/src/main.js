@@ -1,4 +1,6 @@
 import "./style.css";
+import { markJourneyCompleted, markProposalRendered, markProposalSelected, runJourney } from "./engine.js";
+import { atLeast, getTelemetry } from "./telemetry.js";
 
 (function () {
   var entry = document.getElementById("entryField");
@@ -23,66 +25,72 @@ import "./style.css";
   });
   goBtn.addEventListener("click", start);
 
-  function extractIdentity(text) {
-    var raw = text;
-    var deMatch = text.match(/\bde\s+(.+)$/i);
-    var commaMatch = text.match(/,\s*(.+)$/);
-    if (deMatch) raw = deMatch[1];
-    else if (commaMatch) raw = commaMatch[1];
-    raw = raw.replace(/[.;].*$/, "").trim();
-    return raw || "Ti";
-  }
-  function initials(name) {
-    var entities = name.split(/\s*(?:&|,|\by\b)\s*/i).filter(Boolean);
-    var words;
-    if (entities.length > 1) {
-      words = entities.slice(0, 2);
-    } else {
-      words = entities[0].split(/\s+/).filter(Boolean).slice(0, 2);
-    }
-    var letters = words.map(function (w) { return w.trim().charAt(0).toUpperCase(); }).filter(Boolean);
-    return letters.join(entities.length > 1 ? "&" : "") || "T";
-  }
-
   function show(id) {
     document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("active"); });
     document.getElementById(id).classList.add("active");
   }
 
+  /**
+   * Fase 3 (Experience Integration): el mismo ritmo aprobado del
+   * Experience Blueprint (900ms de "pulso" antes de revelar propuestas) es
+   * ahora un PISO, no una duración fija — `atLeast` corre el Motor
+   * Creativo real en paralelo y solo avanza cuando ambos terminan: nunca
+   * se acelera la narrativa, y nunca se agrega una espera artificial si el
+   * motor necesita más tiempo del mínimo.
+   */
+  var THINKING_MIN_MS = 900;
+
   function start() {
     var text = entry.value.trim();
     if (text.length < 3) return;
-    var name = extractIdentity(text);
-    var init = initials(name);
 
     said.textContent = '"' + text + '"';
     said.classList.add("show");
 
     show("screen-thinking");
 
-    setTimeout(function () { populateProposals(name, init); }, 900);
+    atLeast(runJourney(text), THINKING_MIN_MS)
+      .then(function (proposals) {
+        populateProposals(proposals);
+      })
+      .catch(function (err) {
+        // Sin pantalla nueva de error en esta fase (fuera de alcance) —
+        // se registra y se regresa al inicio en vez de dejar la
+        // experiencia colgada en "pensando" indefinidamente.
+        console.error("THÖREN: el Motor Creativo no pudo generar propuestas.", err);
+        resetExperience();
+      });
   }
 
-  var chosenStyle = null;
+  var currentProposals = [];
+  var chosenProposal = null;
 
-  function populateProposals(name, init) {
-    document.querySelectorAll("#cardsRow .seal span").forEach(function (span) {
-      span.textContent = init;
-    });
+  function populateProposals(proposals) {
+    currentProposals = proposals;
     show("screen-proposals");
-    var cards = document.querySelectorAll(".card");
+    renderBetaTelemetry();
+
+    var cards = document.querySelectorAll("#cardsRow .card");
     cards.forEach(function (card, i) {
       card.classList.remove("arrived", "selected", "dimmed");
-      setTimeout(function () { card.classList.add("arrived"); }, 250 + i * 380);
+      var proposal = proposals[i];
+      card.querySelector(".seal").innerHTML = proposal.svg;
+      setTimeout(function () {
+        card.classList.add("arrived");
+        markProposalRendered(proposal.archetypeId);
+        if (i === cards.length - 1) renderBetaTelemetry();
+      }, 250 + i * 380);
     });
 
     var chooseBtn = document.getElementById("chooseBtn");
     chooseBtn.classList.remove("ready");
-    chosenStyle = null;
+    chosenProposal = null;
 
-    cards.forEach(function (card) {
+    cards.forEach(function (card, i) {
       card.onclick = function () {
-        chosenStyle = card.getAttribute("data-style");
+        chosenProposal = proposals[i];
+        markProposalSelected(chosenProposal.archetypeId);
+        renderBetaTelemetry();
         cards.forEach(function (c) {
           c.classList.toggle("selected", c === card);
           c.classList.toggle("dimmed", c !== card);
@@ -92,54 +100,43 @@ import "./style.css";
     });
 
     chooseBtn.onclick = function () {
-      if (!chosenStyle) return;
-      revealChosen(name, init, chosenStyle);
+      if (!chosenProposal) return;
+      revealChosen(chosenProposal);
     };
   }
 
-  var sealPalettes = {
-    "1": { bg: "radial-gradient(circle at 40% 35%, #fbeedb, #ecd3ab 78%)", ink: "#7d3520", download: "#f3ead9" },
-    "2": { bg: "linear-gradient(160deg, #f3ead9, #dcc79f)", ink: "#6b4a2a", download: "#f3ead9" },
-    "3": { bg: "#1c1917", ink: "#f2ede4", download: "#1c1917" },
-  };
-
-  function revealChosen(name, init, style) {
+  function revealChosen(proposal) {
     show("screen-reveal");
     var caption = document.getElementById("revealCaption");
     var seal = document.getElementById("revealSeal");
     var obtain = document.getElementById("obtainBtn");
-    caption.textContent = name;
+    caption.textContent = "Tu propuesta";
     caption.classList.remove("show");
     seal.classList.remove("show");
     obtain.classList.remove("ready");
 
-    var palette = sealPalettes[style] || sealPalettes["1"];
-    seal.style.background = palette.bg;
-    seal.querySelector("span").style.color = palette.ink;
-    seal.querySelector("span").textContent = init;
+    seal.innerHTML = proposal.svg;
 
     setTimeout(function () { caption.classList.add("show"); }, 200);
     setTimeout(function () { seal.classList.add("show"); }, 500);
     setTimeout(function () { obtain.classList.add("ready"); }, 1500);
 
-    obtain.onclick = function () { obtainDesign(name, init, palette); };
+    obtain.onclick = function () { obtainDesign(proposal); };
   }
 
-  function obtainDesign(name, init, palette) {
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">' +
-      '<rect width="600" height="600" fill="#faf6ef"/>' +
-      '<circle cx="300" cy="300" r="220" fill="' + palette.download + '" stroke="' + palette.ink + '" stroke-width="3"/>' +
-      '<text x="300" y="318" font-family="Georgia, serif" font-size="72" font-weight="600" fill="' + palette.ink + '" text-anchor="middle">' + init + "</text>" +
-      "</svg>";
-    var blob = new Blob([svg], { type: "image/svg+xml" });
+  function obtainDesign(proposal) {
+    var blob = new Blob([proposal.svg], { type: "image/svg+xml" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "thoren-" + init.toLowerCase().replace("&", "-") + ".svg";
+    a.download = "thoren-" + proposal.archetypeId + ".svg";
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+
+    markJourneyCompleted();
+    renderBetaTelemetry();
 
     said.classList.remove("show");
     show("screen-done");
@@ -169,17 +166,36 @@ import "./style.css";
     entry.value = "";
     sync();
     said.classList.remove("show");
+    currentProposals = [];
+    chosenProposal = null;
     show("screen-start");
     entry.focus();
   }
 
   // ---------------------------------------------------------------------
-  // Modo beta (?beta=true) — panel discreto de versión/fecha/tiempo y el
-  // botón "Beta Reset". Ninguno de los dos existe en la experiencia normal:
-  // el enlace que se comparte con un participante externo nunca lleva este
+  // Modo beta (?beta=true) — panel discreto de versión/fecha/tiempo, la
+  // instrumentación silenciosa (eventos + tiempos, ver telemetry.js) y el
+  // botón "Beta Reset". Ninguno existe en la experiencia normal: el
+  // enlace que se comparte con un participante externo nunca lleva este
   // parámetro, así que nunca los ve.
   // ---------------------------------------------------------------------
   var betaMode = new URLSearchParams(location.search).get("beta") === "true";
+
+  function renderBetaTelemetry() {
+    if (!betaMode) return;
+    var telemetry = getTelemetry();
+    var lines = [];
+    lines.push("tiempos:");
+    Object.keys(telemetry.timings).forEach(function (key) {
+      lines.push("  " + key + ": " + telemetry.timings[key] + "ms");
+    });
+    lines.push("eventos:");
+    telemetry.events.forEach(function (event) {
+      lines.push("  +" + event.at + "ms  " + event.name);
+    });
+    document.getElementById("betaTelemetry").textContent = lines.join("\n");
+  }
+
   if (betaMode) {
     var panel = document.getElementById("betaPanel");
     var resetBtn = document.getElementById("betaReset");
@@ -208,6 +224,7 @@ import "./style.css";
       resetExperience();
       startedAt = Date.now();
       tick();
+      renderBetaTelemetry();
     });
   }
 })();

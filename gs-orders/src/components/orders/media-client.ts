@@ -7,6 +7,8 @@ export async function uploadMediaFile(orderId: string, folder: string, file: Fil
   const fd = new FormData();
   fd.set("file", file);
   const result = await uploadOrderMedia(orderId, folder, fd);
+  if (!("path" in result)) throw new Error(result.error);
+
   return {
     key: crypto.randomUUID(),
     path: result.path,
@@ -21,6 +23,8 @@ export async function uploadAttachmentFile(orderId: string, file: File): Promise
   const fd = new FormData();
   fd.set("file", file);
   const result = await uploadOrderFile(orderId, fd);
+  if (!("path" in result)) throw new Error(result.error);
+
   return {
     key: crypto.randomUUID(),
     path: result.path,

@@ -36,8 +36,9 @@ export function MultiFileField({
     setUploading(true);
     try {
       await onAdd(file);
-    } catch {
-      toast.error("No se pudo subir el archivo");
+    } catch (err) {
+      console.error("Error al subir archivo", err);
+      toast.error(err instanceof Error && err.message ? err.message : "No se pudo subir el archivo");
     } finally {
       setUploading(false);
     }

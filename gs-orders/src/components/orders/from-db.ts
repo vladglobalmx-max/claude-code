@@ -18,6 +18,7 @@ export function buildOrderFormState(
     status: order.status,
     generalNotes: order.general_notes ?? "",
     vendorNotes: order.vendor_notes ?? "",
+    vendorNotesEn: order.vendor_notes_en ?? "",
     items: items
       .sort((a, b) => a.position - b.position)
       .map((item) => ({
@@ -63,6 +64,7 @@ export function buildOrderFormState(
       lensType: order.projector_lens_pending_factory ? "" : order.projector_lens_type ?? "",
       lensPendingFactory: order.projector_lens_pending_factory,
       description: order.projection_description ?? "",
+      descriptionEn: order.projection_description_en ?? "",
       file: order.projection_file_path
         ? {
             key: order.id + "-projection",
@@ -84,6 +86,7 @@ export function buildOrderFormState(
       surfaceType: order.surface_type ?? "",
       surfaceMaterial: order.surface_material ?? "",
       surfaceNotes: order.surface_notes ?? "",
+      surfaceNotesEn: order.surface_notes_en ?? "",
     },
   };
 }

@@ -19,16 +19,16 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
           <p className="text-xs uppercase tracking-wide text-ink-faint">
             Thunder Safety Solutions / Thunder LED Lights
           </p>
-          <p className="mt-2 text-lg font-bold uppercase tracking-widest text-accent">Orden de Pedido</p>
+          <p className="mt-2 text-lg font-bold uppercase tracking-widest text-accent">Purchase / Production Order</p>
         </header>
 
         <OrderDetailContent detail={detail} variant="print" />
 
         <footer className="mt-10 flex items-center justify-between border-t border-border pt-4 text-sm">
           <span className="text-ink-soft">
-            Vendedor: <span className="font-medium text-ink">{detail.salesperson.name}</span>
+            Salesperson: <span className="font-medium text-ink">{detail.salesperson.name}</span>
           </span>
-          <span className="font-mono font-semibold text-ink">Folio: {detail.order.folio}</span>
+          <span className="font-mono font-semibold text-ink">Order No.: {detail.order.folio}</span>
         </footer>
       </div>
     </div>

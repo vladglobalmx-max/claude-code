@@ -27,6 +27,7 @@ export const projectorSchema = z.object({
   lens_type: z.string().trim().optional(),
   lens_pending_factory: z.boolean().optional(),
   description: z.string().trim().optional(),
+  description_en: z.string().trim().optional(),
   file: z
     .object({ path: z.string(), name: z.string(), type: z.string().optional() })
     .nullable()
@@ -48,6 +49,7 @@ export const projectorSchema = z.object({
     .optional()
     .nullable(),
   surface_notes: z.string().trim().optional(),
+  surface_notes_en: z.string().trim().optional(),
 });
 
 export const orderPayloadSchema = z.object({
@@ -59,6 +61,7 @@ export const orderPayloadSchema = z.object({
   status: z.enum(["borrador", "pedido", "cerrado", "cancelado"]).default("borrador"),
   general_notes: z.string().trim().optional(),
   vendor_notes: z.string().trim().optional(),
+  vendor_notes_en: z.string().trim().optional(),
   items: z.array(orderItemSchema).min(1, "Agrega al menos un producto"),
   images: z.array(orderImageSchema).default([]),
   files: z.array(orderFileSchema).default([]),

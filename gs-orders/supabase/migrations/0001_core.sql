@@ -68,6 +68,9 @@ create table orders (
 
   general_notes text,
   vendor_notes text,
+  -- Texto opcional en inglés para la orden que se imprime hacia fábrica.
+  -- El PDF usa este texto cuando existe; si está vacío usa vendor_notes como fallback.
+  vendor_notes_en text,
 
   -- --- Proyector / GOBO: especificaciones de proyección (solo aplica si product_type = 'proyector_gobo') ---
   projector_model text,
@@ -77,6 +80,8 @@ create table orders (
   projector_lens_pending_factory boolean not null default false,
 
   projection_description text,
+  -- Igual que vendor_notes_en: texto en inglés opcional, con fallback al original.
+  projection_description_en text,
   projection_file_path text,
   projection_file_name text,
   projection_file_type text,
@@ -97,6 +102,8 @@ create table orders (
   surface_material text
     check (surface_material in ('concreto', 'epoxico', 'asfalto', 'metal', 'pintura', 'otro')),
   surface_notes text,
+  -- Igual que vendor_notes_en: texto en inglés opcional, con fallback al original.
+  surface_notes_en text,
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

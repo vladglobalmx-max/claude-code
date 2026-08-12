@@ -24,6 +24,7 @@ function buildOrderRow(payload: OrderPayload) {
     status: payload.status,
     general_notes: payload.general_notes || null,
     vendor_notes: payload.vendor_notes || null,
+    vendor_notes_en: payload.vendor_notes_en || null,
 
     projector_model: p?.model || null,
     projector_quantity: p?.quantity ?? null,
@@ -32,6 +33,7 @@ function buildOrderRow(payload: OrderPayload) {
     projector_lens_pending_factory: p?.lens_pending_factory ?? false,
 
     projection_description: p?.description || null,
+    projection_description_en: p?.description_en || null,
     projection_file_path: p?.file?.path || null,
     projection_file_name: p?.file?.name || null,
     projection_file_type: p?.file?.type || null,
@@ -49,6 +51,7 @@ function buildOrderRow(payload: OrderPayload) {
     surface_type: p?.surface_type || null,
     surface_material: p?.surface_material || null,
     surface_notes: p?.surface_notes || null,
+    surface_notes_en: p?.surface_notes_en || null,
   };
 }
 

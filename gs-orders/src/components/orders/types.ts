@@ -36,6 +36,7 @@ export interface ProjectorDraft {
   lensType: string;
   lensPendingFactory: boolean;
   description: string;
+  descriptionEn: string;
   file: MediaDraft | null;
   width: string;
   height: string;
@@ -48,6 +49,7 @@ export interface ProjectorDraft {
   surfaceType: SurfaceType | "";
   surfaceMaterial: SurfaceMaterial | "";
   surfaceNotes: string;
+  surfaceNotesEn: string;
 }
 
 export interface OrderFormState {
@@ -59,6 +61,7 @@ export interface OrderFormState {
   status: OrderStatus;
   generalNotes: string;
   vendorNotes: string;
+  vendorNotesEn: string;
   items: ProductItemDraft[];
   images: MediaDraft[];
   files: MediaDraft[];
@@ -84,6 +87,7 @@ export function emptyProjector(): ProjectorDraft {
     lensType: "",
     lensPendingFactory: false,
     description: "",
+    descriptionEn: "",
     file: null,
     width: "",
     height: "",
@@ -96,6 +100,7 @@ export function emptyProjector(): ProjectorDraft {
     surfaceType: "",
     surfaceMaterial: "",
     surfaceNotes: "",
+    surfaceNotesEn: "",
   };
 }
 
@@ -109,6 +114,7 @@ export function emptyOrderForm(defaultDate: string): OrderFormState {
     status: "borrador",
     generalNotes: "",
     vendorNotes: "",
+    vendorNotesEn: "",
     items: [emptyProductItem()],
     images: [],
     files: [],

@@ -94,6 +94,17 @@ export function ProyectorSection({
             />
           </div>
           <div>
+            <Label htmlFor="proj-description-en">Texto para proveedor (inglés)</Label>
+            <Textarea
+              id="proj-description-en"
+              rows={2}
+              value={value.descriptionEn}
+              onChange={(e) => onChange({ descriptionEn: e.target.value })}
+              placeholder="Ej. STOP, Pedestrian crossing, TENARIS logo…"
+            />
+            <p className="mt-1 text-xs text-ink-faint">Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.</p>
+          </div>
+          <div>
             <Label>Imagen a proyectar</Label>
             <SingleImageField
               value={value.file}
@@ -274,6 +285,16 @@ export function ProyectorSection({
               value={value.surfaceNotes}
               onChange={(e) => onChange({ surfaceNotes: e.target.value })}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="proj-surface-notes-en">Texto para proveedor (inglés)</Label>
+            <Textarea
+              id="proj-surface-notes-en"
+              rows={2}
+              value={value.surfaceNotesEn}
+              onChange={(e) => onChange({ surfaceNotesEn: e.target.value })}
+            />
+            <p className="mt-1 text-xs text-ink-faint">Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.</p>
           </div>
         </CardContent>
       </Card>

@@ -37,6 +37,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
     status,
     general_notes: state.generalNotes || undefined,
     vendor_notes: state.vendorNotes || undefined,
+    vendor_notes_en: state.vendorNotesEn || undefined,
     items: state.items.map((item) => ({
       model: item.model,
       description: item.description || undefined,
@@ -60,6 +61,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
             lens_type: state.projector.lensType || undefined,
             lens_pending_factory: state.projector.lensPendingFactory,
             description: state.projector.description || undefined,
+            description_en: state.projector.descriptionEn || undefined,
             file: state.projector.file
               ? { path: state.projector.file.path, name: state.projector.file.name, type: state.projector.file.type }
               : null,
@@ -78,6 +80,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
             surface_type: state.projector.surfaceType || undefined,
             surface_material: state.projector.surfaceMaterial || undefined,
             surface_notes: state.projector.surfaceNotes || undefined,
+            surface_notes_en: state.projector.surfaceNotesEn || undefined,
           }
         : null,
   };
@@ -218,7 +221,12 @@ export function OrderForm({
       </div>
 
       <div className={tab === "observaciones" ? "block" : "hidden"}>
-        <ObservacionesSection value={state.vendorNotes} onChange={(vendorNotes) => patch({ vendorNotes })} />
+        <ObservacionesSection
+          value={state.vendorNotes}
+          onChange={(vendorNotes) => patch({ vendorNotes })}
+          valueEn={state.vendorNotesEn}
+          onChangeEn={(vendorNotesEn) => patch({ vendorNotesEn })}
+        />
       </div>
 
       <div className={tab === "revisar" ? "block" : "hidden"}>

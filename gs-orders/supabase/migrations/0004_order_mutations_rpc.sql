@@ -33,12 +33,12 @@ declare
 begin
   insert into orders (
     id, salesperson_id, order_date, client_name, supplier_name, product_type, status,
-    general_notes, vendor_notes,
+    general_notes, vendor_notes, vendor_notes_en,
     projector_model, projector_quantity, projector_power, projector_lens_type, projector_lens_pending_factory,
-    projection_description, projection_file_path, projection_file_name, projection_file_type,
+    projection_description, projection_description_en, projection_file_path, projection_file_name, projection_file_type,
     projection_width, projection_height, projection_size_unit,
     installation_height, installation_height_unit, installation_distance, installation_orientation, installation_use,
-    surface_type, surface_material, surface_notes
+    surface_type, surface_material, surface_notes, surface_notes_en
   )
   values (
     p_order_id,
@@ -50,12 +50,14 @@ begin
     coalesce(p_order->>'status', 'borrador'),
     p_order->>'general_notes',
     p_order->>'vendor_notes',
+    p_order->>'vendor_notes_en',
     p_order->>'projector_model',
     nullif(p_order->>'projector_quantity', '')::integer,
     p_order->>'projector_power',
     p_order->>'projector_lens_type',
     coalesce((p_order->>'projector_lens_pending_factory')::boolean, false),
     p_order->>'projection_description',
+    p_order->>'projection_description_en',
     p_order->>'projection_file_path',
     p_order->>'projection_file_name',
     p_order->>'projection_file_type',
@@ -69,7 +71,8 @@ begin
     p_order->>'installation_use',
     p_order->>'surface_type',
     p_order->>'surface_material',
-    p_order->>'surface_notes'
+    p_order->>'surface_notes',
+    p_order->>'surface_notes_en'
   )
   returning * into v_order;
 
@@ -133,12 +136,14 @@ begin
     status = coalesce(p_order->>'status', status),
     general_notes = p_order->>'general_notes',
     vendor_notes = p_order->>'vendor_notes',
+    vendor_notes_en = p_order->>'vendor_notes_en',
     projector_model = p_order->>'projector_model',
     projector_quantity = nullif(p_order->>'projector_quantity', '')::integer,
     projector_power = p_order->>'projector_power',
     projector_lens_type = p_order->>'projector_lens_type',
     projector_lens_pending_factory = coalesce((p_order->>'projector_lens_pending_factory')::boolean, false),
     projection_description = p_order->>'projection_description',
+    projection_description_en = p_order->>'projection_description_en',
     projection_file_path = p_order->>'projection_file_path',
     projection_file_name = p_order->>'projection_file_name',
     projection_file_type = p_order->>'projection_file_type',
@@ -152,7 +157,8 @@ begin
     installation_use = p_order->>'installation_use',
     surface_type = p_order->>'surface_type',
     surface_material = p_order->>'surface_material',
-    surface_notes = p_order->>'surface_notes'
+    surface_notes = p_order->>'surface_notes',
+    surface_notes_en = p_order->>'surface_notes_en'
   where id = p_order_id
   returning * into v_order;
 
@@ -215,25 +221,25 @@ begin
 
   insert into orders (
     salesperson_id, order_date, client_name, supplier_name, product_type, status,
-    general_notes, vendor_notes,
+    general_notes, vendor_notes, vendor_notes_en,
     projector_model, projector_quantity, projector_power, projector_lens_type, projector_lens_pending_factory,
-    projection_description, projection_file_path, projection_file_name, projection_file_type,
+    projection_description, projection_description_en, projection_file_path, projection_file_name, projection_file_type,
     projection_width, projection_height, projection_size_unit,
     installation_height, installation_height_unit, installation_distance, installation_orientation, installation_use,
-    surface_type, surface_material, surface_notes
+    surface_type, surface_material, surface_notes, surface_notes_en
   )
   values (
     v_source.salesperson_id, current_date, v_source.client_name, v_source.supplier_name,
     v_source.product_type, 'borrador',
-    v_source.general_notes, v_source.vendor_notes,
+    v_source.general_notes, v_source.vendor_notes, v_source.vendor_notes_en,
     v_source.projector_model, v_source.projector_quantity, v_source.projector_power,
     v_source.projector_lens_type, v_source.projector_lens_pending_factory,
-    v_source.projection_description, v_source.projection_file_path, v_source.projection_file_name,
-    v_source.projection_file_type,
+    v_source.projection_description, v_source.projection_description_en, v_source.projection_file_path,
+    v_source.projection_file_name, v_source.projection_file_type,
     v_source.projection_width, v_source.projection_height, v_source.projection_size_unit,
     v_source.installation_height, v_source.installation_height_unit, v_source.installation_distance,
     v_source.installation_orientation, v_source.installation_use,
-    v_source.surface_type, v_source.surface_material, v_source.surface_notes
+    v_source.surface_type, v_source.surface_material, v_source.surface_notes, v_source.surface_notes_en
   )
   returning * into v_new;
 

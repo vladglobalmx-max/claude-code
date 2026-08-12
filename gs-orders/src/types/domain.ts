@@ -152,6 +152,7 @@ export interface Order {
   status: OrderStatus;
   general_notes: string | null;
   vendor_notes: string | null;
+  vendor_notes_en: string | null;
 
   projector_model: string | null;
   projector_quantity: number | null;
@@ -160,6 +161,7 @@ export interface Order {
   projector_lens_pending_factory: boolean;
 
   projection_description: string | null;
+  projection_description_en: string | null;
   projection_file_path: string | null;
   projection_file_name: string | null;
   projection_file_type: string | null;
@@ -177,6 +179,7 @@ export interface Order {
   surface_type: SurfaceType | null;
   surface_material: SurfaceMaterial | null;
   surface_notes: string | null;
+  surface_notes_en: string | null;
 
   created_at: string;
   updated_at: string;

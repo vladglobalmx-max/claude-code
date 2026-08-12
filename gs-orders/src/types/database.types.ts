@@ -127,6 +127,17 @@ export interface Database {
           description: string | null;
           quantity: number;
           notes: string | null;
+          power: string | null;
+          lens_type: string | null;
+          lens_pending_factory: boolean;
+          projection_description: string | null;
+          projection_description_en: string | null;
+          projection_file_path: string | null;
+          projection_file_name: string | null;
+          projection_file_type: string | null;
+          projection_width: number | null;
+          projection_height: number | null;
+          projection_size_unit: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -139,6 +150,17 @@ export interface Database {
           description?: string | null;
           quantity?: number;
           notes?: string | null;
+          power?: string | null;
+          lens_type?: string | null;
+          lens_pending_factory?: boolean;
+          projection_description?: string | null;
+          projection_description_en?: string | null;
+          projection_file_path?: string | null;
+          projection_file_name?: string | null;
+          projection_file_type?: string | null;
+          projection_width?: number | null;
+          projection_height?: number | null;
+          projection_size_unit?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
         Relationships: [
@@ -233,6 +255,10 @@ export interface Database {
       rpc_duplicate_order: {
         Args: { p_source_order_id: string };
         Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      rpc_delete_order: {
+        Args: { p_order_id: string };
+        Returns: { orphaned_media_paths: string[]; orphaned_file_paths: string[] }[];
       };
     };
     Enums: Record<string, never>;

@@ -9,6 +9,7 @@ import { ORDER_STATUS_BADGE, ORDER_STATUS_LABELS, PRODUCT_TYPE_LABELS } from "@/
 import type { Salesperson } from "@/types/domain";
 import { OrderFilters } from "./order-filters";
 import { DuplicateButton } from "./duplicate-button";
+import { DeleteButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,7 @@ export default async function PedidosPage({
                       <Link href={`/pedidos/${order.id}/pdf`} className="text-ink-soft hover:text-accent">
                         PDF
                       </Link>
+                      <DeleteButton orderId={order.id} folio={order.folio} className="text-ink-soft hover:text-danger" />
                     </div>
                   </Td>
                 </Tr>

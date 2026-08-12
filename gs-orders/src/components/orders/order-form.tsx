@@ -44,6 +44,21 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       quantity: item.quantity,
       notes: item.notes || undefined,
       image_path: item.image?.path ?? null,
+      power: state.productType === "proyector_gobo" ? item.power || undefined : undefined,
+      lens_type: state.productType === "proyector_gobo" ? item.lensType || undefined : undefined,
+      lens_pending_factory: state.productType === "proyector_gobo" ? item.lensPendingFactory : undefined,
+      projection_description:
+        state.productType === "proyector_gobo" ? item.projectionDescription || undefined : undefined,
+      projection_description_en:
+        state.productType === "proyector_gobo" ? item.projectionDescriptionEn || undefined : undefined,
+      projection_file_path: state.productType === "proyector_gobo" ? item.projectionFile?.path ?? null : null,
+      projection_file_name: state.productType === "proyector_gobo" ? item.projectionFile?.name ?? null : null,
+      projection_file_type: state.productType === "proyector_gobo" ? item.projectionFile?.type ?? null : null,
+      projection_width:
+        state.productType === "proyector_gobo" && item.projectionWidth ? Number(item.projectionWidth) : undefined,
+      projection_height:
+        state.productType === "proyector_gobo" && item.projectionHeight ? Number(item.projectionHeight) : undefined,
+      projection_size_unit: state.productType === "proyector_gobo" ? item.projectionSizeUnit : undefined,
     })),
     images: state.images.map((img) => ({ storage_path: img.path, caption: img.caption || undefined })),
     files: state.files.map((f) => ({
@@ -55,19 +70,6 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
     projector:
       state.productType === "proyector_gobo"
         ? {
-            model: state.projector.model || undefined,
-            quantity: state.projector.quantity ? Number(state.projector.quantity) : undefined,
-            power: state.projector.power || undefined,
-            lens_type: state.projector.lensType || undefined,
-            lens_pending_factory: state.projector.lensPendingFactory,
-            description: state.projector.description || undefined,
-            description_en: state.projector.descriptionEn || undefined,
-            file: state.projector.file
-              ? { path: state.projector.file.path, name: state.projector.file.name, type: state.projector.file.type }
-              : null,
-            width: state.projector.width ? Number(state.projector.width) : undefined,
-            height: state.projector.height ? Number(state.projector.height) : undefined,
-            size_unit: state.projector.sizeUnit,
             installation_height: state.projector.installationHeight
               ? Number(state.projector.installationHeight)
               : undefined,
@@ -197,13 +199,17 @@ export function OrderForm({
       </div>
 
       <div className={tab === "productos" ? "block" : "hidden"}>
-        <ProductosSection orderId={orderId} items={state.items} onChange={(items) => patch({ items })} />
+        <ProductosSection
+          orderId={orderId}
+          items={state.items}
+          isProjector={state.productType === "proyector_gobo"}
+          onChange={(items) => patch({ items })}
+        />
       </div>
 
       {state.productType === "proyector_gobo" && (
         <div className={tab === "productos" ? "mt-5 block" : "hidden"}>
           <ProyectorSection
-            orderId={orderId}
             value={state.projector}
             onChange={(p) => patch({ projector: { ...state.projector, ...p } })}
           />

@@ -116,6 +116,26 @@ export interface OrderItem {
   description: string | null;
   quantity: number;
   notes: string | null;
+
+  // Especificaciones técnicas del equipo (solo aplica si el pedido es
+  // proyector_gobo). Antes vivían una sola vez en `orders`; ahora cada
+  // producto tiene las suyas, porque un pedido puede incluir varios
+  // proyectores con especificaciones distintas.
+  power: string | null;
+  lens_type: string | null;
+  lens_pending_factory: boolean;
+
+  // Proyección de este producto específico (antes también era una sola
+  // columna global en `orders`).
+  projection_description: string | null;
+  projection_description_en: string | null;
+  projection_file_path: string | null;
+  projection_file_name: string | null;
+  projection_file_type: string | null;
+  projection_width: number | null;
+  projection_height: number | null;
+  projection_size_unit: SizeUnit | null;
+
   created_at: string;
   updated_at: string;
 }

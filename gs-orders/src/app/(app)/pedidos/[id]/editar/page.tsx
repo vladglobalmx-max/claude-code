@@ -28,6 +28,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
 
   const mediaPaths = [
     ...typedItems.map((i) => i.image_path).filter((p): p is string => !!p),
+    ...typedItems.map((i) => i.projection_file_path).filter((p): p is string => !!p),
     ...typedImages.map((i) => i.storage_path),
     ...(typedOrder.projection_file_path ? [typedOrder.projection_file_path] : []),
   ];

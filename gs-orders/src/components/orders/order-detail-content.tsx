@@ -87,18 +87,8 @@ export function OrderDetailContent({
   const isProjector = order.product_type === "proyector_gobo";
   const isEn = variant === "print";
 
-  const projectionSize =
-    order.projection_width != null && order.projection_height != null
-      ? `${order.projection_width} ${order.projection_size_unit} × ${order.projection_height} ${order.projection_size_unit}`
-      : null;
-  const projectionImageUrl = order.projection_file_path ? mediaUrls[order.projection_file_path] : null;
-  const projectionIsImage = order.projection_file_type?.startsWith("image/") ?? false;
-
   // Texto libre: en el PDF se usa la versión en inglés cuando existe;
   // si está vacía, se usa el texto original en español como respaldo.
-  const projectionDescription = isEn
-    ? order.projection_description_en || order.projection_description
-    : order.projection_description;
   const surfaceNotes = isEn ? order.surface_notes_en || order.surface_notes : order.surface_notes;
   const vendorNotes = isEn ? order.vendor_notes_en || order.vendor_notes : order.vendor_notes;
 
@@ -129,26 +119,94 @@ export function OrderDetailContent({
 
       {items.length > 0 && (
         <Section title={isEn ? "Products" : "Productos"}>
-          <div className="space-y-3">
-            {items.map((item) => {
+          <div className="space-y-4">
+            {items.map((item, index) => {
               const imageUrl = item.image_path ? mediaUrls[item.image_path] : null;
+              const itemProjectionImageUrl = item.projection_file_path ? mediaUrls[item.projection_file_path] : null;
+              const itemProjectionIsImage = item.projection_file_type?.startsWith("image/") ?? false;
+              const itemProjectionDescription = isEn
+                ? item.projection_description_en || item.projection_description
+                : item.projection_description;
+              const itemProjectionSize =
+                item.projection_width != null && item.projection_height != null
+                  ? `${item.projection_width} ${item.projection_size_unit} × ${item.projection_height} ${item.projection_size_unit}`
+                  : null;
+              const specs = [
+                item.power ? `${isEn ? "Power/Version" : "Potencia/versión"}: ${item.power}` : null,
+                item.lens_pending_factory
+                  ? `${isEn ? "Lens" : "Lente"}: ${isEn ? "To be defined by factory" : "Por definir por fábrica"}`
+                  : item.lens_type
+                    ? `${isEn ? "Lens" : "Lente"}: ${item.lens_type}`
+                    : null,
+              ].filter(Boolean);
+
               return (
-                <div key={item.id} className="flex gap-3 rounded-lg border border-border p-3">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
-                    {imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={imageUrl} alt={item.model} className="h-full w-full object-cover" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-ink-faint" />
-                    )}
+                <div key={item.id} className="break-inside-avoid rounded-lg border border-border p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                    {isEn ? `Item ${index + 1}` : `Producto ${index + 1}`}
+                  </p>
+                  <div className="flex gap-3">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
+                      {imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={imageUrl} alt={item.model} className="h-full w-full object-cover" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-ink-faint" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-ink">
+                        {isEn ? "Model" : "Modelo"}: {item.model}{" "}
+                        <span className="font-normal text-ink-faint">
+                          · {isEn ? "Quantity" : "Cantidad"}: {item.quantity}
+                        </span>
+                      </p>
+                      {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
+                      {isProjector && specs.length > 0 && (
+                        <p className="mt-1 text-xs text-ink-faint">{specs.join(" · ")}</p>
+                      )}
+                      {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-ink">
-                      {item.model} <span className="font-normal text-ink-faint">× {item.quantity}</span>
-                    </p>
-                    {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
-                    {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}
-                  </div>
+
+                  {isProjector && (item.projection_file_path || itemProjectionDescription || itemProjectionSize) && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                        {isEn ? "Projected Image" : "Imagen a proyectar"}
+                      </p>
+                      {itemProjectionDescription && (
+                        <p className="text-sm text-ink">
+                          {isEn ? "Requested content: " : "Qué proyectar: "}
+                          {itemProjectionDescription}
+                        </p>
+                      )}
+                      {item.projection_file_path &&
+                        (itemProjectionIsImage && itemProjectionImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={itemProjectionImageUrl}
+                            alt={isEn ? "Projection image" : "Imagen a proyectar"}
+                            className="mt-2 max-h-72 w-auto max-w-full rounded-lg border border-border object-contain print:max-h-[320px]"
+                          />
+                        ) : (
+                          <a
+                            href={itemProjectionImageUrl ?? "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-accent hover:underline"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {item.projection_file_name ?? (isEn ? "View file" : "Ver archivo")}
+                          </a>
+                        ))}
+                      {itemProjectionSize && (
+                        <p className="mt-2 text-sm text-ink-soft">
+                          {isEn ? "Requested Projection: " : "Medida requerida: "}
+                          <span className="font-medium text-ink">{itemProjectionSize}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -158,56 +216,6 @@ export function OrderDetailContent({
 
       {isProjector && (
         <>
-          <Section title={isEn ? "Projector / Gobo" : "Proyector"}>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              <Field label={isEn ? "Projector Model" : "Modelo"} value={order.projector_model} />
-              <Field label={isEn ? "Quantity" : "Cantidad"} value={order.projector_quantity} />
-              <Field label={isEn ? "Power / Version" : "Potencia / versión"} value={order.projector_power} />
-              <Field
-                label={isEn ? "Lens" : "Lente"}
-                value={
-                  order.projector_lens_pending_factory
-                    ? isEn
-                      ? "To be defined by factory"
-                      : "Por definir por fábrica"
-                    : order.projector_lens_type
-                }
-              />
-            </dl>
-          </Section>
-
-          <Section title={isEn ? "Projection" : "Proyección"}>
-            <div className="space-y-3">
-              <Field label={isEn ? "Requested Projection" : "Descripción"} value={projectionDescription} />
-              <Field label={isEn ? "Projection Width" : "Ancho"} value={formatMeasure(order.projection_width, order.projection_size_unit)} />
-              <Field label={isEn ? "Projection Height" : "Alto"} value={formatMeasure(order.projection_height, order.projection_size_unit)} />
-              {projectionSize && <Field label={isEn ? "Projection Size" : "Tamaño de proyección"} value={projectionSize} />}
-              {order.projection_file_path && (
-                <div>
-                  <dt className="mb-1.5 text-xs text-ink-faint">{isEn ? "Projection Image" : "Imagen a proyectar"}</dt>
-                  {projectionIsImage && projectionImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={projectionImageUrl}
-                      alt={isEn ? "Projection image" : "Imagen a proyectar"}
-                      className="max-h-96 w-auto max-w-full rounded-lg border border-border object-contain print:max-h-[420px]"
-                    />
-                  ) : (
-                    <a
-                      href={projectionImageUrl ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-accent hover:underline"
-                    >
-                      <FileText className="h-4 w-4" />
-                      {order.projection_file_name ?? (isEn ? "View file" : "Ver archivo")}
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </Section>
-
           <Section title={isEn ? "Installation" : "Instalación"}>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
               <Field

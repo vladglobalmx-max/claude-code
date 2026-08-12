@@ -27,20 +27,29 @@ export interface ProductItemDraft {
   quantity: number;
   notes: string;
   image: MediaDraft | null;
-}
 
-export interface ProjectorDraft {
-  model: string;
-  quantity: string;
+  // Especificaciones técnicas del equipo (solo se capturan/muestran cuando
+  // el pedido es proyector_gobo).
   power: string;
   lensType: string;
   lensPendingFactory: boolean;
-  description: string;
-  descriptionEn: string;
-  file: MediaDraft | null;
-  width: string;
-  height: string;
-  sizeUnit: SizeUnit;
+
+  // Proyección de este producto (solo proyector_gobo).
+  projectionDescription: string;
+  projectionDescriptionEn: string;
+  projectionFile: MediaDraft | null;
+  projectionWidth: string;
+  projectionHeight: string;
+  projectionSizeUnit: SizeUnit;
+}
+
+/**
+ * Instalación y superficie del pedido (proyector_gobo). Ya no lleva equipo
+ * ni proyección — eso ahora vive por producto en ProductItemDraft, porque
+ * un pedido puede incluir varios proyectores con especificaciones y
+ * proyecciones distintas.
+ */
+export interface ProjectorDraft {
   installationHeight: string;
   installationHeightUnit: HeightUnit;
   installationDistance: string;
@@ -76,22 +85,20 @@ export function emptyProductItem(): ProductItemDraft {
     quantity: 1,
     notes: "",
     image: null,
+    power: "",
+    lensType: "",
+    lensPendingFactory: false,
+    projectionDescription: "",
+    projectionDescriptionEn: "",
+    projectionFile: null,
+    projectionWidth: "",
+    projectionHeight: "",
+    projectionSizeUnit: "m",
   };
 }
 
 export function emptyProjector(): ProjectorDraft {
   return {
-    model: "",
-    quantity: "",
-    power: "",
-    lensType: "",
-    lensPendingFactory: false,
-    description: "",
-    descriptionEn: "",
-    file: null,
-    width: "",
-    height: "",
-    sizeUnit: "m",
     installationHeight: "",
     installationHeightUnit: "m",
     installationDistance: "",

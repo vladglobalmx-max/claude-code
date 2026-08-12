@@ -80,23 +80,31 @@ export function RevisarSection({
           <Row label="Productos" value={String(state.items.length)} />
           <Row label="Fotografías" value={String(state.images.length)} />
           <Row label="Archivos adjuntos" value={String(state.files.length)} />
-          {state.productType === "proyector_gobo" && (
-            <>
-              <Row label="Modelo de proyector" value={state.projector.model || "—"} />
+        </CardContent>
+      </Card>
+
+      {state.productType === "proyector_gobo" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Proyección por producto</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {state.items.map((item, index) => (
               <Row
-                label="Imagen a proyectar"
+                key={item.key}
+                label={item.model ? `Producto ${index + 1} (${item.model})` : `Producto ${index + 1}`}
                 value={
-                  state.projector.file ? (
-                    <Badge variant="success">Cargada</Badge>
+                  item.projectionFile ? (
+                    <Badge variant="success">Imagen cargada</Badge>
                   ) : (
                     <Badge variant="neutral">Sin cargar</Badge>
                   )
                 }
               />
-            </>
-          )}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

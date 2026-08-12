@@ -5,8 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SingleImageField } from "./single-image-field";
-import { uploadMediaFile } from "./media-client";
 import {
   ORIENTATION_LABELS,
   SURFACE_MATERIAL_LABELS,
@@ -15,157 +13,20 @@ import {
 } from "@/types/domain";
 import type { ProjectorDraft } from "./types";
 
+/**
+ * Instalación y superficie del pedido — no varían por producto, así que
+ * siguen siendo del pedido completo. El equipo y la imagen a proyectar de
+ * cada producto se capturan en ProductosSection (ver 0006_item_projection.sql).
+ */
 export function ProyectorSection({
-  orderId,
   value,
   onChange,
 }: {
-  orderId: string;
   value: ProjectorDraft;
   onChange: (patch: Partial<ProjectorDraft>) => void;
 }) {
   return (
     <div className="space-y-5">
-      <Card>
-        <CardHeader>
-          <CardTitle>Equipo</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="proj-model">Modelo exacto del proyector</Label>
-            <Input
-              id="proj-model"
-              value={value.model}
-              onChange={(e) => onChange({ model: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-quantity">Cantidad</Label>
-            <Input
-              id="proj-quantity"
-              type="number"
-              min={1}
-              value={value.quantity}
-              onChange={(e) => onChange({ quantity: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-power">Potencia / versión (opcional)</Label>
-            <Input
-              id="proj-power"
-              value={value.power}
-              onChange={(e) => onChange({ power: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-lens">Tipo de lente (opcional)</Label>
-            <Input
-              id="proj-lens"
-              value={value.lensType}
-              disabled={value.lensPendingFactory}
-              onChange={(e) => onChange({ lensType: e.target.value })}
-            />
-            <label className="mt-1.5 flex items-center gap-2 text-xs text-ink-faint">
-              <input
-                type="checkbox"
-                checked={value.lensPendingFactory}
-                onChange={(e) => onChange({ lensPendingFactory: e.target.checked, lensType: "" })}
-                className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent/30"
-              />
-              Por definir por fábrica
-            </label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Imagen que se proyectará</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="proj-description">¿Qué quiere proyectar el cliente?</Label>
-            <Textarea
-              id="proj-description"
-              rows={2}
-              value={value.description}
-              onChange={(e) => onChange({ description: e.target.value })}
-              placeholder="Ej. STOP, Cruce peatonal, Logo TENARIS, Zona restringida…"
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-description-en">Texto para proveedor (inglés)</Label>
-            <Textarea
-              id="proj-description-en"
-              rows={2}
-              value={value.descriptionEn}
-              onChange={(e) => onChange({ descriptionEn: e.target.value })}
-              placeholder="Ej. STOP, Pedestrian crossing, TENARIS logo…"
-            />
-            <p className="mt-1 text-xs text-ink-faint">Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.</p>
-          </div>
-          <div>
-            <Label>Imagen a proyectar</Label>
-            <SingleImageField
-              value={value.file}
-              accept="image/jpeg,image/png,image/jpg,.pdf,.svg,application/pdf,image/svg+xml"
-              label="Subir imagen o diseño (JPG, PNG, PDF, SVG)"
-              onUpload={async (file) => {
-                const media = await uploadMediaFile(orderId, "proyeccion", file);
-                onChange({ file: media });
-              }}
-              onRemove={() => onChange({ file: null })}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Medidas de la proyección</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="proj-width">Ancho de imagen requerida</Label>
-            <Input
-              id="proj-width"
-              type="number"
-              step="0.01"
-              min={0}
-              value={value.width}
-              onChange={(e) => onChange({ width: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-height">Alto de imagen requerida</Label>
-            <Input
-              id="proj-height"
-              type="number"
-              step="0.01"
-              min={0}
-              value={value.height}
-              onChange={(e) => onChange({ height: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="proj-size-unit">Unidad</Label>
-            <Select
-              id="proj-size-unit"
-              value={value.sizeUnit}
-              onChange={(e) => onChange({ sizeUnit: e.target.value as ProjectorDraft["sizeUnit"] })}
-            >
-              <option value="m">Metros</option>
-              <option value="cm">Centímetros</option>
-            </Select>
-          </div>
-          {value.width && value.height && (
-            <p className="text-sm text-ink-soft sm:col-span-3">
-              Tamaño de proyección: {value.width} {value.sizeUnit} × {value.height} {value.sizeUnit}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Instalación del proyector</CardTitle>

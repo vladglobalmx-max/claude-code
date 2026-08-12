@@ -13,6 +13,13 @@ import {
 
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
 
+/**
+ * Construye la fila de `orders`. El equipo y la imagen a proyectar de cada
+ * producto ya no van aquí — viven por producto en order_items (ver
+ * 0006_item_projection.sql y buildPayload en order-form.tsx). `projector`
+ * solo trae instalación/superficie, que sí siguen siendo del pedido
+ * completo.
+ */
 function buildOrderRow(payload: OrderPayload) {
   const p = payload.projector;
   return {
@@ -25,22 +32,6 @@ function buildOrderRow(payload: OrderPayload) {
     general_notes: payload.general_notes || null,
     vendor_notes: payload.vendor_notes || null,
     vendor_notes_en: payload.vendor_notes_en || null,
-
-    projector_model: p?.model || null,
-    projector_quantity: p?.quantity ?? null,
-    projector_power: p?.power || null,
-    projector_lens_type: p?.lens_pending_factory ? "Por definir por fábrica" : p?.lens_type || null,
-    projector_lens_pending_factory: p?.lens_pending_factory ?? false,
-
-    projection_description: p?.description || null,
-    projection_description_en: p?.description_en || null,
-    projection_file_path: p?.file?.path || null,
-    projection_file_name: p?.file?.name || null,
-    projection_file_type: p?.file?.type || null,
-
-    projection_width: p?.width ?? null,
-    projection_height: p?.height ?? null,
-    projection_size_unit: p?.size_unit || null,
 
     installation_height: p?.installation_height ?? null,
     installation_height_unit: p?.installation_height_unit || null,
@@ -142,9 +133,12 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
   const supabase = createSupabaseServerClient();
 
   if (status === "pedido") {
-    const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).single();
+    const [{ data: order }, { data: items }] = await Promise.all([
+      supabase.from("orders").select("*").eq("id", orderId).single(),
+      supabase.from("order_items").select("*").eq("order_id", orderId),
+    ]);
     if (order && order.product_type === "proyector_gobo") {
-      const missing = getMissingProjectorFieldsFromRow(order);
+      const missing = getMissingProjectorFieldsFromRow(order, items ?? []);
       if (missing.length > 0) {
         return { error: "Falta información para enviar este pedido a fábrica", missingFields: missing };
       }
@@ -156,4 +150,39 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
 
   revalidatePath("/pedidos");
   revalidatePath(`/pedidos/${orderId}`);
+}
+
+/**
+ * Elimina un pedido y todos sus registros dependientes (order_items,
+ * order_images, order_files) vía rpc_delete_order (ver migración 0005,
+ * actualizada en 0006 para también revisar la imagen a proyectar de cada
+ * producto). El borrado de BD hace cascade; el RPC devuelve solo las rutas
+ * de Storage que quedaron sin ningún referente — es decir, que ningún otro
+ * pedido (p. ej. uno duplicado de este) sigue usando. Esas rutas se
+ * eliminan de order-media/order-files con el mismo cliente autenticado
+ * (RLS), sin service role — igual que el resto de las operaciones de
+ * Storage de la app.
+ */
+export async function deleteOrder(orderId: string): Promise<{ error: string } | void> {
+  const supabase = createSupabaseServerClient();
+
+  const { data, error } = await supabase.rpc("rpc_delete_order", { p_order_id: orderId }).single();
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo eliminar el pedido. Intenta de nuevo.") };
+  }
+
+  const mediaPaths = data?.orphaned_media_paths ?? [];
+  const filePaths = data?.orphaned_file_paths ?? [];
+
+  if (mediaPaths.length > 0) {
+    const { error: mediaError } = await supabase.storage.from("order-media").remove(mediaPaths);
+    if (mediaError) console.error("deleteOrder: limpieza de order-media falló", { orderId, message: mediaError.message });
+  }
+  if (filePaths.length > 0) {
+    const { error: fileError } = await supabase.storage.from("order-files").remove(filePaths);
+    if (fileError) console.error("deleteOrder: limpieza de order-files falló", { orderId, message: fileError.message });
+  }
+
+  revalidatePath("/pedidos");
 }

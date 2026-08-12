@@ -29,7 +29,7 @@ export function buildOrderFormState(
         notes: item.notes ?? "",
         image: item.image_path
           ? {
-              key: item.id,
+              key: item.id + "-image",
               path: item.image_path,
               name: item.image_path.split("/").pop() ?? "imagen",
               type: "image/*",
@@ -37,6 +37,24 @@ export function buildOrderFormState(
               previewUrl: mediaUrls[item.image_path] ?? null,
             }
           : null,
+        power: item.power ?? "",
+        lensType: item.lens_pending_factory ? "" : item.lens_type ?? "",
+        lensPendingFactory: item.lens_pending_factory,
+        projectionDescription: item.projection_description ?? "",
+        projectionDescriptionEn: item.projection_description_en ?? "",
+        projectionFile: item.projection_file_path
+          ? {
+              key: item.id + "-projection",
+              path: item.projection_file_path,
+              name: item.projection_file_name ?? "archivo",
+              type: item.projection_file_type ?? "",
+              size: 0,
+              previewUrl: mediaUrls[item.projection_file_path] ?? null,
+            }
+          : null,
+        projectionWidth: item.projection_width != null ? String(item.projection_width) : "",
+        projectionHeight: item.projection_height != null ? String(item.projection_height) : "",
+        projectionSizeUnit: item.projection_size_unit ?? "m",
       })),
     images: images
       .sort((a, b) => a.position - b.position)
@@ -58,26 +76,6 @@ export function buildOrderFormState(
       previewUrl: fileUrls[f.storage_path] ?? null,
     })),
     projector: {
-      model: order.projector_model ?? "",
-      quantity: order.projector_quantity != null ? String(order.projector_quantity) : "",
-      power: order.projector_power ?? "",
-      lensType: order.projector_lens_pending_factory ? "" : order.projector_lens_type ?? "",
-      lensPendingFactory: order.projector_lens_pending_factory,
-      description: order.projection_description ?? "",
-      descriptionEn: order.projection_description_en ?? "",
-      file: order.projection_file_path
-        ? {
-            key: order.id + "-projection",
-            path: order.projection_file_path,
-            name: order.projection_file_name ?? "archivo",
-            type: order.projection_file_type ?? "",
-            size: 0,
-            previewUrl: mediaUrls[order.projection_file_path] ?? null,
-          }
-        : null,
-      width: order.projection_width != null ? String(order.projection_width) : "",
-      height: order.projection_height != null ? String(order.projection_height) : "",
-      sizeUnit: order.projection_size_unit ?? "m",
       installationHeight: order.installation_height != null ? String(order.installation_height) : "",
       installationHeightUnit: order.installation_height_unit ?? "m",
       installationDistance: order.installation_distance != null ? String(order.installation_distance) : "",

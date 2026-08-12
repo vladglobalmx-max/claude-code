@@ -203,7 +203,32 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      rpc_create_order: {
+        Args: {
+          p_order_id: string;
+          p_order: Json;
+          p_items: Json;
+          p_images: Json;
+          p_files: Json;
+        };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      rpc_update_order: {
+        Args: {
+          p_order_id: string;
+          p_order: Json;
+          p_items: Json;
+          p_images: Json;
+          p_files: Json;
+        };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      rpc_duplicate_order: {
+        Args: { p_source_order_id: string };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+    };
     Enums: Record<string, never>;
   };
 }

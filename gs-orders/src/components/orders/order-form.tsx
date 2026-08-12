@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
+import { computeFolioPreview } from "@/lib/folio-preview";
 import type { OrderStatus, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
 import { DatosGeneralesSection } from "./datos-generales-section";
@@ -109,13 +110,10 @@ export function OrderForm({
   }
 
   const activeSalesperson = salespeople.find((sp) => sp.id === state.salespersonId);
-  const folioPreview = useMemo(() => {
-    if (!activeSalesperson || !state.orderDate) return null;
-    const [y, m, d] = state.orderDate.split("-");
-    if (!y || !m || !d) return null;
-    const next = activeSalesperson.sequence_current + 1;
-    return `${activeSalesperson.prefix}-${y}${d}${m}-${String(next).padStart(3, "0")}`;
-  }, [activeSalesperson, state.orderDate]);
+  const folioPreview = useMemo(
+    () => computeFolioPreview(activeSalesperson?.prefix, activeSalesperson?.sequence_current, state.orderDate),
+    [activeSalesperson, state.orderDate]
+  );
 
   const missingFields = useMemo(() => {
     const payload = buildPayload(state, "pedido");

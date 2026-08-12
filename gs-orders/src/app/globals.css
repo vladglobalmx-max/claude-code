@@ -52,10 +52,21 @@ body {
 }
 
 @media print {
+  @page {
+    size: auto;
+    margin: 14mm 12mm;
+  }
+
   body {
     background: #fff !important;
   }
+
   .no-print {
     display: none !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
   }
 }

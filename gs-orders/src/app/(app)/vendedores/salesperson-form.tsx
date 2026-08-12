@@ -42,12 +42,15 @@ export function SalespersonForm({
           id="prefix"
           name="prefix"
           required
-          maxLength={8}
+          maxLength={10}
           defaultValue={salesperson?.prefix}
           placeholder="VPT"
           className="font-mono uppercase"
         />
-        <p className="mt-1 text-xs text-ink-faint">Debe ser único. Se usa en el folio: VPT-20261108-001</p>
+        <p className="mt-1 text-xs text-ink-faint">
+          Máximo 5 caracteres, sin espacios. Se convierte a MAYÚSCULAS automáticamente y debe ser único.
+          Se usa en el folio: VPT-20261108-001
+        </p>
       </div>
 
       <div>

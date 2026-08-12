@@ -84,6 +84,9 @@ begin
   if new.salesperson_id is distinct from old.salesperson_id then
     raise exception 'El vendedor de un pedido no se puede cambiar una vez generado el folio';
   end if;
+  if new.order_date is distinct from old.order_date then
+    raise exception 'La fecha de un pedido no se puede cambiar una vez generado el folio';
+  end if;
   return new;
 end;
 $$;

@@ -24,7 +24,10 @@ create table salespeople (
   business_unit text not null default 'thunder'
     check (business_unit in ('thunder', 'juno_promotional', 'got_fresh_breath', 'the_fire_spot')),
   name text not null,
-  prefix text not null,
+  prefix text not null
+    check (prefix = upper(prefix))
+    check (char_length(prefix) between 2 and 5)
+    check (prefix ~ '^[A-Z0-9]+$'),
   sequence_current integer not null default 0 check (sequence_current >= 0),
   active boolean not null default true,
   created_at timestamptz not null default now(),

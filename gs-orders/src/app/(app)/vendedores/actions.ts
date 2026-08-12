@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { salespersonSchema } from "@/lib/validations/salesperson";
+import { mapDbError } from "@/lib/db-errors";
 
 export type SalespersonFormState = { error?: string } | undefined;
 
@@ -37,7 +38,7 @@ export async function createSalesperson(
     if (error.code === "23505") {
       return { error: `Ya existe un vendedor con el prefijo "${parsed.data.prefix}"` };
     }
-    return { error: error.message };
+    return { error: mapDbError(error, "No se pudo crear el vendedor. Intenta de nuevo.") };
   }
 
   revalidatePath("/vendedores");
@@ -69,7 +70,7 @@ export async function updateSalesperson(
     if (error.code === "23505") {
       return { error: `Ya existe un vendedor con el prefijo "${parsed.data.prefix}"` };
     }
-    return { error: error.message };
+    return { error: mapDbError(error, "No se pudieron guardar los cambios. Intenta de nuevo.") };
   }
 
   revalidatePath("/vendedores");

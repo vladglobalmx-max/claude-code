@@ -61,7 +61,7 @@ export function OrderDetailContent({
         )}
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 print:bg-white sm:grid-cols-3">
         <Field label="Fecha" value={formatDate(order.order_date)} />
         <Field label="Vendedor" value={`${salesperson.name} (${salesperson.prefix})`} />
         <Field label="Cliente" value={order.client_name} />
@@ -124,7 +124,7 @@ export function OrderDetailContent({
                     <img
                       src={projectionImageUrl}
                       alt="Imagen a proyectar"
-                      className="max-h-72 w-auto rounded-lg border border-border object-contain"
+                      className="max-h-96 w-auto max-w-full rounded-lg border border-border object-contain print:max-h-[420px]"
                     />
                   ) : (
                     <a

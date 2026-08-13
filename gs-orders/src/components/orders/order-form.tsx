@@ -85,6 +85,7 @@ export function OrderForm({
   productTypes,
   initialState,
   folio,
+  canChooseSalesperson = true,
   submitLabel = { draft: "Guardar borrador", order: "Generar pedido" },
   onSubmit,
 }: {
@@ -94,6 +95,8 @@ export function OrderForm({
   productTypes: ProductTypeItem[];
   initialState: OrderFormState;
   folio?: string;
+  /** false para VENDEDOR: nunca puede elegir a nombre de quién se crea el pedido. */
+  canChooseSalesperson?: boolean;
   submitLabel?: { draft: string; order: string };
   onSubmit: (orderId: string, payload: OrderPayload) => Promise<OrderActionResult>;
 }) {
@@ -190,6 +193,7 @@ export function OrderForm({
           onChange={patch}
           folioPreview={folioPreview}
           locked={!!folio}
+          canChooseSalesperson={canChooseSalesperson}
         />
       </div>
 

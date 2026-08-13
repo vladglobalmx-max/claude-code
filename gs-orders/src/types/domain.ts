@@ -1,3 +1,23 @@
+export type UserRole = "admin" | "vendedor";
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  admin: "ADMIN",
+  vendedor: "VENDEDOR",
+};
+
+/** Fila de user_profiles unida con auth.users.email y salespeople — ver admin_list_user_profiles() en 0011_users_roles_rls.sql. */
+export interface UserAccessRow {
+  user_id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  salesperson_id: string | null;
+  salesperson_name: string | null;
+  salesperson_prefix: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export type BusinessUnit =
   | "thunder"
   | "juno_promotional"

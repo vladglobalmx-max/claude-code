@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
 import type { CatalogProductOption } from "@/components/orders/types";
@@ -17,6 +18,9 @@ import type {
 } from "@/types/domain";
 
 export default async function EditarPedidoPage({ params }: { params: { id: string } }) {
+  const profile = await getCurrentProfile();
+  if (!profile || !profile.active) redirect("/login");
+
   const supabase = createSupabaseServerClient();
 
   const [
@@ -117,6 +121,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
         productTypes={productTypes}
         initialState={initialState}
         folio={typedOrder.folio}
+        canChooseSalesperson={profile.role === "admin"}
         submitLabel={{ draft: "Guardar cambios", order: "Guardar y marcar como Pedido" }}
         onSubmit={updateOrder}
       />

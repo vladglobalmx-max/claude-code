@@ -4,15 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Plus, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import type { UserRole } from "@/types/domain";
 
 const NAV_ITEMS = [
-  { href: "/pedidos", label: "Pedidos", icon: FileText },
-  { href: "/vendedores", label: "Vendedores", icon: Users },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
+  { href: "/pedidos", label: "Pedidos", icon: FileText, adminOnly: false },
+  { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
+  { href: "/configuracion", label: "Configuración", icon: Settings, adminOnly: true },
 ];
 
-export function Sidebar() {
+/**
+ * Ocultar estos enlaces para VENDEDOR es solo UX — no es la protección
+ * real. Las rutas /vendedores y /configuracion están protegidas de verdad
+ * en middleware.ts (redirección server-side) y en RLS (los datos mismos).
+ * Un VENDEDOR que escriba la URL a mano de todas formas es rechazado ahí.
+ */
+export function Sidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || role === "admin");
 
   return (
     <aside className="no-print flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -34,7 +42,7 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-5 flex-1 space-y-0.5 px-3">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link

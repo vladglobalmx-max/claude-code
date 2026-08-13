@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
@@ -34,6 +35,7 @@ export default async function PedidosPage({
 }: {
   searchParams: { q?: string; vendedor?: string; estado?: string; tipo?: string };
 }) {
+  const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
 
   const [{ data: salespeopleData }, { data: productTypesData }] = await Promise.all([
@@ -78,7 +80,11 @@ export default async function PedidosPage({
         </div>
       </div>
 
-      <OrderFilters salespeople={salespeople} productTypes={productTypes} />
+      <OrderFilters
+        salespeople={salespeople}
+        productTypes={productTypes}
+        showSalespersonFilter={profile?.role === "admin"}
+      />
 
       {orders.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface">

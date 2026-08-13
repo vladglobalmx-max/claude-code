@@ -10,9 +10,12 @@ import type { ProductTypeItem, Salesperson } from "@/types/domain";
 export function OrderFilters({
   salespeople,
   productTypes,
+  showSalespersonFilter = true,
 }: {
   salespeople: Salesperson[];
   productTypes: ProductTypeItem[];
+  /** false para VENDEDOR: solo ve sus propios pedidos, el filtro por vendedor no aporta nada. */
+  showSalespersonFilter?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -37,18 +40,20 @@ export function OrderFilters({
         />
       </div>
 
-      <Select
-        className="w-auto"
-        defaultValue={searchParams.get("vendedor") ?? ""}
-        onChange={(e) => updateParam("vendedor", e.target.value)}
-      >
-        <option value="">Todos los vendedores</option>
-        {salespeople.map((sp) => (
-          <option key={sp.id} value={sp.id}>
-            {sp.name}
-          </option>
-        ))}
-      </Select>
+      {showSalespersonFilter && (
+        <Select
+          className="w-auto"
+          defaultValue={searchParams.get("vendedor") ?? ""}
+          onChange={(e) => updateParam("vendedor", e.target.value)}
+        >
+          <option value="">Todos los vendedores</option>
+          {salespeople.map((sp) => (
+            <option key={sp.id} value={sp.id}>
+              {sp.name}
+            </option>
+          ))}
+        </Select>
+      )}
 
       <Select
         className="w-auto"

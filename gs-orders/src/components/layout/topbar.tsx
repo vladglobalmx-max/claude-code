@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { USER_ROLE_LABELS, type UserRole } from "@/types/domain";
 
-export function Topbar({ email }: { email: string | null }) {
+export function Topbar({ name, role, email }: { name: string; role: UserRole; email: string | null }) {
   const router = useRouter();
 
   async function handleSignOut() {
@@ -18,7 +19,13 @@ export function Topbar({ email }: { email: string | null }) {
   return (
     <header className="no-print flex h-14 shrink-0 items-center justify-end border-b border-border bg-surface px-6">
       <div className="flex items-center gap-3">
-        {email && <span className="text-sm text-ink-faint">{email}</span>}
+        <div className="text-right leading-tight">
+          <p className="text-sm font-medium text-ink">{name}</p>
+          <p className="text-xs text-ink-faint">
+            {USER_ROLE_LABELS[role]}
+            {email ? ` · ${email}` : ""}
+          </p>
+        </div>
         <Button variant="ghost" size="sm" onClick={handleSignOut}>
           <LogOut className="h-4 w-4" />
           Salir

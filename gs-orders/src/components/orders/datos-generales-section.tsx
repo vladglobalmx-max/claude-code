@@ -14,6 +14,7 @@ export function DatosGeneralesSection({
   onChange,
   folioPreview,
   locked = false,
+  canChooseSalesperson = true,
 }: {
   state: OrderFormState;
   salespeople: Salesperson[];
@@ -21,8 +22,11 @@ export function DatosGeneralesSection({
   onChange: (patch: Partial<OrderFormState>) => void;
   folioPreview: string | null;
   locked?: boolean;
+  /** false para VENDEDOR: el vendedor del pedido siempre es él mismo, nunca un selector (ver Fase 3). */
+  canChooseSalesperson?: boolean;
 }) {
   const currentSalesperson = salespeople.find((sp) => sp.id === state.salespersonId);
+  const salespersonReadOnly = locked || !canChooseSalesperson;
 
   return (
     <Card>
@@ -46,7 +50,7 @@ export function DatosGeneralesSection({
 
         <div>
           <Label htmlFor="salesperson">Vendedor</Label>
-          {locked ? (
+          {salespersonReadOnly ? (
             <p className="flex h-9 items-center text-sm text-ink-soft">
               {currentSalesperson ? `${currentSalesperson.name} (${currentSalesperson.prefix})` : "—"}
             </p>
@@ -68,6 +72,9 @@ export function DatosGeneralesSection({
             <p className="mt-1 font-mono text-xs text-ink-faint">Folio estimado: {folioPreview}</p>
           )}
           {locked && <p className="mt-1 text-xs text-ink-faint">La fecha y el vendedor ya generaron el folio; no se pueden cambiar.</p>}
+          {!locked && !canChooseSalesperson && (
+            <p className="mt-1 text-xs text-ink-faint">El pedido se genera a tu nombre automáticamente.</p>
+          )}
         </div>
 
         <div>

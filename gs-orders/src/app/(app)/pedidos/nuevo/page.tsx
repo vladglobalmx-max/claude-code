@@ -1,14 +1,22 @@
 import { randomUUID } from "crypto";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getBusinessToday } from "@/lib/business-date";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { OrderForm } from "@/components/orders/order-form";
 import { emptyOrderForm, type CatalogProductOption } from "@/components/orders/types";
 import { createOrder } from "../actions";
 import type { ProductCatalogItem, ProductTypeItem, Salesperson } from "@/types/domain";
 
 export default async function NuevoPedidoPage() {
+  const profile = await getCurrentProfile();
+  if (!profile || !profile.active) redirect("/login");
+
   const supabase = createSupabaseServerClient();
+  // Para VENDEDOR, RLS (0011) ya limita esta consulta a su propia fila sin
+  // importar el filtro .eq("active", true) que sigue aquí para el caso
+  // ADMIN (lista completa de vendedores activos para elegir).
   const [{ data }, { data: catalogData }, { data: productTypesData }] = await Promise.all([
     supabase.from("salespeople").select("*").eq("active", true).order("name", { ascending: true }),
     supabase
@@ -40,6 +48,13 @@ export default async function NuevoPedidoPage() {
 
   const orderId = randomUUID();
   const today = getBusinessToday();
+  const initialState = emptyOrderForm(today);
+  // El vendedor nunca elige a nombre de quién se crea el pedido — se
+  // prellena con su propio salesperson_id, y el RPC (0011) lo vuelve a
+  // forzar server-side sin importar lo que llegue en el payload.
+  if (profile.role === "vendedor" && profile.salespersonId) {
+    initialState.salespersonId = profile.salespersonId;
+  }
 
   return (
     <div>
@@ -54,7 +69,8 @@ export default async function NuevoPedidoPage() {
         salespeople={salespeople}
         catalogProducts={catalogProducts}
         productTypes={productTypes}
-        initialState={emptyOrderForm(today)}
+        initialState={initialState}
+        canChooseSalesperson={profile.role === "admin"}
         onSubmit={createOrder}
       />
     </div>

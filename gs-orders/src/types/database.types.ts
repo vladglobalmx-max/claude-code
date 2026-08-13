@@ -346,6 +346,36 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["product_types"]["Insert"]>;
         Relationships: [];
       };
+      user_profiles: {
+        Row: {
+          user_id: string;
+          name: string;
+          role: string;
+          salesperson_id: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          name: string;
+          role?: string;
+          salesperson_id?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_profiles"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_salesperson_id_fkey";
+            columns: ["salesperson_id"];
+            isOneToOne: true;
+            referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -376,6 +406,20 @@ export interface Database {
       rpc_delete_order: {
         Args: { p_order_id: string };
         Returns: { orphaned_media_paths: string[]; orphaned_file_paths: string[] }[];
+      };
+      admin_list_user_profiles: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          email: string;
+          name: string;
+          role: string;
+          salesperson_id: string | null;
+          salesperson_name: string | null;
+          salesperson_prefix: string | null;
+          active: boolean;
+          created_at: string;
+        }[];
       };
     };
     Enums: Record<string, never>;

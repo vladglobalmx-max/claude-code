@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { EmailOtpType, SupabaseClient } from "@supabase/supabase-js";
 import { mapDbError } from "@/lib/db-errors";
 import type { CreateUserAccessPayload } from "@/lib/validations/user-access";
 import type { Database } from "@/types/database.types";
@@ -15,6 +15,56 @@ import type { Database } from "@/types/database.types";
 
 interface DeleteUserResult {
   error: { message: string } | null;
+}
+
+/**
+ * Tipos de generateLink que esta pantalla sabe redimir — ver
+ * buildSetPasswordLink() y set-password-form.tsx. Deliberadamente NO se usa
+ * properties.action_link (el link GET de Supabase, /auth/v1/verify): ese
+ * mecanismo depende de que el mismo navegador que abre el link haya
+ * iniciado el flujo (PKCE code_verifier en localStorage), lo cual nunca es
+ * cierto para un link generado server-side y compartido manualmente. En su
+ * lugar construimos un link propio a /set-password con token_hash + type,
+ * que el cliente redime con supabase.auth.verifyOtp() — autocontenido, sin
+ * depender de PKCE.
+ */
+export const LINK_OTP_TYPES = ["invite", "recovery"] as const satisfies readonly EmailOtpType[];
+export type LinkOtpType = (typeof LINK_OTP_TYPES)[number];
+
+export function isLinkOtpType(value: string | null): value is LinkOtpType {
+  return (LINK_OTP_TYPES as readonly string[]).includes(value ?? "");
+}
+
+/**
+ * Construye la URL propia de /set-password que el ADMIN copia y comparte.
+ * Usa URL/URLSearchParams (no concatenación de strings) para un encoding
+ * correcto de token_hash.
+ */
+export function buildSetPasswordLink(siteUrl: string, tokenHash: string, type: LinkOtpType): string {
+  const url = new URL("/set-password", siteUrl);
+  url.searchParams.set("token_hash", tokenHash);
+  url.searchParams.set("type", type);
+  return url.toString();
+}
+
+export type SetPasswordRedemption =
+  | { action: "verify"; params: { token_hash: string; type: LinkOtpType } }
+  | { action: "invalid" };
+
+/**
+ * Decide, a partir de los search params de /set-password, si hay un
+ * token_hash + type redimibles con verifyOtp() o si la pantalla debe
+ * mostrar directamente el estado de enlace inválido. Separado de
+ * set-password-form.tsx (componente cliente) para poder probarlo sin un
+ * framework de testing de componentes.
+ */
+export function resolveSetPasswordRedemption(searchParams: {
+  get(name: string): string | null;
+}): SetPasswordRedemption {
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type");
+  if (!tokenHash || !isLinkOtpType(type)) return { action: "invalid" };
+  return { action: "verify", params: { token_hash: tokenHash, type } };
 }
 
 interface AdminAuthClient {

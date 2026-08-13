@@ -9,7 +9,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { createUserAccessSchema, updateUserAccessSchema } from "@/lib/validations/user-access";
 import { mapDbError } from "@/lib/db-errors";
 import { mapAuthError } from "@/lib/auth-errors";
-import { preflightSalespersonTaken, insertProfileOrCompensate } from "@/lib/user-access";
+import { preflightSalespersonTaken, insertProfileOrCompensate, buildSetPasswordLink } from "@/lib/user-access";
 
 export type UserAccessFormState = { error?: string } | undefined;
 export type GenerateLinkState = { error: string } | { ok: true; actionLink: string; email: string };
@@ -129,7 +129,11 @@ export async function createUserAccessLink(formData: FormData): Promise<Generate
   if ("error" in result) return result;
 
   revalidatePath("/configuracion/usuarios");
-  return { ok: true, actionLink: linkData.properties.action_link, email: parsed.data.email };
+  return {
+    ok: true,
+    actionLink: buildSetPasswordLink(getSiteUrl(), linkData.properties.hashed_token, "invite"),
+    email: parsed.data.email,
+  };
 }
 
 /** Edita nombre/rol/vendedor/estado del perfil. No toca auth.users — el email y la contraseña siguen siendo responsabilidad de Supabase Auth. */
@@ -208,5 +212,9 @@ export async function generatePasswordResetLink(email: string): Promise<Generate
     return { error: mapAuthError(linkError) };
   }
 
-  return { ok: true, actionLink: linkData.properties.action_link, email };
+  return {
+    ok: true,
+    actionLink: buildSetPasswordLink(getSiteUrl(), linkData.properties.hashed_token, "recovery"),
+    email,
+  };
 }

@@ -1,35 +1,69 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveSetPasswordRedemption } from "@/lib/user-access";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 /**
- * Página destino de los enlaces de invitación ("+ Nuevo usuario") y de
- * "Restablecer contraseña" (ver configuracion/usuarios/actions.ts). El
- * enlace de Supabase Auth trae el token en el fragmento de la URL (#...),
- * que nunca llega al servidor — createSupabaseBrowserClient() lo detecta
- * automáticamente en el navegador y establece una sesión temporal de tipo
- * recovery/invite. Por eso esta ruta está en PUBLIC_PATHS del middleware:
- * el servidor no puede ver todavía ninguna sesión válida en la primera
- * carga, solo el cliente puede, una vez procesa el fragmento.
+ * Página destino de "Generar enlace de acceso" y "Generar nuevo enlace de
+ * acceso" (ver configuracion/usuarios/actions.ts). Los enlaces que
+ * generamos nosotros (buildSetPasswordLink) traen
+ * ?token_hash=...&type=invite|recovery, que se redime aquí con
+ * supabase.auth.verifyOtp({ token_hash, type }) — un intercambio
+ * autocontenido en un solo POST que NO depende de que este mismo navegador
+ * haya iniciado el flujo (a diferencia del intercambio automático de
+ * PKCE/código que usa createBrowserClient() por defecto, que requiere un
+ * code_verifier guardado localmente y por eso nunca funciona para un link
+ * generado server-side y compartido manualmente). Por eso esta ruta está en
+ * PUBLIC_PATHS del middleware: el servidor no ve ninguna sesión válida
+ * hasta que el cliente completa este intercambio.
+ *
+ * NOTA: el correo automático de inviteUserByEmail()/resetPasswordForEmail()
+ * sigue usando el mecanismo de Supabase (action_link), no este. Esta
+ * pantalla ya no intenta detectar sesión desde ese formato — si se abre un
+ * enlace de ese tipo, se muestra directamente como inválido (mismo
+ * resultado visible que antes del fix, sin regresión: ver diagnóstico del
+ * hallazgo de que ese flujo comparte la misma causa raíz, pendiente de
+ * tratarse aparte).
  */
 export function SetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<"checking" | "ready" | "invalid">("checking");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Evita que Strict Mode (u otro re-render/re-montaje del efecto) dispare
+  // verifyOtp() dos veces — el token es de un solo uso, una segunda llamada
+  // lo encontraría ya consumido y el usuario vería "enlace inválido" pese a
+  // que el primer intercambio sí funcionó.
+  const verifyStartedRef = useRef(false);
 
   useEffect(() => {
+    if (verifyStartedRef.current) return;
+    verifyStartedRef.current = true;
+
+    const redemption = resolveSetPasswordRedemption(searchParams);
+    if (redemption.action === "invalid") {
+      setStatus("invalid");
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setStatus(session ? "ready" : "invalid");
+    supabase.auth.verifyOtp(redemption.params).then(({ data, error: verifyError }) => {
+      if (verifyError || !data.session) {
+        setStatus("invalid");
+        return;
+      }
+      // Limpia el token de la barra de direcciones ahora que ya se consumió.
+      window.history.replaceState(null, "", "/set-password");
+      setStatus("ready");
     });
-  }, []);
+  }, [searchParams]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

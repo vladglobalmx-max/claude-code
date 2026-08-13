@@ -20,6 +20,24 @@ export interface MediaDraft {
   uploading?: boolean;
 }
 
+/**
+ * Producto del catálogo administrable, ya con la imagen resuelta a una URL
+ * firmada — para mostrar en el selector de Nuevo Pedido / Editar (ver
+ * catalog-product-picker.tsx). Solo incluye catálogo activo.
+ */
+export interface CatalogProductOption {
+  id: string;
+  category: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  power: string | null;
+  color: string | null;
+  technicalNotes: string | null;
+  imagePath: string | null;
+  imagePreviewUrl: string | null;
+}
+
 export interface ProductItemDraft {
   key: string;
   model: string;
@@ -29,8 +47,16 @@ export interface ProductItemDraft {
   image: MediaDraft | null;
   referenceImages: MediaDraft[];
 
-  // Especificaciones técnicas del equipo (solo se capturan/muestran cuando
-  // el pedido es proyector_gobo).
+  // Referencia opcional (trazabilidad) al producto del catálogo elegido y
+  // color del producto (solo aplica a productos no proyector/GOBO). Elegir
+  // un producto del catálogo copia sus datos aquí una sola vez (snapshot);
+  // nunca se vuelve a consultar el catálogo para este producto.
+  catalogProductId: string | null;
+  color: string;
+
+  // Especificaciones técnicas del equipo (potencia aplica a cualquier
+  // producto; lente/pendiente-de-fábrica solo cuando el pedido es
+  // proyector_gobo).
   power: string;
   lensType: string;
   lensPendingFactory: boolean;
@@ -82,6 +108,8 @@ export function emptyProductItem(): ProductItemDraft {
     notes: "",
     image: null,
     referenceImages: [],
+    catalogProductId: null,
+    color: "",
     power: "",
     lensType: "",
     lensPendingFactory: false,

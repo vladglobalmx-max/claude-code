@@ -127,6 +127,8 @@ export interface Database {
           description: string | null;
           quantity: number;
           notes: string | null;
+          catalog_product_id: string | null;
+          color: string | null;
           power: string | null;
           lens_type: string | null;
           lens_pending_factory: boolean;
@@ -159,6 +161,8 @@ export interface Database {
           description?: string | null;
           quantity?: number;
           notes?: string | null;
+          catalog_product_id?: string | null;
+          color?: string | null;
           power?: string | null;
           lens_type?: string | null;
           lens_pending_factory?: boolean;
@@ -187,6 +191,13 @@ export interface Database {
             columns: ["order_id"];
             isOneToOne: false;
             referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
             referencedColumns: ["id"];
           },
         ];
@@ -277,6 +288,40 @@ export interface Database {
             referencedColumns: ["id"];
           },
         ];
+      };
+      product_catalog: {
+        Row: {
+          id: string;
+          category: string;
+          sku: string;
+          name: string;
+          description: string | null;
+          image_path: string | null;
+          power: string | null;
+          color: string | null;
+          lens_type: string | null;
+          technical_notes: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          category: string;
+          sku: string;
+          name: string;
+          description?: string | null;
+          image_path?: string | null;
+          power?: string | null;
+          color?: string | null;
+          lens_type?: string | null;
+          technical_notes?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_catalog"]["Insert"]>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

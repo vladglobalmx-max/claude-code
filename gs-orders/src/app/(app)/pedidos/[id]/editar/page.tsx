@@ -3,19 +3,34 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
+import type { CatalogProductOption } from "@/components/orders/types";
 import { updateOrder } from "../../actions";
-import type { Order, OrderImage, OrderItem, OrderItemImage, OrderFile, Salesperson } from "@/types/domain";
+import type {
+  Order,
+  OrderImage,
+  OrderItem,
+  OrderItemImage,
+  OrderFile,
+  ProductCatalogItem,
+  Salesperson,
+} from "@/types/domain";
 
 export default async function EditarPedidoPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
 
-  const [{ data: order }, { data: items }, { data: images }, { data: files }, { data: salespeopleData }] =
+  const [{ data: order }, { data: items }, { data: images }, { data: files }, { data: salespeopleData }, { data: catalogData }] =
     await Promise.all([
       supabase.from("orders").select("*").eq("id", params.id).single(),
       supabase.from("order_items").select("*").eq("order_id", params.id),
       supabase.from("order_images").select("*").eq("order_id", params.id),
       supabase.from("order_files").select("*").eq("order_id", params.id),
       supabase.from("salespeople").select("*").order("name", { ascending: true }),
+      supabase
+        .from("product_catalog")
+        .select("*")
+        .eq("active", true)
+        .order("category", { ascending: true })
+        .order("name", { ascending: true }),
     ]);
 
   if (!order) notFound();
@@ -25,6 +40,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   const typedImages = (images ?? []) as OrderImage[];
   const typedFiles = (files ?? []) as OrderFile[];
   const salespeople = (salespeopleData ?? []) as Salesperson[];
+  const catalogRows = (catalogData ?? []) as ProductCatalogItem[];
 
   const itemIds = typedItems.map((i) => i.id);
   const { data: itemImages } =
@@ -42,10 +58,26 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   ];
   const filePaths = typedFiles.map((f) => f.storage_path);
 
-  const [mediaUrls, fileUrls] = await Promise.all([
+  const catalogImagePaths = catalogRows.map((p) => p.image_path).filter((p): p is string => !!p);
+
+  const [mediaUrls, fileUrls, catalogImageUrls] = await Promise.all([
     getSignedUrls("order-media", mediaPaths),
     getSignedUrls("order-files", filePaths),
+    getSignedUrls("order-media", catalogImagePaths),
   ]);
+
+  const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => ({
+    id: p.id,
+    category: p.category,
+    sku: p.sku,
+    name: p.name,
+    description: p.description,
+    power: p.power,
+    color: p.color,
+    technicalNotes: p.technical_notes,
+    imagePath: p.image_path,
+    imagePreviewUrl: p.image_path ? catalogImageUrls[p.image_path] ?? null : null,
+  }));
 
   const initialState = buildOrderFormState(
     typedOrder,
@@ -68,6 +100,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
       <OrderForm
         orderId={typedOrder.id}
         salespeople={salespeople}
+        catalogProducts={catalogProducts}
         initialState={initialState}
         folio={typedOrder.folio}
         submitLabel={{ draft: "Guardar cambios", order: "Guardar y marcar como Pedido" }}

@@ -14,7 +14,7 @@ import { ProductosSection } from "./productos-section";
 import { ImagenesSection } from "./imagenes-section";
 import { ObservacionesSection } from "./observaciones-section";
 import { RevisarSection } from "./revisar-section";
-import type { OrderFormState } from "./types";
+import type { CatalogProductOption, OrderFormState } from "./types";
 
 const TABS = [
   { key: "datos", label: "Datos generales" },
@@ -45,7 +45,9 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       notes: item.notes || undefined,
       image_path: item.image?.path ?? null,
       reference_images: item.referenceImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
-      power: isProjector ? item.power || undefined : undefined,
+      catalog_product_id: !isProjector ? item.catalogProductId : null,
+      color: !isProjector ? item.color || undefined : undefined,
+      power: item.power || undefined,
       lens_type: isProjector ? item.lensType || undefined : undefined,
       lens_pending_factory: isProjector ? item.lensPendingFactory : undefined,
       projection_description: isProjector ? item.projectionDescription || undefined : undefined,
@@ -79,6 +81,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
 export function OrderForm({
   orderId,
   salespeople,
+  catalogProducts,
   initialState,
   folio,
   submitLabel = { draft: "Guardar borrador", order: "Generar pedido" },
@@ -86,6 +89,7 @@ export function OrderForm({
 }: {
   orderId: string;
   salespeople: Salesperson[];
+  catalogProducts: CatalogProductOption[];
   initialState: OrderFormState;
   folio?: string;
   submitLabel?: { draft: string; order: string };
@@ -191,6 +195,7 @@ export function OrderForm({
           orderId={orderId}
           items={state.items}
           isProjector={state.productType === "proyector_gobo"}
+          catalogProducts={catalogProducts}
           onChange={(items) => patch({ items })}
         />
       </div>

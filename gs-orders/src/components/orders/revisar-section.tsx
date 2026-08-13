@@ -83,6 +83,34 @@ export function RevisarSection({
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Detalle de productos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {state.items.map((item, index) => {
+            const extra = [
+              item.color ? `Color: ${item.color}` : null,
+              item.power ? `Potencia: ${item.power}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <div key={item.key} className="border-b border-border pb-2 last:border-0 last:pb-0">
+                <p className="font-medium text-ink">
+                  {item.model || `Producto ${index + 1}`}
+                  {item.description && <span className="font-normal text-ink-faint"> · {item.description}</span>}
+                </p>
+                <p className="text-xs text-ink-faint">
+                  Cantidad: {item.quantity}
+                  {extra ? ` · ${extra}` : ""}
+                </p>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {state.productType === "proyector_gobo" && (
         <Card>
           <CardHeader>

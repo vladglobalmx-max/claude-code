@@ -179,6 +179,7 @@ export function OrderDetailContent({
               const itemSurfaceNotes = isEn ? item.surface_notes_en || item.surface_notes : item.surface_notes;
               const specs = [
                 item.power ? `${isEn ? "Power/Version" : "Potencia/versión"}: ${item.power}` : null,
+                item.color ? `${isEn ? "Color" : "Color"}: ${item.color}` : null,
                 item.lens_pending_factory
                   ? `${isEn ? "Lens" : "Lente"}: ${isEn ? "To be defined by factory" : "Por definir con fábrica"}`
                   : item.lens_type
@@ -208,9 +209,7 @@ export function OrderDetailContent({
                         </span>
                       </p>
                       {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
-                      {isProjector && specs.length > 0 && (
-                        <p className="mt-1 text-xs text-ink-faint">{specs.join(" · ")}</p>
-                      )}
+                      {specs.length > 0 && <p className="mt-1 text-xs text-ink-faint">{specs.join(" · ")}</p>}
                       {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}
                     </div>
                   </div>

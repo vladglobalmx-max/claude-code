@@ -10,18 +10,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { SingleImageField } from "./single-image-field";
 import { MultiFileField } from "./multi-file-field";
 import { uploadMediaFile } from "./media-client";
+import { CatalogProductPicker } from "./catalog-product-picker";
 import { ORIENTATION_LABELS, SURFACE_MATERIAL_LABELS, SURFACE_TYPE_LABELS, USE_LABELS } from "@/types/domain";
-import { emptyProductItem, type ProductItemDraft } from "./types";
+import { emptyProductItem, type CatalogProductOption, type ProductItemDraft } from "./types";
 
 export function ProductosSection({
   orderId,
   items,
   isProjector,
+  catalogProducts,
   onChange,
 }: {
   orderId: string;
   items: ProductItemDraft[];
   isProjector: boolean;
+  catalogProducts: CatalogProductOption[];
   onChange: (items: ProductItemDraft[]) => void;
 }) {
   function updateItem(key: string, patch: Partial<ProductItemDraft>) {
@@ -91,12 +94,40 @@ export function ProductosSection({
                 />
               </div>
 
+              {!isProjector && (
+                <div className="sm:col-span-2">
+                  <CatalogProductPicker
+                    products={catalogProducts}
+                    onSelect={(product) =>
+                      updateItem(item.key, {
+                        model: product.sku,
+                        description: product.name,
+                        power: product.power ?? "",
+                        color: product.color ?? "",
+                        notes: item.notes || product.technicalNotes || "",
+                        catalogProductId: product.id,
+                        image: product.imagePath
+                          ? {
+                              key: crypto.randomUUID(),
+                              path: product.imagePath,
+                              name: product.imagePath.split("/").pop() ?? "imagen",
+                              type: "image/*",
+                              size: 0,
+                              previewUrl: product.imagePreviewUrl,
+                            }
+                          : item.image,
+                      })
+                    }
+                  />
+                </div>
+              )}
+
               <div>
                 <Label htmlFor={`model-${item.key}`}>Modelo / SKU</Label>
                 <Input
                   id={`model-${item.key}`}
                   value={item.model}
-                  onChange={(e) => updateItem(item.key, { model: e.target.value })}
+                  onChange={(e) => updateItem(item.key, { model: e.target.value, catalogProductId: null })}
                   placeholder="Modelo exacto"
                 />
               </div>
@@ -122,35 +153,43 @@ export function ProductosSection({
                 />
               </div>
 
-              {isProjector && (
-                <>
-                  <div>
-                    <Label htmlFor={`power-${item.key}`}>Potencia / versión (opcional)</Label>
-                    <Input
-                      id={`power-${item.key}`}
-                      value={item.power}
-                      onChange={(e) => updateItem(item.key, { power: e.target.value })}
+              <div>
+                <Label htmlFor={`power-${item.key}`}>Potencia / versión (opcional)</Label>
+                <Input
+                  id={`power-${item.key}`}
+                  value={item.power}
+                  onChange={(e) => updateItem(item.key, { power: e.target.value })}
+                />
+              </div>
+
+              {!isProjector ? (
+                <div>
+                  <Label htmlFor={`color-${item.key}`}>Color (opcional)</Label>
+                  <Input
+                    id={`color-${item.key}`}
+                    value={item.color}
+                    onChange={(e) => updateItem(item.key, { color: e.target.value })}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor={`lens-${item.key}`}>Tipo de lente (opcional)</Label>
+                  <Input
+                    id={`lens-${item.key}`}
+                    value={item.lensType}
+                    disabled={item.lensPendingFactory}
+                    onChange={(e) => updateItem(item.key, { lensType: e.target.value })}
+                  />
+                  <label className="mt-1.5 flex items-center gap-2 text-xs text-ink-faint">
+                    <input
+                      type="checkbox"
+                      checked={item.lensPendingFactory}
+                      onChange={(e) => updateItem(item.key, { lensPendingFactory: e.target.checked, lensType: "" })}
+                      className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent/30"
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor={`lens-${item.key}`}>Tipo de lente (opcional)</Label>
-                    <Input
-                      id={`lens-${item.key}`}
-                      value={item.lensType}
-                      disabled={item.lensPendingFactory}
-                      onChange={(e) => updateItem(item.key, { lensType: e.target.value })}
-                    />
-                    <label className="mt-1.5 flex items-center gap-2 text-xs text-ink-faint">
-                      <input
-                        type="checkbox"
-                        checked={item.lensPendingFactory}
-                        onChange={(e) => updateItem(item.key, { lensPendingFactory: e.target.checked, lensType: "" })}
-                        className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent/30"
-                      />
-                      Por definir con fábrica
-                    </label>
-                  </div>
-                </>
+                    Por definir con fábrica
+                  </label>
+                </div>
               )}
 
               <div className="sm:col-span-2">

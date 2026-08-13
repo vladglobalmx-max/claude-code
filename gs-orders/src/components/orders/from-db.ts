@@ -58,6 +58,8 @@ export function buildOrderFormState(
           notes: item.notes ?? "",
           image: item.image_path ? toMediaDraft(item.id + "-image", item.image_path, null, "image/*", mediaUrls) : null,
           referenceImages,
+          catalogProductId: item.catalog_product_id,
+          color: item.color ?? "",
           power: item.power ?? "",
           lensType: item.lens_pending_factory ? "" : item.lens_type ?? "",
           lensPendingFactory: item.lens_pending_factory,

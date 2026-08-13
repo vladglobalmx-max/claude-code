@@ -13,6 +13,13 @@ export const orderItemSchema = z.object({
   notes: z.string().trim().optional(),
   image_path: z.string().nullable().optional(),
 
+  // Referencia opcional (solo trazabilidad) al producto del catálogo del
+  // que se copió este producto, y color del producto — ver
+  // 0009_product_catalog.sql. No se vuelve a consultar el catálogo con
+  // este id: todo lo que se muestra ya viene en los demás campos.
+  catalog_product_id: z.string().uuid().nullable().optional(),
+  color: z.string().trim().optional(),
+
   // Especificaciones técnicas del equipo (antes vivían una sola vez en el
   // pedido; ahora cada producto tiene las suyas — ver 0006_item_projection.sql).
   power: z.string().trim().optional(),

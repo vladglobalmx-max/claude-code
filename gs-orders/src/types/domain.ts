@@ -117,6 +117,14 @@ export interface OrderItem {
   quantity: number;
   notes: string | null;
 
+  // Referencia opcional (solo trazabilidad) al producto del catálogo del
+  // que se copió este producto, y color propio del producto — ver
+  // 0009_product_catalog.sql. catalog_product_id NUNCA se vuelve a
+  // consultar para reconstruir lo que se muestra: todo lo necesario ya
+  // está copiado en las columnas de este mismo registro (snapshot).
+  catalog_product_id: string | null;
+  color: string | null;
+
   // Especificaciones técnicas del equipo (solo aplica si el pedido es
   // proyector_gobo). Antes vivían una sola vez en `orders`; ahora cada
   // producto tiene las suyas, porque un pedido puede incluir varios
@@ -238,4 +246,27 @@ export interface OrderWithRelations extends Order {
   items: OrderItem[];
   images: OrderImage[];
   files: OrderFile[];
+}
+
+/**
+ * Producto del catálogo administrable (Configuración → Catálogo de
+ * productos — ver 0009_product_catalog.sql). `category` es texto libre a
+ * propósito: agregar una categoría nueva (Blue Spot, Sensores, etc.) es un
+ * registro más, nunca una migración. Esto es independiente de
+ * `ProductType`, que sigue clasificando el pedido completo.
+ */
+export interface ProductCatalogItem {
+  id: string;
+  category: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  image_path: string | null;
+  power: string | null;
+  color: string | null;
+  lens_type: string | null;
+  technical_notes: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
 }

@@ -4,7 +4,7 @@ import { getSignedUrls } from "@/lib/storage";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
 import { updateOrder } from "../../actions";
-import type { Order, OrderImage, OrderItem, OrderFile, Salesperson } from "@/types/domain";
+import type { Order, OrderImage, OrderItem, OrderItemImage, OrderFile, Salesperson } from "@/types/domain";
 
 export default async function EditarPedidoPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -26,9 +26,17 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   const typedFiles = (files ?? []) as OrderFile[];
   const salespeople = (salespeopleData ?? []) as Salesperson[];
 
+  const itemIds = typedItems.map((i) => i.id);
+  const { data: itemImages } =
+    itemIds.length > 0
+      ? await supabase.from("order_item_images").select("*").in("order_item_id", itemIds).order("position")
+      : { data: [] as OrderItemImage[] };
+  const typedItemImages = (itemImages ?? []) as OrderItemImage[];
+
   const mediaPaths = [
     ...typedItems.map((i) => i.image_path).filter((p): p is string => !!p),
     ...typedItems.map((i) => i.projection_file_path).filter((p): p is string => !!p),
+    ...typedItemImages.map((i) => i.storage_path),
     ...typedImages.map((i) => i.storage_path),
     ...(typedOrder.projection_file_path ? [typedOrder.projection_file_path] : []),
   ];
@@ -39,7 +47,15 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     getSignedUrls("order-files", filePaths),
   ]);
 
-  const initialState = buildOrderFormState(typedOrder, typedItems, typedImages, typedFiles, mediaUrls, fileUrls);
+  const initialState = buildOrderFormState(
+    typedOrder,
+    typedItems,
+    typedItemImages,
+    typedImages,
+    typedFiles,
+    mediaUrls,
+    fileUrls
+  );
 
   return (
     <div>

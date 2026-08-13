@@ -26,7 +26,7 @@ export function ImagenesSection({
         </CardHeader>
         <CardContent>
           <p className="mb-3 text-xs text-ink-faint">
-            Vista general, punto de instalación, superficie de proyección, medición, referencia…
+            Área general, techo, piso, estructura, punto de instalación, medidas, obstáculos…
           </p>
           <MultiFileField
             items={images}

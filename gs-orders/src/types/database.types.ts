@@ -138,6 +138,15 @@ export interface Database {
           projection_width: number | null;
           projection_height: number | null;
           projection_size_unit: string | null;
+          installation_height: number | null;
+          installation_height_unit: string | null;
+          installation_distance: number | null;
+          installation_orientation: string | null;
+          installation_use: string | null;
+          surface_type: string | null;
+          surface_material: string | null;
+          surface_notes: string | null;
+          surface_notes_en: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -161,6 +170,15 @@ export interface Database {
           projection_width?: number | null;
           projection_height?: number | null;
           projection_size_unit?: string | null;
+          installation_height?: number | null;
+          installation_height_unit?: string | null;
+          installation_distance?: number | null;
+          installation_orientation?: string | null;
+          installation_use?: string | null;
+          surface_type?: string | null;
+          surface_material?: string | null;
+          surface_notes?: string | null;
+          surface_notes_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
         Relationships: [
@@ -169,6 +187,37 @@ export interface Database {
             columns: ["order_id"];
             isOneToOne: false;
             referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      order_item_images: {
+        Row: {
+          id: string;
+          order_item_id: string;
+          kind: string;
+          position: number;
+          storage_path: string;
+          file_name: string | null;
+          file_type: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_item_id: string;
+          kind: string;
+          position?: number;
+          storage_path: string;
+          file_name?: string | null;
+          file_type?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_item_images"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "order_item_images_order_item_id_fkey";
+            columns: ["order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "order_items";
             referencedColumns: ["id"];
           },
         ];

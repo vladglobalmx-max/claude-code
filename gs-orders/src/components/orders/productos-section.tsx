@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SingleImageField } from "./single-image-field";
+import { MultiFileField } from "./multi-file-field";
 import { uploadMediaFile } from "./media-client";
+import { ORIENTATION_LABELS, SURFACE_MATERIAL_LABELS, SURFACE_TYPE_LABELS, USE_LABELS } from "@/types/domain";
 import { emptyProductItem, type ProductItemDraft } from "./types";
 
 export function ProductosSection({
@@ -58,6 +60,7 @@ export function ProductosSection({
               )}
             </div>
 
+            {/* ---- Equipo ---- */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Imagen principal</Label>
@@ -69,6 +72,22 @@ export function ProductosSection({
                     updateItem(item.key, { image: media });
                   }}
                   onRemove={() => updateItem(item.key, { image: null })}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label>Imágenes adicionales (opcional)</Label>
+                <MultiFileField
+                  items={item.referenceImages}
+                  variant="photo"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onAdd={async (file) => {
+                    const media = await uploadMediaFile(orderId, "productos", file);
+                    updateItem(item.key, { referenceImages: [...item.referenceImages, media] });
+                  }}
+                  onRemove={(key) =>
+                    updateItem(item.key, { referenceImages: item.referenceImages.filter((img) => img.key !== key) })
+                  }
                 />
               </div>
 
@@ -128,7 +147,7 @@ export function ProductosSection({
                         onChange={(e) => updateItem(item.key, { lensPendingFactory: e.target.checked, lensType: "" })}
                         className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent/30"
                       />
-                      Por definir por fábrica
+                      Por definir con fábrica
                     </label>
                   </div>
                 </>
@@ -146,90 +165,247 @@ export function ProductosSection({
             </div>
 
             {isProjector && (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">Imagen a proyectar</p>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor={`proj-desc-${item.key}`}>¿Qué quiere proyectar el cliente?</Label>
-                    <Textarea
-                      id={`proj-desc-${item.key}`}
-                      rows={2}
-                      value={item.projectionDescription}
-                      onChange={(e) => updateItem(item.key, { projectionDescription: e.target.value })}
-                      placeholder="Ej. STOP, Cruce peatonal, Logo TENARIS, Zona restringida…"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`proj-desc-en-${item.key}`}>Texto para proveedor (inglés)</Label>
-                    <Textarea
-                      id={`proj-desc-en-${item.key}`}
-                      rows={2}
-                      value={item.projectionDescriptionEn}
-                      onChange={(e) => updateItem(item.key, { projectionDescriptionEn: e.target.value })}
-                      placeholder="Ej. STOP, Pedestrian crossing, TENARIS logo…"
-                    />
-                    <p className="mt-1 text-xs text-ink-faint">
-                      Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Imagen a proyectar</Label>
-                    <SingleImageField
-                      value={item.projectionFile}
-                      accept="image/jpeg,image/png,image/jpg,.pdf,.svg,application/pdf,image/svg+xml"
-                      label="Subir imagen o diseño (JPG, PNG, PDF, SVG)"
-                      onUpload={async (file) => {
-                        const media = await uploadMediaFile(orderId, "proyeccion", file);
-                        updateItem(item.key, { projectionFile: media });
-                      }}
-                      onRemove={() => updateItem(item.key, { projectionFile: null })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <>
+                {/* ---- Imagen a proyectar ---- */}
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">Imagen a proyectar</p>
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor={`proj-width-${item.key}`}>Ancho de imagen requerida</Label>
-                      <Input
-                        id={`proj-width-${item.key}`}
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        value={item.projectionWidth}
-                        onChange={(e) => updateItem(item.key, { projectionWidth: e.target.value })}
+                      <Label htmlFor={`proj-desc-${item.key}`}>¿Qué quiere proyectar el cliente?</Label>
+                      <Textarea
+                        id={`proj-desc-${item.key}`}
+                        rows={2}
+                        value={item.projectionDescription}
+                        onChange={(e) => updateItem(item.key, { projectionDescription: e.target.value })}
+                        placeholder="Ej. STOP, Cruce peatonal, Logo TENARIS, Zona restringida…"
                       />
                     </div>
                     <div>
-                      <Label htmlFor={`proj-height-${item.key}`}>Alto de imagen requerida</Label>
+                      <Label htmlFor={`proj-desc-en-${item.key}`}>Texto para proveedor (inglés)</Label>
+                      <Textarea
+                        id={`proj-desc-en-${item.key}`}
+                        rows={2}
+                        value={item.projectionDescriptionEn}
+                        onChange={(e) => updateItem(item.key, { projectionDescriptionEn: e.target.value })}
+                        placeholder="Ej. STOP, Pedestrian crossing, TENARIS logo…"
+                      />
+                      <p className="mt-1 text-xs text-ink-faint">
+                        Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Imagen(es) a proyectar</Label>
+                      <MultiFileField
+                        items={item.projectionImages}
+                        variant="photo"
+                        accept="image/jpeg,image/png,image/jpg,.pdf,.svg,application/pdf,image/svg+xml"
+                        onAdd={async (file) => {
+                          const media = await uploadMediaFile(orderId, "proyeccion", file);
+                          updateItem(item.key, { projectionImages: [...item.projectionImages, media] });
+                        }}
+                        onRemove={(key) =>
+                          updateItem(item.key, {
+                            projectionImages: item.projectionImages.filter((img) => img.key !== key),
+                          })
+                        }
+                      />
+                      <p className="mt-1.5 text-xs text-ink-faint">
+                        Puedes subir más de una imagen (por ejemplo, el diseño final y una referencia).
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div>
+                        <Label htmlFor={`proj-width-${item.key}`}>Ancho de imagen requerida</Label>
+                        <Input
+                          id={`proj-width-${item.key}`}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={item.projectionWidth}
+                          onChange={(e) => updateItem(item.key, { projectionWidth: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`proj-height-${item.key}`}>Alto de imagen requerida</Label>
+                        <Input
+                          id={`proj-height-${item.key}`}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={item.projectionHeight}
+                          onChange={(e) => updateItem(item.key, { projectionHeight: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`proj-unit-${item.key}`}>Unidad</Label>
+                        <Select
+                          id={`proj-unit-${item.key}`}
+                          value={item.projectionSizeUnit}
+                          onChange={(e) =>
+                            updateItem(item.key, {
+                              projectionSizeUnit: e.target.value as ProductItemDraft["projectionSizeUnit"],
+                            })
+                          }
+                        >
+                          <option value="m">Metros</option>
+                          <option value="cm">Centímetros</option>
+                        </Select>
+                      </div>
+                    </div>
+                    {item.projectionWidth && item.projectionHeight && (
+                      <p className="text-sm text-ink-soft">
+                        Tamaño de proyección: {item.projectionWidth} {item.projectionSizeUnit} ×{" "}
+                        {item.projectionHeight} {item.projectionSizeUnit}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ---- Instalación del proyector ---- */}
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                    Instalación del proyector
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor={`inst-height-${item.key}`}>Altura de instalación</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id={`inst-height-${item.key}`}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          className="flex-1"
+                          value={item.installationHeight}
+                          onChange={(e) => updateItem(item.key, { installationHeight: e.target.value })}
+                        />
+                        <Select
+                          className="w-24 shrink-0"
+                          value={item.installationHeightUnit}
+                          onChange={(e) =>
+                            updateItem(item.key, {
+                              installationHeightUnit: e.target.value as ProductItemDraft["installationHeightUnit"],
+                            })
+                          }
+                        >
+                          <option value="m">m</option>
+                          <option value="cm">cm</option>
+                          <option value="pies">pies</option>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor={`inst-distance-${item.key}`}>Distancia proyector → superficie</Label>
                       <Input
-                        id={`proj-height-${item.key}`}
+                        id={`inst-distance-${item.key}`}
                         type="number"
                         step="0.01"
                         min={0}
-                        value={item.projectionHeight}
-                        onChange={(e) => updateItem(item.key, { projectionHeight: e.target.value })}
+                        value={item.installationDistance}
+                        onChange={(e) => updateItem(item.key, { installationDistance: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label htmlFor={`proj-unit-${item.key}`}>Unidad</Label>
+                      <Label htmlFor={`inst-orientation-${item.key}`}>Orientación</Label>
                       <Select
-                        id={`proj-unit-${item.key}`}
-                        value={item.projectionSizeUnit}
+                        id={`inst-orientation-${item.key}`}
+                        value={item.orientation}
                         onChange={(e) =>
-                          updateItem(item.key, { projectionSizeUnit: e.target.value as ProductItemDraft["projectionSizeUnit"] })
+                          updateItem(item.key, { orientation: e.target.value as ProductItemDraft["orientation"] })
                         }
                       >
-                        <option value="m">Metros</option>
-                        <option value="cm">Centímetros</option>
+                        <option value="">Selecciona…</option>
+                        {Object.entries(ORIENTATION_LABELS).map(([v, label]) => (
+                          <option key={v} value={v}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor={`inst-use-${item.key}`}>Uso (opcional)</Label>
+                      <Select
+                        id={`inst-use-${item.key}`}
+                        value={item.use}
+                        onChange={(e) => updateItem(item.key, { use: e.target.value as ProductItemDraft["use"] })}
+                      >
+                        <option value="">Selecciona…</option>
+                        {Object.entries(USE_LABELS).map(([v, label]) => (
+                          <option key={v} value={v}>
+                            {label}
+                          </option>
+                        ))}
                       </Select>
                     </div>
                   </div>
-                  {item.projectionWidth && item.projectionHeight && (
-                    <p className="text-sm text-ink-soft">
-                      Tamaño de proyección: {item.projectionWidth} {item.projectionSizeUnit} × {item.projectionHeight}{" "}
-                      {item.projectionSizeUnit}
-                    </p>
-                  )}
                 </div>
-              </div>
+
+                {/* ---- Superficie de proyección ---- */}
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                    Superficie de proyección
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor={`surf-type-${item.key}`}>Superficie</Label>
+                      <Select
+                        id={`surf-type-${item.key}`}
+                        value={item.surfaceType}
+                        onChange={(e) =>
+                          updateItem(item.key, { surfaceType: e.target.value as ProductItemDraft["surfaceType"] })
+                        }
+                      >
+                        <option value="">Selecciona…</option>
+                        {Object.entries(SURFACE_TYPE_LABELS).map(([v, label]) => (
+                          <option key={v} value={v}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor={`surf-material-${item.key}`}>Material (opcional)</Label>
+                      <Select
+                        id={`surf-material-${item.key}`}
+                        value={item.surfaceMaterial}
+                        onChange={(e) =>
+                          updateItem(item.key, {
+                            surfaceMaterial: e.target.value as ProductItemDraft["surfaceMaterial"],
+                          })
+                        }
+                      >
+                        <option value="">Selecciona…</option>
+                        {Object.entries(SURFACE_MATERIAL_LABELS).map(([v, label]) => (
+                          <option key={v} value={v}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor={`surf-notes-${item.key}`}>Observaciones de superficie</Label>
+                      <Textarea
+                        id={`surf-notes-${item.key}`}
+                        rows={2}
+                        value={item.surfaceNotes}
+                        onChange={(e) => updateItem(item.key, { surfaceNotes: e.target.value })}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor={`surf-notes-en-${item.key}`}>Texto para proveedor (inglés)</Label>
+                      <Textarea
+                        id={`surf-notes-en-${item.key}`}
+                        rows={2}
+                        value={item.surfaceNotesEn}
+                        onChange={(e) => updateItem(item.key, { surfaceNotesEn: e.target.value })}
+                      />
+                      <p className="mt-1 text-xs text-ink-faint">
+                        Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         ))}

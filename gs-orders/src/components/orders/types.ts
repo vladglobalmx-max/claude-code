@@ -27,6 +27,7 @@ export interface ProductItemDraft {
   quantity: number;
   notes: string;
   image: MediaDraft | null;
+  referenceImages: MediaDraft[];
 
   // Especificaciones técnicas del equipo (solo se capturan/muestran cuando
   // el pedido es proyector_gobo).
@@ -34,22 +35,18 @@ export interface ProductItemDraft {
   lensType: string;
   lensPendingFactory: boolean;
 
-  // Proyección de este producto (solo proyector_gobo).
+  // Proyección de este producto (solo proyector_gobo). Puede tener varias
+  // imágenes (ver 0007_item_installation_and_multi_images.sql).
   projectionDescription: string;
   projectionDescriptionEn: string;
-  projectionFile: MediaDraft | null;
+  projectionImages: MediaDraft[];
   projectionWidth: string;
   projectionHeight: string;
   projectionSizeUnit: SizeUnit;
-}
 
-/**
- * Instalación y superficie del pedido (proyector_gobo). Ya no lleva equipo
- * ni proyección — eso ahora vive por producto en ProductItemDraft, porque
- * un pedido puede incluir varios proyectores con especificaciones y
- * proyecciones distintas.
- */
-export interface ProjectorDraft {
+  // Instalación y superficie de este producto (solo proyector_gobo). Un
+  // mismo pedido puede tener proyectores instalados en condiciones
+  // distintas.
   installationHeight: string;
   installationHeightUnit: HeightUnit;
   installationDistance: string;
@@ -74,7 +71,6 @@ export interface OrderFormState {
   items: ProductItemDraft[];
   images: MediaDraft[];
   files: MediaDraft[];
-  projector: ProjectorDraft;
 }
 
 export function emptyProductItem(): ProductItemDraft {
@@ -85,20 +81,16 @@ export function emptyProductItem(): ProductItemDraft {
     quantity: 1,
     notes: "",
     image: null,
+    referenceImages: [],
     power: "",
     lensType: "",
     lensPendingFactory: false,
     projectionDescription: "",
     projectionDescriptionEn: "",
-    projectionFile: null,
+    projectionImages: [],
     projectionWidth: "",
     projectionHeight: "",
     projectionSizeUnit: "m",
-  };
-}
-
-export function emptyProjector(): ProjectorDraft {
-  return {
     installationHeight: "",
     installationHeightUnit: "m",
     installationDistance: "",
@@ -125,6 +117,5 @@ export function emptyOrderForm(defaultDate: string): OrderFormState {
     items: [emptyProductItem()],
     images: [],
     files: [],
-    projector: emptyProjector(),
   };
 }

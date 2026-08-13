@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { PRODUCT_TYPE_LABELS } from "@/types/domain";
 import type { Salesperson } from "@/types/domain";
 import type { OrderFormState } from "./types";
@@ -103,17 +102,6 @@ export function DatosGeneralesSection({
               </option>
             ))}
           </Select>
-        </div>
-
-        <div className="sm:col-span-2">
-          <Label htmlFor="general_notes">Observaciones generales</Label>
-          <Textarea
-            id="general_notes"
-            rows={2}
-            value={state.generalNotes}
-            onChange={(e) => onChange({ generalNotes: e.target.value })}
-            placeholder="Notas visibles solo internamente"
-          />
         </div>
       </CardContent>
     </Card>

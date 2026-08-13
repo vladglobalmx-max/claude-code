@@ -14,14 +14,13 @@ import {
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
 
 /**
- * Construye la fila de `orders`. El equipo y la imagen a proyectar de cada
- * producto ya no van aquí — viven por producto en order_items (ver
- * 0006_item_projection.sql y buildPayload en order-form.tsx). `projector`
- * solo trae instalación/superficie, que sí siguen siendo del pedido
- * completo.
+ * Construye la fila de `orders`. Equipo, proyección, instalación y
+ * superficie de cada producto ya no van aquí — viven por producto en
+ * order_items / order_item_images (ver 0006_item_projection.sql y
+ * 0007_item_installation_and_multi_images.sql). Las columnas de `orders`
+ * para esos campos quedan sin usar (legacy) para pedidos nuevos.
  */
 function buildOrderRow(payload: OrderPayload) {
-  const p = payload.projector;
   return {
     salesperson_id: payload.salesperson_id,
     order_date: payload.order_date,
@@ -32,17 +31,6 @@ function buildOrderRow(payload: OrderPayload) {
     general_notes: payload.general_notes || null,
     vendor_notes: payload.vendor_notes || null,
     vendor_notes_en: payload.vendor_notes_en || null,
-
-    installation_height: p?.installation_height ?? null,
-    installation_height_unit: p?.installation_height_unit || null,
-    installation_distance: p?.installation_distance ?? null,
-    installation_orientation: p?.orientation || null,
-    installation_use: p?.use || null,
-
-    surface_type: p?.surface_type || null,
-    surface_material: p?.surface_material || null,
-    surface_notes: p?.surface_notes || null,
-    surface_notes_en: p?.surface_notes_en || null,
   };
 }
 
@@ -138,7 +126,21 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
       supabase.from("order_items").select("*").eq("order_id", orderId),
     ]);
     if (order && order.product_type === "proyector_gobo") {
-      const missing = getMissingProjectorFieldsFromRow(order, items ?? []);
+      const itemIds = (items ?? []).map((item) => item.id);
+      const { data: projectionImages } =
+        itemIds.length > 0
+          ? await supabase
+              .from("order_item_images")
+              .select("order_item_id")
+              .eq("kind", "projection")
+              .in("order_item_id", itemIds)
+          : { data: [] as { order_item_id: string }[] };
+      const itemsWithProjection = new Set((projectionImages ?? []).map((row) => row.order_item_id));
+
+      const missing = getMissingProjectorFieldsFromRow(
+        order,
+        (items ?? []).map((item) => ({ ...item, hasProjectionImage: itemsWithProjection.has(item.id) }))
+      );
       if (missing.length > 0) {
         return { error: "Falta información para enviar este pedido a fábrica", missingFields: missing };
       }

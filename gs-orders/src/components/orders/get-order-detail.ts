@@ -2,12 +2,13 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
-import type { Order, OrderFile, OrderImage, OrderItem, Salesperson } from "@/types/domain";
+import type { Order, OrderFile, OrderImage, OrderItem, OrderItemImage, Salesperson } from "@/types/domain";
 
 export interface OrderDetail {
   order: Order;
   salesperson: Salesperson;
   items: OrderItem[];
+  itemImages: OrderItemImage[];
   images: OrderImage[];
   files: OrderFile[];
   mediaUrls: Record<string, string>;
@@ -32,9 +33,17 @@ export async function getOrderDetail(id: string): Promise<OrderDetail> {
   const typedImages = (images ?? []) as OrderImage[];
   const typedFiles = (files ?? []) as OrderFile[];
 
+  const itemIds = typedItems.map((i) => i.id);
+  const { data: itemImages } =
+    itemIds.length > 0
+      ? await supabase.from("order_item_images").select("*").in("order_item_id", itemIds).order("position")
+      : { data: [] as OrderItemImage[] };
+  const typedItemImages = (itemImages ?? []) as OrderItemImage[];
+
   const mediaPaths = [
     ...typedItems.map((i) => i.image_path).filter((p): p is string => !!p),
     ...typedItems.map((i) => i.projection_file_path).filter((p): p is string => !!p),
+    ...typedItemImages.map((i) => i.storage_path),
     ...typedImages.map((i) => i.storage_path),
     ...(typedOrder.projection_file_path ? [typedOrder.projection_file_path] : []),
   ];
@@ -58,6 +67,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail> {
       updated_at: "",
     }) as Salesperson,
     items: typedItems,
+    itemImages: typedItemImages,
     images: typedImages,
     files: typedFiles,
     mediaUrls,

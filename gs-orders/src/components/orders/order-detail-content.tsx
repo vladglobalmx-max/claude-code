@@ -10,7 +10,14 @@ import {
   SURFACE_TYPE_LABELS,
   USE_LABELS,
 } from "@/types/domain";
-import type { Orientation, ProductType, SurfaceMaterial, SurfaceType, UseEnvironment } from "@/types/domain";
+import type {
+  Orientation,
+  OrderItemImage,
+  ProductType,
+  SurfaceMaterial,
+  SurfaceType,
+  UseEnvironment,
+} from "@/types/domain";
 import type { OrderDetail } from "./get-order-detail";
 
 // El PDF para fábrica sale en inglés (opera con proveedores en China); la
@@ -76,6 +83,46 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function ImageThumbRow({
+  images,
+  mediaUrls,
+  isEn,
+}: {
+  images: OrderItemImage[];
+  mediaUrls: Record<string, string>;
+  isEn: boolean;
+}) {
+  if (images.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {images.map((img) => {
+        const url = mediaUrls[img.storage_path];
+        const isImage = img.file_type?.startsWith("image/") ?? true;
+        return isImage && url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={img.id}
+            src={url}
+            alt={img.file_name ?? (isEn ? "Reference image" : "Imagen de referencia")}
+            className="h-20 w-20 rounded-lg border border-border object-cover"
+          />
+        ) : (
+          <a
+            key={img.id}
+            href={url ?? "#"}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-border text-center text-[10px] text-accent hover:underline"
+          >
+            <FileText className="h-4 w-4" />
+            {img.file_name ?? (isEn ? "File" : "Archivo")}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 export function OrderDetailContent({
   detail,
   variant = "view",
@@ -83,13 +130,10 @@ export function OrderDetailContent({
   detail: OrderDetail;
   variant?: "view" | "print";
 }) {
-  const { order, salesperson, items, images, files, mediaUrls, fileUrls } = detail;
+  const { order, salesperson, items, itemImages, images, files, mediaUrls, fileUrls } = detail;
   const isProjector = order.product_type === "proyector_gobo";
   const isEn = variant === "print";
 
-  // Texto libre: en el PDF se usa la versión en inglés cuando existe;
-  // si está vacía, se usa el texto original en español como respaldo.
-  const surfaceNotes = isEn ? order.surface_notes_en || order.surface_notes : order.surface_notes;
   const vendorNotes = isEn ? order.vendor_notes_en || order.vendor_notes : order.vendor_notes;
 
   return (
@@ -122,8 +166,9 @@ export function OrderDetailContent({
           <div className="space-y-4">
             {items.map((item, index) => {
               const imageUrl = item.image_path ? mediaUrls[item.image_path] : null;
-              const itemProjectionImageUrl = item.projection_file_path ? mediaUrls[item.projection_file_path] : null;
-              const itemProjectionIsImage = item.projection_file_type?.startsWith("image/") ?? false;
+              const ownImages = itemImages.filter((img) => img.order_item_id === item.id);
+              const referenceImages = ownImages.filter((img) => img.kind === "reference");
+              const projectionImages = ownImages.filter((img) => img.kind === "projection");
               const itemProjectionDescription = isEn
                 ? item.projection_description_en || item.projection_description
                 : item.projection_description;
@@ -131,10 +176,11 @@ export function OrderDetailContent({
                 item.projection_width != null && item.projection_height != null
                   ? `${item.projection_width} ${item.projection_size_unit} × ${item.projection_height} ${item.projection_size_unit}`
                   : null;
+              const itemSurfaceNotes = isEn ? item.surface_notes_en || item.surface_notes : item.surface_notes;
               const specs = [
                 item.power ? `${isEn ? "Power/Version" : "Potencia/versión"}: ${item.power}` : null,
                 item.lens_pending_factory
-                  ? `${isEn ? "Lens" : "Lente"}: ${isEn ? "To be defined by factory" : "Por definir por fábrica"}`
+                  ? `${isEn ? "Lens" : "Lente"}: ${isEn ? "To be defined by factory" : "Por definir con fábrica"}`
                   : item.lens_type
                     ? `${isEn ? "Lens" : "Lente"}: ${item.lens_type}`
                     : null,
@@ -169,7 +215,16 @@ export function OrderDetailContent({
                     </div>
                   </div>
 
-                  {isProjector && (item.projection_file_path || itemProjectionDescription || itemProjectionSize) && (
+                  {referenceImages.length > 0 && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-xs text-ink-faint">
+                        {isEn ? "Product images / references" : "Imágenes de referencia"}
+                      </p>
+                      <ImageThumbRow images={referenceImages} mediaUrls={mediaUrls} isEn={isEn} />
+                    </div>
+                  )}
+
+                  {isProjector && (projectionImages.length > 0 || itemProjectionDescription || itemProjectionSize) && (
                     <div className="mt-3 border-t border-border pt-3">
                       <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
                         {isEn ? "Projected Image" : "Imagen a proyectar"}
@@ -180,31 +235,78 @@ export function OrderDetailContent({
                           {itemProjectionDescription}
                         </p>
                       )}
-                      {item.projection_file_path &&
-                        (itemProjectionIsImage && itemProjectionImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={itemProjectionImageUrl}
-                            alt={isEn ? "Projection image" : "Imagen a proyectar"}
-                            className="mt-2 max-h-72 w-auto max-w-full rounded-lg border border-border object-contain print:max-h-[320px]"
-                          />
-                        ) : (
-                          <a
-                            href={itemProjectionImageUrl ?? "#"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-2 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-accent hover:underline"
-                          >
-                            <FileText className="h-4 w-4" />
-                            {item.projection_file_name ?? (isEn ? "View file" : "Ver archivo")}
-                          </a>
-                        ))}
+                      {projectionImages.length > 0 && (
+                        <div className="mt-2">
+                          <ImageThumbRow images={projectionImages} mediaUrls={mediaUrls} isEn={isEn} />
+                        </div>
+                      )}
                       {itemProjectionSize && (
                         <p className="mt-2 text-sm text-ink-soft">
-                          {isEn ? "Requested Projection: " : "Medida requerida: "}
+                          {isEn ? "Projection dimensions: " : "Medida requerida: "}
                           <span className="font-medium text-ink">{itemProjectionSize}</span>
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {isProjector &&
+                    (item.installation_height != null ||
+                      item.installation_orientation ||
+                      item.installation_distance != null ||
+                      item.installation_use) && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                          {isEn ? "Installation" : "Instalación"}
+                        </p>
+                        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                          <Field
+                            label={isEn ? "Installation Height" : "Altura"}
+                            value={formatMeasure(item.installation_height, item.installation_height_unit)}
+                          />
+                          <Field
+                            label={isEn ? "Orientation" : "Orientación"}
+                            value={
+                              item.installation_orientation
+                                ? isEn
+                                  ? EN_ORIENTATION_LABELS[item.installation_orientation]
+                                  : ORIENTATION_LABELS[item.installation_orientation]
+                                : null
+                            }
+                          />
+                          <Field
+                            label={isEn ? "Projector-to-surface distance" : "Distancia"}
+                            value={formatMeasure(item.installation_distance, item.installation_height_unit)}
+                          />
+                          <Field
+                            label={isEn ? "Use" : "Uso"}
+                            value={item.installation_use ? (isEn ? EN_USE_LABELS[item.installation_use] : USE_LABELS[item.installation_use]) : null}
+                          />
+                        </dl>
+                      </div>
+                    )}
+
+                  {isProjector && (item.surface_type || item.surface_material || itemSurfaceNotes) && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                        {isEn ? "Projection Surface" : "Superficie"}
+                      </p>
+                      <p className="text-sm text-ink">
+                        {[
+                          item.surface_type
+                            ? isEn
+                              ? EN_SURFACE_TYPE_LABELS[item.surface_type]
+                              : SURFACE_TYPE_LABELS[item.surface_type]
+                            : null,
+                          item.surface_material
+                            ? isEn
+                              ? EN_SURFACE_MATERIAL_LABELS[item.surface_material]
+                              : SURFACE_MATERIAL_LABELS[item.surface_material]
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(isEn ? " " : " · ") || "—"}
+                      </p>
+                      {itemSurfaceNotes && <p className="mt-1 text-sm text-ink-soft">{itemSurfaceNotes}</p>}
                     </div>
                   )}
                 </div>
@@ -212,53 +314,6 @@ export function OrderDetailContent({
             })}
           </div>
         </Section>
-      )}
-
-      {isProjector && (
-        <>
-          <Section title={isEn ? "Installation" : "Instalación"}>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              <Field
-                label={isEn ? "Installation Height" : "Altura"}
-                value={formatMeasure(order.installation_height, order.installation_height_unit)}
-              />
-              <Field
-                label={isEn ? "Projection Distance" : "Distancia"}
-                value={formatMeasure(order.installation_distance, order.installation_height_unit)}
-              />
-              <Field
-                label={isEn ? "Installation Orientation" : "Orientación"}
-                value={
-                  order.installation_orientation
-                    ? isEn
-                      ? EN_ORIENTATION_LABELS[order.installation_orientation]
-                      : ORIENTATION_LABELS[order.installation_orientation]
-                    : null
-                }
-              />
-              <Field
-                label={isEn ? "Indoor / Outdoor" : "Uso"}
-                value={order.installation_use ? (isEn ? EN_USE_LABELS[order.installation_use] : USE_LABELS[order.installation_use]) : null}
-              />
-            </dl>
-          </Section>
-
-          <Section title={isEn ? "Projection Surface" : "Superficie"}>
-            <p className="text-sm text-ink">
-              {[
-                order.surface_type ? (isEn ? EN_SURFACE_TYPE_LABELS[order.surface_type] : SURFACE_TYPE_LABELS[order.surface_type]) : null,
-                order.surface_material
-                  ? isEn
-                    ? EN_SURFACE_MATERIAL_LABELS[order.surface_material]
-                    : SURFACE_MATERIAL_LABELS[order.surface_material]
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(isEn ? " " : " · ") || "—"}
-            </p>
-            {surfaceNotes && <p className="mt-1 text-sm text-ink-soft">{surfaceNotes}</p>}
-          </Section>
-        </>
       )}
 
       {images.length > 0 && (

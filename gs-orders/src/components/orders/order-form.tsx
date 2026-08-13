@@ -11,7 +11,6 @@ import type { OrderStatus, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
 import { DatosGeneralesSection } from "./datos-generales-section";
 import { ProductosSection } from "./productos-section";
-import { ProyectorSection } from "./proyector-section";
 import { ImagenesSection } from "./imagenes-section";
 import { ObservacionesSection } from "./observaciones-section";
 import { RevisarSection } from "./revisar-section";
@@ -28,6 +27,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload {
+  const isProjector = state.productType === "proyector_gobo";
   return {
     order_date: state.orderDate,
     salesperson_id: state.salespersonId,
@@ -44,21 +44,27 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       quantity: item.quantity,
       notes: item.notes || undefined,
       image_path: item.image?.path ?? null,
-      power: state.productType === "proyector_gobo" ? item.power || undefined : undefined,
-      lens_type: state.productType === "proyector_gobo" ? item.lensType || undefined : undefined,
-      lens_pending_factory: state.productType === "proyector_gobo" ? item.lensPendingFactory : undefined,
-      projection_description:
-        state.productType === "proyector_gobo" ? item.projectionDescription || undefined : undefined,
-      projection_description_en:
-        state.productType === "proyector_gobo" ? item.projectionDescriptionEn || undefined : undefined,
-      projection_file_path: state.productType === "proyector_gobo" ? item.projectionFile?.path ?? null : null,
-      projection_file_name: state.productType === "proyector_gobo" ? item.projectionFile?.name ?? null : null,
-      projection_file_type: state.productType === "proyector_gobo" ? item.projectionFile?.type ?? null : null,
-      projection_width:
-        state.productType === "proyector_gobo" && item.projectionWidth ? Number(item.projectionWidth) : undefined,
-      projection_height:
-        state.productType === "proyector_gobo" && item.projectionHeight ? Number(item.projectionHeight) : undefined,
-      projection_size_unit: state.productType === "proyector_gobo" ? item.projectionSizeUnit : undefined,
+      reference_images: item.referenceImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
+      power: isProjector ? item.power || undefined : undefined,
+      lens_type: isProjector ? item.lensType || undefined : undefined,
+      lens_pending_factory: isProjector ? item.lensPendingFactory : undefined,
+      projection_description: isProjector ? item.projectionDescription || undefined : undefined,
+      projection_description_en: isProjector ? item.projectionDescriptionEn || undefined : undefined,
+      projection_images: isProjector
+        ? item.projectionImages.map((img) => ({ path: img.path, name: img.name, type: img.type }))
+        : [],
+      projection_width: isProjector && item.projectionWidth ? Number(item.projectionWidth) : undefined,
+      projection_height: isProjector && item.projectionHeight ? Number(item.projectionHeight) : undefined,
+      projection_size_unit: isProjector ? item.projectionSizeUnit : undefined,
+      installation_height: isProjector && item.installationHeight ? Number(item.installationHeight) : undefined,
+      installation_height_unit: isProjector ? item.installationHeightUnit : undefined,
+      installation_distance: isProjector && item.installationDistance ? Number(item.installationDistance) : undefined,
+      installation_orientation: isProjector ? item.orientation || undefined : undefined,
+      installation_use: isProjector ? item.use || undefined : undefined,
+      surface_type: isProjector ? item.surfaceType || undefined : undefined,
+      surface_material: isProjector ? item.surfaceMaterial || undefined : undefined,
+      surface_notes: isProjector ? item.surfaceNotes || undefined : undefined,
+      surface_notes_en: isProjector ? item.surfaceNotesEn || undefined : undefined,
     })),
     images: state.images.map((img) => ({ storage_path: img.path, caption: img.caption || undefined })),
     files: state.files.map((f) => ({
@@ -67,24 +73,6 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       file_type: f.type || undefined,
       file_size: f.size,
     })),
-    projector:
-      state.productType === "proyector_gobo"
-        ? {
-            installation_height: state.projector.installationHeight
-              ? Number(state.projector.installationHeight)
-              : undefined,
-            installation_height_unit: state.projector.installationHeightUnit,
-            installation_distance: state.projector.installationDistance
-              ? Number(state.projector.installationDistance)
-              : undefined,
-            orientation: state.projector.orientation || undefined,
-            use: state.projector.use || undefined,
-            surface_type: state.projector.surfaceType || undefined,
-            surface_material: state.projector.surfaceMaterial || undefined,
-            surface_notes: state.projector.surfaceNotes || undefined,
-            surface_notes_en: state.projector.surfaceNotesEn || undefined,
-          }
-        : null,
   };
 }
 
@@ -206,15 +194,6 @@ export function OrderForm({
           onChange={(items) => patch({ items })}
         />
       </div>
-
-      {state.productType === "proyector_gobo" && (
-        <div className={tab === "productos" ? "mt-5 block" : "hidden"}>
-          <ProyectorSection
-            value={state.projector}
-            onChange={(p) => patch({ projector: { ...state.projector, ...p } })}
-          />
-        </div>
-      )}
 
       <div className={tab === "imagenes" ? "block" : "hidden"}>
         <ImagenesSection

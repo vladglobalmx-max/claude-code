@@ -94,8 +94,8 @@ export function RevisarSection({
                 key={item.key}
                 label={item.model ? `Producto ${index + 1} (${item.model})` : `Producto ${index + 1}`}
                 value={
-                  item.projectionFile ? (
-                    <Badge variant="success">Imagen cargada</Badge>
+                  item.projectionImages.length > 0 ? (
+                    <Badge variant="success">{item.projectionImages.length} imagen(es) cargada(s)</Badge>
                   ) : (
                     <Badge variant="neutral">Sin cargar</Badge>
                   )

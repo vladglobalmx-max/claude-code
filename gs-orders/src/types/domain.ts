@@ -126,7 +126,9 @@ export interface OrderItem {
   lens_pending_factory: boolean;
 
   // Proyección de este producto específico (antes también era una sola
-  // columna global en `orders`).
+  // columna global en `orders`). projection_file_path/name/type quedan
+  // como legacy desde 0007 — la o las imágenes de proyección viven ahora
+  // en order_item_images (kind = 'projection').
   projection_description: string | null;
   projection_description_en: string | null;
   projection_file_path: string | null;
@@ -136,8 +138,34 @@ export interface OrderItem {
   projection_height: number | null;
   projection_size_unit: SizeUnit | null;
 
+  // Instalación y superficie de este producto específico (antes también
+  // eran columnas globales en `orders` — ver 0007_item_installation_and_multi_images.sql).
+  // Un mismo pedido puede tener dos proyectores instalados en condiciones
+  // distintas.
+  installation_height: number | null;
+  installation_height_unit: HeightUnit | null;
+  installation_distance: number | null;
+  installation_orientation: Orientation | null;
+  installation_use: UseEnvironment | null;
+  surface_type: SurfaceType | null;
+  surface_material: SurfaceMaterial | null;
+  surface_notes: string | null;
+  surface_notes_en: string | null;
+
   created_at: string;
   updated_at: string;
+}
+
+/** Imagen de referencia del producto o imagen a proyectar (0 o varias de cada tipo, por producto). */
+export interface OrderItemImage {
+  id: string;
+  order_item_id: string;
+  kind: "reference" | "projection";
+  position: number;
+  storage_path: string;
+  file_name: string | null;
+  file_type: string | null;
+  created_at: string;
 }
 
 export interface OrderImage {

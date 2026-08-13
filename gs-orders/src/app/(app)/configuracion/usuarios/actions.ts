@@ -8,8 +8,11 @@ import { getCurrentProfile, type CurrentProfile } from "@/lib/auth/profile";
 import { getSiteUrl } from "@/lib/site-url";
 import { createUserAccessSchema, updateUserAccessSchema } from "@/lib/validations/user-access";
 import { mapDbError } from "@/lib/db-errors";
+import { mapAuthError } from "@/lib/auth-errors";
+import { preflightSalespersonTaken, insertProfileOrCompensate } from "@/lib/user-access";
 
 export type UserAccessFormState = { error?: string } | undefined;
+export type GenerateLinkState = { error: string } | { ok: true; actionLink: string; email: string };
 
 /**
  * Todas las acciones de este módulo son server-only (archivo "use server")
@@ -26,16 +29,13 @@ async function requireAdmin(): Promise<{ error: string } | { profile: CurrentPro
   return { profile };
 }
 
-function mapAuthError(error: { message?: string } | null): string {
-  const message = error?.message?.toLowerCase() ?? "";
-  if (
-    message.includes("already registered") ||
-    message.includes("already been registered") ||
-    message.includes("already exists")
-  ) {
-    return "Ya existe un usuario con ese correo.";
-  }
-  return "No se pudo crear el usuario. Intenta de nuevo.";
+function logAuthError(context: string, email: string, error: { message?: string; status?: number; code?: string } | null) {
+  console.error(`[usuarios] ${context}`, {
+    email,
+    status: error?.status,
+    code: error?.code,
+    message: error?.message,
+  });
 }
 
 function parseFormFields(formData: FormData) {
@@ -49,11 +49,10 @@ function parseFormFields(formData: FormData) {
 }
 
 /**
- * Crea el acceso: invita al usuario vía Supabase Auth (correo con enlace
- * seguro para que ÉL defina su propia contraseña — nunca se genera, guarda
- * ni muestra una contraseña temporal desde GS Orders) y crea su perfil.
- * Si el perfil falla, se revierte el alta en Auth para no dejar un usuario
- * "fantasma" sin perfil.
+ * Crea el acceso enviando una invitación por correo (Supabase Auth genera y
+ * envía el enlace). Sujeto al límite de tasa del servicio de correo de
+ * Supabase — ver createUserAccessLink() para la alternativa sin envío de
+ * correo cuando ese límite se alcanza.
  */
 export async function createUserAccess(
   _prevState: UserAccessFormState,
@@ -70,31 +69,67 @@ export async function createUserAccess(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
+  const supabase = createSupabaseServerClient();
+  const salespersonError = await preflightSalespersonTaken(supabase, parsed.data.salesperson_id);
+  if (salespersonError) return { error: salespersonError };
+
   const admin = createSupabaseAdminClient();
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
     redirectTo: `${getSiteUrl()}/set-password`,
   });
 
   if (inviteError || !invited?.user) {
+    logAuthError("inviteUserByEmail falló", parsed.data.email, inviteError);
     return { error: mapAuthError(inviteError) };
   }
 
-  const supabase = createSupabaseServerClient();
-  const { error: profileError } = await supabase.from("user_profiles").insert({
-    user_id: invited.user.id,
-    name: parsed.data.name,
-    role: parsed.data.role,
-    salesperson_id: parsed.data.role === "vendedor" ? parsed.data.salesperson_id : null,
-    active: parsed.data.active,
-  });
-
-  if (profileError) {
-    await admin.auth.admin.deleteUser(invited.user.id);
-    return { error: mapDbError(profileError, "No se pudo crear el perfil del usuario.") };
-  }
+  const result = await insertProfileOrCompensate(admin, supabase, invited.user.id, parsed.data);
+  if ("error" in result) return result;
 
   revalidatePath("/configuracion/usuarios");
   redirect("/configuracion/usuarios");
+}
+
+/**
+ * Crea el acceso SIN enviar correo: genera el usuario en Auth y un enlace de
+ * activación de un solo uso (generateLink), que el ADMIN copia y comparte
+ * manualmente (WhatsApp, correo, etc.). No depende del servicio de correo de
+ * Supabase, así que funciona aunque el límite de invitaciones esté activo.
+ * El enlace se devuelve una sola vez al ADMIN — GS Orders nunca lo guarda.
+ */
+export async function createUserAccessLink(formData: FormData): Promise<GenerateLinkState> {
+  const guard = await requireAdmin();
+  if ("error" in guard) return { error: guard.error };
+
+  const parsed = createUserAccessSchema.safeParse({
+    ...parseFormFields(formData),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const salespersonError = await preflightSalespersonTaken(supabase, parsed.data.salesperson_id);
+  if (salespersonError) return { error: salespersonError };
+
+  const admin = createSupabaseAdminClient();
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email: parsed.data.email,
+    options: { redirectTo: `${getSiteUrl()}/set-password` },
+  });
+
+  if (linkError || !linkData?.user || !linkData.properties) {
+    logAuthError("generateLink falló", parsed.data.email, linkError);
+    return { error: mapAuthError(linkError) };
+  }
+
+  const result = await insertProfileOrCompensate(admin, supabase, linkData.user.id, parsed.data);
+  if ("error" in result) return result;
+
+  revalidatePath("/configuracion/usuarios");
+  return { ok: true, actionLink: linkData.properties.action_link, email: parsed.data.email };
 }
 
 /** Edita nombre/rol/vendedor/estado del perfil. No toca auth.users — el email y la contraseña siguen siendo responsabilidad de Supabase Auth. */
@@ -145,7 +180,33 @@ export async function resetUserPassword(email: string): Promise<{ error: string 
   });
 
   if (error) {
-    return { error: "No se pudo enviar el correo de restablecimiento. Intenta de nuevo." };
+    logAuthError("resetPasswordForEmail falló", email, error);
+    return { error: mapAuthError(error) };
   }
   return { ok: true };
+}
+
+/**
+ * Genera un enlace de restablecimiento de contraseña SIN enviar correo, para
+ * un usuario que YA existe en Auth (p. ej. Karla: su invitación original
+ * quedó inservible por el bug del redirect a localhost). No crea usuario ni
+ * perfil nuevos — solo emite un enlace de recovery de un solo uso.
+ */
+export async function generatePasswordResetLink(email: string): Promise<GenerateLinkState> {
+  const guard = await requireAdmin();
+  if ("error" in guard) return { error: guard.error };
+
+  const admin = createSupabaseAdminClient();
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${getSiteUrl()}/set-password` },
+  });
+
+  if (linkError || !linkData?.properties) {
+    logAuthError("generateLink (recovery) falló", email, linkError);
+    return { error: mapAuthError(linkError) };
+  }
+
+  return { ok: true, actionLink: linkData.properties.action_link, email };
 }

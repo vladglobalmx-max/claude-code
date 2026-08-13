@@ -302,7 +302,7 @@ export interface Database {
         Returns: Database["public"]["Tables"]["orders"]["Row"];
       };
       rpc_duplicate_order: {
-        Args: { p_source_order_id: string };
+        Args: { p_source_order_id: string; p_order_date: string };
         Returns: Database["public"]["Tables"]["orders"]["Row"];
       };
       rpc_delete_order: {

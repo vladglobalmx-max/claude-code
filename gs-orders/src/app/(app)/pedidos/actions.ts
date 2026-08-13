@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getBusinessToday } from "@/lib/business-date";
 import { mapDbError } from "@/lib/db-errors";
 import {
   orderPayloadSchema,
@@ -101,12 +102,19 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
   redirect(`/pedidos/${orderId}`);
 }
 
-/** Duplica un pedido completo (nuevo folio/fecha/consecutivo) en una sola transacción (rpc_duplicate_order). */
+/**
+ * Duplica un pedido completo (nuevo folio/fecha/consecutivo) en una sola
+ * transacción (rpc_duplicate_order). La fecha del duplicado se calcula
+ * aquí (fecha de negocio, America/Monterrey) y se pasa explícita al RPC:
+ * el RPC ya no calcula ninguna fecha por su cuenta (antes usaba
+ * `current_date` de Postgres, que corre en UTC en Supabase).
+ */
 export async function duplicateOrder(sourceOrderId: string): Promise<{ id: string }> {
   const supabase = createSupabaseServerClient();
 
   const { data, error } = await supabase.rpc("rpc_duplicate_order", {
     p_source_order_id: sourceOrderId,
+    p_order_date: getBusinessToday(),
   });
 
   if (error || !data) {

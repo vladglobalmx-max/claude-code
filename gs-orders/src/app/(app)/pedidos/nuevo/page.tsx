@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getBusinessToday } from "@/lib/business-date";
 import { OrderForm } from "@/components/orders/order-form";
 import { emptyOrderForm } from "@/components/orders/types";
 import { createOrder } from "../actions";
@@ -15,7 +16,7 @@ export default async function NuevoPedidoPage() {
 
   const salespeople = (data ?? []) as Salesperson[];
   const orderId = randomUUID();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBusinessToday();
 
   return (
     <div>

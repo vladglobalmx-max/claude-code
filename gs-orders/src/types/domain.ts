@@ -11,20 +11,23 @@ export const BUSINESS_UNIT_LABELS: Record<BusinessUnit, string> = {
   the_fire_spot: "The Fire Spot",
 };
 
+/**
+ * Los 5 tipos con los que arrancó la app, antes de que "Tipo de producto"
+ * se volviera administrable (ver product_types, 0010_product_types.sql).
+ * Ya NO son la fuente de verdad de qué tipos existen — eso ahora vive en
+ * la tabla product_types y se consulta dinámicamente. Este tipo se
+ * conserva únicamente para tipar el diccionario de traducción al inglés
+ * del PDF (EN_PRODUCT_TYPE_LABELS en order-detail-content.tsx), que solo
+ * cubre estos 5 códigos históricos — un tipo nuevo creado desde
+ * Configuración usa su snapshot en español también en el PDF en inglés,
+ * en vez de inventarle una traducción.
+ */
 export type ProductType =
   | "proyector_gobo"
   | "luminaria"
   | "equipo_seguridad"
   | "refaccion_accesorio"
   | "otro";
-
-export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
-  proyector_gobo: "Proyector / GOBO",
-  luminaria: "Luminaria",
-  equipo_seguridad: "Equipo de seguridad",
-  refaccion_accesorio: "Refacción / Accesorio",
-  otro: "Otro",
-};
 
 export type OrderStatus = "borrador" | "pedido" | "cerrado" | "cancelado";
 
@@ -204,7 +207,16 @@ export interface Order {
   order_date: string;
   client_name: string;
   supplier_name: string | null;
-  product_type: ProductType;
+  // Código estable del tipo de producto (product_types.code) — ver
+  // 0010_product_types.sql. Ya no es un literal fijo: puede ser cualquier
+  // código dado de alta desde Configuración → Tipos de producto. La UI
+  // especial de Proyector/GOBO sigue dependiendo de comparar este valor
+  // contra "proyector_gobo", nunca contra el nombre visible.
+  product_type: string;
+  // Nombre visible del tipo en el momento en que se creó/editó el pedido
+  // (snapshot). Nunca se recalcula al leer: si el tipo se renombra después
+  // desde Configuración, este pedido sigue mostrando el nombre original.
+  product_type_name_snapshot: string | null;
   status: OrderStatus;
   general_notes: string | null;
   vendor_notes: string | null;
@@ -266,6 +278,24 @@ export interface ProductCatalogItem {
   color: string | null;
   lens_type: string | null;
   technical_notes: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Tipo de producto administrable (Configuración → Tipos de producto — ver
+ * 0010_product_types.sql). `code` es el identificador estable e interno
+ * que controla comportamiento (p. ej. "proyector_gobo" activa la UI
+ * especial de Proyector/GOBO); nunca se edita después de creado. `name` es
+ * el texto visible y sí es editable — los pedidos ya creados no se ven
+ * afectados por un renombre porque guardan su propio snapshot
+ * (Order.product_type_name_snapshot).
+ */
+export interface ProductTypeItem {
+  id: string;
+  code: string;
+  name: string;
   active: boolean;
   created_at: string;
   updated_at: string;

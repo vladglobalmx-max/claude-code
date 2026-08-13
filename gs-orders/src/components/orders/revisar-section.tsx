@@ -5,24 +5,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { ORDER_STATUS_LABELS, PRODUCT_TYPE_LABELS } from "@/types/domain";
-import type { OrderStatus, Salesperson } from "@/types/domain";
+import { ORDER_STATUS_LABELS } from "@/types/domain";
+import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderFormState } from "./types";
 
 export function RevisarSection({
   state,
   salespeople,
+  productTypes,
   missingFields,
   editableStatus = false,
   onStatusChange,
 }: {
   state: OrderFormState;
   salespeople: Salesperson[];
+  productTypes: ProductTypeItem[];
   missingFields: string[];
   editableStatus?: boolean;
   onStatusChange?: (status: OrderStatus) => void;
 }) {
   const salesperson = salespeople.find((sp) => sp.id === state.salespersonId);
+  const productTypeName = productTypes.find((t) => t.code === state.productType)?.name ?? state.productType;
 
   return (
     <div className="space-y-5">
@@ -76,7 +79,7 @@ export function RevisarSection({
           <Row label="Vendedor" value={salesperson ? `${salesperson.name} (${salesperson.prefix})` : "—"} />
           <Row label="Cliente" value={state.clientName || "—"} />
           <Row label="Proveedor" value={state.supplierName || "—"} />
-          <Row label="Tipo de producto" value={PRODUCT_TYPE_LABELS[state.productType]} />
+          <Row label="Tipo de producto" value={productTypeName} />
           <Row label="Productos" value={String(state.items.length)} />
           <Row label="Fotografías" value={String(state.images.length)} />
           <Row label="Archivos adjuntos" value={String(state.files.length)} />

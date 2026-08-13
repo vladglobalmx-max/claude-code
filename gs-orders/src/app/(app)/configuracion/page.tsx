@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Package } from "lucide-react";
+import { ChevronRight, Package, Tags } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BUSINESS_UNIT_LABELS, type BusinessUnit } from "@/types/domain";
@@ -47,6 +47,24 @@ export default function ConfiguracionPage() {
             <span className="flex items-center gap-2">
               <Package className="h-4 w-4 text-ink-faint" />
               Administrar productos (Luz LED Grúa Viajera y futuros modelos)
+            </span>
+            <ChevronRight className="h-4 w-4 text-ink-faint" />
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Tipos de producto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/configuracion/tipos-producto"
+            className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm text-ink transition-colors hover:bg-surface-2"
+          >
+            <span className="flex items-center gap-2">
+              <Tags className="h-4 w-4 text-ink-faint" />
+              Administrar el &ldquo;Tipo de producto&rdquo; de Nuevo Pedido
             </span>
             <ChevronRight className="h-4 w-4 text-ink-faint" />
           </Link>

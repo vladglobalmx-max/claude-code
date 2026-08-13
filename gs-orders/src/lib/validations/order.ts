@@ -75,7 +75,11 @@ export const orderPayloadSchema = z.object({
   salesperson_id: z.string().uuid("Selecciona un vendedor"),
   client_name: z.string().trim().min(1, "El cliente es obligatorio"),
   supplier_name: z.string().trim().optional(),
-  product_type: z.enum(["proyector_gobo", "luminaria", "equipo_seguridad", "refaccion_accesorio", "otro"]),
+  // Ya no es un enum fijo: los tipos válidos viven en product_types (ver
+  // 0010_product_types.sql) y se administran desde Configuración. La
+  // integridad real (que el código exista) la garantiza la FK
+  // orders_product_type_fkey a nivel de base de datos.
+  product_type: z.string().trim().min(1, "El tipo de producto es obligatorio"),
   status: z.enum(["borrador", "pedido", "cerrado", "cancelado"]).default("borrador"),
   general_notes: z.string().trim().optional(),
   vendor_notes: z.string().trim().optional(),

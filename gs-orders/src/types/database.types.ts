@@ -41,6 +41,7 @@ export interface Database {
           client_name: string;
           supplier_name: string | null;
           product_type: string;
+          product_type_name_snapshot: string | null;
           status: string;
           general_notes: string | null;
           vendor_notes: string | null;
@@ -79,6 +80,8 @@ export interface Database {
           client_name: string;
           supplier_name?: string | null;
           product_type: string;
+          // La calcula rpc_create_order/rpc_update_order internamente; no se envía desde la app.
+          product_type_name_snapshot?: string | null;
           status?: string;
           general_notes?: string | null;
           vendor_notes?: string | null;
@@ -321,6 +324,26 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_catalog"]["Insert"]>;
+        Relationships: [];
+      };
+      product_types: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_types"]["Insert"]>;
         Relationships: [];
       };
     };

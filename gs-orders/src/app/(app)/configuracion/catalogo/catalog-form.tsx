@@ -17,6 +17,26 @@ import type { CatalogActionResult } from "./actions";
 
 const NEW_CATEGORY_VALUE = "__new__";
 
+/**
+ * Calcula el estado inicial de los 3 campos de categoría a partir de la
+ * categoría del producto (vacía si es un producto nuevo) y las categorías
+ * ya existentes. Aislado en una función pura para poder probarlo sin
+ * montar el componente: el bug reportado (categoría mostrada por default
+ * pero no registrada hasta tocar el select) vivía exactamente aquí — si
+ * `initialCategory` es "" pero hay categorías, el <select> no tiene un
+ * <option value=""> y el navegador cae visualmente en la primera opción
+ * aunque el estado se hubiera quedado en "". `category` debe coincidir con
+ * la primera opción que el select va a mostrar, no quedarse en "".
+ */
+export function resolveCategoryFormInit(initialCategory: string, categories: string[]) {
+  const isNewCategory = categories.length === 0 || (initialCategory !== "" && !categories.includes(initialCategory));
+  return {
+    isNewCategory,
+    category: isNewCategory ? "" : initialCategory || categories[0] || "",
+    newCategory: isNewCategory ? initialCategory : "",
+  };
+}
+
 export interface CatalogFormInitialState {
   category: string;
   sku: string;
@@ -44,11 +64,10 @@ export function CatalogForm({
   onSubmit: (id: string, payload: CatalogProductPayload) => Promise<CatalogActionResult>;
 }) {
   const router = useRouter();
-  const [isNewCategory, setIsNewCategory] = useState(
-    categories.length === 0 || (initialState.category !== "" && !categories.includes(initialState.category))
-  );
-  const [category, setCategory] = useState(isNewCategory ? categories[0] ?? "" : initialState.category);
-  const [newCategory, setNewCategory] = useState(isNewCategory ? initialState.category : "");
+  const categoryInit = resolveCategoryFormInit(initialState.category, categories);
+  const [isNewCategory, setIsNewCategory] = useState(categoryInit.isNewCategory);
+  const [category, setCategory] = useState(categoryInit.category);
+  const [newCategory, setNewCategory] = useState(categoryInit.newCategory);
   const [sku, setSku] = useState(initialState.sku);
   const [name, setName] = useState(initialState.name);
   const [description, setDescription] = useState(initialState.description);

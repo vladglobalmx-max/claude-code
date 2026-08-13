@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
-import { ORDER_STATUS_BADGE, ORDER_STATUS_LABELS, PRODUCT_TYPE_LABELS } from "@/types/domain";
-import type { Salesperson } from "@/types/domain";
+import { ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
+import type { ProductTypeItem, Salesperson } from "@/types/domain";
 import { OrderFilters } from "./order-filters";
 import { DuplicateButton } from "./duplicate-button";
 import { DeleteButton } from "./delete-button";
@@ -19,6 +19,7 @@ interface OrderRow {
   order_date: string;
   client_name: string;
   product_type: string;
+  product_type_name_snapshot: string | null;
   status: string;
   salesperson: { name: string; prefix: string } | { name: string; prefix: string }[] | null;
 }
@@ -35,12 +36,18 @@ export default async function PedidosPage({
 }) {
   const supabase = createSupabaseServerClient();
 
-  const { data: salespeopleData } = await supabase.from("salespeople").select("*").order("name");
+  const [{ data: salespeopleData }, { data: productTypesData }] = await Promise.all([
+    supabase.from("salespeople").select("*").order("name"),
+    supabase.from("product_types").select("*").order("name"),
+  ]);
   const salespeople = (salespeopleData ?? []) as Salesperson[];
+  const productTypes = (productTypesData ?? []) as ProductTypeItem[];
 
   let query = supabase
     .from("orders")
-    .select("id, folio, order_date, client_name, product_type, status, salesperson:salespeople(name, prefix)")
+    .select(
+      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, salesperson:salespeople(name, prefix)"
+    )
     .order("created_at", { ascending: false });
 
   if (searchParams.vendedor) query = query.eq("salesperson_id", searchParams.vendedor);
@@ -71,7 +78,7 @@ export default async function PedidosPage({
         </div>
       </div>
 
-      <OrderFilters salespeople={salespeople} />
+      <OrderFilters salespeople={salespeople} productTypes={productTypes} />
 
       {orders.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface">
@@ -106,7 +113,7 @@ export default async function PedidosPage({
                   <Td className="text-ink-soft">{formatDateShort(order.order_date)}</Td>
                   <Td className="text-ink-soft">{salespersonName(order)}</Td>
                   <Td>{order.client_name}</Td>
-                  <Td className="text-ink-soft">{PRODUCT_TYPE_LABELS[order.product_type as keyof typeof PRODUCT_TYPE_LABELS]}</Td>
+                  <Td className="text-ink-soft">{order.product_type_name_snapshot ?? order.product_type}</Td>
                   <Td>
                     <Badge variant={ORDER_STATUS_BADGE[order.status as keyof typeof ORDER_STATUS_BADGE]}>
                       {ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS]}

@@ -5,7 +5,6 @@ import {
   ORDER_STATUS_BADGE,
   ORDER_STATUS_LABELS,
   ORIENTATION_LABELS,
-  PRODUCT_TYPE_LABELS,
   SURFACE_MATERIAL_LABELS,
   SURFACE_TYPE_LABELS,
   USE_LABELS,
@@ -23,7 +22,15 @@ import type { OrderDetail } from "./get-order-detail";
 // El PDF para fábrica sale en inglés (opera con proveedores en China); la
 // app y la captura de datos permanecen en español. Este es el único lugar
 // que necesita las dos versiones de las etiquetas.
-const EN_PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+//
+// Solo cubre los 5 tipos históricos (ver ProductType en types/domain.ts).
+// Un tipo nuevo dado de alta desde Configuración → Tipos de producto no
+// tiene traducción aquí a propósito — no se inventan traducciones
+// técnicas permanentes; en ese caso el PDF en inglés cae de vuelta al
+// snapshot en español del pedido (mismo criterio ya usado para
+// vendor_notes_en/projection_description_en/surface_notes_en: si no hay
+// texto en inglés, se usa el texto en español).
+const EN_PRODUCT_TYPE_LABELS: Partial<Record<ProductType, string>> = {
   proyector_gobo: "Projector / Gobo",
   luminaria: "Luminaire",
   equipo_seguridad: "Safety Equipment",
@@ -135,6 +142,11 @@ export function OrderDetailContent({
   const isEn = variant === "print";
 
   const vendorNotes = isEn ? order.vendor_notes_en || order.vendor_notes : order.vendor_notes;
+  // Nombre visible del tipo tal como estaba guardado al crear/editar el
+  // pedido (snapshot) — nunca se recalcula contra product_types, así que
+  // renombrar un tipo después no cambia pedidos ya creados.
+  const productTypeNameEs = order.product_type_name_snapshot ?? order.product_type;
+  const productTypeNameEn = EN_PRODUCT_TYPE_LABELS[order.product_type as ProductType] ?? productTypeNameEs;
 
   return (
     <div className="space-y-8">
@@ -157,7 +169,7 @@ export function OrderDetailContent({
         <Field label={isEn ? "Supplier" : "Proveedor"} value={order.supplier_name} />
         <Field
           label={isEn ? "Product Type" : "Tipo de producto"}
-          value={isEn ? EN_PRODUCT_TYPE_LABELS[order.product_type] : PRODUCT_TYPE_LABELS[order.product_type]}
+          value={isEn ? productTypeNameEn : productTypeNameEs}
         />
       </dl>
 

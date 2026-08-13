@@ -4,19 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { PRODUCT_TYPE_LABELS } from "@/types/domain";
-import type { Salesperson } from "@/types/domain";
+import type { ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderFormState } from "./types";
 
 export function DatosGeneralesSection({
   state,
   salespeople,
+  productTypes,
   onChange,
   folioPreview,
   locked = false,
 }: {
   state: OrderFormState;
   salespeople: Salesperson[];
+  productTypes: ProductTypeItem[];
   onChange: (patch: Partial<OrderFormState>) => void;
   folioPreview: string | null;
   locked?: boolean;
@@ -94,11 +95,11 @@ export function DatosGeneralesSection({
           <Select
             id="product_type"
             value={state.productType}
-            onChange={(e) => onChange({ productType: e.target.value as OrderFormState["productType"] })}
+            onChange={(e) => onChange({ productType: e.target.value })}
           >
-            {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {productTypes.map((t) => (
+              <option key={t.id} value={t.code}>
+                {t.name}
               </option>
             ))}
           </Select>

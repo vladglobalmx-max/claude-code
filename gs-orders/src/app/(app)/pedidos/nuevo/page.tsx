@@ -5,11 +5,11 @@ import { getBusinessToday } from "@/lib/business-date";
 import { OrderForm } from "@/components/orders/order-form";
 import { emptyOrderForm, type CatalogProductOption } from "@/components/orders/types";
 import { createOrder } from "../actions";
-import type { ProductCatalogItem, Salesperson } from "@/types/domain";
+import type { ProductCatalogItem, ProductTypeItem, Salesperson } from "@/types/domain";
 
 export default async function NuevoPedidoPage() {
   const supabase = createSupabaseServerClient();
-  const [{ data }, { data: catalogData }] = await Promise.all([
+  const [{ data }, { data: catalogData }, { data: productTypesData }] = await Promise.all([
     supabase.from("salespeople").select("*").eq("active", true).order("name", { ascending: true }),
     supabase
       .from("product_catalog")
@@ -17,9 +17,11 @@ export default async function NuevoPedidoPage() {
       .eq("active", true)
       .order("category", { ascending: true })
       .order("name", { ascending: true }),
+    supabase.from("product_types").select("*").eq("active", true).order("name", { ascending: true }),
   ]);
 
   const salespeople = (data ?? []) as Salesperson[];
+  const productTypes = (productTypesData ?? []) as ProductTypeItem[];
   const catalogRows = (catalogData ?? []) as ProductCatalogItem[];
   const catalogImagePaths = catalogRows.map((p) => p.image_path).filter((p): p is string => !!p);
   const catalogImageUrls = await getSignedUrls("order-media", catalogImagePaths);
@@ -51,6 +53,7 @@ export default async function NuevoPedidoPage() {
         orderId={orderId}
         salespeople={salespeople}
         catalogProducts={catalogProducts}
+        productTypes={productTypes}
         initialState={emptyOrderForm(today)}
         onSubmit={createOrder}
       />

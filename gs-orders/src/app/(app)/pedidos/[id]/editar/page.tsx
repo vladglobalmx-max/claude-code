@@ -12,26 +12,38 @@ import type {
   OrderItemImage,
   OrderFile,
   ProductCatalogItem,
+  ProductTypeItem,
   Salesperson,
 } from "@/types/domain";
 
 export default async function EditarPedidoPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
 
-  const [{ data: order }, { data: items }, { data: images }, { data: files }, { data: salespeopleData }, { data: catalogData }] =
-    await Promise.all([
-      supabase.from("orders").select("*").eq("id", params.id).single(),
-      supabase.from("order_items").select("*").eq("order_id", params.id),
-      supabase.from("order_images").select("*").eq("order_id", params.id),
-      supabase.from("order_files").select("*").eq("order_id", params.id),
-      supabase.from("salespeople").select("*").order("name", { ascending: true }),
-      supabase
-        .from("product_catalog")
-        .select("*")
-        .eq("active", true)
-        .order("category", { ascending: true })
-        .order("name", { ascending: true }),
-    ]);
+  const [
+    { data: order },
+    { data: items },
+    { data: images },
+    { data: files },
+    { data: salespeopleData },
+    { data: catalogData },
+    { data: productTypesData },
+  ] = await Promise.all([
+    supabase.from("orders").select("*").eq("id", params.id).single(),
+    supabase.from("order_items").select("*").eq("order_id", params.id),
+    supabase.from("order_images").select("*").eq("order_id", params.id),
+    supabase.from("order_files").select("*").eq("order_id", params.id),
+    supabase.from("salespeople").select("*").order("name", { ascending: true }),
+    supabase
+      .from("product_catalog")
+      .select("*")
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .order("name", { ascending: true }),
+    // Sin filtro de activo: si el tipo de este pedido ya fue desactivado
+    // desde Configuración, debe seguir apareciendo seleccionado aquí (mismo
+    // criterio que ya se usa para salespeople en esta misma página).
+    supabase.from("product_types").select("*").order("name", { ascending: true }),
+  ]);
 
   if (!order) notFound();
 
@@ -41,6 +53,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   const typedFiles = (files ?? []) as OrderFile[];
   const salespeople = (salespeopleData ?? []) as Salesperson[];
   const catalogRows = (catalogData ?? []) as ProductCatalogItem[];
+  const productTypes = (productTypesData ?? []) as ProductTypeItem[];
 
   const itemIds = typedItems.map((i) => i.id);
   const { data: itemImages } =
@@ -101,6 +114,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
         orderId={typedOrder.id}
         salespeople={salespeople}
         catalogProducts={catalogProducts}
+        productTypes={productTypes}
         initialState={initialState}
         folio={typedOrder.folio}
         submitLabel={{ draft: "Guardar cambios", order: "Guardar y marcar como Pedido" }}

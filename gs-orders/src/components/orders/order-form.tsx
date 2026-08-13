@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
 import { computeFolioPreview } from "@/lib/folio-preview";
-import type { OrderStatus, Salesperson } from "@/types/domain";
+import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
 import { DatosGeneralesSection } from "./datos-generales-section";
 import { ProductosSection } from "./productos-section";
@@ -82,6 +82,7 @@ export function OrderForm({
   orderId,
   salespeople,
   catalogProducts,
+  productTypes,
   initialState,
   folio,
   submitLabel = { draft: "Guardar borrador", order: "Generar pedido" },
@@ -90,6 +91,7 @@ export function OrderForm({
   orderId: string;
   salespeople: Salesperson[];
   catalogProducts: CatalogProductOption[];
+  productTypes: ProductTypeItem[];
   initialState: OrderFormState;
   folio?: string;
   submitLabel?: { draft: string; order: string };
@@ -184,6 +186,7 @@ export function OrderForm({
         <DatosGeneralesSection
           state={state}
           salespeople={salespeople}
+          productTypes={productTypes}
           onChange={patch}
           folioPreview={folioPreview}
           locked={!!folio}
@@ -223,6 +226,7 @@ export function OrderForm({
         <RevisarSection
           state={state}
           salespeople={salespeople}
+          productTypes={productTypes}
           missingFields={missingFields}
           editableStatus={isEdit}
           onStatusChange={(status) => patch({ status })}

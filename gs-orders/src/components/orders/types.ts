@@ -2,7 +2,6 @@ import type {
   HeightUnit,
   Orientation,
   OrderStatus,
-  ProductType,
   SizeUnit,
   SurfaceMaterial,
   SurfaceType,
@@ -89,7 +88,8 @@ export interface OrderFormState {
   salespersonId: string;
   clientName: string;
   supplierName: string;
-  productType: ProductType;
+  // Código de product_types.code (administrable, ver 0010_product_types.sql) — ya no un literal fijo.
+  productType: string;
   status: OrderStatus;
   generalNotes: string;
   vendorNotes: string;

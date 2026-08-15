@@ -17,6 +17,10 @@ const config: Config = {
         success: "hsl(var(--gso-success) / <alpha-value>)",
         warning: "hsl(var(--gso-warning) / <alpha-value>)",
         danger: "hsl(var(--gso-danger) / <alpha-value>)",
+        "sidebar-bg": "hsl(var(--gso-sidebar-bg) / <alpha-value>)",
+        "sidebar-ink": "hsl(var(--gso-sidebar-ink) / <alpha-value>)",
+        "sidebar-ink-soft": "hsl(var(--gso-sidebar-ink-soft) / <alpha-value>)",
+        "sidebar-border": "hsl(var(--gso-sidebar-border) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

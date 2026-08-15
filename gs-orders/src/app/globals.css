@@ -3,25 +3,45 @@
 @tailwind utilities;
 
 /*
-  Tokens de diseño GS Orders: B2B claro, limpio y profesional
-  (inspiración Linear / Stripe / Notion). Formato HSL sin hsl() para
+  Tokens de diseño THÖREN — fuente de verdad: THOREN_Manual_de_Marca.pdf
+  v1.0.0 (ver docs/THOREN_BRAND_SYSTEM.md). Formato HSL sin hsl() para
   poder usar <alpha-value> en Tailwind.
+
+  Mapeo color de marca -> token semántico:
+    Stone  #EDEAE2 -> --gso-bg               (fondo principal, modo claro)
+    Paper  #F7F5EF -> --gso-surface          (cards/diálogos/superficies elevadas)
+    Basalt #23282B -> --gso-ink, --gso-sidebar-bg (texto principal / sidebar oscuro)
+    Fjord  #4B6673 -> --gso-ink-soft         (texto secundario, metadata)
+    Ember  #9C4E27 -> --gso-accent           (acento primario — símbolo, CTA, foco)
+    Moss   #5C6E4F -> --gso-success          (estados positivos, uso puntual)
+
+  --gso-surface-2, --gso-border, --gso-ink-faint y los tokens --gso-sidebar-*
+  secundarios son derivados (tintes/sombras de Stone/Basalt) — el manual no
+  define estos casos puntuales, así que se interpolan dentro de la misma
+  familia de matiz en vez de introducir un color ajeno a la paleta.
+  --gso-warning/--gso-danger tampoco están en el manual (fuera de su
+  alcance — son semántica funcional de UI, no identidad de marca) y se
+  conservan sin cambios.
 */
 :root {
-  --gso-bg: 210 20% 98%;
-  --gso-surface: 0 0% 100%;
-  --gso-surface-2: 210 20% 96%;
-  --gso-border: 214 16% 89%;
-  --gso-ink: 222 25% 14%;
-  --gso-ink-soft: 217 12% 40%;
-  --gso-ink-faint: 217 10% 58%;
-  --gso-accent: 221 83% 53%;
+  --gso-bg: 44 23% 91%;
+  --gso-surface: 45 33% 95%;
+  --gso-surface-2: 42 18% 87%;
+  --gso-border: 40 14% 82%;
+  --gso-ink: 202 10% 15%;
+  --gso-ink-soft: 200 21% 37%;
+  --gso-ink-faint: 200 14% 55%;
+  --gso-accent: 20 60% 38%;
   --gso-accent-ink: 0 0% 100%;
-  --gso-success: 152 55% 36%;
+  --gso-success: 95 16% 37%;
   --gso-warning: 32 92% 45%;
   --gso-danger: 4 72% 50%;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Sidebar THÖREN — Basalt, único fondo oscuro de la app (ver manual). */
+  --gso-sidebar-bg: 202 10% 15%;
+  --gso-sidebar-ink: 45 33% 95%;
+  --gso-sidebar-ink-soft: 45 12% 72%;
+  --gso-sidebar-border: 202 10% 22%;
 }
 
 * {
@@ -49,6 +69,28 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: hsl(var(--gso-border));
   border-radius: 999px;
+}
+
+/* Animaciones de entrada mínimas para overlays de Radix (Dialog/Dropdown/
+   Tooltip) — sin librería de animación, solo estas dos keyframes. */
+@keyframes gso-overlay-show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gso-content-show {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media print {

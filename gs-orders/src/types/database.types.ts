@@ -427,6 +427,36 @@ export interface Database {
           },
         ];
       };
+      business_units: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["business_units"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "business_units_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

@@ -1,4 +1,4 @@
-import { FileText, Users, Settings, Home, type LucideIcon } from "lucide-react";
+import { Building2, Contact, FileText, Users, Settings, Home, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -15,9 +15,16 @@ export interface NavGroup {
 
 /**
  * Árbol de navegación THÖREN (ver THÖREN Experience 1 Discovery, sección G).
- * Solo incluye entradas de páginas que existen hoy — Comercial > Personas y
- * Organización > Business Units se agregan en Experience 1D cuando esas
- * páginas existan (guardrail explícito de 1A: no crearlas todavía).
+ *
+ * Comercial > Personas y Organización > Unidades de Negocio se agregaron en
+ * Experience 1D (READ-ONLY). `adminOnly` refleja exactamente lo que RLS ya
+ * impone, no una restricción inventada aquí:
+ * - Personas: `people`/`person_business_units` solo tienen policy SELECT
+ *   para admin (ver 0015/0017_core_*.sql) — VENDEDOR no puede leer nada de
+ *   esto, así que el link ni se muestra.
+ * - Unidades de Negocio: `business_units_select_member` sí permite leer a
+ *   cualquier miembro de la organización (filtrado a `active = true` para
+ *   no-admin) — por eso NO es adminOnly, a diferencia de Personas.
  *
  * "Configuración" queda como entrada de nivel superior (no como grupo con
  * un solo hijo "Usuarios"): /configuracion es hoy el hub que también da
@@ -37,7 +44,14 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Comercial",
-    items: [{ href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true }],
+    items: [
+      { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
+      { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
+    ],
+  },
+  {
+    label: "Organización",
+    items: [{ href: "/unidades-negocio", label: "Unidades de Negocio", icon: Building2, adminOnly: false }],
   },
   {
     label: null,

@@ -7,7 +7,7 @@ const PUBLIC_PATHS = ["/login", "/set-password"];
 // los datos): un VENDEDOR que escriba manualmente /configuracion o
 // /vendedores en el navegador debe ser redirigido aquí mismo, antes de que
 // la página siquiera intente renderizar (ver CASO J del reporte de Fase 3).
-const ADMIN_ONLY_PREFIXES = ["/configuracion", "/vendedores"];
+const ADMIN_ONLY_PREFIXES = ["/configuracion", "/vendedores", "/personas"];
 
 /**
  * Protege toda la app: sin sesión válida, redirige a /login. Con sesión

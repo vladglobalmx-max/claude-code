@@ -32,6 +32,40 @@ export const BUSINESS_UNIT_LABELS: Record<BusinessUnit, string> = {
 };
 
 /**
+ * THÖREN Core (ver 0013–0017_core_*.sql) — Person/BusinessUnit reales,
+ * distintas del `BusinessUnit` de arriba (enum vestigial de
+ * salespeople.business_unit/orders.business_unit, sin relación de FK ni
+ * de código con estas tablas — ver 0014_core_business_units.sql). Se
+ * nombra `BusinessUnitRow` para no chocar con el tipo legacy.
+ */
+export interface Person {
+  id: string;
+  organization_id: string;
+  name: string;
+  email: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessUnitRow {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PersonBusinessUnit {
+  person_id: string;
+  business_unit_id: string;
+  active: boolean;
+  created_at: string;
+}
+
+/**
  * Los 5 tipos con los que arrancó la app, antes de que "Tipo de producto"
  * se volviera administrable (ver product_types, 0010_product_types.sql).
  * Ya NO son la fuente de verdad de qué tipos existen — eso ahora vive en

@@ -16,6 +16,11 @@ export interface Database {
           active: boolean;
           created_at: string;
           updated_at: string;
+          // THÖREN Core 2C (0016_core_people_salespeople_integration.sql) —
+          // nullable, unique cuando no es null. Backfill determinista vía
+          // user_profiles.person_id o, para salespeople históricos sin
+          // user_profile, vía Person nueva en Global Supplier MTY.
+          person_id: string | null;
         };
         Insert: {
           id?: string;
@@ -26,9 +31,18 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          person_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["salespeople"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "salespeople_person_id_fkey";
+            columns: ["person_id"];
+            isOneToOne: true;
+            referencedRelation: "people";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       orders: {
         Row: {
@@ -561,6 +575,20 @@ export interface Database {
       // (no devuelve fila) si no hay permiso o no existe la membership.
       admin_update_user_role_and_active: {
         Args: { p_user_id: string; p_role: string; p_active: boolean };
+        Returns: undefined;
+      };
+      // THÖREN Core 2C (0016) — crea una Person y vincula
+      // user_profiles.person_id en una sola transacción, para el alta de un
+      // usuario nuevo. Lanza excepción (no devuelve fila) si el perfil no
+      // existe o ya tenía una Person vinculada.
+      rpc_create_person_for_user: {
+        Args: {
+          p_user_id: string;
+          p_organization_id: string;
+          p_name: string;
+          p_email: string | null;
+          p_active: boolean;
+        };
         Returns: undefined;
       };
     };

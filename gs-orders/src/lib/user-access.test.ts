@@ -38,11 +38,13 @@ function fakeSupabase(maybeSingleResult: { data: unknown }, insertResult: { erro
 /**
  * Fake más fino para insertProfileAndMembershipOrCompensate: permite dar un
  * resultado DISTINTO al insert de user_profiles vs. al de
- * organization_members, según a qué tabla se llame `.from()`.
+ * organization_members, y al RPC rpc_create_person_for_user (CORE 2C) que
+ * crea/vincula la Person del usuario nuevo.
  */
 function fakeSupabaseTwoTables(results: {
   user_profiles: { error: unknown };
   organization_members?: { error: unknown };
+  rpc?: { error: unknown };
 }) {
   const from = vi.fn((table: string) => ({
     insert: vi.fn(async () => {
@@ -51,7 +53,8 @@ function fakeSupabaseTwoTables(results: {
       throw new Error(`fakeSupabaseTwoTables: tabla no esperada en el test: ${table}`);
     }),
   }));
-  return { from } as unknown as SupabaseClient<Database>;
+  const rpc = vi.fn(async () => results.rpc ?? { error: null });
+  return { from, rpc } as unknown as SupabaseClient<Database>;
 }
 
 function fakeRpcSupabase(rpcResult: { data: unknown; error: unknown }) {
@@ -151,8 +154,8 @@ describe("updateUserRoleAndActive (CORE 1 — RPC atómico admin_update_user_rol
   });
 });
 
-describe("insertProfileAndMembershipOrCompensate (CASO L/M/N)", () => {
-  it("CASO L: éxito -> inserta user_profiles Y organization_members, nunca llama deleteUser", async () => {
+describe("insertProfileAndMembershipOrCompensate (CASO L/M/N/O)", () => {
+  it("CASO L: éxito -> inserta user_profiles, organization_members Y crea/vincula la Person (RPC), nunca llama deleteUser", async () => {
     const deleteUser = vi.fn(async () => ({ error: null }));
     const admin = { auth: { admin: { deleteUser } } };
     const supabase = fakeSupabaseTwoTables({ user_profiles: { error: null }, organization_members: { error: null } });
@@ -161,6 +164,13 @@ describe("insertProfileAndMembershipOrCompensate (CASO L/M/N)", () => {
 
     expect(result).toEqual({ ok: true });
     expect(deleteUser).not.toHaveBeenCalled();
+    expect(supabase.rpc).toHaveBeenCalledWith("rpc_create_person_for_user", {
+      p_user_id: "new-auth-user-id",
+      p_organization_id: ORG_ID,
+      p_name: basePayload.name,
+      p_email: basePayload.email,
+      p_active: basePayload.active,
+    });
   });
 
   it("CASO M: falla user_profiles -> compensa eliminando SOLO el usuario Auth recién creado", async () => {
@@ -213,6 +223,28 @@ describe("insertProfileAndMembershipOrCompensate (CASO L/M/N)", () => {
     expect(consoleSpy).toHaveBeenCalledWith(
       "[usuarios] compensación fallida: no se pudo eliminar el usuario Auth huérfano",
       expect.objectContaining({ authUserId: "orphan-candidate-id" })
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it("CASO O (CORE 2C): user_profiles y organization_members OK pero falla rpc_create_person_for_user -> compensa igual (su propia transacción ya se revirtió, sin Person huérfana)", async () => {
+    const deleteUser = vi.fn(async () => ({ error: null }));
+    const admin = { auth: { admin: { deleteUser } } };
+    const supabase = fakeSupabaseTwoTables({
+      user_profiles: { error: null },
+      organization_members: { error: null },
+      rpc: { error: { code: "P0001", message: "rpc_create_person_for_user: no se pudo vincular la Person" } },
+    });
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await insertProfileAndMembershipOrCompensate(admin, supabase, "brand-new-auth-id-3", ORG_ID, basePayload);
+
+    expect("error" in result).toBe(true);
+    expect(deleteUser).toHaveBeenCalledTimes(1);
+    expect(deleteUser).toHaveBeenCalledWith("brand-new-auth-id-3");
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[usuarios] alta revertida en Auth tras fallo",
+      expect.objectContaining({ authUserId: "brand-new-auth-id-3", failedStep: expect.stringContaining("rpc_create_person_for_user") })
     );
     consoleSpy.mockRestore();
   });

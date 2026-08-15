@@ -144,18 +144,25 @@ async function compensateOrphanedAuthUser(
 }
 
 /**
- * Inserta user_profiles + organization_members para un usuario de Auth
- * recién creado (por invite o por generateLink). Si cualquiera de los dos
- * inserts falla, revierte el alta completa eliminando el usuario de Auth
- * (deleteUser) — authUserId debe ser SIEMPRE el id que la llamada a Auth de
- * esta misma operación acaba de devolver, nunca un usuario preexistente.
+ * Inserta user_profiles + organization_members, y crea/vincula la Person
+ * del usuario, para un usuario de Auth recién creado (por invite o por
+ * generateLink). Si cualquiera de los tres pasos falla, revierte el alta
+ * completa eliminando el usuario de Auth (deleteUser) — authUserId debe ser
+ * SIEMPRE el id que la llamada a Auth de esta misma operación acaba de
+ * devolver, nunca un usuario preexistente.
  *
- * Si falla organization_members DESPUÉS de que user_profiles ya se insertó,
- * NO hace falta borrar user_profiles aparte: organization_members.user_id y
- * user_profiles.user_id referencian auth.users con ON DELETE CASCADE
- * (0011, 0013), así que eliminar el usuario de Auth revierte ambas filas
- * automáticamente. La compensación en sí se audita: si deleteUser también
- * falla, queda registrado en logs server-side en vez de fallar en silencio.
+ * Si falla organization_members o rpc_create_person_for_user DESPUÉS de que
+ * user_profiles ya se insertó, NO hace falta borrar user_profiles aparte:
+ * organization_members.user_id y user_profiles.user_id referencian
+ * auth.users con ON DELETE CASCADE (0011, 0013), así que eliminar el
+ * usuario de Auth revierte ambas filas automáticamente. rpc_create_person_
+ * for_user (0016) hace su INSERT en people + UPDATE de person_id en una
+ * sola transacción Postgres: si falla, esa transacción se revierte
+ * completa, así que nunca queda una Person huérfana pendiente de limpiar
+ * aparte (no hay FK people → auth.users, así que no hay cascada que
+ * pudiera limpiarla si se hubiera creado). La compensación en sí se
+ * audita: si deleteUser también falla, queda registrado en logs
+ * server-side en vez de fallar en silencio.
  */
 export async function insertProfileAndMembershipOrCompensate(
   admin: AdminAuthClient,
@@ -192,6 +199,24 @@ export async function insertProfileAndMembershipOrCompensate(
       membershipError.message
     );
     return { error: mapDbError(membershipError, "No se pudo asociar el usuario a la organización.") };
+  }
+
+  const { error: personError } = await supabase.rpc("rpc_create_person_for_user", {
+    p_user_id: authUserId,
+    p_organization_id: organizationId,
+    p_name: data.name,
+    p_email: data.email,
+    p_active: data.active,
+  });
+
+  if (personError) {
+    await compensateOrphanedAuthUser(
+      admin,
+      authUserId,
+      "rpc_create_person_for_user (la cascada de ON DELETE también revierte user_profiles/organization_members; la Person nunca llega a existir porque su propia transacción se revierte)",
+      personError.message
+    );
+    return { error: mapDbError(personError, "No se pudo crear la identidad de persona del usuario.") };
   }
 
   return { ok: true };

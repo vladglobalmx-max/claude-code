@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { UserAccessForm } from "../user-form";
 import { createUserAccess } from "../actions";
@@ -18,7 +19,7 @@ export default async function NuevoUsuarioPage() {
 
   return (
     <div className="mx-auto max-w-xl px-6 py-8">
-      <h1 className="mb-6 text-lg font-semibold text-ink">Nuevo usuario</h1>
+      <PageHeader title="Nuevo usuario" />
       <Card>
         <CardHeader>
           <CardTitle>Datos de acceso</CardTitle>

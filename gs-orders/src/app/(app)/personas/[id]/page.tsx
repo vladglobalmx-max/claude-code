@@ -92,6 +92,12 @@ export default async function PersonaDetailPage({ params }: { params: { id: stri
               <>
                 <Row label="Rol" value={USER_ROLE_LABELS[profile.role as "admin" | "vendedor"]} />
                 <Row label="Cuenta" value={<ActiveBadge active={profile.active} />} />
+                <Link
+                  href={`/configuracion/usuarios/${profile.user_id}/editar`}
+                  className="mt-1 inline-block text-xs text-accent hover:underline"
+                >
+                  Editar acceso →
+                </Link>
               </>
             ) : (
               <p className="pt-1 text-xs text-ink-faint">
@@ -110,6 +116,12 @@ export default async function PersonaDetailPage({ params }: { params: { id: stri
               <>
                 <Row label="Vendedor" value={`${salesperson.name} (${salesperson.prefix})`} />
                 <Row label="Estado comercial" value={<ActiveBadge active={salesperson.active} />} />
+                <Link
+                  href={`/vendedores/${salesperson.id}/editar`}
+                  className="mt-1 inline-block text-xs text-accent hover:underline"
+                >
+                  Editar vendedor →
+                </Link>
               </>
             ) : (
               <p className="text-ink-faint">Sin perfil comercial — esta persona no tiene un registro de vendedor asociado.</p>

@@ -519,6 +519,41 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Core 2D (0017_core_person_business_units.sql) — relación N:M
+      // Person <-> Business Unit, ambas de la misma organización (forzado
+      // por trigger, no expresable en un CHECK). Sin UI ni RPC consumidora
+      // todavía; solo SELECT admin-scoped, sin backfill.
+      person_business_units: {
+        Row: {
+          person_id: string;
+          business_unit_id: string;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          person_id: string;
+          business_unit_id: string;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["person_business_units"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "person_business_units_person_id_fkey";
+            columns: ["person_id"];
+            isOneToOne: false;
+            referencedRelation: "people";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "person_business_units_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

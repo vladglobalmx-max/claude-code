@@ -355,6 +355,12 @@ export interface Database {
           active: boolean;
           created_at: string;
           updated_at: string;
+          // THÖREN Core 2B (0015_core_people.sql) — nullable, unique cuando no
+          // es null. NULL para cualquier usuario dado de alta antes de esta
+          // migración que no calificó para el bootstrap, o dado de alta
+          // después (createUserAccess/createUserAccessLink no lo escriben
+          // todavía).
+          person_id: string | null;
         };
         Insert: {
           user_id: string;
@@ -364,6 +370,7 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          person_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_profiles"]["Insert"]>;
         Relationships: [
@@ -372,6 +379,13 @@ export interface Database {
             columns: ["salesperson_id"];
             isOneToOne: true;
             referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_profiles_person_id_fkey";
+            columns: ["person_id"];
+            isOneToOne: true;
+            referencedRelation: "people";
             referencedColumns: ["id"];
           },
         ];
@@ -450,6 +464,40 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "business_units_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
+      // de auth.users/organization_members/salespeople. Sin UI ni RPC
+      // consumidora todavía; solo el bootstrap (owner de la tabla) y
+      // user_profiles.person_id la usan por ahora.
+      people: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          email: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          email?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["people"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "people_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";

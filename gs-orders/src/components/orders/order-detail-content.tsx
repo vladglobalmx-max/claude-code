@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatBytes, formatDate, formatMeasure } from "@/lib/utils/format";
 import {
   ORDER_STATUS_BADGE,
@@ -156,9 +156,7 @@ export function OrderDetailContent({
           <p className="font-mono text-2xl font-bold text-ink">{order.folio}</p>
         </div>
         {variant === "view" && (
-          <Badge variant={ORDER_STATUS_BADGE[order.status]} className="text-sm">
-            {ORDER_STATUS_LABELS[order.status]}
-          </Badge>
+          <StatusBadge status={order.status} labels={ORDER_STATUS_LABELS} variants={ORDER_STATUS_BADGE} className="text-sm" />
         )}
       </div>
 

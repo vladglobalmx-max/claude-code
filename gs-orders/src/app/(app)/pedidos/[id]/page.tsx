@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Pencil, Printer } from "lucide-react";
+import { ArrowLeft, Pencil, Printer } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
@@ -15,10 +16,11 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
-        <Link href="/pedidos" className="text-sm text-ink-faint hover:text-ink">
-          ← Pedidos
+        <Link href="/pedidos" className="flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink">
+          <ArrowLeft className="h-4 w-4" />
+          Pedidos
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <OrderStatusQuickActions order={detail.order} />
           <DuplicateButton
             orderId={detail.order.id}
@@ -35,9 +37,11 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-6">
-        <OrderDetailContent detail={detail} variant="view" />
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <OrderDetailContent detail={detail} variant="view" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

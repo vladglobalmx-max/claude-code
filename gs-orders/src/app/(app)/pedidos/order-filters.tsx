@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { Select } from "@/components/ui/select";
 import { ORDER_STATUS_LABELS } from "@/types/domain";
 import type { ProductTypeItem, Salesperson } from "@/types/domain";
@@ -29,17 +28,11 @@ export function OrderFilters({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <div className="relative min-w-[220px] flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-        <Input
-          defaultValue={searchParams.get("q") ?? ""}
-          onChange={(e) => updateParam("q", e.target.value)}
-          placeholder="Buscar por folio, cliente o vendedor…"
-          className="pl-9"
-        />
-      </div>
-
+    <FilterBar
+      searchValue={searchParams.get("q") ?? ""}
+      onSearchChange={(value) => updateParam("q", value)}
+      searchPlaceholder="Buscar por folio, cliente o vendedor…"
+    >
       {showSalespersonFilter && (
         <Select
           className="w-auto"
@@ -80,6 +73,6 @@ export function OrderFilters({
           </option>
         ))}
       </Select>
-    </div>
+    </FilterBar>
   );
 }

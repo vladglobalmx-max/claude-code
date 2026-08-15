@@ -3,8 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
 import { computeFolioPreview } from "@/lib/folio-preview";
 import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
@@ -169,73 +169,67 @@ export function OrderForm({
           <span className="font-mono text-base font-semibold text-ink">{folio}</span>
         </div>
       )}
-      <div className="no-print mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "shrink-0 rounded-md px-3.5 py-2 text-sm font-medium transition-colors",
-              tab === t.key ? "bg-accent text-accent-ink" : "text-ink-soft hover:bg-surface-2"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)} className="no-print">
+        <TabsList className="mb-6 w-full sm:w-auto">
+          {TABS.map((t) => (
+            <TabsTrigger key={t.key} value={t.key}>
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      <div className={tab === "datos" ? "block" : "hidden"}>
-        <DatosGeneralesSection
-          state={state}
-          salespeople={salespeople}
-          productTypes={productTypes}
-          onChange={patch}
-          folioPreview={folioPreview}
-          locked={!!folio}
-          canChooseSalesperson={canChooseSalesperson}
-        />
-      </div>
+        <TabsContent value="datos">
+          <DatosGeneralesSection
+            state={state}
+            salespeople={salespeople}
+            productTypes={productTypes}
+            onChange={patch}
+            folioPreview={folioPreview}
+            locked={!!folio}
+            canChooseSalesperson={canChooseSalesperson}
+          />
+        </TabsContent>
 
-      <div className={tab === "productos" ? "block" : "hidden"}>
-        <ProductosSection
-          orderId={orderId}
-          items={state.items}
-          isProjector={state.productType === "proyector_gobo"}
-          catalogProducts={catalogProducts}
-          onChange={(items) => patch({ items })}
-        />
-      </div>
+        <TabsContent value="productos">
+          <ProductosSection
+            orderId={orderId}
+            items={state.items}
+            isProjector={state.productType === "proyector_gobo"}
+            catalogProducts={catalogProducts}
+            onChange={(items) => patch({ items })}
+          />
+        </TabsContent>
 
-      <div className={tab === "imagenes" ? "block" : "hidden"}>
-        <ImagenesSection
-          orderId={orderId}
-          images={state.images}
-          files={state.files}
-          onImagesChange={(images) => patch({ images })}
-          onFilesChange={(files) => patch({ files })}
-        />
-      </div>
+        <TabsContent value="imagenes">
+          <ImagenesSection
+            orderId={orderId}
+            images={state.images}
+            files={state.files}
+            onImagesChange={(images) => patch({ images })}
+            onFilesChange={(files) => patch({ files })}
+          />
+        </TabsContent>
 
-      <div className={tab === "observaciones" ? "block" : "hidden"}>
-        <ObservacionesSection
-          value={state.vendorNotes}
-          onChange={(vendorNotes) => patch({ vendorNotes })}
-          valueEn={state.vendorNotesEn}
-          onChangeEn={(vendorNotesEn) => patch({ vendorNotesEn })}
-        />
-      </div>
+        <TabsContent value="observaciones">
+          <ObservacionesSection
+            value={state.vendorNotes}
+            onChange={(vendorNotes) => patch({ vendorNotes })}
+            valueEn={state.vendorNotesEn}
+            onChangeEn={(vendorNotesEn) => patch({ vendorNotesEn })}
+          />
+        </TabsContent>
 
-      <div className={tab === "revisar" ? "block" : "hidden"}>
-        <RevisarSection
-          state={state}
-          salespeople={salespeople}
-          productTypes={productTypes}
-          missingFields={missingFields}
-          editableStatus={isEdit}
-          onStatusChange={(status) => patch({ status })}
-        />
-      </div>
+        <TabsContent value="revisar">
+          <RevisarSection
+            state={state}
+            salespeople={salespeople}
+            productTypes={productTypes}
+            missingFields={missingFields}
+            editableStatus={isEdit}
+            onStatusChange={(status) => patch({ status })}
+          />
+        </TabsContent>
+      </Tabs>
 
       <div className="no-print mt-6 flex items-center justify-between gap-3 border-t border-border pt-5">
         <Button type="button" variant="ghost" onClick={() => router.back()}>

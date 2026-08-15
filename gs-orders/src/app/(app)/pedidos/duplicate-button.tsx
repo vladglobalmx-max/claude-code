@@ -1,11 +1,20 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { duplicateOrder } from "./actions";
 
-export function DuplicateButton({ orderId, className }: { orderId: string; className?: string }) {
+export function DuplicateButton({
+  orderId,
+  className,
+  children,
+  ...rest
+}: {
+  orderId: string;
+  className?: string;
+  children?: ReactNode;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children" | "onClick" | "type" | "disabled">) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -14,6 +23,7 @@ export function DuplicateButton({ orderId, className }: { orderId: string; class
       type="button"
       disabled={isPending}
       className={className}
+      {...rest}
       onClick={() =>
         startTransition(async () => {
           try {
@@ -26,7 +36,7 @@ export function DuplicateButton({ orderId, className }: { orderId: string; class
         })
       }
     >
-      {isPending ? "Duplicando…" : "Duplicar"}
+      {children ?? (isPending ? "Duplicando…" : "Duplicar")}
     </button>
   );
 }

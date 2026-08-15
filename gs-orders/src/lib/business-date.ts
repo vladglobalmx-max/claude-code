@@ -33,3 +33,26 @@ export function getBusinessToday(): string {
 
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Rango [start, end) del mes calendario de negocio (America/Monterrey),
+ * como "YYYY-MM-DD" — end es el primer día del mes siguiente (exclusivo),
+ * para usar directamente en `.gte("order_date", start).lt("order_date", end)`.
+ * monthsAgo=0 es el mes actual, 1 el mes anterior, etc. order_date ya es
+ * una fecha calendario (columna `date` de Postgres, sin componente de
+ * hora/zona), así que esto es aritmética de fechas pura — no requiere
+ * volver a resolver zona horaria.
+ */
+export function getBusinessMonthRange(monthsAgo = 0): { start: string; end: string } {
+  const today = getBusinessToday();
+  const [year, month] = today.split("-").map(Number) as [number, number];
+
+  // month es 1-indexado (getBusinessToday da "MM"); Date usa mes 0-indexado.
+  const targetMonthIndex = month - 1 - monthsAgo;
+  const startDate = new Date(Date.UTC(year, targetMonthIndex, 1));
+  const endDate = new Date(Date.UTC(year, targetMonthIndex + 1, 1));
+
+  const toDateString = (d: Date) => d.toISOString().slice(0, 10);
+
+  return { start: toDateString(startDate), end: toDateString(endDate) };
+}

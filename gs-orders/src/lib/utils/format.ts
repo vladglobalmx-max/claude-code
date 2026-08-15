@@ -27,3 +27,21 @@ export function formatBytes(bytes: number | null | undefined) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** Conteos del Dashboard (pedidos, clientes, etc.) — sin cifras monetarias: GS Orders no tiene ningún campo de precio/monto hoy. */
+export function formatNumber(value: number) {
+  return new Intl.NumberFormat("es-MX").format(value);
+}
+
+/**
+ * Variación porcentual entre dos conteos (ej. pedidos de este mes vs mes
+ * anterior). Devuelve null cuando no hay una base contra la cual comparar
+ * (mes anterior en cero) — mostrar "+∞%" sería engañoso, así que ese caso
+ * se maneja aparte en la UI.
+ */
+export function formatPercentDelta(current: number, previous: number): string | null {
+  if (previous === 0) return null;
+  const delta = ((current - previous) / previous) * 100;
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${delta.toFixed(0)}%`;
+}

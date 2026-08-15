@@ -29,7 +29,7 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
-    items: [{ href: "/", label: "Inicio", icon: Home, adminOnly: false }],
+    items: [{ href: "/inicio", label: "Inicio", icon: Home, adminOnly: false }],
   },
   {
     label: "Operación",

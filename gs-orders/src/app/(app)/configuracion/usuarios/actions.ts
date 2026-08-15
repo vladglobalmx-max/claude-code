@@ -9,7 +9,13 @@ import { getSiteUrl } from "@/lib/site-url";
 import { createUserAccessSchema, updateUserAccessSchema } from "@/lib/validations/user-access";
 import { mapDbError } from "@/lib/db-errors";
 import { mapAuthError } from "@/lib/auth-errors";
-import { preflightSalespersonTaken, insertProfileOrCompensate, buildSetPasswordLink } from "@/lib/user-access";
+import {
+  preflightSalespersonTaken,
+  insertProfileAndMembershipOrCompensate,
+  resolveCurrentOrganizationId,
+  updateUserRoleAndActive,
+  buildSetPasswordLink,
+} from "@/lib/user-access";
 
 export type UserAccessFormState = { error?: string } | undefined;
 export type GenerateLinkState = { error: string } | { ok: true; actionLink: string; email: string };
@@ -73,6 +79,9 @@ export async function createUserAccess(
   const salespersonError = await preflightSalespersonTaken(supabase, parsed.data.salesperson_id);
   if (salespersonError) return { error: salespersonError };
 
+  const orgResult = await resolveCurrentOrganizationId(supabase);
+  if ("error" in orgResult) return { error: orgResult.error };
+
   const admin = createSupabaseAdminClient();
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
     redirectTo: `${getSiteUrl()}/set-password`,
@@ -83,7 +92,13 @@ export async function createUserAccess(
     return { error: mapAuthError(inviteError) };
   }
 
-  const result = await insertProfileOrCompensate(admin, supabase, invited.user.id, parsed.data);
+  const result = await insertProfileAndMembershipOrCompensate(
+    admin,
+    supabase,
+    invited.user.id,
+    orgResult.organizationId,
+    parsed.data
+  );
   if ("error" in result) return result;
 
   revalidatePath("/configuracion/usuarios");
@@ -113,6 +128,9 @@ export async function createUserAccessLink(formData: FormData): Promise<Generate
   const salespersonError = await preflightSalespersonTaken(supabase, parsed.data.salesperson_id);
   if (salespersonError) return { error: salespersonError };
 
+  const orgResult = await resolveCurrentOrganizationId(supabase);
+  if ("error" in orgResult) return { error: orgResult.error };
+
   const admin = createSupabaseAdminClient();
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "invite",
@@ -125,7 +143,13 @@ export async function createUserAccessLink(formData: FormData): Promise<Generate
     return { error: mapAuthError(linkError) };
   }
 
-  const result = await insertProfileOrCompensate(admin, supabase, linkData.user.id, parsed.data);
+  const result = await insertProfileAndMembershipOrCompensate(
+    admin,
+    supabase,
+    linkData.user.id,
+    orgResult.organizationId,
+    parsed.data
+  );
   if ("error" in result) return result;
 
   revalidatePath("/configuracion/usuarios");
@@ -136,7 +160,16 @@ export async function createUserAccessLink(formData: FormData): Promise<Generate
   };
 }
 
-/** Edita nombre/rol/vendedor/estado del perfil. No toca auth.users — el email y la contraseña siguen siendo responsabilidad de Supabase Auth. */
+/**
+ * Edita nombre/rol/vendedor/estado del perfil. No toca auth.users — el
+ * email y la contraseña siguen siendo responsabilidad de Supabase Auth.
+ *
+ * role/active se actualizan PRIMERO y de forma atómica en user_profiles +
+ * organization_members vía admin_update_user_role_and_active() (0013) — si
+ * falla, no se toca nada más. name/salesperson_id (sin relación de
+ * sincronización con organization_members) se guardan después, en una
+ * escritura normal aparte.
+ */
 export async function updateUserAccess(
   userId: string,
   _prevState: UserAccessFormState,
@@ -151,13 +184,17 @@ export async function updateUserAccess(
   }
 
   const supabase = createSupabaseServerClient();
+
+  const roleActiveError = await updateUserRoleAndActive(supabase, userId, parsed.data.role, parsed.data.active);
+  if (roleActiveError) {
+    return { error: roleActiveError };
+  }
+
   const { error } = await supabase
     .from("user_profiles")
     .update({
       name: parsed.data.name,
-      role: parsed.data.role,
       salesperson_id: parsed.data.role === "vendedor" ? parsed.data.salesperson_id : null,
-      active: parsed.data.active,
     })
     .eq("user_id", userId);
 

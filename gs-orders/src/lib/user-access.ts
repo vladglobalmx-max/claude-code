@@ -96,18 +96,72 @@ export async function preflightSalespersonTaken(
 }
 
 /**
- * Inserta user_profiles para un usuario de Auth recién creado (por invite o
- * por generateLink). Si falla, revierte el alta en Auth (deleteUser) para no
- * dejar un usuario "fantasma" sin perfil. authUserId debe ser SIEMPRE el id
- * que la llamada a Auth de esta misma operación acaba de devolver — nunca un
- * usuario preexistente. La compensación en sí se audita: si deleteUser
- * también falla, queda registrado en logs server-side en vez de fallar en
- * silencio.
+ * Resuelve la organización del ADMIN que está actuando, vía
+ * current_user_organization_id() (0013) — nunca confiar en un
+ * organization_id que llegara del navegador. En CORE 1 solo existe una
+ * organización real, así que esto siempre debería resolver a Global
+ * Supplier MTY para cualquier admin ya bootstrapeado; se maneja
+ * explícitamente el caso "sin organización" en vez de asumirlo imposible.
  */
-export async function insertProfileOrCompensate(
+export async function resolveCurrentOrganizationId(
+  supabase: SupabaseClient<Database>
+): Promise<{ organizationId: string } | { error: string }> {
+  const { data, error } = await supabase.rpc("current_user_organization_id");
+  if (error) {
+    console.error("[usuarios] current_user_organization_id() falló", {
+      message: error.message,
+      code: error.code,
+    });
+    return { error: "No se pudo determinar tu organización. Contacta a soporte." };
+  }
+  if (!data) {
+    return { error: "Tu usuario no tiene una organización asociada. Contacta a soporte." };
+  }
+  return { organizationId: data };
+}
+
+async function compensateOrphanedAuthUser(
+  admin: AdminAuthClient,
+  authUserId: string,
+  failedStep: string,
+  originalErrorMessage: string
+): Promise<void> {
+  const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId);
+  if (deleteError) {
+    console.error("[usuarios] compensación fallida: no se pudo eliminar el usuario Auth huérfano", {
+      authUserId,
+      failedStep,
+      originalErrorMessage,
+      deleteError: deleteError.message,
+    });
+  } else {
+    console.error("[usuarios] alta revertida en Auth tras fallo", {
+      authUserId,
+      failedStep,
+      originalErrorMessage,
+    });
+  }
+}
+
+/**
+ * Inserta user_profiles + organization_members para un usuario de Auth
+ * recién creado (por invite o por generateLink). Si cualquiera de los dos
+ * inserts falla, revierte el alta completa eliminando el usuario de Auth
+ * (deleteUser) — authUserId debe ser SIEMPRE el id que la llamada a Auth de
+ * esta misma operación acaba de devolver, nunca un usuario preexistente.
+ *
+ * Si falla organization_members DESPUÉS de que user_profiles ya se insertó,
+ * NO hace falta borrar user_profiles aparte: organization_members.user_id y
+ * user_profiles.user_id referencian auth.users con ON DELETE CASCADE
+ * (0011, 0013), así que eliminar el usuario de Auth revierte ambas filas
+ * automáticamente. La compensación en sí se audita: si deleteUser también
+ * falla, queda registrado en logs server-side en vez de fallar en silencio.
+ */
+export async function insertProfileAndMembershipOrCompensate(
   admin: AdminAuthClient,
   supabase: SupabaseClient<Database>,
   authUserId: string,
+  organizationId: string,
   data: CreateUserAccessPayload
 ): Promise<{ error: string } | { ok: true }> {
   const { error: profileError } = await supabase.from("user_profiles").insert({
@@ -118,21 +172,61 @@ export async function insertProfileOrCompensate(
     active: data.active,
   });
 
-  if (!profileError) return { ok: true };
-
-  const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId);
-  if (deleteError) {
-    console.error("[usuarios] compensación fallida: no se pudo eliminar el usuario Auth huérfano", {
-      authUserId,
-      profileError: profileError.message,
-      deleteError: deleteError.message,
-    });
-  } else {
-    console.error("[usuarios] user_profiles falló tras crear usuario en Auth; alta revertida en Auth", {
-      authUserId,
-      profileError: profileError.message,
-    });
+  if (profileError) {
+    await compensateOrphanedAuthUser(admin, authUserId, "user_profiles", profileError.message);
+    return { error: mapDbError(profileError, "No se pudo crear el perfil del usuario.") };
   }
 
-  return { error: mapDbError(profileError, "No se pudo crear el perfil del usuario.") };
+  const { error: membershipError } = await supabase.from("organization_members").insert({
+    organization_id: organizationId,
+    user_id: authUserId,
+    role: data.role,
+    active: data.active,
+  });
+
+  if (membershipError) {
+    await compensateOrphanedAuthUser(
+      admin,
+      authUserId,
+      "organization_members (la cascada de ON DELETE también revierte user_profiles)",
+      membershipError.message
+    );
+    return { error: mapDbError(membershipError, "No se pudo asociar el usuario a la organización.") };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Actualiza role/active de un usuario ya existente de forma ATÓMICA en
+ * user_profiles Y organization_members, vía admin_update_user_role_and_active()
+ * (0013) — una sola llamada RPC, una sola transacción Postgres: o se
+ * actualizan ambas filas o ninguna. Reemplaza el enfoque anterior de dos
+ * escrituras separadas con compensación manual: como ambas tablas viven en
+ * el mismo Postgres (a diferencia del alta, donde Auth participa y no
+ * puede compartir transacción), la atomicidad real es posible y preferible
+ * a reportar un drift ya ocurrido.
+ */
+export async function updateUserRoleAndActive(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  role: "admin" | "vendedor",
+  active: boolean
+): Promise<string | null> {
+  const { error } = await supabase.rpc("admin_update_user_role_and_active", {
+    p_user_id: userId,
+    p_role: role,
+    p_active: active,
+  });
+
+  if (error) {
+    console.error("[usuarios] admin_update_user_role_and_active() falló", {
+      userId,
+      message: error.message,
+      code: error.code,
+    });
+    return mapDbError(error, "No se pudieron guardar los cambios de rol/estado.");
+  }
+
+  return null;
 }

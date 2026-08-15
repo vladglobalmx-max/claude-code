@@ -376,6 +376,57 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Core 1 (0013_core_organizations_membership.sql) — fundación
+      // multi-tenant. No consumida todavía por ninguna pantalla ni por la
+      // RLS de orders/salespeople/etc., solo por el alta de usuarios.
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organizations"]["Insert"]>;
+        Relationships: [];
+      };
+      organization_members: {
+        Row: {
+          organization_id: string;
+          user_id: string;
+          role: string;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          user_id: string;
+          role?: string;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organization_members"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -420,6 +471,19 @@ export interface Database {
           active: boolean;
           created_at: string;
         }[];
+      };
+      // THÖREN Core 1 — ver nota de diseño en 0013: null sin membership, el
+      // id si hay exactamente una activa, excepción si hay más de una.
+      current_user_organization_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      // THÖREN Core 1 — actualización atómica de role/active en
+      // user_profiles + organization_members (ver 0013). Lanza excepción
+      // (no devuelve fila) si no hay permiso o no existe la membership.
+      admin_update_user_role_and_active: {
+        Args: { p_user_id: string; p_role: string; p_active: boolean };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

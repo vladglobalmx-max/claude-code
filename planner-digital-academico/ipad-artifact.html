@@ -423,13 +423,46 @@ const Utils = (() => {
     if(field.length || row.length){ row.push(field); rows.push(row); }
     return rows.filter(r => !(r.length===1 && r[0]===""));
   }
-  function downloadFile(filename, content, mime){
-    const blob = new Blob([content], {type: mime||"application/octet-stream"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  let _downloadsCapPromise = null;
+  function getDownloadsCapability(){
+    if(typeof window.claude==="undefined" || !window.claude || typeof window.claude.use!=="function") return Promise.resolve(null);
+    if(!_downloadsCapPromise) _downloadsCapPromise = window.claude.use("downloads").catch(()=>null);
+    return _downloadsCapPromise;
+  }
+  function downloadFileClassic(filename, content, mime){
+    try{
+      const blob = new Blob([content], {type: mime||"application/octet-stream"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    }catch(e){
+      ToastManager.show("No se pudo generar el archivo para descargar en este entorno.", "error");
+    }
+  }
+  async function downloadFile(filename, content, mime){
+    const downloads = await getDownloadsCapability();
+    if(downloads){
+      try{
+        await downloads.save({filename, data: content});
+        ToastManager.show("Archivo guardado.", "success");
+        return;
+      }catch(e){
+        const code = e && e.code;
+        if(code==="declined") return;
+        if(code==="extension_not_enabled" || code==="rejected_extension"){
+          ToastManager.show("Este formato no está disponible en esta vista previa. Usa la aplicación de escritorio (index.html) para esta exportación.", "warning");
+          return;
+        }
+        if(code==="too_large"){
+          ToastManager.show("El archivo es demasiado grande para esta vista previa (máx. 16 MB).", "warning");
+          return;
+        }
+        // Para otros códigos (unavailable, rate_limited, etc.) se intenta el método clásico como respaldo.
+      }
+    }
+    downloadFileClassic(filename, content, mime);
   }
   function announce(msg){
     const el = document.getElementById("sr-announcer");

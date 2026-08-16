@@ -58,6 +58,24 @@ export interface BusinessUnitRow {
   updated_at: string;
 }
 
+/**
+ * THÖREN Quotes Q1 (ver 0018_core_customers.sql) — entidad Core reutilizable
+ * (Quotes, y a futuro Orders/CRM/Documents/Invoices). organization_id-scoped,
+ * sin relación con orders.client_name (texto libre, sin FK, conviven).
+ */
+export interface Customer {
+  id: string;
+  organization_id: string;
+  name: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  email: string | null;
+  phone: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PersonBusinessUnit {
   person_id: string;
   business_unit_id: string;

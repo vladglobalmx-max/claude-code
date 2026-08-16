@@ -485,6 +485,45 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Quotes Q1 (0018_core_customers.sql) — entidad Core
+      // reutilizable (Quotes, y a futuro Orders/CRM/Documents/Invoices).
+      // Sin relación con orders.client_name (texto libre, sin FK).
+      customers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          legal_name: string | null;
+          tax_id: string | null;
+          email: string | null;
+          phone: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          legal_name?: string | null;
+          tax_id?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
       // de auth.users/organization_members/salespeople. Sin UI ni RPC
       // consumidora todavía; solo el bootstrap (owner de la tabla) y

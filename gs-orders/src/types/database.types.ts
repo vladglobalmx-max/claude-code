@@ -306,6 +306,9 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Quotes Q2 (0019_core_product_catalog_pricing.sql) —
+      // organization-scoped + precio sugerido MXN/USD (nunca source of
+      // truth histórico; el snapshot vivirá en quote_items a futuro).
       product_catalog: {
         Row: {
           id: string;
@@ -318,6 +321,9 @@ export interface Database {
           color: string | null;
           lens_type: string | null;
           technical_notes: string | null;
+          organization_id: string;
+          default_price_mxn: number | null;
+          default_price_usd: number | null;
           active: boolean;
           created_at: string;
           updated_at: string;
@@ -333,12 +339,57 @@ export interface Database {
           color?: string | null;
           lens_type?: string | null;
           technical_notes?: string | null;
+          organization_id: string;
+          default_price_mxn?: number | null;
+          default_price_usd?: number | null;
           active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_catalog"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "product_catalog_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Quotes Q2 (0019_core_product_catalog_pricing.sql) — N:M
+      // Product ↔ Business Unit. 0 filas para un product_id = producto
+      // compartido con TODAS las Business Units de su organización; 1+
+      // filas = disponible únicamente para esas Business Units. Sin
+      // columna `active`: la fila es la relación, existe o no existe.
+      product_business_units: {
+        Row: {
+          product_id: string;
+          business_unit_id: string;
+          created_at: string;
+        };
+        Insert: {
+          product_id: string;
+          business_unit_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_business_units"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "product_business_units_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_business_units_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       product_types: {
         Row: {

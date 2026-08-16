@@ -5,8 +5,12 @@ import { createCatalogProduct } from "../actions";
 
 export default async function NuevoCatalogoPage() {
   const supabase = createSupabaseServerClient();
-  const { data } = await supabase.from("product_catalog").select("category");
+  const [{ data }, { data: buData }] = await Promise.all([
+    supabase.from("product_catalog").select("category"),
+    supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+  ]);
   const categories = Array.from(new Set(((data ?? []) as { category: string }[]).map((r) => r.category))).sort();
+  const businessUnits = (buData ?? []) as { id: string; name: string }[];
 
   const productId = randomUUID();
 
@@ -18,6 +22,7 @@ export default async function NuevoCatalogoPage() {
       <CatalogForm
         productId={productId}
         categories={categories}
+        businessUnits={businessUnits}
         initialState={{
           category: "",
           sku: "",
@@ -27,6 +32,9 @@ export default async function NuevoCatalogoPage() {
           color: "",
           lensType: "",
           technicalNotes: "",
+          defaultPriceMxn: "",
+          defaultPriceUsd: "",
+          businessUnitIds: [],
           active: true,
           image: null,
         }}

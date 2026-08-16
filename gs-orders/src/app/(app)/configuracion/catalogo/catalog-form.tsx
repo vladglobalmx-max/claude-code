@@ -46,19 +46,29 @@ export interface CatalogFormInitialState {
   color: string;
   lensType: string;
   technicalNotes: string;
+  defaultPriceMxn: string;
+  defaultPriceUsd: string;
+  businessUnitIds: string[];
   active: boolean;
   image: MediaDraft | null;
+}
+
+export interface BusinessUnitOption {
+  id: string;
+  name: string;
 }
 
 export function CatalogForm({
   productId,
   categories,
+  businessUnits,
   initialState,
   submitLabel = "Guardar producto",
   onSubmit,
 }: {
   productId: string;
   categories: string[];
+  businessUnits: BusinessUnitOption[];
   initialState: CatalogFormInitialState;
   submitLabel?: string;
   onSubmit: (id: string, payload: CatalogProductPayload) => Promise<CatalogActionResult>;
@@ -75,10 +85,18 @@ export function CatalogForm({
   const [color, setColor] = useState(initialState.color);
   const [lensType, setLensType] = useState(initialState.lensType);
   const [technicalNotes, setTechnicalNotes] = useState(initialState.technicalNotes);
+  const [defaultPriceMxn, setDefaultPriceMxn] = useState(initialState.defaultPriceMxn);
+  const [defaultPriceUsd, setDefaultPriceUsd] = useState(initialState.defaultPriceUsd);
+  const [shareAllBusinessUnits, setShareAllBusinessUnits] = useState(initialState.businessUnitIds.length === 0);
+  const [businessUnitIds, setBusinessUnitIds] = useState<string[]>(initialState.businessUnitIds);
   const [active, setActive] = useState(initialState.active);
   const [image, setImage] = useState<MediaDraft | null>(initialState.image);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function toggleBusinessUnit(id: string) {
+    setBusinessUnitIds((prev) => (prev.includes(id) ? prev.filter((buId) => buId !== id) : [...prev, id]));
+  }
 
   function handleSubmit() {
     const finalCategory = isNewCategory ? newCategory.trim() : category;
@@ -94,6 +112,14 @@ export function CatalogForm({
       toast.error("El nombre es obligatorio");
       return;
     }
+    if (defaultPriceMxn.trim() && Number(defaultPriceMxn) < 0) {
+      toast.error("El precio en MXN no puede ser negativo");
+      return;
+    }
+    if (defaultPriceUsd.trim() && Number(defaultPriceUsd) < 0) {
+      toast.error("El precio en USD no puede ser negativo");
+      return;
+    }
 
     const payload: CatalogProductPayload = {
       category: finalCategory,
@@ -105,6 +131,9 @@ export function CatalogForm({
       color: color || undefined,
       lens_type: lensType || undefined,
       technical_notes: technicalNotes || undefined,
+      default_price_mxn: defaultPriceMxn.trim() ? Number(defaultPriceMxn) : undefined,
+      default_price_usd: defaultPriceUsd.trim() ? Number(defaultPriceUsd) : undefined,
+      business_unit_ids: shareAllBusinessUnits ? [] : businessUnitIds,
       active,
     };
 
@@ -230,6 +259,69 @@ export function CatalogForm({
               value={technicalNotes}
               onChange={(e) => setTechnicalNotes(e.target.value)}
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="default_price_mxn">Precio sugerido MXN (opcional)</Label>
+              <Input
+                id="default_price_mxn"
+                type="number"
+                min="0"
+                step="0.01"
+                value={defaultPriceMxn}
+                onChange={(e) => setDefaultPriceMxn(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="default_price_usd">Precio sugerido USD (opcional)</Label>
+              <Input
+                id="default_price_usd"
+                type="number"
+                min="0"
+                step="0.01"
+                value={defaultPriceUsd}
+                onChange={(e) => setDefaultPriceUsd(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-ink-faint">
+            Precio de referencia para futuras cotizaciones. No es un precio fijo ni histórico: cada cotización captura
+            su propio precio al momento de crearse.
+          </p>
+
+          <div>
+            <Label>Business Units</Label>
+            <label className="mt-1 flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={shareAllBusinessUnits}
+                onChange={(e) => setShareAllBusinessUnits(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+              />
+              Todas las unidades de negocio
+            </label>
+            {!shareAllBusinessUnits && (
+              <div className="mt-2 space-y-1.5 rounded-lg border border-border p-3">
+                {businessUnits.length === 0 ? (
+                  <p className="text-xs text-ink-faint">No hay Business Units activas para seleccionar.</p>
+                ) : (
+                  businessUnits.map((bu) => (
+                    <label key={bu.id} className="flex items-center gap-2 text-sm text-ink">
+                      <input
+                        type="checkbox"
+                        checked={businessUnitIds.includes(bu.id)}
+                        onChange={() => toggleBusinessUnit(bu.id)}
+                        className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+                      />
+                      {bu.name}
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <label className="flex items-center gap-2 text-sm text-ink">

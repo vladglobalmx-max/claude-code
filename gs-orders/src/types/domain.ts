@@ -350,9 +350,25 @@ export interface ProductCatalogItem {
   color: string | null;
   lens_type: string | null;
   technical_notes: string | null;
+  organization_id: string;
+  default_price_mxn: number | null;
+  default_price_usd: number | null;
   active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * THÖREN Quotes Q2 (ver 0019_core_product_catalog_pricing.sql) — relación
+ * N:M Product ↔ Business Unit. Sin fila para un producto = compartido con
+ * TODAS las Business Units de su organización; 1+ filas = disponible
+ * únicamente para esas Business Units. Sin columna `active`: la fila es la
+ * relación, existe o no existe.
+ */
+export interface ProductBusinessUnit {
+  product_id: string;
+  business_unit_id: string;
+  created_at: string;
 }
 
 /**

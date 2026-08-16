@@ -7,18 +7,30 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import type { ProductCatalogItem } from "@/types/domain";
+import { formatMoneyMxn, formatMoneyUsd } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
+
+interface CatalogRow extends ProductCatalogItem {
+  product_business_units: { business_unit_id: string }[] | null;
+}
+
+function formatSuggestedPrice(product: ProductCatalogItem) {
+  const parts: string[] = [];
+  if (product.default_price_mxn != null) parts.push(formatMoneyMxn(product.default_price_mxn));
+  if (product.default_price_usd != null) parts.push(formatMoneyUsd(product.default_price_usd));
+  return parts.length > 0 ? parts.join(" / ") : "—";
+}
 
 export default async function CatalogoPage() {
   const supabase = createSupabaseServerClient();
   const { data } = await supabase
     .from("product_catalog")
-    .select("*")
+    .select("*, product_business_units(business_unit_id)")
     .order("category", { ascending: true })
     .order("name", { ascending: true });
 
-  const products = (data ?? []) as ProductCatalogItem[];
+  const products = (data ?? []) as unknown as CatalogRow[];
   const imagePaths = products.map((p) => p.image_path).filter((p): p is string => !!p);
   const imageUrls = await getSignedUrls("order-media", imagePaths);
 
@@ -66,6 +78,8 @@ export default async function CatalogoPage() {
                 <Th>Modelo / SKU</Th>
                 <Th>Nombre</Th>
                 <Th>Color</Th>
+                <Th>Precio sugerido</Th>
+                <Th>Business Units</Th>
                 <Th>Estado</Th>
                 <Th />
               </Tr>
@@ -85,6 +99,12 @@ export default async function CatalogoPage() {
                   <Td className="font-mono text-ink-soft">{p.sku}</Td>
                   <Td className="font-medium">{p.name}</Td>
                   <Td className="text-ink-soft">{p.color ?? "—"}</Td>
+                  <Td className="text-ink-soft">{formatSuggestedPrice(p)}</Td>
+                  <Td className="text-ink-soft">
+                    {(p.product_business_units ?? []).length === 0
+                      ? "Todas"
+                      : `${(p.product_business_units ?? []).length} unidad${(p.product_business_units ?? []).length === 1 ? "" : "es"}`}
+                  </Td>
                   <Td>
                     <Badge variant={p.active ? "success" : "neutral"}>{p.active ? "Activo" : "Inactivo"}</Badge>
                   </Td>

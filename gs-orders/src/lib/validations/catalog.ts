@@ -15,6 +15,13 @@ export const catalogProductSchema = z.object({
   color: z.string().trim().optional(),
   lens_type: z.string().trim().optional(),
   technical_notes: z.string().trim().optional(),
+  // Precio sugerido/default (ver 0019_core_product_catalog_pricing.sql) —
+  // nunca source of truth histórico, sin conversión entre monedas.
+  default_price_mxn: z.coerce.number().min(0, "El precio no puede ser negativo").optional().nullable(),
+  default_price_usd: z.coerce.number().min(0, "El precio no puede ser negativo").optional().nullable(),
+  // Business Units específicas (vacío = compartido con todas las de la
+  // organización — ver product_business_units, 0019).
+  business_unit_ids: z.array(z.string().uuid()).default([]),
   active: z.boolean().default(true),
 });
 

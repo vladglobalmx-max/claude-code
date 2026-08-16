@@ -28,9 +28,22 @@ export function formatBytes(bytes: number | null | undefined) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Conteos del Dashboard (pedidos, clientes, etc.) — sin cifras monetarias: GS Orders no tiene ningún campo de precio/monto hoy. */
+/** Conteos del Dashboard (pedidos, clientes, etc.) — nunca cifras monetarias. */
 export function formatNumber(value: number) {
   return new Intl.NumberFormat("es-MX").format(value);
+}
+
+/**
+ * Precio sugerido de product_catalog (ver 0019_core_product_catalog_pricing.sql)
+ * — nunca un total ni un monto de cotización real: THÖREN Quotes aún no
+ * existe. MXN/USD se formatean por separado, sin conversión entre sí.
+ */
+export function formatMoneyMxn(value: number) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(value);
+}
+
+export function formatMoneyUsd(value: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 }
 
 /**

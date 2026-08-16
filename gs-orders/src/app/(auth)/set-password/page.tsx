@@ -6,11 +6,17 @@ export default function SetPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-ink">
-            GS
+          {/*
+            Marca THÖREN — mismo lockup que /login (THOREN_Manual_de_Marca.pdf
+            sección 01): símbolo Þ en Ember + wordmark. Sustituto tipográfico
+            temporal, ver docs/THOREN_BRAND_SYSTEM.md.
+          */}
+          <div aria-hidden="true" className="mb-1 text-4xl font-bold leading-none text-accent">
+            Þ
           </div>
-          <h1 className="text-xl font-semibold text-ink">Define tu contraseña</h1>
-          <p className="mt-1 text-sm text-ink-faint">GS Orders — Global Supplier MTY</p>
+          <p className="text-sm font-extrabold uppercase tracking-wide text-ink">THÖREN</p>
+          <h1 className="mt-3 text-xl font-semibold text-ink">Define tu contraseña</h1>
+          <p className="mt-1 text-sm text-ink-faint">Global Supplier MTY</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-6 shadow-card">
           <Suspense fallback={null}>

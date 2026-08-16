@@ -55,7 +55,7 @@ function GeneratedLinkBox({
     <div className="space-y-2 rounded-lg border border-accent/30 bg-accent/5 p-3">
       <p className="text-sm font-medium text-ink">Enlace de acceso para {email}</p>
       <p className="text-xs text-ink-faint">
-        Cópialo y envíalo por WhatsApp o correo. Es de un solo uso y no queda guardado en GS Orders — si se pierde,
+        Cópialo y envíalo por WhatsApp o correo. Es de un solo uso y no queda guardado en THÖREN — si se pierde,
         genera uno nuevo.
       </p>
       <div className="flex gap-2">
@@ -175,7 +175,7 @@ export function UserAccessForm({
           <Input id="email" name="email" type="email" required placeholder="karla@globalsuppliermty.com" />
           <p className="mt-1 text-xs text-ink-faint">
             &ldquo;Enviar invitación por correo&rdquo; manda un enlace automático. Si el envío de correo está
-            limitado temporalmente, usa &ldquo;Generar enlace de acceso&rdquo; para compartirlo tú mismo. GS Orders
+            limitado temporalmente, usa &ldquo;Generar enlace de acceso&rdquo; para compartirlo tú mismo. THÖREN
             nunca guarda ni muestra contraseñas.
           </p>
         </div>

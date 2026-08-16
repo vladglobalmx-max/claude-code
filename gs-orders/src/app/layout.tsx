@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GS Orders",
+  title: "THÖREN",
   description: "Pedidos internos — Global Supplier MTY",
 };
 

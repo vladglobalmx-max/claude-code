@@ -48,7 +48,7 @@ export default async function UsuariosPage() {
     <div className="mx-auto max-w-5xl px-6 py-8">
       <PageHeader
         title="Usuarios y accesos"
-        description="Administra quién puede ingresar a GS Orders y qué permisos tiene."
+        description="Administra quién puede ingresar a THÖREN y qué permisos tiene."
         actions={
           <Link href="/configuracion/usuarios/nuevo">
             <Button>
@@ -64,7 +64,7 @@ export default async function UsuariosPage() {
           <EmptyState
             icon={UsersIcon}
             title="Todavía no hay usuarios"
-            description="Crea el primer acceso para que un vendedor pueda entrar a GS Orders."
+            description="Crea el primer acceso para que un vendedor pueda entrar a THÖREN."
             action={
               <Link href="/configuracion/usuarios/nuevo">
                 <Button>

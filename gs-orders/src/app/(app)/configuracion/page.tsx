@@ -1,41 +1,14 @@
 import Link from "next/link";
 import { ChevronRight, Package, Tags, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BUSINESS_UNIT_LABELS, type BusinessUnit } from "@/types/domain";
-
-const UNITS: { key: BusinessUnit; active: boolean }[] = [
-  { key: "thunder", active: true },
-  { key: "juno_promotional", active: false },
-  { key: "got_fresh_breath", active: false },
-  { key: "the_fire_spot", active: false },
-];
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ConfiguracionPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-1 text-lg font-semibold text-ink">Configuración</h1>
-      <p className="mb-6 text-sm text-ink-faint">
-        GS Orders está preparado para más unidades de negocio de Global Supplier MTY.
-      </p>
+      <PageHeader title="Configuración" description="Catálogo, tipos de producto y usuarios de THÖREN." />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Unidades de negocio</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {UNITS.map((unit) => (
-            <div key={unit.key} className="flex items-center justify-between">
-              <span className="text-sm text-ink">{BUSINESS_UNIT_LABELS[unit.key]}</span>
-              <Badge variant={unit.active ? "success" : "neutral"}>
-                {unit.active ? "Activa" : "Próximamente"}
-              </Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="mt-4">
         <CardHeader>
           <CardTitle>Catálogo de productos</CardTitle>
         </CardHeader>
@@ -82,7 +55,7 @@ export default function ConfiguracionPage() {
           >
             <span className="flex items-center gap-2">
               <Users className="h-4 w-4 text-ink-faint" />
-              Administra quién puede ingresar a GS Orders y qué permisos tiene
+              Administra quién puede ingresar a THÖREN y qué permisos tiene
             </span>
             <ChevronRight className="h-4 w-4 text-ink-faint" />
           </Link>

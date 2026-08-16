@@ -1,0 +1,162 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
+import { cn } from "@/lib/utils/cn";
+import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
+import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
+import type { Quote, QuoteItem } from "@/types/domain";
+import { QuoteStatusActions } from "./quote-status-actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function VerCotizacionPage({ params }: { params: { id: string } }) {
+  const supabase = createSupabaseServerClient();
+  const [{ data: quoteData }, { data: itemsData }] = await Promise.all([
+    supabase.from("quotes").select("*").eq("id", params.id).single(),
+    supabase.from("quote_items").select("*").eq("quote_id", params.id).order("position"),
+  ]);
+
+  if (!quoteData) notFound();
+  const quote = quoteData as Quote;
+  const items = (itemsData ?? []) as QuoteItem[];
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <Link href="/cotizaciones" className="flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink">
+          <ArrowLeft className="h-4 w-4" />
+          Cotizaciones
+        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <QuoteStatusActions quote={quote} />
+          {quote.status === "borrador" && (
+            <Link
+              href={`/cotizaciones/${quote.id}/editar`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="font-mono text-base">{quote.folio}</CardTitle>
+            <p className="mt-1 text-sm text-ink-faint">{quote.customer_name}</p>
+          </div>
+          <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Vendedor</p>
+              <p className="text-ink">{quote.salesperson_name}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Business Unit</p>
+              <p className="text-ink">{quote.business_unit_name}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Fecha</p>
+              <p className="text-ink">{formatDateShort(quote.quote_date)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Vigencia</p>
+              <p className="text-ink">{formatDateShort(quote.valid_until)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Moneda</p>
+              <p className="text-ink">{quote.currency}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">IVA</p>
+              <p className="text-ink">{quote.tax_rate}%</p>
+            </div>
+          </div>
+
+          {quote.notes && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Notas</p>
+              <p className="whitespace-pre-wrap text-sm text-ink">{quote.notes}</p>
+            </div>
+          )}
+
+          <div>
+            <p className="mb-2 text-xs uppercase tracking-wide text-ink-faint">Productos</p>
+
+            <div className="space-y-2 sm:hidden">
+              {items.map((item) => (
+                <div key={item.id} className="rounded-lg border border-border p-3 text-sm">
+                  <p className="font-medium text-ink">{item.model}</p>
+                  {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+                  <p className="mt-1 text-xs text-ink-faint">
+                    {item.quantity} × {formatMoneyByCurrency(item.unit_price, quote.currency)}
+                    {item.line_discount_percent > 0 ? ` · -${item.line_discount_percent}%` : ""}
+                  </p>
+                  <p className="mt-1 text-right text-sm font-medium text-ink">
+                    {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden sm:block">
+              <Table>
+                <Thead>
+                  <Tr>
+                    <Th>Modelo</Th>
+                    <Th>Cantidad</Th>
+                    <Th>Precio unitario</Th>
+                    <Th>Descuento</Th>
+                    <Th>Subtotal</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {items.map((item) => (
+                    <Tr key={item.id}>
+                      <Td>
+                        <p className="font-medium text-ink">{item.model}</p>
+                        {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+                      </Td>
+                      <Td className="text-ink-soft">{item.quantity}</Td>
+                      <Td className="text-ink-soft">{formatMoneyByCurrency(item.unit_price, quote.currency)}</Td>
+                      <Td className="text-ink-soft">{item.line_discount_percent}%</Td>
+                      <Td className="text-ink-soft">{formatMoneyByCurrency(item.line_subtotal, quote.currency)}</Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-ink-faint">Subtotal</span>
+              <span className="text-ink">{formatMoneyByCurrency(quote.subtotal, quote.currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-faint">Descuento</span>
+              <span className="text-ink">{formatMoneyByCurrency(quote.discount_total, quote.currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-faint">IVA</span>
+              <span className="text-ink">{formatMoneyByCurrency(quote.tax_total, quote.currency)}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold">
+              <span className="text-ink">Total</span>
+              <span className="text-ink">{formatMoneyByCurrency(quote.total, quote.currency)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

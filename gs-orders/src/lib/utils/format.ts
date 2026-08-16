@@ -47,6 +47,16 @@ export function formatMoneyUsd(value: number) {
 }
 
 /**
+ * THÖREN Quotes Q4 — monto real de una Quote en su propia moneda (a
+ * diferencia de formatMoneyMxn/formatMoneyUsd, que hoy solo formatean el
+ * precio sugerido del catálogo). Sin conversión entre monedas: cada Quote
+ * vive únicamente en la moneda con la que se creó.
+ */
+export function formatMoneyByCurrency(value: number, currency: "MXN" | "USD") {
+  return currency === "USD" ? formatMoneyUsd(value) : formatMoneyMxn(value);
+}
+
+/**
  * Variación porcentual entre dos conteos (ej. pedidos de este mes vs mes
  * anterior). Devuelve null cuando no hay una base contra la cual comparar
  * (mes anterior en cero) — mostrar "+∞%" sería engañoso, así que ese caso

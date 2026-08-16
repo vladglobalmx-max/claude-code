@@ -388,3 +388,123 @@ export interface ProductTypeItem {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * THÖREN Quotes Q3 (ver 0020_core_quotes.sql). Lifecycle fijo — transiciones
+ * válidas: borrador→enviada|cancelada; enviada→aceptada|rechazada|cancelada;
+ * aceptada/rechazada/cancelada son terminales (impuesto por
+ * trg_quote_status_transition, no solo por la UI). Fuera de "borrador" el
+ * contenido comercial queda congelado en DB.
+ */
+export type QuoteStatus = "borrador" | "enviada" | "aceptada" | "rechazada" | "cancelada";
+export type QuoteCurrency = "MXN" | "USD";
+
+export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
+  borrador: "Borrador",
+  enviada: "Enviada",
+  aceptada: "Aceptada",
+  rechazada: "Rechazada",
+  cancelada: "Cancelada",
+};
+
+export const QUOTE_STATUS_BADGE: Record<QuoteStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  borrador: "neutral",
+  enviada: "accent",
+  aceptada: "success",
+  rechazada: "danger",
+  cancelada: "warning",
+};
+
+/**
+ * Cotización (0020_core_quotes.sql). folio/sequence_number/salesperson_id/
+ * business_unit_id/quote_date son inmutables una vez generado el folio
+ * (trg_prevent_quote_folio_change). Los snapshots (customer_*,
+ * business_unit_*, salesperson_name) y los totales (subtotal/discount_total/
+ * tax_total/total) los calcula exclusivamente rpc_create_quote/
+ * rpc_update_quote — nunca se escriben directo desde la app, y quedan
+ * congelados apenas status deja de ser "borrador".
+ */
+export interface Quote {
+  id: string;
+  organization_id: string;
+  business_unit_id: string;
+  salesperson_id: string;
+  customer_id: string;
+
+  folio: string;
+  sequence_number: number;
+
+  quote_date: string;
+  status: QuoteStatus;
+
+  currency: QuoteCurrency;
+  tax_rate: number;
+  global_discount_percent: number;
+
+  valid_until: string;
+
+  customer_name: string;
+  customer_legal_name: string | null;
+  customer_tax_id: string | null;
+  business_unit_name: string;
+  business_unit_code: string;
+  salesperson_name: string;
+
+  subtotal: number;
+  discount_total: number;
+  tax_total: number;
+  total: number;
+
+  notes: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de una Quote (0020_core_quotes.sql). catalog_product_id es solo
+ * trazabilidad opcional (línea libre = null) — igual que
+ * OrderItem.catalog_product_id, nunca se vuelve a consultar para
+ * reconstruir lo que se muestra: model/description/unit_price ya son
+ * snapshot. line_subtotal lo calcula el RPC, nunca la app.
+ */
+export interface QuoteItem {
+  id: string;
+  quote_id: string;
+  position: number;
+
+  catalog_product_id: string | null;
+
+  model: string;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  line_discount_percent: number;
+
+  line_subtotal: number;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Motor de folios de Quotes, propio e independiente de
+ * salespeople.prefix/sequence_current (ver 0020_core_quotes.sql). Clave
+ * Salesperson × Business Unit — un mismo vendedor puede tener un prefijo
+ * distinto por cada Business Unit en la que cotiza. sequence_current es
+ * propiedad exclusiva de fn_next_quote_folio(): ninguna pantalla de la app
+ * lo expone como editable (a diferencia de salespeople.sequence_current,
+ * que sí es editable por ADMIN) — RLS además bloquea cualquier UPDATE de
+ * VENDEDOR sobre esta tabla, incluida su propia fila.
+ */
+export interface SalespersonQuoteSequence {
+  id: string;
+  organization_id: string;
+  salesperson_id: string;
+  business_unit_id: string;
+  quote_prefix: string;
+  sequence_current: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}

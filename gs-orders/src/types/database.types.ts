@@ -644,9 +644,234 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Quotes Q3 (0020_core_quotes.sql). folio/sequence_number/
+      // salesperson_id/business_unit_id/quote_date inmutables una vez
+      // generado el folio (trg_prevent_quote_folio_change). Snapshots y
+      // totales los calcula exclusivamente rpc_create_quote/rpc_update_quote.
+      quotes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          business_unit_id: string;
+          salesperson_id: string;
+          customer_id: string;
+          folio: string;
+          sequence_number: number;
+          quote_date: string;
+          status: string;
+          currency: string;
+          tax_rate: number;
+          global_discount_percent: number;
+          valid_until: string;
+          customer_name: string;
+          customer_legal_name: string | null;
+          customer_tax_id: string | null;
+          business_unit_name: string;
+          business_unit_code: string;
+          salesperson_name: string;
+          subtotal: number;
+          discount_total: number;
+          tax_total: number;
+          total: number;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          business_unit_id: string;
+          salesperson_id: string;
+          customer_id: string;
+          // folio/sequence_number los asigna fn_next_quote_folio() dentro de rpc_create_quote; nunca se envían.
+          folio?: string;
+          sequence_number?: number;
+          quote_date?: string;
+          status?: string;
+          currency: string;
+          tax_rate?: number;
+          global_discount_percent?: number;
+          valid_until?: string;
+          // Snapshots — los resuelve rpc_create_quote/rpc_update_quote server-side; nunca se envían desde la app.
+          customer_name?: string;
+          customer_legal_name?: string | null;
+          customer_tax_id?: string | null;
+          business_unit_name?: string;
+          business_unit_code?: string;
+          salesperson_name?: string;
+          subtotal?: number;
+          discount_total?: number;
+          tax_total?: number;
+          total?: number;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["quotes"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "quotes_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quotes_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quotes_salesperson_id_fkey";
+            columns: ["salesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Quotes Q3 (0020_core_quotes.sql). Snapshot completo por línea
+      // (model/description/unit_price/quantity/line_discount_percent) —
+      // nunca vuelve a leer product_catalog una vez creada.
+      // line_subtotal lo calcula exclusivamente el RPC.
+      quote_items: {
+        Row: {
+          id: string;
+          quote_id: string;
+          position: number;
+          catalog_product_id: string | null;
+          model: string;
+          description: string | null;
+          quantity: number;
+          unit_price: number;
+          line_discount_percent: number;
+          line_subtotal: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          quote_id: string;
+          position?: number;
+          catalog_product_id?: string | null;
+          model: string;
+          description?: string | null;
+          quantity: number;
+          unit_price: number;
+          line_discount_percent?: number;
+          // Lo calcula rpc_create_quote/rpc_update_quote; nunca se envía desde la app.
+          line_subtotal?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["quote_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey";
+            columns: ["quote_id"];
+            isOneToOne: false;
+            referencedRelation: "quotes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quote_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Quotes Q3 (0020_core_quotes.sql) — motor de folios de Quotes,
+      // propio e independiente de salespeople.prefix/sequence_current. Clave
+      // Salesperson × Business Unit. sequence_current es propiedad exclusiva
+      // de fn_next_quote_folio() (SECURITY DEFINER) — RLS bloquea cualquier
+      // UPDATE directo de VENDEDOR, incluso sobre su propia fila; solo ADMIN
+      // tiene INSERT/UPDATE/DELETE (ver salesperson_quote_sequences_*_admin).
+      salesperson_quote_sequences: {
+        Row: {
+          id: string;
+          organization_id: string;
+          salesperson_id: string;
+          business_unit_id: string;
+          quote_prefix: string;
+          sequence_current: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          salesperson_id: string;
+          business_unit_id: string;
+          quote_prefix: string;
+          sequence_current?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["salesperson_quote_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "salesperson_quote_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "salesperson_quote_sequences_salesperson_id_fkey";
+            columns: ["salesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "salesperson_quote_sequences_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      // THÖREN Quotes Q3 (0020) — SECURITY INVOKER, transacción única:
+      // resuelve snapshots, pide folio a fn_next_quote_folio() y calcula
+      // totales server-side. p_items es un array de objetos con
+      // catalog_product_id?/model/description?/quantity/unit_price/
+      // line_discount_percent?.
+      rpc_create_quote: {
+        Args: {
+          p_quote_id: string;
+          p_quote: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["quotes"]["Row"];
+      };
+      // THÖREN Quotes Q3 (0020) — SECURITY INVOKER. Solo permite escribir si
+      // la Quote sigue en status "borrador" (verificado dentro del RPC,
+      // además de RLS/trigger). Reemplaza todos los quote_items.
+      rpc_update_quote: {
+        Args: {
+          p_quote_id: string;
+          p_quote: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["quotes"]["Row"];
+      };
       rpc_create_order: {
         Args: {
           p_order_id: string;

@@ -56,3 +56,17 @@ export function getBusinessMonthRange(monthsAgo = 0): { start: string; end: stri
 
   return { start: toDateString(startDate), end: toDateString(endDate) };
 }
+
+/**
+ * Suma días calendario a una fecha "YYYY-MM-DD" (columna `date` de
+ * Postgres, sin componente de hora/zona) — aritmética de fechas pura, no
+ * requiere volver a resolver zona horaria. Se usa para calcular la
+ * vigencia por default de una Quote nueva (quote_date + 15 días, mismo
+ * default que rpc_create_quote aplica en DB si no se manda valid_until —
+ * ver 0020_core_quotes.sql).
+ */
+export function addDays(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split("-").map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}

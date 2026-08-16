@@ -1,4 +1,4 @@
-import { Briefcase, Building2, Contact, FileText, Users, Settings, Home, type LucideIcon } from "lucide-react";
+import { Briefcase, Building2, Contact, FileSpreadsheet, FileText, Users, Settings, Home, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -31,6 +31,14 @@ export interface NavGroup {
  *   — por eso tampoco es adminOnly. Solo editar es admin-only
  *   (`customers_update_admin`), gateado dentro de la propia página
  *   /clientes/[id]/editar, no a nivel de todo el árbol de navegación.
+ * - Cotizaciones (THÖREN Quotes Q4, 0020_core_quotes.sql): mismo criterio
+ *   que Clientes — `quotes_select_own_or_admin`/`quotes_insert_own_or_admin`
+ *   permiten a cualquier miembro activo ver (las propias, o todas si es
+ *   admin) y crear, así que tampoco es adminOnly. La administración de
+ *   `salesperson_quote_sequences` (Folios de Cotización) SÍ es admin-only,
+ *   pero vive como Card dentro de /configuracion (ya admin-only), no como
+ *   entrada propia de este árbol — mismo patrón que Catálogo/Tipos de
+ *   producto/Usuarios.
  *
  * "Configuración" queda como entrada de nivel superior (no como grupo con
  * un solo hijo "Usuarios"): /configuracion es hoy el hub que también da
@@ -52,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Comercial",
     items: [
       { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false },
+      { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
     ],

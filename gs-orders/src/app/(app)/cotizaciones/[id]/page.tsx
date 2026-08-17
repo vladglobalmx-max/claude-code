@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,14 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
         <div className="flex flex-wrap items-center gap-2">
           <QuoteStatusActions quote={quote} />
           <DuplicateQuoteButton quoteId={quote.id} />
+          <Link
+            href={`/cotizaciones/${quote.id}/pdf`}
+            target="_blank"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Descargar PDF
+          </Link>
           {quote.status === "borrador" && (
             <Link
               href={`/cotizaciones/${quote.id}/editar`}

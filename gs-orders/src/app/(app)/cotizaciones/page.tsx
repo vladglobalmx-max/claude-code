@@ -3,12 +3,14 @@ import { FileText, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
+import { isQuoteExpired } from "@/lib/quote-expiry";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, Salesperson } from "@/types/domain";
 import { QuoteFilters } from "./quote-filters";
@@ -89,7 +91,10 @@ export default async function CotizacionesPage({
                     <p className="truncate font-mono text-sm font-medium text-accent">{quote.folio}</p>
                     <p className="mt-0.5 truncate text-sm font-medium text-ink">{quote.customer_name}</p>
                   </Link>
-                  <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {isQuoteExpired(quote) && <Badge variant="warning">Vencida</Badge>}
+                    <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+                  </div>
                 </div>
                 <p className="mt-2 text-xs text-ink-faint">
                   {quote.salesperson_name} · {formatDateShort(quote.quote_date)}
@@ -140,7 +145,10 @@ export default async function CotizacionesPage({
                     <Td className="text-ink-soft">{quote.business_unit_name}</Td>
                     <Td className="text-ink-soft">{formatMoneyByCurrency(quote.total, quote.currency)}</Td>
                     <Td>
-                      <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+                      <div className="flex items-center gap-1.5">
+                        {isQuoteExpired(quote) && <Badge variant="warning">Vencida</Badge>}
+                        <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+                      </div>
                     </Td>
                     <Td>
                       <div className="flex items-center justify-end gap-3 text-sm">

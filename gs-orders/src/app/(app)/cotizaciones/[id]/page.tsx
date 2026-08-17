@@ -3,14 +3,18 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
+import { isQuoteExpired } from "@/lib/quote-expiry";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem } from "@/types/domain";
 import { QuoteStatusActions } from "./quote-status-actions";
+import { DuplicateQuoteButton } from "./duplicate-quote-button";
+import { QuoteNotesEditor } from "./quote-notes-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +28,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
   if (!quoteData) notFound();
   const quote = quoteData as Quote;
   const items = (itemsData ?? []) as QuoteItem[];
+  const expired = isQuoteExpired(quote);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -34,6 +39,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <QuoteStatusActions quote={quote} />
+          <DuplicateQuoteButton quoteId={quote.id} />
           {quote.status === "borrador" && (
             <Link
               href={`/cotizaciones/${quote.id}/editar`}
@@ -52,10 +58,29 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             <CardTitle className="font-mono text-base">{quote.folio}</CardTitle>
             <p className="mt-1 text-sm text-ink-faint">{quote.customer_name}</p>
           </div>
-          <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+          <div className="flex items-center gap-2">
+            {expired && <Badge variant="warning">Vencida</Badge>}
+            <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Cliente</p>
+              <p className="text-ink">{quote.customer_name}</p>
+            </div>
+            {quote.customer_legal_name && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-faint">Razón social</p>
+                <p className="text-ink">{quote.customer_legal_name}</p>
+              </div>
+            )}
+            {quote.customer_tax_id && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-faint">RFC</p>
+                <p className="font-mono text-ink">{quote.customer_tax_id}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs uppercase tracking-wide text-ink-faint">Vendedor</p>
               <p className="text-ink">{quote.salesperson_name}</p>
@@ -70,7 +95,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-ink-faint">Vigencia</p>
-              <p className="text-ink">{formatDateShort(quote.valid_until)}</p>
+              <p className={expired ? "text-warning" : "text-ink"}>{formatDateShort(quote.valid_until)}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-ink-faint">Moneda</p>
@@ -82,12 +107,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             </div>
           </div>
 
-          {quote.notes && (
-            <div>
-              <p className="text-xs uppercase tracking-wide text-ink-faint">Notas</p>
-              <p className="whitespace-pre-wrap text-sm text-ink">{quote.notes}</p>
-            </div>
-          )}
+          <QuoteNotesEditor quoteId={quote.id} initialNotes={quote.notes ?? ""} />
 
           <div>
             <p className="mb-2 text-xs uppercase tracking-wide text-ink-faint">Productos</p>

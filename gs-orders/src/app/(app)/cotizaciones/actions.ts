@@ -4,10 +4,9 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCurrentOrganizationId } from "@/lib/user-access";
 import { getBusinessToday, addDays } from "@/lib/business-date";
 import { quotePayloadSchema } from "@/lib/validations/quote";
-import { customerSchema } from "@/lib/validations/customer";
+import { createCustomerWithOptionalContact } from "@/lib/customers/create-with-contact";
 import { mapDbError } from "@/lib/db-errors";
 import type { Customer, QuoteCurrency, QuoteStatus } from "@/types/domain";
 
@@ -116,48 +115,29 @@ export async function updateQuote(quoteId: string, payload: QuoteWritePayload): 
 }
 
 /**
- * Alta rápida de Cliente desde el modal de Nueva Cotización. Reutiliza
- * customerSchema (Q1, cero reglas nuevas) pero devuelve el Customer creado
- * en vez de redirigir — createCustomer (clientes/actions.ts) no sirve aquí
- * porque su contrato es useFormState + redirect. ADMIN y VENDEDOR pueden
- * crear clientes (customers_insert_member, 0018_core_customers.sql) — sin
- * guard de rol adicional aquí, mismo criterio que createCustomer.
+ * Alta rápida de Cliente desde el modal de Nueva Cotización. Delega en
+ * createCustomerWithOptionalContact (compartida con la importación Excel)
+ * — createCustomer (clientes/actions.ts) no sirve aquí porque su contrato
+ * es useFormState + redirect, esta necesita devolver el Customer creado
+ * para auto-seleccionarlo. ADMIN y VENDEDOR pueden crear clientes
+ * (customers_insert_member, 0018_core_customers.sql) — sin guard de rol
+ * adicional aquí, mismo criterio que createCustomer. Quote schema/RPC
+ * (rpc_create_quote) no se tocan por esta función.
  */
 export async function createCustomerInline(input: {
   name: string;
   legal_name?: string;
   tax_id?: string;
+  contact_name?: string;
   email?: string;
   phone?: string;
 }): Promise<{ customer: Customer } | { error: string }> {
-  const parsed = customerSchema.safeParse(input);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
-  }
-
   const supabase = createSupabaseServerClient();
-  const orgResult = await resolveCurrentOrganizationId(supabase);
-  if ("error" in orgResult) return { error: orgResult.error };
-
-  const { data, error } = await supabase
-    .from("customers")
-    .insert({
-      organization_id: orgResult.organizationId,
-      name: parsed.data.name,
-      legal_name: parsed.data.legal_name ?? null,
-      tax_id: parsed.data.tax_id ?? null,
-      email: parsed.data.email ?? null,
-      phone: parsed.data.phone ?? null,
-    })
-    .select("*")
-    .single();
-
-  if (error || !data) {
-    return { error: mapDbError(error, "No se pudo crear el cliente. Intenta de nuevo.") };
-  }
+  const result = await createCustomerWithOptionalContact(supabase, input);
+  if ("error" in result) return result;
 
   revalidatePath("/clientes");
-  return { customer: data as Customer };
+  return result;
 }
 
 /**

@@ -1,0 +1,65 @@
+-- Stub de auth/storage + roles Postgres para correr las 21 migraciones
+-- reales contra un Postgres local, sin Supabase. Mismo patrón usado en
+-- todas las fases anteriores de este proyecto (Q4-Q7, CORE, etc).
+
+create schema if not exists auth;
+create schema if not exists storage;
+
+create table if not exists auth.users (
+  id uuid primary key default gen_random_uuid(),
+  email text
+);
+
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+end $$;
+
+create or replace function auth.uid() returns uuid
+language sql stable
+as $$
+  select nullif(current_setting('app.test_user_id', true), '')::uuid;
+$$;
+
+create or replace function auth.role() returns text
+language sql stable
+as $$
+  select coalesce(nullif(current_setting('app.test_role', true), ''), 'authenticated');
+$$;
+
+create or replace function test_set_user(p_user_id uuid, p_role text default 'authenticated') returns void
+language plpgsql
+as $$
+begin
+  perform set_config('app.test_user_id', p_user_id::text, false);
+  perform set_config('app.test_role', p_role, false);
+end;
+$$;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean not null default false
+);
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets (id),
+  name text,
+  owner uuid
+);
+
+alter table storage.objects enable row level security;
+
+grant usage on schema auth, storage, public to authenticated, anon;
+grant all on all tables in schema public to authenticated;
+grant all on all tables in schema auth to authenticated;
+grant all on all tables in schema storage to authenticated;
+grant all on all sequences in schema public to authenticated;
+alter default privileges in schema public grant all on tables to authenticated;
+alter default privileges in schema public grant all on sequences to authenticated;

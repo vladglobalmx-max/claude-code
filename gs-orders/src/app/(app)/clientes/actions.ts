@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveCurrentOrganizationId } from "@/lib/user-access";
-import { customerSchema } from "@/lib/validations/customer";
+import { customerSchema, customerContactSchema } from "@/lib/validations/customer";
 import { mapDbError } from "@/lib/db-errors";
 
 export type CustomerFormState = { error?: string } | undefined;
@@ -96,4 +96,106 @@ export async function updateCustomer(
 
   revalidatePath("/clientes");
   redirect("/clientes");
+}
+
+export type ContactActionResult = { error: string } | void;
+
+/**
+ * Gestión de contactos (0021_core_customer_contacts.sql) — visible hoy
+ * solo desde /clientes/[id]/editar (ADMIN-only en la UI actual). RLS de
+ * customer_contacts sí permite VENDEDOR sobre Customers activos de su
+ * organización (customer_contacts_insert/update_member) — estas acciones
+ * no agregan un guard más estricto que RLS a propósito, para no bloquear
+ * ese acceso el día que exista una pantalla que lo exponga a VENDEDOR.
+ * Sin borrado físico: "activar/desactivar" es el único mecanismo (mismo
+ * patrón que customers.active).
+ */
+export async function addCustomerContact(customerId: string, formData: FormData): Promise<ContactActionResult> {
+  const parsed = customerContactSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.from("customer_contacts").insert({
+    customer_id: customerId,
+    name: parsed.data.name,
+    email: parsed.data.email ?? null,
+    phone: parsed.data.phone ?? null,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo agregar el contacto. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/clientes/${customerId}/editar`);
+}
+
+export async function updateCustomerContact(
+  customerId: string,
+  contactId: string,
+  formData: FormData
+): Promise<ContactActionResult> {
+  const parsed = customerContactSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from("customer_contacts")
+    .update({
+      name: parsed.data.name,
+      email: parsed.data.email ?? null,
+      phone: parsed.data.phone ?? null,
+    })
+    .eq("id", contactId);
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar los cambios del contacto.") };
+  }
+
+  revalidatePath(`/clientes/${customerId}/editar`);
+}
+
+/** Desactivar limpia is_primary automáticamente (trg_customer_contacts_enforce_primary, 0021). */
+export async function setCustomerContactActive(
+  customerId: string,
+  contactId: string,
+  active: boolean
+): Promise<ContactActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.from("customer_contacts").update({ active }).eq("id", contactId);
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo actualizar el contacto.") };
+  }
+
+  revalidatePath(`/clientes/${customerId}/editar`);
+}
+
+/**
+ * Un solo UPDATE — el trigger de 0021 degrada al principal anterior dentro
+ * de la misma transacción, sin necesitar una RPC dedicada.
+ */
+export async function setPrimaryCustomerContact(customerId: string, contactId: string): Promise<ContactActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from("customer_contacts")
+    .update({ is_primary: true, active: true })
+    .eq("id", contactId);
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo marcar el contacto como principal.") };
+  }
+
+  revalidatePath(`/clientes/${customerId}/editar`);
 }

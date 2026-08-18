@@ -1,11 +1,28 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
+import { buildQuotePdfFilename } from "@/lib/utils/filename";
 import { QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem } from "@/types/domain";
 import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * document.title de esta página — el navegador lo usa como nombre
+ * sugerido al "Guardar como PDF" (window.print()). Antes siempre mostraba
+ * "THÖREN" (metadata.title global del layout raíz); aquí se sobreescribe
+ * por Quote con "{FOLIO} - {CLIENTE}". Solo cambia el título del
+ * documento — el contenido/cálculos del PDF (OrderDetailContent-equivalente
+ * de abajo) no se tocan.
+ */
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const supabase = createSupabaseServerClient();
+  const { data } = await supabase.from("quotes").select("folio, customer_name").eq("id", params.id).single();
+  if (!data) return {};
+  return { title: buildQuotePdfFilename(data.folio, data.customer_name) };
+}
 
 interface OneOrMany<T> {
   [index: number]: T;

@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { CustomerForm } from "../../customer-form";
 import { updateCustomer } from "../../actions";
-import type { Customer } from "@/types/domain";
+import { CustomerContactsManager } from "./customer-contacts-manager";
+import type { Customer, CustomerContact } from "@/types/domain";
 
 /**
  * Editar es ADMIN-only (ver customers_update_admin, 0018) — VENDEDOR nunca
@@ -19,10 +20,14 @@ export default async function EditarClientePage({ params }: { params: { id: stri
   }
 
   const supabase = createSupabaseServerClient();
-  const { data } = await supabase.from("customers").select("*").eq("id", params.id).single();
+  const [{ data }, { data: contactsData }] = await Promise.all([
+    supabase.from("customers").select("*").eq("id", params.id).single(),
+    supabase.from("customer_contacts").select("*").eq("customer_id", params.id).order("name"),
+  ]);
   if (!data) notFound();
 
   const customer = data as Customer;
+  const contacts = (contactsData ?? []) as CustomerContact[];
   const action = updateCustomer.bind(null, customer.id);
 
   return (
@@ -34,6 +39,15 @@ export default async function EditarClientePage({ params }: { params: { id: stri
         </CardHeader>
         <CardContent>
           <CustomerForm action={action} customer={customer} submitLabel="Guardar cambios" showActiveToggle />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Contactos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CustomerContactsManager customerId={customer.id} contacts={contacts} />
         </CardContent>
       </Card>
     </div>

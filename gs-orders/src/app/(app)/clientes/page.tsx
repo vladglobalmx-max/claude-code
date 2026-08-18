@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Users as UsersIcon } from "lucide-react";
+import { Plus, Upload, Users as UsersIcon } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { Button } from "@/components/ui/button";
@@ -34,12 +34,20 @@ export default async function ClientesPage({ searchParams }: { searchParams: { q
         title="Clientes"
         description="Clientes de la organización, compartidos entre Comercial."
         actions={
-          <Link href="/clientes/nuevo">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nuevo cliente
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/clientes/nuevo">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nuevo cliente
+              </Button>
+            </Link>
+            <Link href="/clientes/importar">
+              <Button variant="outline">
+                <Upload className="h-4 w-4" />
+                Importar Excel
+              </Button>
+            </Link>
+          </div>
         }
       />
 

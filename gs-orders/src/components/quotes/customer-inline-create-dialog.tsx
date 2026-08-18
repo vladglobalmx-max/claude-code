@@ -23,15 +23,19 @@ import { createCustomerInline } from "@/app/(app)/cotizaciones/actions";
  * CustomerForm (Q1): ese componente usa useFormState + redirect a
  * /clientes, incompatible con un modal que debe quedarse en la página y
  * devolver el Customer recién creado para auto-seleccionarlo. Reutiliza en
- * cambio customerSchema (createCustomerInline, en cotizaciones/actions.ts)
- * — mismas reglas de validación de Q1, cero reglas nuevas. Cero
- * modificaciones a clientes/actions.ts ni a clientes/customer-form.tsx.
+ * cambio createCustomerInline (cotizaciones/actions.ts), que a su vez
+ * delega en createCustomerWithOptionalContact — misma semántica aprobada
+ * de Email/Teléfono que la importación Excel: si "Contacto" tiene valor,
+ * Email/Teléfono se guardan en el contacto (customer_contacts), no en el
+ * Customer. Cero modificaciones a clientes/actions.ts, a
+ * clientes/customer-form.tsx, ni al schema/RPC de Quotes.
  */
 export function CustomerInlineCreateDialog({ onCreated }: { onCreated: (customer: Customer) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [legalName, setLegalName] = useState("");
   const [taxId, setTaxId] = useState("");
+  const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +45,7 @@ export function CustomerInlineCreateDialog({ onCreated }: { onCreated: (customer
     setName("");
     setLegalName("");
     setTaxId("");
+    setContactName("");
     setEmail("");
     setPhone("");
     setError(null);
@@ -57,6 +62,7 @@ export function CustomerInlineCreateDialog({ onCreated }: { onCreated: (customer
         name,
         legal_name: legalName || undefined,
         tax_id: taxId || undefined,
+        contact_name: contactName || undefined,
         email: email || undefined,
         phone: phone || undefined,
       });
@@ -114,6 +120,15 @@ export function CustomerInlineCreateDialog({ onCreated }: { onCreated: (customer
               className="font-mono uppercase"
             />
           </div>
+          <div>
+            <Label htmlFor="inline-customer-contact-name">Contacto (opcional)</Label>
+            <Input
+              id="inline-customer-contact-name"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="Nombre de la persona de contacto"
+            />
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="inline-customer-email">Email (opcional)</Label>
@@ -124,6 +139,11 @@ export function CustomerInlineCreateDialog({ onCreated }: { onCreated: (customer
               <Input id="inline-customer-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
           </div>
+          <p className="text-xs text-ink-faint">
+            {contactName
+              ? "Email y teléfono se guardarán como datos de este contacto."
+              : "Sin un contacto capturado, email y teléfono se guardan directo en el cliente."}
+          </p>
           {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         </div>
         <DialogFooter>

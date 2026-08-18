@@ -76,6 +76,27 @@ export interface Customer {
   updated_at: string;
 }
 
+/**
+ * Contacto de un Customer (0021_core_customer_contacts.sql). Sin
+ * organization_id propio — se resuelve indirectamente vía
+ * customer_id → customers.organization_id, igual que quote_items no
+ * repite organization_id de su quote padre. is_primary lo mantiene
+ * trg_customer_contacts_enforce_primary: como máximo un contacto
+ * principal ACTIVO por Customer a la vez; desactivar el principal actual
+ * limpia su marca automáticamente.
+ */
+export interface CustomerContact {
+  id: string;
+  customer_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  is_primary: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PersonBusinessUnit {
   person_id: string;
   business_unit_id: string;

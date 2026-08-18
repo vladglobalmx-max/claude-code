@@ -575,6 +575,45 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Customer Contacts (0021_core_customer_contacts.sql) —
+      // organización resuelta indirectamente vía customer_id →
+      // customers.organization_id, sin columna propia. is_primary lo
+      // mantiene trg_customer_contacts_enforce_primary — como máximo un
+      // contacto principal ACTIVO por Customer.
+      customer_contacts: {
+        Row: {
+          id: string;
+          customer_id: string;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          is_primary: boolean;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          name: string;
+          email?: string | null;
+          phone?: string | null;
+          is_primary?: boolean;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["customer_contacts"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
       // de auth.users/organization_members/salespeople. Sin UI ni RPC
       // consumidora todavía; solo el bootstrap (owner de la tabla) y
@@ -871,6 +910,19 @@ export interface Database {
           p_items: Json;
         };
         Returns: Database["public"]["Tables"]["quotes"]["Row"];
+      };
+      // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
+      // única: inserta el Customer y todos sus contactos; si cualquier
+      // contacto falla, revierte el Customer también. organization_id se
+      // resuelve server-side vía current_user_organization_id() — nunca se
+      // envía desde la app. p_contacts es un array de objetos con
+      // name/email?/phone?/is_primary?.
+      rpc_create_customer_with_contacts: {
+        Args: {
+          p_customer: Json;
+          p_contacts?: Json;
+        };
+        Returns: Database["public"]["Tables"]["customers"]["Row"];
       };
       rpc_create_order: {
         Args: {

@@ -291,8 +291,19 @@ export interface OrderFile {
   created_at: string;
 }
 
+/**
+ * THÖREN Orders V2 Foundation (0022_orders_v2_foundation.sql) — aditivo
+ * sobre Order: organization_id NOT NULL (resuelto siempre server-side,
+ * inmutable), customer_id/business_unit_id nullable (sin backfill
+ * histórico). `business_unit` (legacy, enum de 4 valores fijos, ver
+ * BusinessUnit arriba) sigue existiendo sin cambios — deprecated pero
+ * compatible, no relacionado por FK ni código con `business_unit_id`.
+ */
 export interface Order {
   id: string;
+  organization_id: string;
+  customer_id: string | null;
+  business_unit_id: string | null;
   business_unit: BusinessUnit;
   folio: string;
   sequence_number: number;

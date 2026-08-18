@@ -47,6 +47,15 @@ export interface Database {
       orders: {
         Row: {
           id: string;
+          // THÖREN Orders V2 Foundation (0022_orders_v2_foundation.sql) —
+          // organization_id NOT NULL (server-side exclusivo, inmutable vía
+          // trg_orders_prevent_organization_change); customer_id/
+          // business_unit_id nullable, sin backfill histórico por
+          // ambigüedad/sin consumidor. business_unit (legacy, abajo) sigue
+          // existiendo sin cambios, deprecated pero compatible.
+          organization_id: string;
+          customer_id: string | null;
+          business_unit_id: string | null;
           business_unit: string;
           folio: string;
           sequence_number: number;
@@ -87,6 +96,13 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // Las tres las resuelve rpc_create_order server-side (0022) —
+          // organization_id nunca se envía desde la app; customer_id/
+          // business_unit_id se leen de p_order dentro del RPC, no de un
+          // INSERT directo vía PostgREST (Orders no se crea así).
+          organization_id?: string;
+          customer_id?: string | null;
+          business_unit_id?: string | null;
           business_unit?: string;
           // folio y sequence_number los asigna el trigger de la base de datos; nunca se envían.
           salesperson_id: string;
@@ -130,6 +146,27 @@ export interface Database {
             columns: ["salesperson_id"];
             isOneToOne: false;
             referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
             referencedColumns: ["id"];
           },
         ];

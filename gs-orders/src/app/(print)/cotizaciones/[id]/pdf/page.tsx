@@ -4,7 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/storage";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { buildQuotePdfFilename } from "@/lib/utils/filename";
-import { QUOTE_STATUS_LABELS } from "@/types/domain";
+import { Badge } from "@/components/ui/badge";
+import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem } from "@/types/domain";
 import { PrintButton } from "./print-button";
 
@@ -34,40 +35,61 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
 }
 
 /**
- * PDF de una Quote — THÖREN Quotes Q6, mismo patrón que
- * (print)/pedidos/[id]/pdf: página HTML optimizada para impresión
- * (window.print() → "Guardar como PDF" del navegador), sin librería de PDF
- * nueva. Usa ÚNICAMENTE los snapshots ya persistidos en `quotes`/
- * `quote_items` (0020_core_quotes.sql) — nunca vuelve a leer
- * customers/product_catalog/business_units/salespeople actuales, así que
- * el PDF de una Quote antigua siempre refleja lo que existía al momento de
- * crearla, aunque esas entidades se hayan editado o eliminado después.
+ * PDF de una Quote — THÖREN Quotes Q6, rediseñado en "THÖREN — REDISEÑO
+ * PREMIUM DE QUOTE PDF" (referencia conceptual CotizIA, sin copiar pixel
+ * por pixel). Mismo patrón que (print)/pedidos/[id]/pdf: página HTML
+ * optimizada para impresión (window.print() → "Guardar como PDF" del
+ * navegador), sin librería de PDF nueva. Usa ÚNICAMENTE los snapshots ya
+ * persistidos en `quotes`/`quote_items` (0020_core_quotes.sql) para todo
+ * el contenido COMERCIAL/LEGAL (folio, cliente, razón social, RFC,
+ * vendedor, items, totales) — nunca vuelve a leer customers/
+ * product_catalog/business_units/salespeople actuales para esos campos,
+ * así que el PDF de una Quote antigua siempre refleja lo que existía al
+ * momento de crearla.
  *
- * organization.name es la única excepción: no está snapshoteado en
- * `quotes` (Q3 no lo consideró necesario) y se resuelve aquí con un select
- * adicional, bajo RLS (organizations_select_member) — es solo el nombre de
- * la organización dueña de la Quote, no cambia con el tiempo en la
- * práctica.
+ * Dos excepciones deliberadas, ambas de IDENTIDAD VISUAL — no
+ * comercial/legal — resueltas en vivo en cada render, mismo criterio ya
+ * usado para organizationName desde Q6 original:
+ *   - organizationName: nombre de la organización dueña de la Quote.
+ *   - signedLogoUrl: logo de la Business Unit (0024_business_unit_branding.sql
+ *     → THÖREN Business Unit Branding → Quote PDF). Si la BU cambia su
+ *     logo, un PDF impreso después debe reflejar el logo actual.
+ * Todas las lecturas están sujetas a RLS — si algo no es visible o no
+ * existe, la variable correspondiente queda null/"" y esa línea
+ * simplemente no se imprime. El PDF nunca se rompe por falta de logo.
  *
- * `notes` (nota interna, ver Q5) NO se imprime aquí a propósito: Q5
+ * Contacto/email/teléfono del cliente NO se consultan aquí — decisión
+ * explícita de "THÖREN — Quote PDF Premium AJUSTE FINAL ANTES DE COMMIT":
+ * una Quote es un documento comercial histórico, y esos datos NO están
+ * snapshoteados en `quotes` (a diferencia de customer_name/
+ * customer_legal_name/customer_tax_id, que sí lo están desde 0020). Un
+ * lookup en vivo a customer_contacts/customers haría que reimprimir una
+ * Quote antigua mostrara datos de contacto actuales, inconsistente con el
+ * resto del snapshot. Ver "Quote Customer Contact Snapshot" más abajo.
+ *
+ * `notes` (nota interna, ver Q5) sigue sin imprimirse a propósito: Q5
  * documentó explícitamente que ese campo es "visible solo para tu equipo,
- * no forma parte del contenido comercial de la cotización" — imprimirlo en
- * un documento que llega al cliente contradiría esa decisión y podría
- * filtrar información interna. Si se necesita un campo de notas que sí
- * aparezca en el PDF, es un campo nuevo (fuera de alcance de Q6).
+ * no forma parte del contenido comercial de la cotización". No existe un
+ * campo distinto de "observaciones para el cliente" en el modelo actual,
+ * así que esta fase NO agrega una sección de Observaciones — agregarla
+ * imprimiendo `notes` filtraría información interna; agregarla vacía
+ * inventaría una sección sin dato real. Ver discovery de esta sesión.
  *
- * Logo de Business Unit (THÖREN Business Unit Branding → Quote PDF,
- * 0024_business_unit_branding.sql): mismo criterio que organizationName —
- * NUNCA se snapshotea en `quotes` (sin columna nueva, sin migración 0025).
- * Se resuelve en vivo, en cada render, vía quote.business_unit_id →
- * business_units.logo_path → getSignedUrl("business-unit-assets", ...).
- * Es identidad visual, no un hecho comercial/legal — si la BU cambia su
- * logo, un PDF impreso después debe reflejar el logo actual, igual que
- * organizationName ya hace hoy. getSignedUrl nunca lanza (devuelve null si
- * Storage falla) y el select de business_units está sujeto a la misma RLS
- * que ya protege el resto de esta página — si la BU no es visible o no
- * tiene logo, signedLogoUrl queda null y el header cae al mismo texto que
- * mostraba antes de esta fase. El PDF nunca se rompe por falta de logo.
+ * Campos deliberadamente NO agregados en este rediseño (discovery A/B/C):
+ * RFC/dirección/teléfono/web del EMISOR, forma de pago, tiempo de entrega,
+ * unidad por línea, IVA por línea (el modelo aplica IVA sobre subtotal −
+ * descuento global de TODA la Quote, nunca por línea — ver
+ * lib/quote-totals.ts — una columna de IVA por producto sería un cálculo
+ * inventado) — ninguno existe en `quotes`/`quote_items`/`business_units`/
+ * `organizations` hoy. Cero columnas nuevas, cero migración.
+ *
+ * MEJORA FUTURA — "Quote Customer Contact Snapshot": para poder imprimir
+ * contacto/email/teléfono del cliente de forma histórica y consistente
+ * (igual que customer_name/customer_legal_name/customer_tax_id), habría
+ * que agregar en una fase futura columnas snapshot a `quotes`
+ * (customer_contact_name, customer_email, customer_phone) pobladas al
+ * momento de crear la Quote — requiere su propia migración, fuera de
+ * alcance de esta fase.
  */
 export default async function CotizacionPdfPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -90,6 +112,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
     .eq("id", quote.business_unit_id)
     .maybeSingle();
   const signedLogoUrl = businessUnit?.logo_path ? await getSignedUrl("business-unit-assets", businessUnit.logo_path) : null;
+  const generatedOn = formatDateShort(new Date().toISOString());
 
   return (
     <div className="min-h-screen bg-surface-2 py-8 print:bg-white print:py-0">
@@ -98,8 +121,8 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
       </div>
 
       <div className="mx-auto max-w-3xl rounded-xl border border-border bg-surface p-8 shadow-card print:rounded-none print:border-0 print:shadow-none print:p-0">
-        <header className="mb-8 flex items-start justify-between border-b border-border pb-5">
-          <div>
+        <header className="mb-6 flex items-start justify-between gap-6 border-b-2 border-border pb-6 break-inside-avoid">
+          <div className="min-w-0">
             {signedLogoUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -108,7 +131,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
                   alt={quote.business_unit_name}
                   className="max-h-16 max-w-[200px] object-contain object-left"
                 />
-                <p className="mt-2 text-sm font-semibold text-ink">{quote.business_unit_name}</p>
+                <p className="mt-2 text-base font-semibold text-ink">{quote.business_unit_name}</p>
                 {organizationName && <p className="text-xs text-ink-faint">{organizationName}</p>}
               </>
             ) : (
@@ -119,97 +142,141 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
               </>
             )}
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <p className="text-xs uppercase tracking-wide text-ink-faint">Cotización</p>
-            <p className="font-mono text-base font-semibold text-ink">{quote.folio}</p>
-            <p className="mt-1 text-xs uppercase tracking-wide text-ink-faint">{QUOTE_STATUS_LABELS[quote.status]}</p>
+            <p className="font-mono text-2xl font-bold text-ink">{quote.folio}</p>
+            <Badge variant={QUOTE_STATUS_BADGE[quote.status]} className="mt-1.5">
+              {QUOTE_STATUS_LABELS[quote.status]}
+            </Badge>
           </div>
         </header>
 
-        <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-2 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-sm sm:grid-cols-4 break-inside-avoid">
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Fecha</p>
-            <p className="text-ink">{formatDateShort(quote.quote_date)}</p>
+            <p className="text-[11px] uppercase tracking-wide text-ink-faint">Fecha</p>
+            <p className="font-medium text-ink">{formatDateShort(quote.quote_date)}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Vigencia</p>
-            <p className="text-ink">{formatDateShort(quote.valid_until)}</p>
+            <p className="text-[11px] uppercase tracking-wide text-ink-faint">Vigencia</p>
+            <p className="font-medium text-ink">{formatDateShort(quote.valid_until)}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Moneda</p>
-            <p className="text-ink">{quote.currency}</p>
+            <p className="text-[11px] uppercase tracking-wide text-ink-faint">Moneda</p>
+            <p className="font-medium text-ink">{quote.currency}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Cliente</p>
-            <p className="text-ink">{quote.customer_name}</p>
+            <p className="text-[11px] uppercase tracking-wide text-ink-faint">Vendedor</p>
+            <p className="font-medium text-ink">{quote.salesperson_name}</p>
           </div>
-          {quote.customer_legal_name && (
-            <div>
-              <p className="text-xs uppercase tracking-wide text-ink-faint">Razón social</p>
-              <p className="text-ink">{quote.customer_legal_name}</p>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-[55fr_45fr] break-inside-avoid">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Información del cliente</p>
+            <div className="space-y-1 text-sm">
+              <p className="font-medium text-ink">{quote.customer_name}</p>
+              {quote.customer_legal_name && <p className="text-ink-soft">{quote.customer_legal_name}</p>}
+              {quote.customer_tax_id && <p className="font-mono text-xs text-ink-faint">RFC {quote.customer_tax_id}</p>}
             </div>
-          )}
-          {quote.customer_tax_id && (
-            <div>
-              <p className="text-xs uppercase tracking-wide text-ink-faint">RFC</p>
-              <p className="font-mono text-ink">{quote.customer_tax_id}</p>
-            </div>
-          )}
+          </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Vendedor</p>
-            <p className="text-ink">{quote.salesperson_name}</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Detalle de la cotización</p>
+            <dl className="space-y-1 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Número</dt>
+                <dd className="font-mono text-ink">{quote.folio}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Fecha</dt>
+                <dd className="text-ink">{formatDateShort(quote.quote_date)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Vigencia</dt>
+                <dd className="text-ink">{formatDateShort(quote.valid_until)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Moneda</dt>
+                <dd className="text-ink">{quote.currency}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Estado</dt>
+                <dd className="text-ink">{QUOTE_STATUS_LABELS[quote.status]}</dd>
+              </div>
+            </dl>
           </div>
         </div>
 
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-              <th className="py-2">Modelo</th>
-              <th className="py-2 text-right">Cantidad</th>
-              <th className="py-2 text-right">Precio unitario</th>
+            <tr className="border-b border-ink/15 text-left text-[11px] uppercase tracking-wide text-ink-faint">
+              <th className="py-2">Descripción</th>
+              <th className="py-2 text-right">Cant.</th>
+              <th className="py-2 text-right">Precio U.</th>
               <th className="py-2 text-right">Descuento</th>
               <th className="py-2 text-right">Importe</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-border">
-                <td className="py-2">
-                  <p className="font-medium text-ink">{item.model}</p>
-                  {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+              <tr key={item.id} className="border-b border-border break-inside-avoid">
+                <td className="py-2.5 pr-4">
+                  <p className="font-medium text-ink">{item.description || item.model}</p>
+                  {item.description && <p className="mt-0.5 text-xs text-ink-faint">{item.model}</p>}
                 </td>
-                <td className="py-2 text-right text-ink-soft">{item.quantity}</td>
-                <td className="py-2 text-right text-ink-soft">{formatMoneyByCurrency(item.unit_price, quote.currency)}</td>
-                <td className="py-2 text-right text-ink-soft">{item.line_discount_percent}%</td>
-                <td className="py-2 text-right text-ink-soft">{formatMoneyByCurrency(item.line_subtotal, quote.currency)}</td>
+                <td className="py-2.5 text-right text-ink-soft">{item.quantity}</td>
+                <td className="py-2.5 text-right text-ink-soft">{formatMoneyByCurrency(item.unit_price, quote.currency)}</td>
+                <td className="py-2.5 text-right text-ink-soft">
+                  {item.line_discount_percent > 0 ? `${item.line_discount_percent}%` : "—"}
+                </td>
+                <td className="py-2.5 text-right font-medium text-ink">
+                  {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mt-4 flex justify-end">
-          <div className="w-full max-w-xs space-y-1.5 text-sm">
+        <div className="mt-6 break-inside-avoid">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
+          <div className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+            <span className="text-[11px] uppercase tracking-wide text-ink-faint">Vigencia</span>
+            <span className="font-medium text-ink">{formatDateShort(quote.valid_until)}</span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end break-inside-avoid">
+          <div className="w-full max-w-xs rounded-lg border border-border bg-surface-2/50 p-4 text-sm">
             <div className="flex justify-between">
               <span className="text-ink-faint">Subtotal</span>
               <span className="text-ink">{formatMoneyByCurrency(quote.subtotal, quote.currency)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="mt-1.5 flex justify-between">
               <span className="text-ink-faint">Descuento</span>
               <span className="text-ink">{formatMoneyByCurrency(quote.discount_total, quote.currency)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="mt-1.5 flex justify-between">
               <span className="text-ink-faint">IVA ({quote.tax_rate}%)</span>
               <span className="text-ink">{formatMoneyByCurrency(quote.tax_total, quote.currency)}</span>
             </div>
-            <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold">
-              <span className="text-ink">Total</span>
-              <span className="text-ink">{formatMoneyByCurrency(quote.total, quote.currency)}</span>
+            <div className="mt-3 flex items-baseline justify-between border-t border-border pt-2.5">
+              <span className="text-base font-bold text-ink">Total</span>
+              <span className="text-xl font-bold text-accent">{formatMoneyByCurrency(quote.total, quote.currency)}</span>
             </div>
           </div>
         </div>
 
-        <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-ink-faint">
-          Cotización generada por THÖREN — {quote.folio}
+        <footer className="mt-10 border-t border-border pt-4 text-xs text-ink-faint break-inside-avoid">
+          <div className="flex items-center justify-between">
+            <span>
+              {quote.business_unit_name}
+              {organizationName ? ` · ${organizationName}` : ""}
+            </span>
+            <span>Cotización {quote.folio}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span>Generado el {generatedOn}</span>
+            <span>Generado por THÖREN</span>
+          </div>
         </footer>
       </div>
     </div>

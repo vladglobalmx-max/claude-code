@@ -11,12 +11,15 @@ export function SingleImageField({
   onRemove,
   accept = "image/jpeg,image/png,image/jpg",
   label = "Subir imagen",
+  maxSizeMB = 15,
 }: {
   value: MediaDraft | null;
   onUpload: (file: File) => Promise<void>;
   onRemove: () => void;
   accept?: string;
   label?: string;
+  /** Tamaño máximo en MB. Default 15 (fotos de producto/pedido) — pásalo explícito para casos más chicos, ej. logos. */
+  maxSizeMB?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -25,8 +28,8 @@ export function SingleImageField({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("El archivo no puede pesar más de 15 MB");
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`El archivo no puede pesar más de ${maxSizeMB} MB`);
       return;
     }
     setUploading(true);

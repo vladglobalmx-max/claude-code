@@ -560,6 +560,9 @@ export interface Database {
           active: boolean;
           created_at: string;
           updated_at: string;
+          // THÖREN Business Unit Branding (0024) — referencia al archivo en
+          // el bucket business-unit-assets, nunca una URL absoluta.
+          logo_path: string | null;
         };
         Insert: {
           id?: string;
@@ -569,6 +572,7 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          logo_path?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["business_units"]["Insert"]>;
         Relationships: [

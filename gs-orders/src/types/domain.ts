@@ -56,6 +56,10 @@ export interface BusinessUnitRow {
   active: boolean;
   created_at: string;
   updated_at: string;
+  // THÖREN Business Unit Branding (0024_business_unit_branding.sql) —
+  // referencia al archivo en el bucket business-unit-assets, nunca una URL
+  // absoluta. Nullable: una BU sin logo sigue funcionando normalmente.
+  logo_path: string | null;
 }
 
 /**

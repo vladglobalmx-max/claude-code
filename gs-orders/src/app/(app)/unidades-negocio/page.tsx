@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -49,20 +50,22 @@ export default async function UnidadesNegocioPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {businessUnits.map((bu) => (
-            <Card key={bu.id} className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-ink">{bu.name}</p>
-                <ActiveBadge active={bu.active} />
-              </div>
-              <p className="mt-1 font-mono text-xs text-ink-faint">{bu.code}</p>
-              {isAdmin && (
-                <p className="mt-3 text-xs text-ink-faint">
-                  {(bu.person_business_units ?? []).length} persona
-                  {(bu.person_business_units ?? []).length === 1 ? "" : "s"} asociada
-                  {(bu.person_business_units ?? []).length === 1 ? "" : "s"}
-                </p>
-              )}
-            </Card>
+            <Link key={bu.id} href={`/unidades-negocio/${bu.id}`} className="block">
+              <Card className="p-5 transition-colors hover:border-accent/40">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-ink">{bu.name}</p>
+                  <ActiveBadge active={bu.active} />
+                </div>
+                <p className="mt-1 font-mono text-xs text-ink-faint">{bu.code}</p>
+                {isAdmin && (
+                  <p className="mt-3 text-xs text-ink-faint">
+                    {(bu.person_business_units ?? []).length} persona
+                    {(bu.person_business_units ?? []).length === 1 ? "" : "s"} asociada
+                    {(bu.person_business_units ?? []).length === 1 ? "" : "s"}
+                  </p>
+                )}
+              </Card>
+            </Link>
           ))}
         </div>
       )}

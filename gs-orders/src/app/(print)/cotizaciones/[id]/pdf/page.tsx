@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSignedUrl } from "@/lib/storage";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { buildQuotePdfFilename } from "@/lib/utils/filename";
 import { QUOTE_STATUS_LABELS } from "@/types/domain";
@@ -54,6 +55,19 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
  * un documento que llega al cliente contradiría esa decisión y podría
  * filtrar información interna. Si se necesita un campo de notas que sí
  * aparezca en el PDF, es un campo nuevo (fuera de alcance de Q6).
+ *
+ * Logo de Business Unit (THÖREN Business Unit Branding → Quote PDF,
+ * 0024_business_unit_branding.sql): mismo criterio que organizationName —
+ * NUNCA se snapshotea en `quotes` (sin columna nueva, sin migración 0025).
+ * Se resuelve en vivo, en cada render, vía quote.business_unit_id →
+ * business_units.logo_path → getSignedUrl("business-unit-assets", ...).
+ * Es identidad visual, no un hecho comercial/legal — si la BU cambia su
+ * logo, un PDF impreso después debe reflejar el logo actual, igual que
+ * organizationName ya hace hoy. getSignedUrl nunca lanza (devuelve null si
+ * Storage falla) y el select de business_units está sujeto a la misma RLS
+ * que ya protege el resto de esta página — si la BU no es visible o no
+ * tiene logo, signedLogoUrl queda null y el header cae al mismo texto que
+ * mostraba antes de esta fase. El PDF nunca se rompe por falta de logo.
  */
 export default async function CotizacionPdfPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -70,6 +84,13 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
   const organizationName = one(organizations)?.name ?? "";
   const items = (itemsData ?? []) as QuoteItem[];
 
+  const { data: businessUnit } = await supabase
+    .from("business_units")
+    .select("logo_path")
+    .eq("id", quote.business_unit_id)
+    .maybeSingle();
+  const signedLogoUrl = businessUnit?.logo_path ? await getSignedUrl("business-unit-assets", businessUnit.logo_path) : null;
+
   return (
     <div className="min-h-screen bg-surface-2 py-8 print:bg-white print:py-0">
       <div className="no-print sticky top-0 z-10 mb-6 flex justify-center">
@@ -79,9 +100,24 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
       <div className="mx-auto max-w-3xl rounded-xl border border-border bg-surface p-8 shadow-card print:rounded-none print:border-0 print:shadow-none print:p-0">
         <header className="mb-8 flex items-start justify-between border-b border-border pb-5">
           <div>
-            <p className="text-lg font-bold uppercase tracking-widest text-accent">THÖREN</p>
-            {organizationName && <p className="text-sm text-ink-soft">{organizationName}</p>}
-            <p className="text-xs uppercase tracking-wide text-ink-faint">{quote.business_unit_name}</p>
+            {signedLogoUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={signedLogoUrl}
+                  alt={quote.business_unit_name}
+                  className="max-h-16 max-w-[200px] object-contain object-left"
+                />
+                <p className="mt-2 text-sm font-semibold text-ink">{quote.business_unit_name}</p>
+                {organizationName && <p className="text-xs text-ink-faint">{organizationName}</p>}
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold uppercase tracking-widest text-accent">THÖREN</p>
+                {organizationName && <p className="text-sm text-ink-soft">{organizationName}</p>}
+                <p className="text-xs uppercase tracking-wide text-ink-faint">{quote.business_unit_name}</p>
+              </>
+            )}
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-wide text-ink-faint">Cotización</p>

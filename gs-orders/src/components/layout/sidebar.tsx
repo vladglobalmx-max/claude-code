@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeft, ChevronsRight, Plus, X } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -81,19 +81,6 @@ export function Sidebar({
               <X className="h-4 w-4" />
               <span className="sr-only">Cerrar menú</span>
             </button>
-          </div>
-
-          <div className="px-3 pt-4">
-            <Link
-              href="/pedidos/nuevo"
-              className={cn(
-                "flex h-10 w-full items-center gap-2 rounded-lg bg-accent text-sm font-medium text-accent-ink shadow-sm transition-colors hover:bg-accent/90",
-                collapsed ? "justify-center px-0" : "justify-center"
-              )}
-            >
-              <Plus className="h-4 w-4 shrink-0" />
-              {!collapsed && "Nuevo Pedido"}
-            </Link>
           </div>
 
           <nav className="mt-5 flex-1 space-y-4 overflow-y-auto px-3">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Copy, Eye, FileText, Pencil, Printer, Trash2 } from "lucide-react";
+import { Copy, Eye, FileText, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import { ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
@@ -80,7 +80,18 @@ export default async function PedidosPage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Pedidos" description="Pedidos internos para Thunder Safety Solutions" />
+      <PageHeader
+        title="Pedidos"
+        description="Pedidos internos para Thunder Safety Solutions"
+        actions={
+          <Link href="/pedidos/nuevo">
+            <Button>
+              <Plus className="h-4 w-4" />
+              Nuevo pedido
+            </Button>
+          </Link>
+        }
+      />
 
       <OrderFilters
         salespeople={salespeople}

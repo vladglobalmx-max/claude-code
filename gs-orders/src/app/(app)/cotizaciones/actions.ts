@@ -233,6 +233,38 @@ export async function updateQuoteNotes(quoteId: string, notes: string): Promise<
  * desactivada o eliminada, la duplicación falla con el mismo mensaje claro
  * que rpc_create_quote ya produce — sin suposiciones silenciosas.
  */
+/**
+ * Convierte una Quote aceptada en un Order (THÖREN Quote → Order V2,
+ * 0023_quote_to_order.sql). La app SOLO manda quote_id/product_type/
+ * order_date — organization_id/customer_id/business_unit_id/
+ * salesperson_id/client_name/items se resuelven server-side dentro de
+ * rpc_create_order_from_quote, que internamente delega la creación real en
+ * rpc_create_order (misma transacción, sin lógica de INSERT duplicada).
+ * order_date siempre es la fecha de negocio de hoy — igual que
+ * createQuote, no es un campo editable en esta pantalla. La Quote origen
+ * nunca se modifica; el único candado real contra doble conversión es el
+ * índice único parcial orders_source_quote_id_unique (0023) — este action
+ * no reimplementa esa validación, solo traduce el error si el RPC la
+ * dispara.
+ */
+export async function convertQuoteToOrder(quoteId: string, productType: string): Promise<QuoteActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { data: order, error } = await supabase.rpc("rpc_create_order_from_quote", {
+    p_quote_id: quoteId,
+    p_product_type: productType,
+    p_order_date: getBusinessToday(),
+  });
+
+  if (error || !order) {
+    return { error: mapDbError(error, "No se pudo convertir la cotización a pedido. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/cotizaciones");
+  revalidatePath(`/cotizaciones/${quoteId}`);
+  revalidatePath("/pedidos");
+  redirect(`/pedidos/${order.id}`);
+}
+
 export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteActionResult> {
   const supabase = createSupabaseServerClient();
 

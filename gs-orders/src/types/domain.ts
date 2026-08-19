@@ -304,6 +304,11 @@ export interface Order {
   organization_id: string;
   customer_id: string | null;
   business_unit_id: string | null;
+  // THÖREN Quote → Order (0023_quote_to_order.sql) — nullable, único
+  // parcial: una Quote aceptada genera como máximo un Order. Se asigna
+  // exclusivamente dentro de rpc_create_order_from_quote, nunca desde la
+  // app directamente.
+  source_quote_id: string | null;
   business_unit: BusinessUnit;
   folio: string;
   sequence_number: number;

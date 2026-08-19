@@ -3,6 +3,7 @@ import { ArrowLeft, Pencil, Printer } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
 import { DuplicateButton } from "../duplicate-button";
@@ -10,8 +11,28 @@ import { OrderStatusQuickActions } from "./status-quick-actions";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * "Origen: Cotización" (THÖREN Quote → Order V2, 0023) se resuelve aquí con
+ * un fetch adicional, separado de getOrderDetail/OrderDetailContent a
+ * propósito: ambos son compartidos con la ruta de impresión
+ * ((print)/pedidos/[id]/pdf), y el PDF debe quedar sin cambios visuales —
+ * ver ALCANCE de 0022/0023. source_quote_id ya viene incluido en
+ * detail.order (columna real de orders, select("*")); solo falta el folio
+ * de la Quote, que se resuelve con un segundo query bajo RLS.
+ */
 export default async function VerPedidoPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
+
+  let sourceQuoteFolio: string | null = null;
+  if (detail.order.source_quote_id) {
+    const supabase = createSupabaseServerClient();
+    const { data: sourceQuote } = await supabase
+      .from("quotes")
+      .select("folio")
+      .eq("id", detail.order.source_quote_id)
+      .maybeSingle();
+    sourceQuoteFolio = sourceQuote?.folio ?? null;
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -36,6 +57,19 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
           </Link>
         </div>
       </div>
+
+      {detail.order.source_quote_id && (
+        <p className="no-print mb-4 text-sm text-ink-faint">
+          Origen: Cotización{" "}
+          {sourceQuoteFolio ? (
+            <Link href={`/cotizaciones/${detail.order.source_quote_id}`} className="font-mono text-accent hover:underline">
+              {sourceQuoteFolio}
+            </Link>
+          ) : (
+            "—"
+          )}
+        </p>
+      )}
 
       <Card>
         <CardContent className="p-6">

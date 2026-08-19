@@ -56,6 +56,10 @@ export interface Database {
           organization_id: string;
           customer_id: string | null;
           business_unit_id: string | null;
+          // THÖREN Quote → Order (0023_quote_to_order.sql) — nullable,
+          // único parcial (orders_source_quote_id_unique). Solo lo asigna
+          // rpc_create_order_from_quote.
+          source_quote_id: string | null;
           business_unit: string;
           folio: string;
           sequence_number: number;
@@ -103,6 +107,10 @@ export interface Database {
           organization_id?: string;
           customer_id?: string | null;
           business_unit_id?: string | null;
+          // Solo la asigna rpc_create_order_from_quote (0023), vía la
+          // clave source_quote_id dentro de p_order — no se envía desde
+          // ningún otro call-site.
+          source_quote_id?: string | null;
           business_unit?: string;
           // folio y sequence_number los asigna el trigger de la base de datos; nunca se envían.
           salesperson_id: string;
@@ -983,6 +991,16 @@ export interface Database {
       };
       rpc_duplicate_order: {
         Args: { p_source_order_id: string; p_order_date: string };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      // THÖREN Quote → Order (0023) — SECURITY INVOKER. La app SOLO manda
+      // estos 3 valores; organization_id/customer_id/business_unit_id/
+      // salesperson_id/client_name/items se leen server-side de la Quote
+      // (bajo RLS) y se delegan a rpc_create_order, que hace la creación
+      // real. Exige quote.status = 'aceptada'; una Quote ya convertida
+      // falla por el índice único orders_source_quote_id_unique.
+      rpc_create_order_from_quote: {
+        Args: { p_quote_id: string; p_product_type: string; p_order_date: string };
         Returns: Database["public"]["Tables"]["orders"]["Row"];
       };
       rpc_delete_order: {

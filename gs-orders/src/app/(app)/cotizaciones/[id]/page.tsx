@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +20,10 @@ export const dynamic = "force-dynamic";
 
 export default async function VerCotizacionPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
-  const [{ data: quoteData }, { data: itemsData }] = await Promise.all([
+  const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", params.id).single(),
     supabase.from("quote_items").select("*").eq("quote_id", params.id).order("position"),
+    supabase.from("orders").select("id, folio").eq("source_quote_id", params.id).maybeSingle(),
   ]);
 
   if (!quoteData) notFound();
@@ -40,6 +41,24 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
         <div className="flex flex-wrap items-center gap-2">
           <QuoteStatusActions quote={quote} />
           <DuplicateQuoteButton quoteId={quote.id} />
+          {linkedOrder ? (
+            <Link
+              href={`/pedidos/${linkedOrder.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Ver pedido {linkedOrder.folio}
+            </Link>
+          ) : (
+            quote.status === "aceptada" && (
+              <Link
+                href={`/cotizaciones/${quote.id}/convertir-pedido`}
+                className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+              >
+                Convertir a pedido
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )
+          )}
           <Link
             href={`/cotizaciones/${quote.id}/pdf`}
             target="_blank"

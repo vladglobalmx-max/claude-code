@@ -34,6 +34,9 @@ function buildPayload(state: QuoteFormState): QuoteWritePayload {
     global_discount_percent: Number(state.globalDiscountPercent) || 0,
     valid_until: state.validUntil,
     notes: state.notes || undefined,
+    payment_terms: state.paymentTerms || undefined,
+    delivery_time: state.deliveryTime || undefined,
+    customer_notes: state.customerNotes || undefined,
     items: state.items
       .filter((item) => item.model.trim())
       .map((item) => ({
@@ -275,8 +278,47 @@ export function QuoteForm({
           </div>
 
           <div>
-            <Label htmlFor="notes">Notas (opcional)</Label>
+            <Label htmlFor="notes">Notas internas (opcional)</Label>
             <Textarea id="notes" rows={2} value={state.notes} onChange={(e) => patch({ notes: e.target.value })} />
+            <p className="mt-1 text-xs text-ink-faint">Visible solo para tu equipo — no aparece en el PDF.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Condiciones comerciales</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="payment-terms">Forma de pago (opcional)</Label>
+              <Input
+                id="payment-terms"
+                value={state.paymentTerms}
+                onChange={(e) => patch({ paymentTerms: e.target.value })}
+                placeholder="Ej. 50% anticipo, 50% contra entrega"
+              />
+            </div>
+            <div>
+              <Label htmlFor="delivery-time">Tiempo de entrega (opcional)</Label>
+              <Input
+                id="delivery-time"
+                value={state.deliveryTime}
+                onChange={(e) => patch({ deliveryTime: e.target.value })}
+                placeholder="Ej. 15 días hábiles"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="customer-notes">Observaciones para el cliente (opcional)</Label>
+            <Textarea
+              id="customer-notes"
+              rows={3}
+              value={state.customerNotes}
+              onChange={(e) => patch({ customerNotes: e.target.value })}
+            />
+            <p className="mt-1 text-xs text-accent">Esta información SÍ aparecerá en el PDF de la cotización.</p>
           </div>
         </CardContent>
       </Card>

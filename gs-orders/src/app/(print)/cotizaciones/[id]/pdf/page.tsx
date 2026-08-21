@@ -69,19 +69,36 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
  *
  * `notes` (nota interna, ver Q5) sigue sin imprimirse a propósito: Q5
  * documentó explícitamente que ese campo es "visible solo para tu equipo,
- * no forma parte del contenido comercial de la cotización". No existe un
- * campo distinto de "observaciones para el cliente" en el modelo actual,
- * así que esta fase NO agrega una sección de Observaciones — agregarla
- * imprimiendo `notes` filtraría información interna; agregarla vacía
- * inventaría una sección sin dato real. Ver discovery de esta sesión.
+ * no forma parte del contenido comercial de la cotización". Desde
+ * "THÖREN — Quote Commercial Terms" (0025_quote_commercial_terms.sql) SÍ
+ * existe un campo distinto para observaciones dirigidas al cliente
+ * (`customer_notes`, junto con `payment_terms`/`delivery_time`) — son las
+ * únicas notas que esta página imprime; `notes` sigue sin tocarse.
  *
- * Campos deliberadamente NO agregados en este rediseño (discovery A/B/C):
- * RFC/dirección/teléfono/web del EMISOR, forma de pago, tiempo de entrega,
- * unidad por línea, IVA por línea (el modelo aplica IVA sobre subtotal −
- * descuento global de TODA la Quote, nunca por línea — ver
- * lib/quote-totals.ts — una columna de IVA por producto sería un cálculo
- * inventado) — ninguno existe en `quotes`/`quote_items`/`business_units`/
- * `organizations` hoy. Cero columnas nuevas, cero migración.
+ * "Detalle de la cotización" (Número/Fecha/Vigencia/Moneda/Estado) se
+ * eliminó en esta fase: duplicaba exactamente el header/badge de estado y
+ * la barra de metadatos de arriba. "Información del cliente" pasó a ocupar
+ * el ancho completo del documento en su lugar.
+ *
+ * Header con logo — decisión explícita de "THÖREN — Quote Commercial
+ * Terms + Ajuste Final Quote PDF Premium": cuando existe signedLogoUrl, el
+ * header muestra ÚNICAMENTE el logo, sin business_unit_name ni
+ * organizationName debajo — el documento debe leerse como "generado POR
+ * la Business Unit usando THÖREN", no como "de THÖREN con un logo
+ * pegado". Ambos nombres NO desaparecen del documento: siguen en el
+ * footer (trazabilidad textual). El fallback SIN logo conserva el bloque
+ * de texto completo (THÖREN/organizationName/business_unit_name) — sigue
+ * siendo el único caso donde el header necesita texto para identificar al
+ * emisor, y usa datos reales, nunca nombres de Business Unit hardcodeados.
+ *
+ * Campos deliberadamente NO agregados en este rediseño (discovery A/B/C
+ * del Quote PDF Premium, sin cambios en esta fase): RFC/dirección/
+ * teléfono/web del EMISOR, unidad por línea, IVA por línea (el modelo
+ * aplica IVA sobre subtotal − descuento global de TODA la Quote, nunca
+ * por línea — ver lib/quote-totals.ts) — ninguno existe en
+ * `quotes`/`quote_items`/`business_units`/`organizations` hoy. Forma de
+ * pago y tiempo de entrega YA NO están en esta lista: 0025 los agregó
+ * como campos reales, snapshot, opcionales.
  *
  * MEJORA FUTURA — "Quote Customer Contact Snapshot": para poder imprimir
  * contacto/email/teléfono del cliente de forma histórica y consistente
@@ -124,16 +141,12 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
         <header className="mb-6 flex items-start justify-between gap-6 border-b-2 border-border pb-6 break-inside-avoid">
           <div className="min-w-0">
             {signedLogoUrl ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={signedLogoUrl}
-                  alt={quote.business_unit_name}
-                  className="max-h-16 max-w-[200px] object-contain object-left"
-                />
-                <p className="mt-2 text-base font-semibold text-ink">{quote.business_unit_name}</p>
-                {organizationName && <p className="text-xs text-ink-faint">{organizationName}</p>}
-              </>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={signedLogoUrl}
+                alt={quote.business_unit_name}
+                className="max-h-16 max-w-[200px] object-contain object-left"
+              />
             ) : (
               <>
                 <p className="text-lg font-bold uppercase tracking-widest text-accent">THÖREN</p>
@@ -170,39 +183,12 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-[55fr_45fr] break-inside-avoid">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Información del cliente</p>
-            <div className="space-y-1 text-sm">
-              <p className="font-medium text-ink">{quote.customer_name}</p>
-              {quote.customer_legal_name && <p className="text-ink-soft">{quote.customer_legal_name}</p>}
-              {quote.customer_tax_id && <p className="font-mono text-xs text-ink-faint">RFC {quote.customer_tax_id}</p>}
-            </div>
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Detalle de la cotización</p>
-            <dl className="space-y-1 text-sm">
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-faint">Número</dt>
-                <dd className="font-mono text-ink">{quote.folio}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-faint">Fecha</dt>
-                <dd className="text-ink">{formatDateShort(quote.quote_date)}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-faint">Vigencia</dt>
-                <dd className="text-ink">{formatDateShort(quote.valid_until)}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-faint">Moneda</dt>
-                <dd className="text-ink">{quote.currency}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-faint">Estado</dt>
-                <dd className="text-ink">{QUOTE_STATUS_LABELS[quote.status]}</dd>
-              </div>
-            </dl>
+        <div className="mb-6 break-inside-avoid">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Información del cliente</p>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-1 rounded-lg border border-border px-4 py-3 text-sm sm:grid-cols-3">
+            <p className="font-medium text-ink">{quote.customer_name}</p>
+            {quote.customer_legal_name && <p className="text-ink-soft">{quote.customer_legal_name}</p>}
+            {quote.customer_tax_id && <p className="font-mono text-xs text-ink-faint">RFC {quote.customer_tax_id}</p>}
           </div>
         </div>
 
@@ -238,11 +224,34 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
 
         <div className="mt-6 break-inside-avoid">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
-          <div className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
-            <span className="text-[11px] uppercase tracking-wide text-ink-faint">Vigencia</span>
-            <span className="font-medium text-ink">{formatDateShort(quote.valid_until)}</span>
-          </div>
+          <dl className="space-y-1.5 rounded-lg border border-border px-4 py-3 text-sm">
+            {quote.payment_terms && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Forma de pago</dt>
+                <dd className="text-right text-ink">{quote.payment_terms}</dd>
+              </div>
+            )}
+            {quote.delivery_time && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-faint">Tiempo de entrega</dt>
+                <dd className="text-right text-ink">{quote.delivery_time}</dd>
+              </div>
+            )}
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink-faint">Vigencia</dt>
+              <dd className="text-right font-medium text-ink">{formatDateShort(quote.valid_until)}</dd>
+            </div>
+          </dl>
         </div>
+
+        {quote.customer_notes && (
+          <div className="mt-6 break-inside-avoid">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Observaciones</p>
+            <p className="whitespace-pre-wrap rounded-lg border border-border px-4 py-3 text-sm text-ink-soft">
+              {quote.customer_notes}
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 flex justify-end break-inside-avoid">
           <div className="w-full max-w-xs rounded-lg border border-border bg-surface-2/50 p-4 text-sm">

@@ -460,10 +460,13 @@ export const QUOTE_STATUS_BADGE: Record<QuoteStatus, "neutral" | "accent" | "suc
  * Cotización (0020_core_quotes.sql). folio/sequence_number/salesperson_id/
  * business_unit_id/quote_date son inmutables una vez generado el folio
  * (trg_prevent_quote_folio_change). Los snapshots (customer_*,
- * business_unit_*, salesperson_name) y los totales (subtotal/discount_total/
- * tax_total/total) los calcula exclusivamente rpc_create_quote/
- * rpc_update_quote — nunca se escriben directo desde la app, y quedan
- * congelados apenas status deja de ser "borrador".
+ * business_unit_*, salesperson_name), los totales (subtotal/discount_total/
+ * tax_total/total) y las condiciones comerciales (payment_terms/
+ * delivery_time/customer_notes, 0025_quote_commercial_terms.sql) los
+ * calcula/persiste exclusivamente rpc_create_quote/rpc_update_quote —
+ * nunca se escriben directo desde la app, y quedan congelados apenas
+ * status deja de ser "borrador". `notes` es la única excepción: es una
+ * nota interna del equipo, nunca impresa, y nunca se congela.
  */
 export interface Quote {
   id: string;
@@ -497,6 +500,11 @@ export interface Quote {
   total: number;
 
   notes: string | null;
+
+  /** Condiciones comerciales para el cliente (0025_quote_commercial_terms.sql) — opcionales, se imprimen en el Quote PDF. Nunca confundir con `notes`, que es exclusivamente interno. */
+  payment_terms: string | null;
+  delivery_time: string | null;
+  customer_notes: string | null;
 
   created_at: string;
   updated_at: string;

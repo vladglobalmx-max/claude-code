@@ -37,6 +37,11 @@ export const quotePayloadSchema = z.object({
   global_discount_percent: z.coerce.number().min(0).max(100).default(0),
   valid_until: z.string().min(1, "La vigencia es obligatoria"),
   notes: z.string().trim().optional(),
+  // Condiciones comerciales para el cliente (0025_quote_commercial_terms.sql)
+  // — opcionales, se imprimen en el Quote PDF. Nunca confundir con `notes`.
+  payment_terms: z.string().trim().optional(),
+  delivery_time: z.string().trim().optional(),
+  customer_notes: z.string().trim().optional(),
   items: z.array(quoteItemSchema).min(1, "Agrega al menos un producto"),
 });
 

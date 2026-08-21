@@ -134,6 +134,32 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             </div>
           </div>
 
+          {(quote.payment_terms || quote.delivery_time || quote.customer_notes) && (
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-xs uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
+              <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+                {quote.payment_terms && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-ink-faint">Forma de pago</p>
+                    <p className="text-ink">{quote.payment_terms}</p>
+                  </div>
+                )}
+                {quote.delivery_time && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-ink-faint">Tiempo de entrega</p>
+                    <p className="text-ink">{quote.delivery_time}</p>
+                  </div>
+                )}
+              </div>
+              {quote.customer_notes && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-ink-faint">Observaciones para el cliente</p>
+                  <p className="whitespace-pre-wrap text-sm text-ink">{quote.customer_notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <QuoteNotesEditor quoteId={quote.id} initialNotes={quote.notes ?? ""} />
 
           <div>

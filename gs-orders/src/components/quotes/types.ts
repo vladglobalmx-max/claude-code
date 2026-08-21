@@ -49,6 +49,9 @@ export interface QuoteFormState {
   globalDiscountPercent: string;
   validUntil: string;
   notes: string;
+  paymentTerms: string;
+  deliveryTime: string;
+  customerNotes: string;
   items: QuoteItemDraft[];
 }
 
@@ -70,6 +73,9 @@ export function emptyQuoteForm({
     globalDiscountPercent: "0",
     validUntil,
     notes: "",
+    paymentTerms: "",
+    deliveryTime: "",
+    customerNotes: "",
     items: [emptyQuoteItem()],
   };
 }

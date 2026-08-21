@@ -37,6 +37,9 @@ export interface QuoteWritePayload {
   global_discount_percent: number;
   valid_until: string;
   notes?: string;
+  payment_terms?: string;
+  delivery_time?: string;
+  customer_notes?: string;
   items: QuoteWriteItemPayload[];
 }
 
@@ -67,6 +70,9 @@ export async function createQuote(quoteId: string, payload: QuoteWritePayload): 
       global_discount_percent: parsed.data.global_discount_percent,
       valid_until: parsed.data.valid_until,
       notes: parsed.data.notes ?? null,
+      payment_terms: parsed.data.payment_terms ?? null,
+      delivery_time: parsed.data.delivery_time ?? null,
+      customer_notes: parsed.data.customer_notes ?? null,
     },
     p_items: parsed.data.items,
   });
@@ -101,6 +107,9 @@ export async function updateQuote(quoteId: string, payload: QuoteWritePayload): 
       global_discount_percent: parsed.data.global_discount_percent,
       valid_until: parsed.data.valid_until,
       notes: parsed.data.notes ?? null,
+      payment_terms: parsed.data.payment_terms ?? null,
+      delivery_time: parsed.data.delivery_time ?? null,
+      customer_notes: parsed.data.customer_notes ?? null,
     },
     p_items: parsed.data.items,
   });
@@ -224,7 +233,10 @@ export async function updateQuoteNotes(quoteId: string, notes: string): Promise<
  *     probablemente ya venció) — misma regla default que Nueva Cotización.
  *   - status: nace "borrador" (default de rpc_create_quote).
  *   - customer_id/business_unit_id/salesperson_id/currency/tax_rate/
- *     global_discount_percent/notes/items: preservados de la original.
+ *     global_discount_percent/notes/payment_terms/delivery_time/
+ *     customer_notes/items: preservados de la original (0025_quote_
+ *     commercial_terms.sql: las condiciones comerciales son parte del
+ *     mismo contenido que ya se duplicaba, sin tratamiento especial).
  *   - snapshots (customer_name, business_unit_name, salesperson_name...):
  *     se regeneran server-side dentro de rpc_create_quote a partir de las
  *     entidades ACTUALES — nunca se copian los snapshots históricos.
@@ -286,6 +298,9 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
     global_discount_percent: sourceQuote.global_discount_percent,
     valid_until: addDays(getBusinessToday(), 15),
     notes: sourceQuote.notes ?? undefined,
+    payment_terms: sourceQuote.payment_terms ?? undefined,
+    delivery_time: sourceQuote.delivery_time ?? undefined,
+    customer_notes: sourceQuote.customer_notes ?? undefined,
     items: (sourceItems ?? []).map((item) => ({
       catalog_product_id: item.catalog_product_id,
       model: item.model,

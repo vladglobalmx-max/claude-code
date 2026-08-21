@@ -67,6 +67,9 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
     globalDiscountPercent: String(quote.global_discount_percent),
     validUntil: quote.valid_until,
     notes: quote.notes ?? "",
+    paymentTerms: quote.payment_terms ?? "",
+    deliveryTime: quote.delivery_time ?? "",
+    customerNotes: quote.customer_notes ?? "",
     items:
       items.length > 0
         ? items.map((item) => ({

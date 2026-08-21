@@ -762,6 +762,9 @@ export interface Database {
           tax_total: number;
           total: number;
           notes: string | null;
+          payment_terms: string | null;
+          delivery_time: string | null;
+          customer_notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -792,6 +795,9 @@ export interface Database {
           tax_total?: number;
           total?: number;
           notes?: string | null;
+          payment_terms?: string | null;
+          delivery_time?: string | null;
+          customer_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };

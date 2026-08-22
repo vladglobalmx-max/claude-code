@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSignedUrl } from "@/lib/storage";
+import { getSignedUrl, getSignedUrls } from "@/lib/storage";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { buildQuotePdfFilename } from "@/lib/utils/filename";
 import { Badge } from "@/components/ui/badge";
@@ -123,12 +123,26 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
   const organizationName = one(organizations)?.name ?? "";
   const items = (itemsData ?? []) as QuoteItem[];
 
-  const { data: businessUnit } = await supabase
-    .from("business_units")
-    .select("logo_path")
-    .eq("id", quote.business_unit_id)
-    .maybeSingle();
+  const catalogProductIds = Array.from(
+    new Set(items.map((item) => item.catalog_product_id).filter((id): id is string => !!id))
+  );
+
+  const [{ data: businessUnit }, { data: catalogImages }] = await Promise.all([
+    supabase.from("business_units").select("logo_path").eq("id", quote.business_unit_id).maybeSingle(),
+    catalogProductIds.length > 0
+      ? supabase.from("product_catalog").select("id, image_path").in("id", catalogProductIds)
+      : Promise.resolve({ data: [] as { id: string; image_path: string | null }[] }),
+  ]);
   const signedLogoUrl = businessUnit?.logo_path ? await getSignedUrl("business-unit-assets", businessUnit.logo_path) : null;
+
+  const imagePathByProductId = new Map((catalogImages ?? []).map((p) => [p.id, p.image_path]));
+  const productImagePaths = Array.from(new Set(Array.from(imagePathByProductId.values()).filter((p): p is string => !!p)));
+  const signedProductImageUrls = await getSignedUrls("order-media", productImagePaths);
+  const productImageUrlByProductId = new Map<string, string>();
+  for (const [productId, path] of imagePathByProductId) {
+    if (path && signedProductImageUrls[path]) productImageUrlByProductId.set(productId, signedProductImageUrls[path]);
+  }
+
   const generatedOn = formatDateShort(new Date().toISOString());
 
   return (
@@ -145,7 +159,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
               <img
                 src={signedLogoUrl}
                 alt={quote.business_unit_name}
-                className="max-h-16 max-w-[200px] object-contain object-left"
+                className="max-h-24 max-w-[300px] object-contain object-left"
               />
             ) : (
               <>
@@ -203,11 +217,25 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {items.map((item) => {
+              const imageUrl = item.catalog_product_id ? productImageUrlByProductId.get(item.catalog_product_id) : undefined;
+              return (
               <tr key={item.id} className="border-b border-border break-inside-avoid">
                 <td className="py-2.5 pr-4">
-                  <p className="font-medium text-ink">{item.description || item.model}</p>
-                  {item.description && <p className="mt-0.5 text-xs text-ink-faint">{item.model}</p>}
+                  <div className="flex items-start gap-2.5">
+                    {imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-md border border-border object-contain"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{item.description || item.model}</p>
+                      {item.description && <p className="mt-0.5 text-xs text-ink-faint">{item.model}</p>}
+                    </div>
+                  </div>
                 </td>
                 <td className="py-2.5 text-right text-ink-soft">{item.quantity}</td>
                 <td className="py-2.5 text-right text-ink-soft">{formatMoneyByCurrency(item.unit_price, quote.currency)}</td>
@@ -218,7 +246,8 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
                   {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 

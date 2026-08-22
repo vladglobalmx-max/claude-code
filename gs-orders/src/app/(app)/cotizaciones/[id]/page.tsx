@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Download, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, Pencil, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,10 +16,12 @@ import type { Quote, QuoteItem } from "@/types/domain";
 import { QuoteStatusActions } from "./quote-status-actions";
 import { DuplicateQuoteButton } from "./duplicate-quote-button";
 import { QuoteNotesEditor } from "./quote-notes-editor";
+import { DeleteQuoteButton } from "../delete-quote-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function VerCotizacionPage({ params }: { params: { id: string } }) {
+  const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
   const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", params.id).single(),
@@ -30,6 +33,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
   const quote = quoteData as Quote;
   const items = (itemsData ?? []) as QuoteItem[];
   const expired = isQuoteExpired(quote);
+  const isAdmin = profile?.role === "admin";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -75,6 +79,18 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
               <Pencil className="h-3.5 w-3.5" />
               Editar
             </Link>
+          )}
+          {isAdmin && !linkedOrder && (
+            <DeleteQuoteButton
+              quoteId={quote.id}
+              folio={quote.folio}
+              customerName={quote.customer_name}
+              redirectAfterDelete
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hover:border-danger hover:text-danger")}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar
+            </DeleteQuoteButton>
           )}
         </div>
       </div>

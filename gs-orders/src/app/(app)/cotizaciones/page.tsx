@@ -14,6 +14,7 @@ import { isQuoteExpired } from "@/lib/quote-expiry";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, Salesperson } from "@/types/domain";
 import { QuoteFilters } from "./quote-filters";
+import { DeleteQuoteButton } from "./delete-quote-button";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,16 @@ export default async function CotizacionesPage({
 
   const { data } = await query.limit(200);
   const quotes = (data ?? []) as Quote[];
+
+  const isAdmin = profile?.role === "admin";
+  let quoteIdsWithOrder = new Set<string>();
+  if (isAdmin) {
+    const { data: ordersData } = await supabase
+      .from("orders")
+      .select("source_quote_id")
+      .not("source_quote_id", "is", null);
+    quoteIdsWithOrder = new Set((ordersData ?? []).map((o) => o.source_quote_id as string));
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -109,6 +120,14 @@ export default async function CotizacionesPage({
                       Editar
                     </Link>
                   )}
+                  {isAdmin && !quoteIdsWithOrder.has(quote.id) && (
+                    <DeleteQuoteButton
+                      quoteId={quote.id}
+                      folio={quote.folio}
+                      customerName={quote.customer_name}
+                      className="text-ink-soft hover:text-danger"
+                    />
+                  )}
                 </div>
               </Card>
             ))}
@@ -159,6 +178,14 @@ export default async function CotizacionesPage({
                           <Link href={`/cotizaciones/${quote.id}/editar`} className="text-ink-soft hover:text-accent">
                             Editar
                           </Link>
+                        )}
+                        {isAdmin && !quoteIdsWithOrder.has(quote.id) && (
+                          <DeleteQuoteButton
+                            quoteId={quote.id}
+                            folio={quote.folio}
+                            customerName={quote.customer_name}
+                            className="text-ink-soft hover:text-danger"
+                          />
                         )}
                       </div>
                     </Td>

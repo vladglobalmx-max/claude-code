@@ -313,3 +313,46 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
 
   return createQuote(randomUUID(), payload);
 }
+
+/**
+ * Elimina (hard delete) una Quote (THÖREN Eliminación de Cotizaciones,
+ * 0027_quote_delete.sql). Solo ADMIN — reforzado por RLS
+ * (quotes_delete_admin), sin guard adicional aquí, mismo criterio que el
+ * resto de acciones de esta arquitectura.
+ *
+ * El pre-chequeo de `orders` es exclusivamente para dar el mensaje claro
+ * pedido por el usuario ("ya tiene un pedido asociado") — la protección
+ * REAL, que no depende de este chequeo ni de ningún código de la app, es
+ * el FK `orders.source_quote_id references quotes(id) on delete restrict`
+ * (0023): si por una condición de carrera un Order se crea entre el
+ * pre-chequeo y el DELETE, Postgres igual rechaza el DELETE y el catch de
+ * abajo traduce ese mismo error (23503) al mismo mensaje.
+ *
+ * `quote_items` se elimina automáticamente vía `on delete cascade`
+ * (0020) — verificado empíricamente que ese cascade no queda bloqueado
+ * por la RLS de quote_items sin importar el status de la Quote (ver
+ * comentario de 0027_quote_delete.sql). Nunca se toca `orders`,
+ * `customers`, `business_units`, ni otras Quotes.
+ */
+export async function deleteQuote(quoteId: string): Promise<QuoteActionResult> {
+  const supabase = createSupabaseServerClient();
+
+  const { count } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("source_quote_id", quoteId);
+  if (count) {
+    return { error: "No se puede eliminar esta cotización porque ya tiene un pedido asociado." };
+  }
+
+  const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
+
+  if (error) {
+    if (error.code === "23503") {
+      return { error: "No se puede eliminar esta cotización porque ya tiene un pedido asociado." };
+    }
+    return { error: mapDbError(error, "No se pudo eliminar la cotización. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/cotizaciones");
+}

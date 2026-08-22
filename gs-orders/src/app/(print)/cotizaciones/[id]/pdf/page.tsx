@@ -228,7 +228,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
                       <img
                         src={imageUrl}
                         alt=""
-                        className="h-10 w-10 shrink-0 rounded-md border border-border object-contain"
+                        className="h-[52px] w-[52px] shrink-0 rounded-md border border-border object-contain"
                       />
                     )}
                     <div className="min-w-0">

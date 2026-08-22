@@ -8,9 +8,23 @@
 --
 -- Reutiliza los fixtures ya cargados por fixtures.sql/0023_fixtures.sql/
 -- 0024_fixtures.sql: salesperson 10000000-...-0001 (Vendedor Uno, VU1,
--- BU got_fresh_breath 88a42557-b179-4ea5-8796-6e3005ba1be0), customer
--- CEMEX (30000000-...-0001), admin org1 (00000000-...-0001), admin Org B
--- (00000000-...-0009).
+-- BU got_fresh_breath), customer CEMEX (30000000-...-0001), admin org1
+-- (00000000-...-0001), admin Org B (00000000-...-0009).
+--
+-- TEST-ONLY FIX (sin efecto en producción, sin tocar 0025_quote_commercial_
+-- terms.sql): TEST 1/2/3 resuelven business_unit_id en vivo vía `select id
+-- into v_bu_id from business_units where code = 'got_fresh_breath'` en vez
+-- de un UUID fijo. Motivo: business_units.id se genera con
+-- gen_random_uuid() (0014) — un id capturado de una corrida anterior deja
+-- de existir en cuanto la base de pruebas se reconstruye desde cero
+-- (dropdb/createdb), y el TEST fallaba con "business unit ... no
+-- encontrada" — no porque algo en 0025 se rompiera, sino porque el propio
+-- script de prueba tenía un id obsoleto hardcodeado. Corrección puramente
+-- de fixture/test, necesaria para poder correr esta regresión de forma
+-- confiable contra una DB de pruebas recién creada (como se hizo en la
+-- fase "THÖREN — Business Units — Crear nuevas Unidades de Negocio",
+-- 0026, que reconstruye la DB desde cero) — nunca ejecuta contra Supabase
+-- Cloud ni afecta ningún dato real.
 
 set role authenticated;
 begin;
@@ -20,7 +34,6 @@ begin;
 \set vendedor2 '00000000-0000-0000-0000-000000000003'
 \set admin_orgb '00000000-0000-0000-0000-000000000009'
 \set sp1 '10000000-0000-0000-0000-000000000001'
-\set bu1 '88a42557-b179-4ea5-8796-6e3005ba1be0'
 \set cemex '30000000-0000-0000-0000-000000000001'
 
 select test_set_user(:'vendedor1');
@@ -29,12 +42,15 @@ select test_set_user(:'vendedor1');
 --    deben quedar NULL, sin inventar default.
 do $$
 declare
+  v_bu_id uuid;
   v_quote quotes;
 begin
+  select id into v_bu_id from business_units where code = 'got_fresh_breath';
+
   select * into v_quote from rpc_create_quote(
     gen_random_uuid(),
     jsonb_build_object(
-      'business_unit_id', '88a42557-b179-4ea5-8796-6e3005ba1be0',
+      'business_unit_id', v_bu_id,
       'salesperson_id', '10000000-0000-0000-0000-000000000001',
       'customer_id', '30000000-0000-0000-0000-000000000001',
       'currency', 'MXN', 'tax_rate', 16, 'global_discount_percent', 0,
@@ -52,12 +68,15 @@ end $$;
 -- 2) Crear Quote CON los tres campos — deben persistirse exactamente.
 do $$
 declare
+  v_bu_id uuid;
   v_quote quotes;
 begin
+  select id into v_bu_id from business_units where code = 'got_fresh_breath';
+
   select * into v_quote from rpc_create_quote(
     gen_random_uuid(),
     jsonb_build_object(
-      'business_unit_id', '88a42557-b179-4ea5-8796-6e3005ba1be0',
+      'business_unit_id', v_bu_id,
       'salesperson_id', '10000000-0000-0000-0000-000000000001',
       'customer_id', '30000000-0000-0000-0000-000000000001',
       'currency', 'MXN', 'tax_rate', 16, 'global_discount_percent', 0,
@@ -82,13 +101,16 @@ end $$;
 --    Quote Builder real).
 do $$
 declare
+  v_bu_id uuid;
   v_quote quotes;
   v_updated quotes;
 begin
+  select id into v_bu_id from business_units where code = 'got_fresh_breath';
+
   select * into v_quote from rpc_create_quote(
     gen_random_uuid(),
     jsonb_build_object(
-      'business_unit_id', '88a42557-b179-4ea5-8796-6e3005ba1be0',
+      'business_unit_id', v_bu_id,
       'salesperson_id', '10000000-0000-0000-0000-000000000001',
       'customer_id', '30000000-0000-0000-0000-000000000001',
       'currency', 'MXN', 'tax_rate', 16, 'global_discount_percent', 0,

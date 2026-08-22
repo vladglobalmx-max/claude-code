@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -37,7 +38,20 @@ export default async function UnidadesNegocioPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Unidades de Negocio" description="Unidades de negocio reales de la organización." />
+      <PageHeader
+        title="Unidades de Negocio"
+        description="Unidades de negocio reales de la organización."
+        actions={
+          isAdmin ? (
+            <Link href="/unidades-negocio/nueva">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nueva unidad de negocio
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
       {businessUnits.length === 0 ? (
         <Card>
@@ -45,6 +59,16 @@ export default async function UnidadesNegocioPage() {
             icon={Building2}
             title="No hay unidades de negocio"
             description="Aún no se han dado de alta unidades de negocio para esta organización."
+            action={
+              isAdmin ? (
+                <Link href="/unidades-negocio/nueva">
+                  <Button>
+                    <Plus className="h-4 w-4" />
+                    Nueva unidad de negocio
+                  </Button>
+                </Link>
+              ) : undefined
+            }
           />
         </Card>
       ) : (

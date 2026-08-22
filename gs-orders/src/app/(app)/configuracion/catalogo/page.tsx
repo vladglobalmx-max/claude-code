@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Plus } from "lucide-react";
+import { Package, Plus, Upload } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { Badge } from "@/components/ui/badge";
@@ -44,12 +44,20 @@ export default async function CatalogoPage() {
             creados.
           </p>
         </div>
-        <Link href="/configuracion/catalogo/nuevo">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Producto
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/configuracion/catalogo/importar">
+            <Button variant="outline">
+              <Upload className="h-4 w-4" />
+              Importar Excel
+            </Button>
+          </Link>
+          <Link href="/configuracion/catalogo/nuevo">
+            <Button>
+              <Plus className="h-4 w-4" />
+              Producto
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {products.length === 0 ? (

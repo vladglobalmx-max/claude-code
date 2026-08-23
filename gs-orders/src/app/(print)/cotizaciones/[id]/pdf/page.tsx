@@ -180,7 +180,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </header>
 
-        <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-sm break-inside-avoid">
+        <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-sm break-inside-avoid print:mb-4 print:py-2">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-ink-faint">Fecha</p>
             <p className="font-medium text-ink">{formatDateShort(quote.quote_date)}</p>
@@ -199,9 +199,9 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </div>
 
-        <div className="mb-6 break-inside-avoid">
+        <div className="mb-6 break-inside-avoid print:mb-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Información del cliente</p>
-          <div className="grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg border border-border px-4 py-3 text-sm">
+          <div className="grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg border border-border px-4 py-3 text-sm print:py-2">
             <p className="font-medium text-ink">{quote.customer_name}</p>
             {quote.customer_legal_name && <p className="text-ink-soft">{quote.customer_legal_name}</p>}
             {quote.customer_tax_id && <p className="font-mono text-xs text-ink-faint">RFC {quote.customer_tax_id}</p>}
@@ -253,9 +253,9 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </tbody>
         </table>
 
-        <div className="mt-6 break-inside-avoid">
+        <div className="mt-6 break-inside-avoid print:mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
-          <dl className="space-y-1.5 rounded-lg border border-border px-4 py-3 text-sm">
+          <dl className="space-y-1.5 rounded-lg border border-border px-4 py-3 text-sm print:py-2">
             {quote.payment_terms && (
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-faint">Forma de pago</dt>
@@ -276,16 +276,16 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
         </div>
 
         {quote.customer_notes && (
-          <div className="mt-6 break-inside-avoid">
+          <div className="mt-6 break-inside-avoid print:mt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Observaciones</p>
-            <p className="whitespace-pre-wrap rounded-lg border border-border px-4 py-3 text-sm text-ink-soft">
+            <p className="whitespace-pre-wrap rounded-lg border border-border px-4 py-3 text-sm text-ink-soft print:py-2">
               {quote.customer_notes}
             </p>
           </div>
         )}
 
-        <div className="mt-6 flex justify-end break-inside-avoid">
-          <div className="w-full max-w-xs rounded-lg border border-border bg-surface-2/50 p-4 text-sm">
+        <div className="mt-6 flex justify-end break-inside-avoid print:mt-4">
+          <div className="w-full max-w-xs rounded-lg border border-border bg-surface-2/50 p-4 text-sm print:p-3">
             <div className="flex justify-between">
               <span className="text-ink-faint">Subtotal</span>
               <span className="text-ink">{formatMoneyByCurrency(quote.subtotal, quote.currency)}</span>
@@ -305,7 +305,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </div>
 
-        <footer className="mt-10 border-t border-border pt-4 text-xs text-ink-faint break-inside-avoid">
+        <footer className="mt-10 border-t border-border pt-4 text-xs text-ink-faint break-inside-avoid print:mt-6 print:pt-3">
           <div className="flex items-center justify-between">
             <span>
               {quote.business_unit_name}

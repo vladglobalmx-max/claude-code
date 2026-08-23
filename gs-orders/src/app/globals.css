@@ -93,9 +93,18 @@ body {
   }
 }
 
+/* `.print-scale-outer` siempre mide exactamente lo mismo que el viewport
+   disponible (ver print-document-scaler.tsx) — este overflow:hidden no
+   recorta nada visible, solo evita que el layout box SIN transformar del
+   hijo (transform: scale() no lo reduce a efectos de scroll) se filtre
+   como un scroll horizontal residual en pantallas angostas. */
+.print-scale-outer {
+  overflow: hidden;
+}
+
 @media print {
   @page {
-    size: auto;
+    size: A4;
     margin: 14mm 12mm;
   }
 
@@ -112,11 +121,14 @@ body {
     text-decoration: none !important;
   }
 
-  /* PrintDocumentScaler escala el documento SOLO para verlo en pantallas
-     angostas — "Guardar como PDF" nunca debe heredar ese escalado. */
+  /* Ninguna página impresa debe verse forzada a medir "una pantalla
+     completa" de alto — eso empuja el footer (break-inside-avoid) a una
+     segunda página casi vacía en cotizaciones cortas. Ver print:min-h-0
+     en el wrapper de la página del PDF. */
   .print-scale-outer {
     width: auto !important;
     height: auto !important;
+    overflow: visible !important;
   }
   .print-scale-inner {
     width: auto !important;

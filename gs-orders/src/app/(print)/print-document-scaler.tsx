@@ -9,9 +9,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  */
 const DOCUMENT_WIDTH_PX = 768;
 
-/** Margen de aire a cada lado en pantallas angostas, para que el documento
- * escalado no toque los bordes exactos del viewport. */
-const VIEWPORT_MARGIN_PX = 16;
+/** Epsilon de seguridad (no es margen visual): compensa redondeo de punto
+ * flotante entre `scale` y el ancho real del viewport, para que el
+ * resultado nunca quede una fracción de px por encima de 100vw. El
+ * documento debe verse de borde a borde en móvil. */
+const ROUNDING_EPSILON_PX = 1;
 
 /**
  * Envuelve un documento de ancho fijo (Quote PDF) y lo escala como UNA
@@ -20,8 +22,17 @@ const VIEWPORT_MARGIN_PX = 16;
  * chica). Nunca reorganiza nada por dentro: el hijo siempre se renderiza a
  * DOCUMENT_WIDTH_PX, sin importar el viewport real.
  *
- * En escritorio (viewport >= DOCUMENT_WIDTH_PX + margen) scale = 1, así
- * que esto es un no-op visual ahí — cero cambio de comportamiento.
+ * En escritorio (viewport >= DOCUMENT_WIDTH_PX) scale = 1, así que esto es
+ * un no-op visual ahí — cero cambio de comportamiento.
+ *
+ * `overflow: hidden` en `.print-scale-outer` (globals.css) es necesario
+ * porque `transform: scale()` NO reduce el layout box del hijo para
+ * efectos de scroll — el navegador sigue calculando 768px de ancho real
+ * al decidir si hace falta scroll horizontal, aunque se vea más chico.
+ * Sin el overflow:hidden, ese excedente de layout se filtra como un
+ * scroll horizontal residual (visible aunque el contenido ya se vea del
+ * tamaño correcto). El width real de `.print-scale-outer` ya nunca excede
+ * `window.innerWidth`, así que el overflow:hidden no recorta nada visible.
  *
  * En impresión, `@media print` (globals.css) fuerza transform/width/height
  * de vuelta a su valor natural con !important — "Guardar como PDF" nunca
@@ -34,7 +45,7 @@ export function PrintDocumentScaler({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     function recalcScale() {
-      const available = window.innerWidth - VIEWPORT_MARGIN_PX * 2;
+      const available = window.innerWidth - ROUNDING_EPSILON_PX;
       setScale(Math.min(1, available / DOCUMENT_WIDTH_PX));
     }
     recalcScale();

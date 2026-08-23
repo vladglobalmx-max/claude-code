@@ -147,7 +147,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
   const generatedOn = formatDateShort(new Date().toISOString());
 
   return (
-    <div className="min-h-screen bg-surface-2 py-8 print:bg-white print:py-0">
+    <div className="min-h-screen overflow-x-hidden bg-surface-2 py-8 print:min-h-0 print:overflow-visible print:bg-white print:py-0">
       <div className="no-print sticky top-0 z-10 mb-6 flex justify-center">
         <PrintButton />
       </div>

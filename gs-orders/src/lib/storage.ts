@@ -3,7 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const SIGNED_URL_TTL = 60 * 60; // 1 hora, suficiente para ver/imprimir un pedido
 
-type StorageBucket = "order-media" | "order-files" | "business-unit-assets";
+type StorageBucket = "order-media" | "order-files" | "business-unit-assets" | "quote-archive";
 
 export async function getSignedUrl(bucket: StorageBucket, path: string) {
   const admin = createSupabaseAdminClient();

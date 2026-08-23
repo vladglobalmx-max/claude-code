@@ -1,0 +1,163 @@
+-- THÖREN — Importación histórica de 61 cotizaciones CotizIA
+-- ESTRUCTURA / PLANTILLA — NO CONTIENE TODAVÍA LAS 61 FILAS REALES.
+--
+-- Este archivo vive fuera de supabase/migrations/ a propósito: no es un
+-- cambio de esquema (eso ya lo cubrió 0028_quotes_historical_import_schema.sql,
+-- ya aplicado localmente), es una carga de datos puntual, de una sola vez,
+-- para 61 filas ya conciliadas. Se ejecuta manualmente en Supabase Cloud
+-- (SQL Editor, rol postgres/superusuario — ver nota de RLS abajo), nunca
+-- desde la app.
+--
+-- SIN UUIDs de Cloud hardcodeados: organization_id/business_unit_id/
+-- salesperson_id se resuelven por clave natural (slug/code/nombre real de
+-- Person) dentro del propio script, con RAISE EXCEPTION explícito si algo
+-- no resuelve — nunca un INSERT silencioso con NULL. customer_id NO se
+-- resuelve automáticamente aquí (ver nota CUSTOMERS abajo): ya viene
+-- decidido fila por fila desde el preflight + tu aprobación explícita
+-- (existente por RFC/nombre exacto, o nuevo) — el script solo ejecuta esa
+-- decisión ya tomada, nunca decide un conflicto por sí mismo.
+--
+-- PRE-REQUISITOS ANTES DE PODER LLENAR ESTE ARCHIVO CON DATOS REALES:
+--   1) Correr el preflight de solo lectura (entregado junto con este
+--      archivo) en Supabase Cloud y confirmar validation_ok = true.
+--   2) Para cada cliente NUEVO listado por el preflight: tu aprobación
+--      explícita antes de crearlo (nunca automático).
+--   3) Para cada cliente en CONFLICTO: tu decisión manual explícita — el
+--      script nunca elige entre matches ambiguos.
+--   4) Business Unit de las 24 "Thunder": CONFIRMADO thunder_led (ver
+--      reporte, evidencia real de PDF 24/24).
+--
+-- NOTA DE RLS: quote_items_insert_borrador_own_or_admin (0020) exige
+-- status='borrador' para insertar quote_items, incluso para ADMIN. Las 61
+-- Quotes históricas NO estarán en 'borrador'. Este script DEBE correr con
+-- RLS bypaseada — mismo contexto ya usado para desplegar 0027/0028 (rol
+-- postgres/superusuario de Supabase SQL Editor), nunca como sesión
+-- autenticada de la app. Verificado empíricamente en local
+-- (0028_functional_tests.sql, TEST 7).
+--
+-- IDEMPOTENCIA: cada bloque verifica primero si ya existe una Quote con
+-- ese (source='cotizia', original_folio) antes de insertar — además
+-- protegido por el índice único parcial quotes_cotizia_original_folio_unique
+-- (0028) como defensa de última línea. Los quote_items de cada Quote solo
+-- se insertan si la Quote se insertó en ESTA corrida — así correr este
+-- archivo dos veces completas no duplica nada.
+--
+-- CERO folios nuevos consumidos: ningún bloque llama
+-- fn_next_quote_folio()/rpc_create_quote() — folio y sequence_number se
+-- asignan directamente con el valor histórico ya conciliado.
+--
+-- =========================================================================
+-- NOTA CUSTOMERS — dos sub-casos, ambos dentro del mismo patrón de bloque:
+-- =========================================================================
+-- CASO A (cliente existente, match único aprobado en el preflight):
+--   resolver v_customer_id por RFC normalizado (o nombre si no hay RFC) —
+--   defensa en profundidad: si el dato cambió entre el preflight y esta
+--   corrida, el bloque falla con una excepción clara en vez de adivinar.
+-- CASO B (cliente nuevo, aprobado explícitamente):
+--   insertar el Customer primero (con los datos reales del PDF), capturar
+--   su id recién creado, usarlo en la Quote — nunca un cliente "genérico".
+
+begin;
+
+-- =========================================================================
+-- PLANTILLA de una fila — CASO A: cliente EXISTENTE (ejemplo con
+-- KST-20260821-006 / original KSJ-20260821-006, Karla Saucedo, Thunder LED
+-- Lights, cliente MARVIC ya visto en 2 de las 61 quotes).
+-- =========================================================================
+-- do $$
+-- declare
+--   v_org_id uuid;
+--   v_bu_id uuid;
+--   v_salesperson_id uuid;
+--   v_customer_id uuid;
+--   v_quote_id uuid;
+-- begin
+--   select id into v_org_id from organizations where slug = 'global-supplier-mty';
+--   if v_org_id is null then raise exception 'Import CotizIA: organización global-supplier-mty no encontrada.'; end if;
+--
+--   select id into v_bu_id from business_units where organization_id = v_org_id and code = 'thunder_led';
+--   if v_bu_id is null then raise exception 'Import CotizIA: business unit thunder_led no encontrada.'; end if;
+--
+--   select s.id into v_salesperson_id
+--     from salespeople s join people p on p.id = s.person_id
+--     where p.organization_id = v_org_id and p.name = 'Karla Saucedo';
+--   if v_salesperson_id is null then raise exception 'Import CotizIA: salesperson Karla Saucedo no resuelto.'; end if;
+--
+--   select id into v_customer_id
+--     from customers
+--     where organization_id = v_org_id and upper(btrim(tax_id)) = upper(btrim('MSI140603PQ9'));
+--   if v_customer_id is null then raise exception 'Import CotizIA: customer MARVIC (RFC MSI140603PQ9) no resuelto — revisar preflight.'; end if;
+--
+--   if exists (select 1 from quotes where source = 'cotizia' and original_folio = 'KSJ-20260821-006') then
+--     raise notice 'Import CotizIA: KSJ-20260821-006 ya existe, se omite (idempotencia).';
+--   else
+--     insert into quotes (
+--       organization_id, business_unit_id, salesperson_id, customer_id,
+--       folio, sequence_number, quote_date, status, currency, valid_until,
+--       customer_name, customer_legal_name, customer_tax_id,
+--       business_unit_name, business_unit_code, salesperson_name,
+--       subtotal, discount_total, tax_total, total,
+--       payment_terms, delivery_time, customer_notes, warranty,
+--       source, original_folio,
+--       customer_contact_name, customer_email, customer_phone,
+--       historical_pdf_path
+--     ) values (
+--       v_org_id, v_bu_id, v_salesperson_id, v_customer_id,
+--       'KST-20260821-006', 6, '2026-08-21', 'enviada', 'USD', '2026-09-05',
+--       'MARVIC', null, 'MSI140603PQ9',
+--       'Thunder LED Lights', 'thunder_led', 'Karla Saucedo',
+--       1648.00, 0, 263.68, 1911.68,
+--       'CONTADO', '4 - 5 SEMANAS', null, '1 AÑO VS DEFECTOS',
+--       'cotizia', 'KSJ-20260821-006',
+--       null, 'compras@marvic.mx', null,
+--       null -- se completa DESPUÉS de subir el PDF a Storage (paso aparte)
+--     )
+--     returning id into v_quote_id;
+--
+--     insert into quote_items (quote_id, position, model, description, quantity, unit_price, line_discount_percent, unit, customer_requirements, line_subtotal)
+--     values (
+--       v_quote_id, 0, 'LookOutHDM4',
+--       'SOLUCIÓN LOOK OUT HALL DOOR MONITOR 4 INCLUYE: CAJA DE ALERTA C/2 LUCES PEQUEÑAS, CAJA DOD C/2 LUCES ROJAS, 3 SENSORES INTERIORES, ARNES CABLEADO DE 3'', ALARMA AUDIBLE, CONECTOR Y BURST LIGHS (FOCO CENTRAL AL PISO)',
+--       1, 1648.00, 0, 'pza', null, 1648.00
+--     );
+--   end if;
+-- end $$;
+
+-- =========================================================================
+-- PLANTILLA de una fila — CASO B: cliente NUEVO (aprobado explícitamente
+-- en el preflight, ejemplo de estructura — sustituir por un caso real).
+-- =========================================================================
+-- do $$
+-- declare
+--   v_org_id uuid;
+--   v_bu_id uuid;
+--   v_salesperson_id uuid;
+--   v_customer_id uuid;
+--   v_quote_id uuid;
+-- begin
+--   select id into v_org_id from organizations where slug = 'global-supplier-mty';
+--   select id into v_bu_id from business_units where organization_id = v_org_id and code = '<code>';
+--   select s.id into v_salesperson_id from salespeople s join people p on p.id = s.person_id
+--     where p.organization_id = v_org_id and p.name = '<nombre real del vendedor>';
+--   if v_bu_id is null or v_salesperson_id is null then
+--     raise exception 'Import CotizIA: business_unit/salesperson no resuelto para <folio>.';
+--   end if;
+--
+--   -- Cliente NUEVO — solo si el preflight lo listó como nuevo y fue aprobado.
+--   insert into customers (organization_id, name, legal_name, tax_id, email, phone)
+--   values (v_org_id, '<EMPRESA del PDF>', null, '<RFC si existe>', '<correo>', '<teléfono>')
+--   returning id into v_customer_id;
+--
+--   insert into quotes (...) values (...) returning id into v_quote_id;
+--   insert into quote_items (...) values (...);
+-- end $$;
+
+commit;
+
+-- =========================================================================
+-- Verificación posterior — SOLO LECTURA, correr después de esta carga.
+-- =========================================================================
+-- select
+--   count(*) filter (where source = 'cotizia') as cotizia_importadas,
+--   count(*) - count(distinct original_folio) filter (where source = 'cotizia') as duplicados_original_folio
+-- from quotes;

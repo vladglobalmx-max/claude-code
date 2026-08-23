@@ -765,6 +765,18 @@ export interface Database {
           payment_terms: string | null;
           delivery_time: string | null;
           customer_notes: string | null;
+          // THÖREN Quotes Historical Import (0028). source='thoren' para
+          // toda Quote real; original_folio solo existe si source='cotizia'
+          // (CHECK en DB) y conserva el folio CRUDO de CotizIA, distinto de
+          // `folio` (ya corregido). customer_contact_*/historical_pdf_path:
+          // snapshot histórico, nunca resueltos en vivo.
+          source: string;
+          original_folio: string | null;
+          historical_pdf_path: string | null;
+          customer_contact_name: string | null;
+          customer_email: string | null;
+          customer_phone: string | null;
+          warranty: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -798,6 +810,16 @@ export interface Database {
           payment_terms?: string | null;
           delivery_time?: string | null;
           customer_notes?: string | null;
+          // THÖREN Quotes Historical Import (0028) — solo poblados por el
+          // script de datos histórico; toda Quote creada por rpc_create_quote
+          // deja estos en su default ('thoren'/null).
+          source?: string;
+          original_folio?: string | null;
+          historical_pdf_path?: string | null;
+          customer_contact_name?: string | null;
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          warranty?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -848,6 +870,12 @@ export interface Database {
           quantity: number;
           unit_price: number;
           line_discount_percent: number;
+          // THÖREN Quotes Historical Import (0028) — texto libre tal como
+          // aparece en el PDF histórico; NULL si el PDF no trae unidad.
+          unit: string | null;
+          // "Requisitos del cliente" por línea (0028) — especificación
+          // técnica de esa línea, separado de description/customer_notes.
+          customer_requirements: string | null;
           line_subtotal: number;
           created_at: string;
           updated_at: string;
@@ -862,6 +890,8 @@ export interface Database {
           quantity: number;
           unit_price: number;
           line_discount_percent?: number;
+          unit?: string | null;
+          customer_requirements?: string | null;
           // Lo calcula rpc_create_quote/rpc_update_quote; nunca se envía desde la app.
           line_subtotal?: number;
           created_at?: string;

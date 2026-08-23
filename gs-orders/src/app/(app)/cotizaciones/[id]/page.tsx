@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Download, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, FileText, Pencil, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSignedUrl } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,10 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
   const items = (itemsData ?? []) as QuoteItem[];
   const expired = isQuoteExpired(quote);
   const isAdmin = profile?.role === "admin";
+  const isHistorical = quote.source === "cotizia";
+  const historicalPdfUrl = quote.historical_pdf_path
+    ? await getSignedUrl("quote-archive", quote.historical_pdf_path)
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -53,6 +58,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
               Ver pedido {linkedOrder.folio}
             </Link>
           ) : (
+            !isHistorical &&
             quote.status === "aceptada" && (
               <Link
                 href={`/cotizaciones/${quote.id}/convertir-pedido`}
@@ -71,6 +77,17 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             <Download className="h-3.5 w-3.5" />
             Descargar PDF
           </Link>
+          {historicalPdfUrl && (
+            <a
+              href={historicalPdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Ver PDF original de CotizIA
+            </a>
+          )}
           {quote.status === "borrador" && (
             <Link
               href={`/cotizaciones/${quote.id}/editar`}
@@ -102,6 +119,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             <p className="mt-1 text-sm text-ink-faint">{quote.customer_name}</p>
           </div>
           <div className="flex items-center gap-2">
+            {isHistorical && <Badge variant="neutral">Histórica · CotizIA</Badge>}
             {expired && <Badge variant="warning">Vencida</Badge>}
             <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
           </div>
@@ -150,7 +168,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             </div>
           </div>
 
-          {(quote.payment_terms || quote.delivery_time || quote.customer_notes) && (
+          {(quote.payment_terms || quote.delivery_time || quote.warranty || quote.customer_notes) && (
             <div className="space-y-3 border-t border-border pt-4">
               <p className="text-xs uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
               <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
@@ -164,6 +182,12 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                   <div>
                     <p className="text-xs uppercase tracking-wide text-ink-faint">Tiempo de entrega</p>
                     <p className="text-ink">{quote.delivery_time}</p>
+                  </div>
+                )}
+                {quote.warranty && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-ink-faint">Garantía</p>
+                    <p className="text-ink">{quote.warranty}</p>
                   </div>
                 )}
               </div>
@@ -187,9 +211,15 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                   <p className="font-medium text-ink">{item.model}</p>
                   {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
                   <p className="mt-1 text-xs text-ink-faint">
-                    {item.quantity} × {formatMoneyByCurrency(item.unit_price, quote.currency)}
+                    {item.quantity}
+                    {item.unit ? ` ${item.unit}` : ""} × {formatMoneyByCurrency(item.unit_price, quote.currency)}
                     {item.line_discount_percent > 0 ? ` · -${item.line_discount_percent}%` : ""}
                   </p>
+                  {item.customer_requirements && (
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-ink-faint">
+                      Requisitos del cliente: {item.customer_requirements}
+                    </p>
+                  )}
                   <p className="mt-1 text-right text-sm font-medium text-ink">
                     {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
                   </p>
@@ -214,8 +244,16 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                       <Td>
                         <p className="font-medium text-ink">{item.model}</p>
                         {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+                        {item.customer_requirements && (
+                          <p className="mt-0.5 whitespace-pre-wrap text-xs text-ink-faint">
+                            Requisitos del cliente: {item.customer_requirements}
+                          </p>
+                        )}
                       </Td>
-                      <Td className="text-ink-soft">{item.quantity}</Td>
+                      <Td className="text-ink-soft">
+                        {item.quantity}
+                        {item.unit ? ` ${item.unit}` : ""}
+                      </Td>
                       <Td className="text-ink-soft">{formatMoneyByCurrency(item.unit_price, quote.currency)}</Td>
                       <Td className="text-ink-soft">{item.line_discount_percent}%</Td>
                       <Td className="text-ink-soft">{formatMoneyByCurrency(item.line_subtotal, quote.currency)}</Td>

@@ -506,6 +506,30 @@ export interface Quote {
   delivery_time: string | null;
   customer_notes: string | null;
 
+  /**
+   * THÖREN Quotes Historical Import (0028_quotes_historical_import_schema.sql).
+   * `source` distingue Quotes reales de THÖREN ('thoren', default) de
+   * cotizaciones históricas migradas desde CotizIA ('cotizia').
+   * `original_folio` solo existe para `source = 'cotizia'` (CHECK en DB):
+   * el folio CRUDO tal como salió de CotizIA, antes de cualquier
+   * corrección de prefijo — `folio` sigue siendo el ya corregido/mostrado.
+   * `customer_contact_name`/`customer_email`/`customer_phone`: snapshot
+   * histórico, nunca se vuelven a resolver contra `customer_contacts`
+   * (que es una tabla viva). `historical_pdf_path`: path en el bucket
+   * privado `quote-archive`, resuelto vía signed URL igual que cualquier
+   * otro archivo de Storage en el proyecto. `warranty`: texto libre de la
+   * sección "Garantía" del PDF histórico ("1 año por defectos de
+   * fabricación"…) — igual que payment_terms/delivery_time, es contenido
+   * comercial editable mientras la Quote esté en 'borrador'.
+   */
+  source: "thoren" | "cotizia";
+  original_folio: string | null;
+  historical_pdf_path: string | null;
+  customer_contact_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  warranty: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -529,6 +553,24 @@ export interface QuoteItem {
   quantity: number;
   unit_price: number;
   line_discount_percent: number;
+
+  /**
+   * THÖREN Quotes Historical Import (0028) — texto libre tal como aparece
+   * en el PDF histórico ("pza", "Pieza", "Unidad de servicio"…). NUNCA se
+   * inventa cuando el PDF no trae unidad; NULL en ese caso.
+   */
+  unit: string | null;
+
+  /**
+   * THÖREN Quotes Historical Import (0028) — la caja "Requisitos del
+   * cliente" que aparece por línea en varios PDFs históricos (técnica de
+   * impresión, color, dimensiones, instalación, indicaciones
+   * particulares…). Deliberadamente separado de `description`/
+   * `customer_notes` — es especificación técnica de esa línea, no
+   * descripción comercial ni nota general. NUNCA inventado; NULL si el PDF
+   * no lo trae.
+   */
+  customer_requirements: string | null;
 
   line_subtotal: number;
 

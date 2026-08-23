@@ -111,4 +111,15 @@ body {
     color: inherit !important;
     text-decoration: none !important;
   }
+
+  /* PrintDocumentScaler escala el documento SOLO para verlo en pantallas
+     angostas — "Guardar como PDF" nunca debe heredar ese escalado. */
+  .print-scale-outer {
+    width: auto !important;
+    height: auto !important;
+  }
+  .print-scale-inner {
+    width: auto !important;
+    transform: none !important;
+  }
 }

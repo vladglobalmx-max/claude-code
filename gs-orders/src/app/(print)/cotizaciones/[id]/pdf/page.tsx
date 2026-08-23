@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem } from "@/types/domain";
 import { PrintButton } from "./print-button";
+import { PrintDocumentScaler } from "@/app/(print)/print-document-scaler";
 
 export const dynamic = "force-dynamic";
 
@@ -151,7 +152,8 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
         <PrintButton />
       </div>
 
-      <div className="mx-auto max-w-3xl rounded-xl border border-border bg-surface p-8 shadow-card print:rounded-none print:border-0 print:shadow-none print:p-0">
+      <PrintDocumentScaler>
+      <div className="mx-auto w-[768px] max-w-none rounded-xl border border-border bg-surface p-8 shadow-card print:w-auto print:max-w-3xl print:rounded-none print:border-0 print:shadow-none print:p-0">
         <header className="mb-6 flex items-start justify-between gap-6 border-b-2 border-border pb-6 break-inside-avoid">
           <div className="min-w-0">
             {signedLogoUrl ? (
@@ -178,7 +180,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </header>
 
-        <div className="mb-6 grid grid-cols-2 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-sm sm:grid-cols-4 break-inside-avoid">
+        <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-sm break-inside-avoid">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-ink-faint">Fecha</p>
             <p className="font-medium text-ink">{formatDateShort(quote.quote_date)}</p>
@@ -199,7 +201,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
 
         <div className="mb-6 break-inside-avoid">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Información del cliente</p>
-          <div className="grid grid-cols-1 gap-x-6 gap-y-1 rounded-lg border border-border px-4 py-3 text-sm sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg border border-border px-4 py-3 text-sm">
             <p className="font-medium text-ink">{quote.customer_name}</p>
             {quote.customer_legal_name && <p className="text-ink-soft">{quote.customer_legal_name}</p>}
             {quote.customer_tax_id && <p className="font-mono text-xs text-ink-faint">RFC {quote.customer_tax_id}</p>}
@@ -317,6 +319,7 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           </div>
         </footer>
       </div>
+      </PrintDocumentScaler>
     </div>
   );
 }

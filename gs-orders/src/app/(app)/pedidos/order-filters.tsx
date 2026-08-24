@@ -3,16 +3,19 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Select } from "@/components/ui/select";
-import { ORDER_STATUS_LABELS } from "@/types/domain";
+import { ORDER_OPERATIONAL_STATUS_LABELS, ORDER_STATUS_LABELS } from "@/types/domain";
 import type { ProductTypeItem, Salesperson } from "@/types/domain";
 
 export function OrderFilters({
   salespeople,
   productTypes,
+  businessUnits,
   showSalespersonFilter = true,
 }: {
   salespeople: Salesperson[];
   productTypes: ProductTypeItem[];
+  /** THÖREN Fase 6I — para el filtro por Business Unit (orders.business_unit_id). */
+  businessUnits: { id: string; name: string }[];
   /** false para VENDEDOR: solo ve sus propios pedidos, el filtro por vendedor no aporta nada. */
   showSalespersonFilter?: boolean;
 }) {
@@ -57,6 +60,32 @@ export function OrderFilters({
         {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
           <option key={value} value={value}>
             {label}
+          </option>
+        ))}
+      </Select>
+
+      <Select
+        className="w-auto"
+        defaultValue={searchParams.get("seguimiento") ?? ""}
+        onChange={(e) => updateParam("seguimiento", e.target.value)}
+      >
+        <option value="">Todo el seguimiento</option>
+        {Object.entries(ORDER_OPERATIONAL_STATUS_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </Select>
+
+      <Select
+        className="w-auto"
+        defaultValue={searchParams.get("bu") ?? ""}
+        onChange={(e) => updateParam("bu", e.target.value)}
+      >
+        <option value="">Todas las Business Units</option>
+        {businessUnits.map((bu) => (
+          <option key={bu.id} value={bu.id}>
+            {bu.name}
           </option>
         ))}
       </Select>

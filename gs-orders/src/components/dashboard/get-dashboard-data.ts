@@ -2,7 +2,9 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import type { OrderStatus } from "@/types/domain";
+import { buildAttentionQueue, buildOperationalStatusBreakdown, type AttentionQueueRow } from "@/lib/dashboard/attention-queue";
+import { BUSINESS_UNIT_LABELS } from "@/types/domain";
+import type { OrderOperationalStatus, OrderStatus } from "@/types/domain";
 
 /**
  * Estados que cuentan como "pipeline abierto" — ver ORDER_STATUS_LABELS en
@@ -11,6 +13,28 @@ import type { OrderStatus } from "@/types/domain";
  * de THÖREN Experience 1B, no inventada aquí.
  */
 const OPEN_STATUSES: OrderStatus[] = ["borrador", "pedido"];
+
+/**
+ * THÖREN Fase 6I — los 8 valores de operational_status (0033), en el orden
+ * de la línea de tiempo del pedido. 'completado'/'cancelado' son las
+ * salidas del pipeline — todo lo demás cuenta como "activo" para la
+ * sección "Requieren atención".
+ */
+const OPERATIONAL_STATUSES: OrderOperationalStatus[] = [
+  "pedido",
+  "en_proceso",
+  "ordenado_a_proveedor",
+  "en_transito",
+  "recibido",
+  "programado_entrega_instalacion",
+  "completado",
+  "cancelado",
+];
+const ACTIVE_OPERATIONAL_STATUSES = OPERATIONAL_STATUSES.filter(
+  (s) => s !== "completado" && s !== "cancelado"
+);
+/** Techo de la sección "Requieren atención" — es un resumen de dashboard, no el listado completo (para eso está /pedidos). */
+const ATTENTION_QUEUE_LIMIT = 15;
 
 export interface RecentOrderRow {
   id: string;
@@ -27,6 +51,21 @@ export interface SalespersonBreakdownRow {
   count: number;
 }
 
+/**
+ * Una fila de la sección "Requieren atención" (Fase 6I) — pedidos activos
+ * (operational_status fuera de completado/cancelado), ordenados por
+ * antigüedad EN SU ESTADO ACTUAL (no por fecha de creación): el que lleva
+ * más días sin avanzar de estado es el que más necesita atención.
+ * `daysInStatus`/`lastChangedAt` se resuelven desde
+ * order_operational_status_history (0033) — su fila más reciente por
+ * pedido, nunca desde `orders.updated_at` (que cambia por cualquier
+ * edición, no solo por cambio de seguimiento). Tipo/lógica reales viven en
+ * lib/dashboard/attention-queue.ts (probado con Vitest); se re-exporta
+ * aquí para que los componentes de presentación no necesiten conocer esa
+ * ruta interna.
+ */
+export type { AttentionQueueRow } from "@/lib/dashboard/attention-queue";
+
 export interface DashboardData {
   role: "admin" | "vendedor";
   name: string;
@@ -38,7 +77,11 @@ export interface DashboardData {
   closedThisMonthCount: number;
   distinctClientsThisMonth: number;
   statusBreakdown: Record<OrderStatus, number>;
+  /** THÖREN Fase 6I — snapshot ACTUAL (no acotado al mes) de todos los pedidos por operational_status. */
+  operationalStatusBreakdown: Record<OrderOperationalStatus, number>;
   recentOrders: RecentOrderRow[];
+  /** THÖREN Fase 6I — top ATTENTION_QUEUE_LIMIT pedidos activos, más antiguos en su estado actual primero. */
+  attentionQueue: AttentionQueueRow[];
   /** null para VENDEDOR — RLS ya limita sus datos a sus propios pedidos, un comparativo de 1 fila no aporta nada (ver reporte 1B). */
   salespersonBreakdown: SalespersonBreakdownRow[] | null;
   /** true si alguna consulta falló — la página muestra un error explícito en vez de datos parciales silenciosos. */
@@ -71,6 +114,23 @@ type RecentSourceRow = {
   salesperson: { name: string } | { name: string }[] | null;
 };
 
+type OneOrMany<T> = T | T[];
+function one<T>(value: OneOrMany<T> | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+type AttentionSourceRow = {
+  id: string;
+  folio: string;
+  client_name: string;
+  business_unit_id: string | null;
+  business_unit: string;
+  operational_status: OrderOperationalStatus;
+  salesperson: OneOrMany<{ name: string }> | null;
+  business_units: OneOrMany<{ name: string }> | null;
+};
+
 export async function getDashboardData(): Promise<DashboardData> {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
@@ -84,6 +144,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     { count: previousMonthCount, error: previousMonthError },
     { count: activeCount, error: activeError },
     { data: recentRows, error: recentError },
+    { data: operationalStatusRows, error: operationalStatusError },
+    { data: attentionSourceRows, error: attentionError },
   ] = await Promise.all([
     supabase.from("orders").select("id", { count: "exact", head: true }),
     supabase
@@ -102,9 +164,28 @@ export async function getDashboardData(): Promise<DashboardData> {
       .select("id, folio, client_name, status, order_date, salesperson:salespeople(name)")
       .order("created_at", { ascending: false })
       .limit(8),
+    // THÖREN Fase 6I — snapshot ACTUAL de operational_status (0033), no
+    // acotado al mes: "qué pedidos requieren atención" es una pregunta de
+    // hoy, no de este calendario. Escala del proyecto (herramienta interna
+    // de un distribuidor, no un catálogo masivo) hace innecesaria una
+    // paginación/agregación server-side para esta sola columna.
+    supabase.from("orders").select("operational_status"),
+    // Pedidos activos (fuera de completado/cancelado) — límite defensivo,
+    // el orden final por antigüedad-en-estado se resuelve abajo en JS
+    // cruzando con order_operational_status_history (no hay forma de
+    // ordenar por ese valor derivado directamente vía PostgREST).
+    supabase
+      .from("orders")
+      .select(
+        "id, folio, client_name, business_unit_id, business_unit, operational_status, salesperson:salespeople(name), business_units(name)"
+      )
+      .in("operational_status", ACTIVE_OPERATIONAL_STATUSES)
+      .limit(300),
   ]);
 
-  const hasError = Boolean(totalError || monthError || previousMonthError || activeError || recentError);
+  const hasError = Boolean(
+    totalError || monthError || previousMonthError || activeError || recentError || operationalStatusError || attentionError
+  );
 
   const typedMonthRows = (monthRows ?? []) as unknown as MonthOrderRow[];
 
@@ -149,6 +230,51 @@ export async function getDashboardData(): Promise<DashboardData> {
     salespersonName: salespersonName(row),
   }));
 
+  const operationalStatusBreakdown = buildOperationalStatusBreakdown(
+    ((operationalStatusRows ?? []) as { operational_status: OrderOperationalStatus }[]).map((r) => r.operational_status)
+  );
+
+  // THÖREN Fase 6I — "días en ese estado" se resuelve con la fila más
+  // reciente de order_operational_status_history por pedido (0033), nunca
+  // con orders.updated_at (cambia por cualquier edición del pedido, no
+  // solo por un cambio de seguimiento). Segunda consulta porque depende de
+  // los ids de la primera — no hay forma de pedirle esto a PostgREST en un
+  // solo round trip sin una vista/RPC nueva (fuera de alcance: "no crear
+  // migración salvo que sea realmente necesaria").
+  const typedAttentionRows = (attentionSourceRows ?? []) as unknown as AttentionSourceRow[];
+  let attentionQueue: AttentionQueueRow[] = [];
+  if (typedAttentionRows.length > 0) {
+    const { data: historyRows } = await supabase
+      .from("order_operational_status_history")
+      .select("order_id, changed_at")
+      .in(
+        "order_id",
+        typedAttentionRows.map((r) => r.id)
+      )
+      .order("changed_at", { ascending: false });
+
+    const latestChangeByOrder = new Map<string, string>();
+    for (const row of (historyRows ?? []) as { order_id: string; changed_at: string }[]) {
+      // Ordenado desc: la primera ocurrencia por order_id ya es la más reciente.
+      if (!latestChangeByOrder.has(row.order_id)) latestChangeByOrder.set(row.order_id, row.changed_at);
+    }
+
+    attentionQueue = buildAttentionQueue(
+      typedAttentionRows.map((row) => ({
+        id: row.id,
+        folio: row.folio,
+        clientName: row.client_name,
+        businessUnitName:
+          one(row.business_units)?.name ?? BUSINESS_UNIT_LABELS[row.business_unit as keyof typeof BUSINESS_UNIT_LABELS] ?? "—",
+        salespersonName: one(row.salesperson)?.name ?? "—",
+        operationalStatus: row.operational_status,
+      })),
+      latestChangeByOrder,
+      new Date(),
+      ATTENTION_QUEUE_LIMIT
+    );
+  }
+
   return {
     role: (profile?.role ?? "vendedor") as "admin" | "vendedor",
     name: profile?.name ?? "",
@@ -159,7 +285,9 @@ export async function getDashboardData(): Promise<DashboardData> {
     closedThisMonthCount: statusBreakdown.cerrado,
     distinctClientsThisMonth: clientSet.size,
     statusBreakdown,
+    operationalStatusBreakdown,
     recentOrders,
+    attentionQueue,
     salespersonBreakdown,
     hasError,
   };

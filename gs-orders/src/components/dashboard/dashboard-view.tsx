@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { DashboardData } from "@/components/dashboard/get-dashboard-data";
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { StatusDistribution } from "@/components/dashboard/status-distribution";
+import { OperationalStatusDistribution } from "@/components/dashboard/operational-status-distribution";
+import { AttentionQueue } from "@/components/dashboard/attention-queue";
 import { SalespersonPerformance } from "@/components/dashboard/salesperson-performance";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { formatNumber, formatPercentDelta } from "@/lib/utils/format";
@@ -71,13 +73,23 @@ export function DashboardView({ data }: { data: DashboardData }) {
       </div>
 
       <div className="mt-6">
+        <AttentionQueue rows={data.attentionQueue} />
+      </div>
+
+      <div className="mt-6">
         <RecentOrdersTable orders={data.recentOrders} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <OperationalStatusDistribution breakdown={data.operationalStatusBreakdown} />
         <StatusDistribution breakdown={data.statusBreakdown} />
-        {data.salespersonBreakdown && <SalespersonPerformance rows={data.salespersonBreakdown} />}
       </div>
+
+      {data.salespersonBreakdown && (
+        <div className="mt-6">
+          <SalespersonPerformance rows={data.salespersonBreakdown} />
+        </div>
+      )}
     </div>
   );
 }

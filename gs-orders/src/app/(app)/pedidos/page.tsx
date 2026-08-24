@@ -41,17 +41,21 @@ const iconButtonClass = cn(buttonVariants({ variant: "ghost", size: "icon" }), "
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: { q?: string; vendedor?: string; estado?: string; tipo?: string };
+  searchParams: { q?: string; vendedor?: string; estado?: string; seguimiento?: string; bu?: string; tipo?: string };
 }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
 
-  const [{ data: salespeopleData }, { data: productTypesData }] = await Promise.all([
+  const [{ data: salespeopleData }, { data: productTypesData }, { data: businessUnitsData }] = await Promise.all([
     supabase.from("salespeople").select("*").order("name"),
     supabase.from("product_types").select("*").order("name"),
+    // THÖREN Fase 6I — para el filtro por Business Unit. RLS ya limita a
+    // las de la organización del usuario, sin filtro adicional aquí.
+    supabase.from("business_units").select("id, name").eq("active", true).order("name"),
   ]);
   const salespeople = (salespeopleData ?? []) as Salesperson[];
   const productTypes = (productTypesData ?? []) as ProductTypeItem[];
+  const businessUnits = (businessUnitsData ?? []) as { id: string; name: string }[];
 
   let query = supabase
     .from("orders")
@@ -62,6 +66,8 @@ export default async function PedidosPage({
 
   if (searchParams.vendedor) query = query.eq("salesperson_id", searchParams.vendedor);
   if (searchParams.estado) query = query.eq("status", searchParams.estado);
+  if (searchParams.seguimiento) query = query.eq("operational_status", searchParams.seguimiento);
+  if (searchParams.bu) query = query.eq("business_unit_id", searchParams.bu);
   if (searchParams.tipo) query = query.eq("product_type", searchParams.tipo);
 
   if (searchParams.q) {
@@ -97,6 +103,7 @@ export default async function PedidosPage({
       <OrderFilters
         salespeople={salespeople}
         productTypes={productTypes}
+        businessUnits={businessUnits}
         showSalespersonFilter={profile?.role === "admin"}
       />
 

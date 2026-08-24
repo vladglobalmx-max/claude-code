@@ -13,6 +13,7 @@ import { QuoteItemsSection } from "./quote-items-section";
 import { CustomerInlineCreateDialog } from "./customer-inline-create-dialog";
 import { computeQuoteTotals } from "@/lib/quote-totals";
 import { formatMoneyByCurrency } from "@/lib/utils/format";
+import { catalogProductsById, findIncompatibleItems } from "@/lib/quotes/catalog-picker";
 import type { Customer, QuoteCurrency } from "@/types/domain";
 import type { QuoteActionResult, QuoteWritePayload } from "@/app/(app)/cotizaciones/actions";
 import type { QuoteCatalogProductOption, QuoteFormState } from "./types";
@@ -37,6 +38,7 @@ function buildPayload(state: QuoteFormState): QuoteWritePayload {
     payment_terms: state.paymentTerms || undefined,
     delivery_time: state.deliveryTime || undefined,
     customer_notes: state.customerNotes || undefined,
+    warranty: state.warranty || undefined,
     items: state.items
       .filter((item) => item.model.trim())
       .map((item) => ({
@@ -46,6 +48,8 @@ function buildPayload(state: QuoteFormState): QuoteWritePayload {
         quantity: item.quantity,
         unit_price: Number(item.unitPrice) || 0,
         line_discount_percent: Number(item.lineDiscountPercent) || 0,
+        unit: item.unit || undefined,
+        customer_requirements: item.customerRequirements || undefined,
       })),
   };
 }
@@ -104,6 +108,33 @@ export function QuoteForm({
     [eligiblePairs, state.salespersonId]
   );
 
+  const productsById = useMemo(() => catalogProductsById(catalogProducts), [catalogProducts]);
+
+  /**
+   * Bloquea el cambio de Business Unit (solo posible en modo "create", antes
+   * de guardar — una vez generado el folio, business_unit_id es inmutable
+   * por trg_prevent_quote_folio_change) si alguna partida ya elegida del
+   * catálogo dejaría de ser válida para la nueva BU. Nunca elimina partidas
+   * en silencio (Fase 6D §7): si hay incompatibles, el cambio se rechaza y
+   * se explica cuáles hay que quitar primero.
+   */
+  function tryChangeBusinessUnit(businessUnitId: string): boolean {
+    if (!businessUnitId || businessUnitId === state.businessUnitId) {
+      patch({ businessUnitId });
+      return true;
+    }
+    const incompatible = findIncompatibleItems(state.items, productsById, businessUnitId);
+    if (incompatible.length > 0) {
+      const names = incompatible.map(({ product }) => product.name).join(", ");
+      toast.error(
+        `No puedes cambiar de Business Unit: ${names} no ${incompatible.length === 1 ? "está disponible" : "están disponibles"} para la nueva Business Unit. Quita esa partida primero.`
+      );
+      return false;
+    }
+    patch({ businessUnitId });
+    return true;
+  }
+
   const totals = useMemo(
     () =>
       computeQuoteTotals({
@@ -120,7 +151,20 @@ export function QuoteForm({
 
   function handleSalespersonChange(salespersonId: string) {
     const firstPair = eligiblePairs.find((p) => p.salespersonId === salespersonId);
-    patch({ salespersonId, businessUnitId: firstPair?.businessUnitId ?? "" });
+    const nextBusinessUnitId = firstPair?.businessUnitId ?? "";
+    if (nextBusinessUnitId === state.businessUnitId) {
+      patch({ salespersonId });
+      return;
+    }
+    const incompatible = findIncompatibleItems(state.items, productsById, nextBusinessUnitId);
+    if (incompatible.length > 0) {
+      const names = incompatible.map(({ product }) => product.name).join(", ");
+      toast.error(
+        `No puedes cambiar de vendedor: ${names} no ${incompatible.length === 1 ? "está disponible" : "están disponibles"} para la Business Unit de ese vendedor. Quita esa partida primero.`
+      );
+      return;
+    }
+    patch({ salespersonId, businessUnitId: nextBusinessUnitId });
   }
 
   function handleSubmit() {
@@ -198,7 +242,7 @@ export function QuoteForm({
                   {mode === "edit" ? businessUnitName : businessUnitsForSalesperson[0]?.businessUnitName ?? "—"}
                 </p>
               ) : (
-                <Select value={state.businessUnitId} onChange={(e) => patch({ businessUnitId: e.target.value })}>
+                <Select value={state.businessUnitId} onChange={(e) => { tryChangeBusinessUnit(e.target.value); }}>
                   {businessUnitsForSalesperson.map((p) => (
                     <option key={p.businessUnitId} value={p.businessUnitId}>
                       {p.businessUnitName}
@@ -307,6 +351,15 @@ export function QuoteForm({
                 value={state.deliveryTime}
                 onChange={(e) => patch({ deliveryTime: e.target.value })}
                 placeholder="Ej. 15 días hábiles"
+              />
+            </div>
+            <div>
+              <Label htmlFor="warranty">Garantía (opcional)</Label>
+              <Input
+                id="warranty"
+                value={state.warranty}
+                onChange={(e) => patch({ warranty: e.target.value })}
+                placeholder="Ej. 1 año por defectos de fabricación"
               />
             </div>
           </div>

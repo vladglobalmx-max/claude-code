@@ -17,6 +17,12 @@ export const quoteItemSchema = z.object({
     .min(0, "El descuento no puede ser negativo")
     .max(100, "El descuento no puede ser mayor a 100%")
     .default(0),
+  // Datos operativos por línea (0028/0031) — texto libre, opcional. `unit`
+  // se autocompleta desde product_catalog.unit al elegir un producto del
+  // catálogo (sigue siendo editable); `customer_requirements` nace vacío
+  // salvo captura manual — ninguno de los dos se inventa nunca.
+  unit: z.string().trim().optional(),
+  customer_requirements: z.string().trim().optional(),
 });
 
 /**
@@ -42,6 +48,8 @@ export const quotePayloadSchema = z.object({
   payment_terms: z.string().trim().optional(),
   delivery_time: z.string().trim().optional(),
   customer_notes: z.string().trim().optional(),
+  // Garantía (0028/0031) — mismo tratamiento que payment_terms/delivery_time.
+  warranty: z.string().trim().optional(),
   items: z.array(quoteItemSchema).min(1, "Agrega al menos un producto"),
 });
 

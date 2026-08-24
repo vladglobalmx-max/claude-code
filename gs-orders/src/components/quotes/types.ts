@@ -6,15 +6,29 @@ import type { QuoteCurrency } from "@/types/domain";
  * — para filtrar el selector de productos por la Business Unit elegida en
  * la Quote. `businessUnitIds` vacío = compartido con todas las Business
  * Units de la organización.
+ *
+ * Campos de Fase 6D (Catálogo Maestro → Quote Builder, sobre 0030): `model`/
+ * `brand` reutilizan las columnas reales del Catálogo Maestro (nunca se
+ * inventan); `productTypeName` es solo metadata para buscar/filtrar en el
+ * selector — nunca se copia a quote_items (ver DECISIÓN Product Type,
+ * Fase 6D). `imagePreviewUrl` ya viene resuelta a URL firmada desde el
+ * servidor (mismo patrón que CatalogProductOption de Pedidos) — el Quote
+ * Builder nunca llama a Storage directamente.
  */
 export interface QuoteCatalogProductOption {
   id: string;
   category: string;
   sku: string;
   name: string;
+  model: string | null;
+  brand: string | null;
+  unit: string | null;
+  productTypeName: string | null;
   defaultPriceMxn: number | null;
   defaultPriceUsd: number | null;
   businessUnitIds: string[];
+  imagePath: string | null;
+  imagePreviewUrl: string | null;
 }
 
 export interface QuoteItemDraft {
@@ -26,6 +40,15 @@ export interface QuoteItemDraft {
   /** String de control del input — se parsea a número solo al construir el payload, nunca antes. */
   unitPrice: string;
   lineDiscountPercent: string;
+  /**
+   * Datos operativos por línea (0028/0031_quote_catalog_operational_fields.sql).
+   * `unit` se autocompleta desde product_catalog.unit al elegir un producto
+   * del catálogo (buildItemPatchFromCatalogProduct) pero sigue siendo
+   * editable; `customer_requirements` nace vacío siempre — nunca se infiere
+   * del catálogo.
+   */
+  unit: string;
+  customerRequirements: string;
 }
 
 export function emptyQuoteItem(): QuoteItemDraft {
@@ -37,6 +60,8 @@ export function emptyQuoteItem(): QuoteItemDraft {
     quantity: 1,
     unitPrice: "",
     lineDiscountPercent: "0",
+    unit: "",
+    customerRequirements: "",
   };
 }
 
@@ -52,6 +77,8 @@ export interface QuoteFormState {
   paymentTerms: string;
   deliveryTime: string;
   customerNotes: string;
+  /** Garantía (0028/0031) — mismo tratamiento que paymentTerms/deliveryTime. */
+  warranty: string;
   items: QuoteItemDraft[];
 }
 
@@ -76,6 +103,7 @@ export function emptyQuoteForm({
     paymentTerms: "",
     deliveryTime: "",
     customerNotes: "",
+    warranty: "",
     items: [emptyQuoteItem()],
   };
 }

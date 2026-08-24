@@ -12,6 +12,72 @@ import type { Customer, QuoteCurrency, QuoteStatus } from "@/types/domain";
 
 export type QuoteActionResult = { error: string } | void;
 
+/**
+ * Fase 6D §12 — no confiar en los catalog_product_id que manda el
+ * frontend: revalida server-side, ANTES de llamar a
+ * rpc_create_quote/rpc_update_quote, que cada uno (a) exista y pertenezca a
+ * la organización del usuario actual, y (b) sea elegible para la Business
+ * Unit de la Quote. `product_catalog` se consulta con el cliente de
+ * sesión (RLS respetada, product_catalog_select — 0019/0030): un id de
+ * otra organización simplemente no vuelve en el resultado, así que un
+ * conteo distinto ya delata un id ajeno o inexistente sin necesitar
+ * resolver organization_id aparte. product_business_units se usa con la
+ * MISMA semántica que en el resto del proyecto (0 filas = compartido con
+ * todas las Business Units).
+ *
+ * Nota: esto es una defensa en la capa de aplicación (Next.js), no en el
+ * RPC/DB. rpc_create_quote/rpc_update_quote (SECURITY INVOKER) hoy no
+ * validan el organization_id/Business Unit de catalog_product_id — ver
+ * Fase 6D, sección L del reporte, para el detalle de por qué eso requiere
+ * una migración futura y por qué esta capa NO la reemplaza, solo mitiga el
+ * camino real que usa la UI.
+ */
+async function validateCatalogProductSelections(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  businessUnitId: string,
+  items: { catalog_product_id?: string | null }[]
+): Promise<{ error: string } | null> {
+  const catalogProductIds = Array.from(
+    new Set(items.map((item) => item.catalog_product_id).filter((id): id is string => !!id))
+  );
+  if (catalogProductIds.length === 0) return null;
+
+  const { data: visibleProducts, error } = await supabase
+    .from("product_catalog")
+    .select("id")
+    .in("id", catalogProductIds);
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron validar los productos seleccionados.") };
+  }
+  if ((visibleProducts ?? []).length !== catalogProductIds.length) {
+    return { error: "Uno o más productos seleccionados no existen o no pertenecen a tu organización." };
+  }
+
+  const { data: buRows, error: buError } = await supabase
+    .from("product_business_units")
+    .select("product_id, business_unit_id")
+    .in("product_id", catalogProductIds);
+  if (buError) {
+    return { error: mapDbError(buError, "No se pudieron validar las Business Units de los productos seleccionados.") };
+  }
+
+  const businessUnitIdsByProduct = new Map<string, string[]>();
+  for (const row of buRows ?? []) {
+    const list = businessUnitIdsByProduct.get(row.product_id) ?? [];
+    list.push(row.business_unit_id);
+    businessUnitIdsByProduct.set(row.product_id, list);
+  }
+
+  for (const productId of catalogProductIds) {
+    const eligibleIds = businessUnitIdsByProduct.get(productId) ?? [];
+    if (eligibleIds.length > 0 && !eligibleIds.includes(businessUnitId)) {
+      return { error: "Uno o más productos seleccionados no están disponibles para la Business Unit de esta cotización." };
+    }
+  }
+
+  return null;
+}
+
 export interface QuoteWriteItemPayload {
   catalog_product_id: string | null;
   model: string;
@@ -19,6 +85,8 @@ export interface QuoteWriteItemPayload {
   quantity: number;
   unit_price: number;
   line_discount_percent: number;
+  unit?: string;
+  customer_requirements?: string;
 }
 
 /**
@@ -40,6 +108,7 @@ export interface QuoteWritePayload {
   payment_terms?: string;
   delivery_time?: string;
   customer_notes?: string;
+  warranty?: string;
   items: QuoteWriteItemPayload[];
 }
 
@@ -58,6 +127,10 @@ export async function createQuote(quoteId: string, payload: QuoteWritePayload): 
   }
 
   const supabase = createSupabaseServerClient();
+
+  const catalogError = await validateCatalogProductSelections(supabase, parsed.data.business_unit_id, parsed.data.items);
+  if (catalogError) return catalogError;
+
   const { error } = await supabase.rpc("rpc_create_quote", {
     p_quote_id: quoteId,
     p_quote: {
@@ -73,6 +146,7 @@ export async function createQuote(quoteId: string, payload: QuoteWritePayload): 
       payment_terms: parsed.data.payment_terms ?? null,
       delivery_time: parsed.data.delivery_time ?? null,
       customer_notes: parsed.data.customer_notes ?? null,
+      warranty: parsed.data.warranty ?? null,
     },
     p_items: parsed.data.items,
   });
@@ -98,6 +172,10 @@ export async function updateQuote(quoteId: string, payload: QuoteWritePayload): 
   }
 
   const supabase = createSupabaseServerClient();
+
+  const catalogError = await validateCatalogProductSelections(supabase, parsed.data.business_unit_id, parsed.data.items);
+  if (catalogError) return catalogError;
+
   const { error } = await supabase.rpc("rpc_update_quote", {
     p_quote_id: quoteId,
     p_quote: {
@@ -110,6 +188,7 @@ export async function updateQuote(quoteId: string, payload: QuoteWritePayload): 
       payment_terms: parsed.data.payment_terms ?? null,
       delivery_time: parsed.data.delivery_time ?? null,
       customer_notes: parsed.data.customer_notes ?? null,
+      warranty: parsed.data.warranty ?? null,
     },
     p_items: parsed.data.items,
   });
@@ -301,6 +380,7 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
     payment_terms: sourceQuote.payment_terms ?? undefined,
     delivery_time: sourceQuote.delivery_time ?? undefined,
     customer_notes: sourceQuote.customer_notes ?? undefined,
+    warranty: sourceQuote.warranty ?? undefined,
     items: (sourceItems ?? []).map((item) => ({
       catalog_product_id: item.catalog_product_id,
       model: item.model,
@@ -308,6 +388,8 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
       quantity: item.quantity,
       unit_price: item.unit_price,
       line_discount_percent: item.line_discount_percent,
+      unit: item.unit ?? undefined,
+      customer_requirements: item.customer_requirements ?? undefined,
     })),
   };
 

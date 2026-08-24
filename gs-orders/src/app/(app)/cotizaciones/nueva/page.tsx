@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getBusinessToday, addDays } from "@/lib/business-date";
+import { getSignedUrls } from "@/lib/storage";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -52,7 +53,7 @@ export default async function NuevaCotizacionPage() {
         .select("salesperson_id, business_unit_id, salespeople(name), business_units(name)")
         .eq("active", true),
       supabase.from("customers").select("*").order("name"),
-      supabase.from("product_catalog").select("*").eq("active", true).order("name"),
+      supabase.from("product_catalog").select("*, product_types(name)").eq("active", true).order("name"),
       supabase.from("product_business_units").select("product_id, business_unit_id"),
     ]);
 
@@ -100,14 +101,25 @@ export default async function NuevaCotizacionPage() {
     businessUnitIdsByProduct.set(row.product_id, list);
   }
 
-  const catalogProducts: QuoteCatalogProductOption[] = ((catalogData ?? []) as ProductCatalogItem[]).map((p) => ({
+  type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null };
+  const catalogRows = (catalogData ?? []) as unknown as CatalogRow[];
+  const catalogImagePaths = catalogRows.map((p) => p.image_path).filter((p): p is string => !!p);
+  const catalogImageUrls = await getSignedUrls("order-media", catalogImagePaths);
+
+  const catalogProducts: QuoteCatalogProductOption[] = catalogRows.map((p) => ({
     id: p.id,
     category: p.category ?? "",
     sku: p.sku,
     name: p.name,
+    model: p.model,
+    brand: p.brand,
+    unit: p.unit,
+    productTypeName: p.product_types?.name ?? null,
     defaultPriceMxn: p.default_price_mxn,
     defaultPriceUsd: p.default_price_usd,
     businessUnitIds: businessUnitIdsByProduct.get(p.id) ?? [],
+    imagePath: p.image_path,
+    imagePreviewUrl: p.image_path ? catalogImageUrls[p.image_path] ?? null : null,
   }));
 
   const quoteId = randomUUID();

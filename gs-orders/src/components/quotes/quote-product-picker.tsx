@@ -4,47 +4,49 @@ import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { formatMoneyByCurrency } from "@/lib/utils/format";
+import { filterEligibleCatalogProducts, pickCatalogPrice, searchCatalogProducts } from "@/lib/quotes/catalog-picker";
 import type { QuoteCatalogProductOption } from "./types";
+import type { QuoteCurrency } from "@/types/domain";
 
 /**
- * Buscador de productos del catálogo para una línea de Quote, filtrado a la
- * Business Unit elegida en la cotización — mismo criterio que
- * product_business_units (0019_core_product_catalog_pricing.sql): 0
- * relaciones = compartido con todas las Business Units de la organización,
- * 1+ relaciones = solo esas. Diseño y patrón de filtro en memoria idénticos
- * a CatalogProductPicker (pedidos), sin duplicar esa lógica: aquí se agrega
- * únicamente el filtro por Business Unit.
+ * Buscador de productos del Catálogo Maestro para una línea de Quote,
+ * filtrado a la Business Unit elegida en la cotización (THÖREN Fase 6D) —
+ * mismo criterio que product_business_units (0019): 0 relaciones =
+ * compartido con todas las Business Units de la organización, 1+
+ * relaciones = solo esas. Búsqueda por SKU, nombre, modelo o marca (Fase
+ * 6D §2) — nunca fuzzy (searchCatalogProducts, lib/quotes/catalog-picker.ts).
+ * Lista filtrable con miniatura + precio en la moneda actual, no un
+ * <select> gigante (Fase 6D §11).
  */
 export function QuoteProductPicker({
   products,
   businessUnitId,
+  currency,
   onSelect,
 }: {
   products: QuoteCatalogProductOption[];
   businessUnitId: string;
+  currency: QuoteCurrency;
   onSelect: (product: QuoteCatalogProductOption) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [category, setCategory] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [query, setQuery] = useState("");
 
   const eligibleProducts = useMemo(
-    () => products.filter((p) => p.businessUnitIds.length === 0 || p.businessUnitIds.includes(businessUnitId)),
+    () => filterEligibleCatalogProducts(products, businessUnitId),
     [products, businessUnitId]
   );
 
-  const categories = useMemo(
-    () => Array.from(new Set(eligibleProducts.map((p) => p.category))).sort(),
-    [eligibleProducts]
-  );
+  const typeLabel = (p: QuoteCatalogProductOption) => p.productTypeName || p.category || "Sin tipo";
+
+  const types = useMemo(() => Array.from(new Set(eligibleProducts.map(typeLabel))).sort(), [eligibleProducts]);
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return eligibleProducts
-      .filter((p) => (category ? p.category === category : true))
-      .filter((p) => (q ? p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) : true))
-      .slice(0, 20);
-  }, [eligibleProducts, category, query]);
+    const byType = typeFilter ? eligibleProducts.filter((p) => typeLabel(p) === typeFilter) : eligibleProducts;
+    return searchCatalogProducts(byType, query).slice(0, 20);
+  }, [eligibleProducts, typeFilter, query]);
 
   if (!businessUnitId) return null;
 
@@ -69,45 +71,63 @@ export function QuoteProductPicker({
       {open && (
         <div className="mt-3 space-y-2">
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={category} onChange={(e) => setCategory(e.target.value)} className="sm:w-56">
-              <option value="">Todas las categorías</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+            <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="sm:w-56">
+              <option value="">Todos los tipos</option>
+              {types.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </Select>
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por modelo o nombre…"
+              placeholder="Buscar por SKU, nombre, modelo o marca…"
               className="flex-1"
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-surface">
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border bg-surface">
             {results.length === 0 ? (
               <p className="px-3 py-3 text-sm text-ink-faint">Sin resultados.</p>
             ) : (
-              results.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    onSelect(p);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className="flex w-full items-center justify-between gap-3 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-surface-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">{p.name}</p>
-                    <p className="truncate text-xs text-ink-faint">
-                      {p.sku} · {p.category}
-                    </p>
-                  </div>
-                </button>
-              ))
+              results.map((p) => {
+                const price = pickCatalogPrice(p, currency);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(p);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    className="flex w-full items-center gap-3 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-surface-2"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
+                      {p.imagePreviewUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imagePreviewUrl} alt={p.name} className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink">{p.name}</p>
+                      <p className="truncate text-xs text-ink-faint">
+                        {p.sku}
+                        {p.model ? ` · ${p.model}` : ""}
+                        {p.brand ? ` · ${p.brand}` : ""} · {typeLabel(p)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right text-xs">
+                      {price != null ? (
+                        <span className="font-medium text-ink">{formatMoneyByCurrency(price, currency)}</span>
+                      ) : (
+                        <span className="text-danger">Sin precio configurado</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

@@ -10,6 +10,7 @@ import { QuoteProductPicker } from "./quote-product-picker";
 import { emptyQuoteItem, type QuoteCatalogProductOption, type QuoteItemDraft } from "./types";
 import type { QuoteCurrency } from "@/types/domain";
 import { formatMoneyByCurrency } from "@/lib/utils/format";
+import { buildItemPatchFromCatalogProduct, catalogProductsById } from "@/lib/quotes/catalog-picker";
 
 export function QuoteItemsSection({
   businessUnitId,
@@ -39,16 +40,13 @@ export function QuoteItemsSection({
     onChange(items.filter((item) => item.key !== key));
   }
 
+  const productsById = catalogProductsById(catalogProducts);
+
   function handleSelectProduct(key: string, product: QuoteCatalogProductOption) {
-    const price = currency === "MXN" ? product.defaultPriceMxn : product.defaultPriceUsd;
-    updateItem(key, {
-      catalogProductId: product.id,
-      model: product.sku,
-      description: product.name,
-      // Nunca 0 silencioso: si el producto no tiene precio en esta moneda,
-      // el campo queda vacío para captura manual (ver caso de prueba 18).
-      unitPrice: price != null ? String(price) : "",
-    });
+    // Snapshot inicial — nunca 0 silencioso: si el producto no tiene precio
+    // en esta moneda, el campo queda vacío para captura manual (Fase 6D §3,
+    // ver caso de prueba "producto sin precio en moneda").
+    updateItem(key, buildItemPatchFromCatalogProduct(product, currency));
   }
 
   return (
@@ -62,7 +60,9 @@ export function QuoteItemsSection({
         )}
 
         {businessUnitId &&
-          items.map((item, index) => (
+          items.map((item, index) => {
+            const linkedProduct = item.catalogProductId ? productsById.get(item.catalogProductId) : undefined;
+            return (
             <div key={item.key} className="rounded-lg border border-border p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wide text-ink-faint">Producto {index + 1}</span>
@@ -82,8 +82,22 @@ export function QuoteItemsSection({
                 <QuoteProductPicker
                   products={catalogProducts}
                   businessUnitId={businessUnitId}
+                  currency={currency}
                   onSelect={(product) => handleSelectProduct(item.key, product)}
                 />
+
+                {linkedProduct?.imagePreviewUrl && (
+                  <div className="flex items-center gap-2 text-xs text-ink-faint">
+                    {/* Miniatura del catálogo — nunca se copia el archivo, solo se muestra (Fase 6D §8). */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={linkedProduct.imagePreviewUrl}
+                      alt={linkedProduct.name}
+                      className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
+                    />
+                    <span>Producto del catálogo: {linkedProduct.sku}</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
@@ -127,6 +141,11 @@ export function QuoteItemsSection({
                       onChange={(e) => updateItem(item.key, { unitPrice: e.target.value })}
                       placeholder="0.00"
                     />
+                    {item.catalogProductId && !item.unitPrice && (
+                      <p className="mt-1 text-xs text-danger">
+                        Sin precio configurado para {currency} — captura el precio manualmente.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor={`line-discount-${item.key}`}>Descuento de línea %</Label>
@@ -140,6 +159,27 @@ export function QuoteItemsSection({
                       onChange={(e) => updateItem(item.key, { lineDiscountPercent: e.target.value })}
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor={`unit-${item.key}`}>Unidad (opcional)</Label>
+                    <Input
+                      id={`unit-${item.key}`}
+                      value={item.unit}
+                      onChange={(e) => updateItem(item.key, { unit: e.target.value })}
+                      placeholder="Ej. pza, caja, servicio"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label htmlFor={`customer-requirements-${item.key}`}>Requisitos del cliente (opcional)</Label>
+                    <Textarea
+                      id={`customer-requirements-${item.key}`}
+                      rows={2}
+                      value={item.customerRequirements}
+                      onChange={(e) => updateItem(item.key, { customerRequirements: e.target.value })}
+                      placeholder="Color, dimensiones, instalación, indicaciones particulares…"
+                    />
+                  </div>
                 </div>
 
                 <p className="text-right text-xs text-ink-faint">
@@ -150,7 +190,8 @@ export function QuoteItemsSection({
                 </p>
               </div>
             </div>
-          ))}
+            );
+          })}
 
         {businessUnitId && (
           <Button type="button" variant="outline" onClick={addItem}>

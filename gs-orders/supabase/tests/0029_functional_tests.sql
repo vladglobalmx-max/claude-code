@@ -158,27 +158,72 @@ begin
 end $$;
 
 -- =========================================================================
--- 3) Snapshot inmutable: cambiar warranty en la Quote DESPUÉS de convertida
---    (warranty no está en la lista congelada por trg_quote_status_transition,
---    a diferencia de payment_terms/delivery_time/customer_notes — es el
---    único de los 4 campos de encabezado editable post-aceptación, así que
---    es la forma real de demostrar que el Order NO relee la Quote).
+-- 3a) Regla de negocio (0031_quote_catalog_operational_fields.sql):
+--     warranty es una condición comercial emitida al cliente, igual que
+--     payment_terms/delivery_time/customer_notes — trg_quote_status_
+--     transition (0025, extendido por 0031) la congela fuera de
+--     "borrador". Se prueba en el camino REAL (rol authenticated, RLS y
+--     trigger activos, sin bypass de ningún tipo): el intento debe
+--     rechazarse.
 -- =========================================================================
+do $$
+declare
+  v_quote_id uuid := current_setting('test.preserve_quote_id')::uuid;
+  v_failed boolean := false;
+  v_msg text;
+begin
+  begin
+    update quotes set warranty = 'GARANTÍA MODIFICADA DESPUÉS DE CONVERTIR' where id = v_quote_id;
+  exception when others then
+    v_failed := true;
+    get stacked diagnostics v_msg = message_text;
+  end;
+
+  if not v_failed then
+    raise exception 'TEST 3a FALLÓ: se esperaba que warranty quedara congelada fuera de "borrador" (Quote en estado aceptada)';
+  end if;
+  if v_msg not ilike '%no se puede modificar el contenido comercial%' then
+    raise exception 'TEST 3a FALLÓ: mensaje de error inesperado: %', v_msg;
+  end if;
+
+  raise notice 'TEST 3a OK: warranty congelada fuera de "borrador" — mismo criterio que payment_terms/delivery_time/customer_notes';
+end $$;
+
+-- =========================================================================
+-- 3b) Snapshot inmutable — prueba de independencia real del Order,
+--     SIN debilitar la regla de negocio de 3a: el camino de producción
+--     (rol authenticated) sigue rechazando cualquier cambio a warranty
+--     fuera de "borrador" sin excepción. Para verificar que el Order de
+--     verdad no relee la Quote (y no solo que el trigger lo impide), esta
+--     prueba deshabilita trg_quotes_status_transition ÚNICAMENTE dentro de
+--     esta transacción de prueba (que además termina en ROLLBACK al final
+--     del archivo, sin dejar rastro) — nunca una operación disponible en
+--     ningún camino de la aplicación real. Requiere el rol dueño de la
+--     tabla (reset role, mismo patrón ya usado en 0028_functional_tests.sql
+--     para simular el contexto de un script de datos con RLS bypaseada).
+-- =========================================================================
+reset role;
+alter table quotes disable trigger trg_quotes_status_transition;
+
 do $$
 declare
   v_quote_id uuid := current_setting('test.preserve_quote_id')::uuid;
   v_order_id uuid := current_setting('test.preserve_order_id')::uuid;
   v_order_warranty_after text;
 begin
-  update quotes set warranty = 'GARANTÍA MODIFICADA DESPUÉS DE CONVERTIR' where id = v_quote_id;
+  update quotes set warranty = 'GARANTÍA MODIFICADA DESPUÉS DE CONVERTIR (solo prueba, trigger deshabilitado)' where id = v_quote_id;
 
   select warranty into v_order_warranty_after from orders where id = v_order_id;
   if v_order_warranty_after is distinct from '1 año por defectos de fabricación' then
-    raise exception 'TEST 3 FALLÓ: el Order reflejó un cambio posterior de la Quote — warranty quedó "%", debería seguir siendo el snapshot original', v_order_warranty_after;
+    raise exception 'TEST 3b FALLÓ: el Order reflejó un cambio posterior de la Quote — warranty quedó "%", debería seguir siendo el snapshot original', v_order_warranty_after;
   end if;
 
-  raise notice 'TEST 3 OK: snapshot inmutable — cambiar warranty en la Quote después de convertida NO afecta el Order ya creado';
+  raise notice 'TEST 3b OK: snapshot inmutable — el Order no relee la Quote en vivo (verificado con el trigger deshabilitado solo en esta transacción de prueba, jamás en producción)';
 end $$;
+
+alter table quotes enable trigger trg_quotes_status_transition;
+set role authenticated;
+select test_set_user(:'admin');
 
 -- =========================================================================
 -- 4) Regresión — Quote sin campos operativos (quote_e, de 0023_fixtures,

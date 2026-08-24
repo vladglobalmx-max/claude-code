@@ -73,6 +73,15 @@ export interface Database {
           general_notes: string | null;
           vendor_notes: string | null;
           vendor_notes_en: string | null;
+          // THÖREN Quote → Order Hardening (0029_quote_order_hardening.sql)
+          // — snapshot de datos operativos de la Quote origen, copiado una
+          // sola vez por rpc_create_order_from_quote. NULL para Orders
+          // manuales, o si la Quote no traía el dato. Cambios posteriores
+          // en la Quote nunca los modifican.
+          payment_terms: string | null;
+          delivery_time: string | null;
+          warranty: string | null;
+          customer_notes: string | null;
           projector_model: string | null;
           projector_quantity: number | null;
           projector_power: string | null;
@@ -124,6 +133,10 @@ export interface Database {
           general_notes?: string | null;
           vendor_notes?: string | null;
           vendor_notes_en?: string | null;
+          payment_terms?: string | null;
+          delivery_time?: string | null;
+          warranty?: string | null;
+          customer_notes?: string | null;
           projector_model?: string | null;
           projector_quantity?: number | null;
           projector_power?: string | null;
@@ -189,6 +202,12 @@ export interface Database {
           description: string | null;
           quantity: number;
           notes: string | null;
+          // THÖREN Quote → Order Hardening (0029_quote_order_hardening.sql)
+          // — snapshot por línea de quote_items.unit/customer_requirements,
+          // copiado una sola vez por rpc_create_order_from_quote. NULL para
+          // items de un Order manual, o si la Quote no traía el dato.
+          unit: string | null;
+          customer_requirements: string | null;
           catalog_product_id: string | null;
           color: string | null;
           power: string | null;
@@ -223,6 +242,8 @@ export interface Database {
           description?: string | null;
           quantity?: number;
           notes?: string | null;
+          unit?: string | null;
+          customer_requirements?: string | null;
           catalog_product_id?: string | null;
           color?: string | null;
           power?: string | null;

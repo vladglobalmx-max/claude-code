@@ -13,12 +13,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * "Origen: Cotización" (THÖREN Quote → Order V2, 0023) se resuelve aquí con
- * un fetch adicional, separado de getOrderDetail/OrderDetailContent a
- * propósito: ambos son compartidos con la ruta de impresión
- * ((print)/pedidos/[id]/pdf), y el PDF debe quedar sin cambios visuales —
- * ver ALCANCE de 0022/0023. source_quote_id ya viene incluido en
- * detail.order (columna real de orders, select("*")); solo falta el folio
- * de la Quote, que se resuelve con un segundo query bajo RLS.
+ * un fetch adicional: source_quote_id ya viene incluido en detail.order
+ * (columna real de orders, select("*")); solo falta el folio de la Quote,
+ * que se resuelve con un segundo query bajo RLS. El PDF ((print)/pedidos/
+ * [id]/pdf) desde Fase 6G ya no comparte OrderDetailContent con esta
+ * página — tiene su propia resolución de sourceQuoteFolio, así que este
+ * fetch es exclusivo de la vista en pantalla.
  */
 export default async function VerPedidoPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
@@ -73,7 +73,7 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
 
       <Card>
         <CardContent className="p-6">
-          <OrderDetailContent detail={detail} variant="view" />
+          <OrderDetailContent detail={detail} />
         </CardContent>
       </Card>
     </div>

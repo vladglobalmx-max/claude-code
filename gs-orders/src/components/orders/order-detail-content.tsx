@@ -9,67 +9,8 @@ import {
   SURFACE_TYPE_LABELS,
   USE_LABELS,
 } from "@/types/domain";
-import type {
-  Orientation,
-  OrderItemImage,
-  ProductType,
-  SurfaceMaterial,
-  SurfaceType,
-  UseEnvironment,
-} from "@/types/domain";
+import type { OrderItemImage } from "@/types/domain";
 import type { OrderDetail } from "./get-order-detail";
-
-// El PDF para fábrica sale en inglés (opera con proveedores en China); la
-// app y la captura de datos permanecen en español. Este es el único lugar
-// que necesita las dos versiones de las etiquetas.
-//
-// Solo cubre los 5 tipos históricos (ver ProductType en types/domain.ts).
-// Un tipo nuevo dado de alta desde Configuración → Tipos de producto no
-// tiene traducción aquí a propósito — no se inventan traducciones
-// técnicas permanentes; en ese caso el PDF en inglés cae de vuelta al
-// snapshot en español del pedido (mismo criterio ya usado para
-// vendor_notes_en/projection_description_en/surface_notes_en: si no hay
-// texto en inglés, se usa el texto en español).
-const EN_PRODUCT_TYPE_LABELS: Partial<Record<ProductType, string>> = {
-  proyector_gobo: "Projector / Gobo",
-  luminaria: "Luminaire",
-  equipo_seguridad: "Safety Equipment",
-  refaccion_accesorio: "Spare Part / Accessory",
-  otro: "Other",
-};
-
-const EN_ORIENTATION_LABELS: Record<Orientation, string> = {
-  piso: "Facing Floor",
-  pared: "Facing Wall",
-  inclinado: "Angled",
-  otro: "Other",
-};
-
-const EN_USE_LABELS: Record<UseEnvironment, string> = {
-  interior: "Indoor",
-  exterior: "Outdoor",
-  semi_exterior: "Semi-outdoor",
-};
-
-const EN_SURFACE_TYPE_LABELS: Record<SurfaceType, string> = {
-  piso: "Floor",
-  pared: "Wall",
-  techo: "Ceiling",
-  equipo: "Equipment",
-  rack: "Rack",
-  anden: "Loading Dock",
-  pasillo: "Aisle",
-  otro: "Other",
-};
-
-const EN_SURFACE_MATERIAL_LABELS: Record<SurfaceMaterial, string> = {
-  concreto: "Concrete",
-  epoxico: "Epoxy",
-  asfalto: "Asphalt",
-  metal: "Metal",
-  pintura: "Painted",
-  otro: "Other",
-};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -90,15 +31,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function ImageThumbRow({
-  images,
-  mediaUrls,
-  isEn,
-}: {
-  images: OrderItemImage[];
-  mediaUrls: Record<string, string>;
-  isEn: boolean;
-}) {
+function ImageThumbRow({ images, mediaUrls }: { images: OrderItemImage[]; mediaUrls: Record<string, string> }) {
   if (images.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
@@ -110,7 +43,7 @@ function ImageThumbRow({
           <img
             key={img.id}
             src={url}
-            alt={img.file_name ?? (isEn ? "Reference image" : "Imagen de referencia")}
+            alt={img.file_name ?? "Imagen de referencia"}
             className="h-20 w-20 rounded-lg border border-border object-cover"
           />
         ) : (
@@ -122,7 +55,7 @@ function ImageThumbRow({
             className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-border text-center text-[10px] text-accent hover:underline"
           >
             <FileText className="h-4 w-4" />
-            {img.file_name ?? (isEn ? "File" : "Archivo")}
+            {img.file_name ?? "Archivo"}
           </a>
         );
       })}
@@ -130,77 +63,66 @@ function ImageThumbRow({
   );
 }
 
-export function OrderDetailContent({
-  detail,
-  variant = "view",
-}: {
-  detail: OrderDetail;
-  variant?: "view" | "print";
-}) {
+/**
+ * Vista en pantalla del detalle de un pedido. El PDF de Pedido (Fase 6G) se
+ * desacopló de este componente — vive como página dedicada en
+ * (print)/pedidos/[id]/pdf/page.tsx, con su propio layout/etiquetas en
+ * inglés para fábrica — así que este componente ya solo necesita cubrir el
+ * caso de pantalla, en español.
+ */
+export function OrderDetailContent({ detail }: { detail: OrderDetail }) {
   const { order, salesperson, items, itemImages, images, files, mediaUrls, fileUrls } = detail;
   const isProjector = order.product_type === "proyector_gobo";
-  const isEn = variant === "print";
 
-  const vendorNotes = isEn ? order.vendor_notes_en || order.vendor_notes : order.vendor_notes;
   // Nombre visible del tipo tal como estaba guardado al crear/editar el
   // pedido (snapshot) — nunca se recalcula contra product_types, así que
   // renombrar un tipo después no cambia pedidos ya creados.
-  const productTypeNameEs = order.product_type_name_snapshot ?? order.product_type;
-  const productTypeNameEn = EN_PRODUCT_TYPE_LABELS[order.product_type as ProductType] ?? productTypeNameEs;
+  const productTypeName = order.product_type_name_snapshot ?? order.product_type;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{isEn ? "Order No." : "Folio"}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Folio</p>
           <p className="font-mono text-2xl font-bold text-ink">{order.folio}</p>
         </div>
-        {variant === "view" && (
-          <StatusBadge status={order.status} labels={ORDER_STATUS_LABELS} variants={ORDER_STATUS_BADGE} className="text-sm" />
-        )}
+        <StatusBadge status={order.status} labels={ORDER_STATUS_LABELS} variants={ORDER_STATUS_BADGE} className="text-sm" />
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 print:bg-white sm:grid-cols-3">
-        <Field label={isEn ? "Date" : "Fecha"} value={formatDate(order.order_date)} />
-        <Field label={isEn ? "Salesperson" : "Vendedor"} value={`${salesperson.name} (${salesperson.prefix})`} />
-        <Field label={isEn ? "Customer" : "Cliente"} value={order.client_name} />
-        <Field label={isEn ? "Supplier" : "Proveedor"} value={order.supplier_name} />
-        <Field
-          label={isEn ? "Product Type" : "Tipo de producto"}
-          value={isEn ? productTypeNameEn : productTypeNameEs}
-        />
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">
+        <Field label="Fecha" value={formatDate(order.order_date)} />
+        <Field label="Vendedor" value={`${salesperson.name} (${salesperson.prefix})`} />
+        <Field label="Cliente" value={order.client_name} />
+        <Field label="Proveedor" value={order.supplier_name} />
+        <Field label="Tipo de producto" value={productTypeName} />
       </dl>
 
       {items.length > 0 && (
-        <Section title={isEn ? "Products" : "Productos"}>
+        <Section title="Productos">
           <div className="space-y-4">
             {items.map((item, index) => {
               const imageUrl = item.image_path ? mediaUrls[item.image_path] : null;
               const ownImages = itemImages.filter((img) => img.order_item_id === item.id);
               const referenceImages = ownImages.filter((img) => img.kind === "reference");
               const projectionImages = ownImages.filter((img) => img.kind === "projection");
-              const itemProjectionDescription = isEn
-                ? item.projection_description_en || item.projection_description
-                : item.projection_description;
               const itemProjectionSize =
                 item.projection_width != null && item.projection_height != null
                   ? `${item.projection_width} ${item.projection_size_unit} × ${item.projection_height} ${item.projection_size_unit}`
                   : null;
-              const itemSurfaceNotes = isEn ? item.surface_notes_en || item.surface_notes : item.surface_notes;
               const specs = [
-                item.power ? `${isEn ? "Power/Version" : "Potencia/versión"}: ${item.power}` : null,
-                item.color ? `${isEn ? "Color" : "Color"}: ${item.color}` : null,
+                item.power ? `Potencia/versión: ${item.power}` : null,
+                item.color ? `Color: ${item.color}` : null,
                 item.lens_pending_factory
-                  ? `${isEn ? "Lens" : "Lente"}: ${isEn ? "To be defined by factory" : "Por definir con fábrica"}`
+                  ? "Lente: Por definir con fábrica"
                   : item.lens_type
-                    ? `${isEn ? "Lens" : "Lente"}: ${item.lens_type}`
+                    ? `Lente: ${item.lens_type}`
                     : null,
               ].filter(Boolean);
 
               return (
                 <div key={item.id} className="break-inside-avoid rounded-lg border border-border p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                    {isEn ? `Item ${index + 1}` : `Producto ${index + 1}`}
+                    Producto {index + 1}
                   </p>
                   <div className="flex gap-3">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
@@ -213,12 +135,13 @@ export function OrderDetailContent({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-ink">
-                        {isEn ? "Model" : "Modelo"}: {item.model}{" "}
-                        <span className="font-normal text-ink-faint">
-                          · {isEn ? "Quantity" : "Cantidad"}: {item.quantity}
-                        </span>
+                        Modelo: {item.model} <span className="font-normal text-ink-faint">· Cantidad: {item.quantity}</span>
                       </p>
                       {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
+                      {item.unit && <p className="mt-1 text-xs text-ink-faint">Unidad: {item.unit}</p>}
+                      {item.customer_requirements && (
+                        <p className="text-xs text-ink-faint">Requisitos del cliente: {item.customer_requirements}</p>
+                      )}
                       {specs.length > 0 && <p className="mt-1 text-xs text-ink-faint">{specs.join(" · ")}</p>}
                       {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}
                     </div>
@@ -226,33 +149,25 @@ export function OrderDetailContent({
 
                   {referenceImages.length > 0 && (
                     <div className="mt-3">
-                      <p className="mb-1.5 text-xs text-ink-faint">
-                        {isEn ? "Product images / references" : "Imágenes de referencia"}
-                      </p>
-                      <ImageThumbRow images={referenceImages} mediaUrls={mediaUrls} isEn={isEn} />
+                      <p className="mb-1.5 text-xs text-ink-faint">Imágenes de referencia</p>
+                      <ImageThumbRow images={referenceImages} mediaUrls={mediaUrls} />
                     </div>
                   )}
 
-                  {isProjector && (projectionImages.length > 0 || itemProjectionDescription || itemProjectionSize) && (
+                  {isProjector && (projectionImages.length > 0 || item.projection_description || itemProjectionSize) && (
                     <div className="mt-3 border-t border-border pt-3">
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                        {isEn ? "Projected Image" : "Imagen a proyectar"}
-                      </p>
-                      {itemProjectionDescription && (
-                        <p className="text-sm text-ink">
-                          {isEn ? "Requested content: " : "Qué proyectar: "}
-                          {itemProjectionDescription}
-                        </p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Imagen a proyectar</p>
+                      {item.projection_description && (
+                        <p className="text-sm text-ink">Qué proyectar: {item.projection_description}</p>
                       )}
                       {projectionImages.length > 0 && (
                         <div className="mt-2">
-                          <ImageThumbRow images={projectionImages} mediaUrls={mediaUrls} isEn={isEn} />
+                          <ImageThumbRow images={projectionImages} mediaUrls={mediaUrls} />
                         </div>
                       )}
                       {itemProjectionSize && (
                         <p className="mt-2 text-sm text-ink-soft">
-                          {isEn ? "Projection dimensions: " : "Medida requerida: "}
-                          <span className="font-medium text-ink">{itemProjectionSize}</span>
+                          Medida requerida: <span className="font-medium text-ink">{itemProjectionSize}</span>
                         </p>
                       )}
                     </div>
@@ -264,58 +179,34 @@ export function OrderDetailContent({
                       item.installation_distance != null ||
                       item.installation_use) && (
                       <div className="mt-3 border-t border-border pt-3">
-                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                          {isEn ? "Installation" : "Instalación"}
-                        </p>
+                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Instalación</p>
                         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                          <Field label="Altura" value={formatMeasure(item.installation_height, item.installation_height_unit)} />
                           <Field
-                            label={isEn ? "Installation Height" : "Altura"}
-                            value={formatMeasure(item.installation_height, item.installation_height_unit)}
+                            label="Orientación"
+                            value={item.installation_orientation ? ORIENTATION_LABELS[item.installation_orientation] : null}
                           />
                           <Field
-                            label={isEn ? "Orientation" : "Orientación"}
-                            value={
-                              item.installation_orientation
-                                ? isEn
-                                  ? EN_ORIENTATION_LABELS[item.installation_orientation]
-                                  : ORIENTATION_LABELS[item.installation_orientation]
-                                : null
-                            }
-                          />
-                          <Field
-                            label={isEn ? "Projector-to-surface distance" : "Distancia"}
+                            label="Distancia"
                             value={formatMeasure(item.installation_distance, item.installation_height_unit)}
                           />
-                          <Field
-                            label={isEn ? "Use" : "Uso"}
-                            value={item.installation_use ? (isEn ? EN_USE_LABELS[item.installation_use] : USE_LABELS[item.installation_use]) : null}
-                          />
+                          <Field label="Uso" value={item.installation_use ? USE_LABELS[item.installation_use] : null} />
                         </dl>
                       </div>
                     )}
 
-                  {isProjector && (item.surface_type || item.surface_material || itemSurfaceNotes) && (
+                  {isProjector && (item.surface_type || item.surface_material || item.surface_notes) && (
                     <div className="mt-3 border-t border-border pt-3">
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                        {isEn ? "Projection Surface" : "Superficie"}
-                      </p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Superficie</p>
                       <p className="text-sm text-ink">
                         {[
-                          item.surface_type
-                            ? isEn
-                              ? EN_SURFACE_TYPE_LABELS[item.surface_type]
-                              : SURFACE_TYPE_LABELS[item.surface_type]
-                            : null,
-                          item.surface_material
-                            ? isEn
-                              ? EN_SURFACE_MATERIAL_LABELS[item.surface_material]
-                              : SURFACE_MATERIAL_LABELS[item.surface_material]
-                            : null,
+                          item.surface_type ? SURFACE_TYPE_LABELS[item.surface_type] : null,
+                          item.surface_material ? SURFACE_MATERIAL_LABELS[item.surface_material] : null,
                         ]
                           .filter(Boolean)
-                          .join(isEn ? " " : " · ") || "—"}
+                          .join(" · ") || "—"}
                       </p>
-                      {itemSurfaceNotes && <p className="mt-1 text-sm text-ink-soft">{itemSurfaceNotes}</p>}
+                      {item.surface_notes && <p className="mt-1 text-sm text-ink-soft">{item.surface_notes}</p>}
                     </div>
                   )}
                 </div>
@@ -326,7 +217,7 @@ export function OrderDetailContent({
       )}
 
       {images.length > 0 && (
-        <Section title={isEn ? "Installation Photos" : "Fotografías"}>
+        <Section title="Fotografías">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {images.map((img) => {
               const url = mediaUrls[img.storage_path];
@@ -334,12 +225,10 @@ export function OrderDetailContent({
                 <figure key={img.id} className="break-inside-avoid overflow-hidden rounded-lg border border-border">
                   {url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={img.caption ?? (isEn ? "Photo" : "Fotografía")} className="aspect-square w-full object-cover" />
+                    <img src={url} alt={img.caption ?? "Fotografía"} className="aspect-square w-full object-cover" />
                   )}
                   {img.caption && (
-                    <figcaption className="border-t border-border px-2 py-1 text-xs text-ink-faint">
-                      {img.caption}
-                    </figcaption>
+                    <figcaption className="border-t border-border px-2 py-1 text-xs text-ink-faint">{img.caption}</figcaption>
                   )}
                 </figure>
               );
@@ -348,16 +237,14 @@ export function OrderDetailContent({
         </Section>
       )}
 
-      {(vendorNotes || order.general_notes) && (
-        <Section title={isEn ? "Notes" : "Observaciones"}>
-          {vendorNotes && <p className="whitespace-pre-wrap text-sm text-ink">{vendorNotes}</p>}
-          {variant === "view" && order.general_notes && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-ink-faint">{order.general_notes}</p>
-          )}
+      {(order.vendor_notes || order.general_notes) && (
+        <Section title="Observaciones">
+          {order.vendor_notes && <p className="whitespace-pre-wrap text-sm text-ink">{order.vendor_notes}</p>}
+          {order.general_notes && <p className="mt-2 whitespace-pre-wrap text-sm text-ink-faint">{order.general_notes}</p>}
         </Section>
       )}
 
-      {variant === "view" && files.length > 0 && (
+      {files.length > 0 && (
         <Section title="Archivos adjuntos">
           <div className="space-y-2">
             {files.map((file) => (

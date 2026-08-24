@@ -56,6 +56,19 @@ create table if not exists storage.objects (
 
 alter table storage.objects enable row level security;
 
+-- Stub de storage.foldername (real Supabase Storage): usado por RLS de
+-- Storage en 0011/0024/0028 para scoping por carpeta (primer segmento del
+-- path = id del recurso dueño). Implementación fiel: separa `name` por "/"
+-- y devuelve todos los segmentos salvo el último (el nombre de archivo).
+create or replace function storage.foldername(name text) returns text[]
+language sql immutable
+as $$
+  select case
+    when array_length(string_to_array(name, '/'), 1) <= 1 then array[]::text[]
+    else (string_to_array(name, '/'))[1 : array_length(string_to_array(name, '/'), 1) - 1]
+  end;
+$$;
+
 grant usage on schema auth, storage, public to authenticated, anon;
 grant all on all tables in schema public to authenticated;
 grant all on all tables in schema auth to authenticated;

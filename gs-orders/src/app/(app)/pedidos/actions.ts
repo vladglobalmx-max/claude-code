@@ -11,6 +11,7 @@ import {
   getMissingProjectorFieldsFromRow,
   type OrderPayload,
 } from "@/lib/validations/order";
+import type { OrderOperationalStatus } from "@/types/domain";
 
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
 
@@ -162,6 +163,33 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
 
   const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
   if (error) return { error: mapDbError(error, "No se pudo actualizar el estado del pedido.") };
+
+  revalidatePath("/pedidos");
+  revalidatePath(`/pedidos/${orderId}`);
+}
+
+/**
+ * Cambia el seguimiento operativo del pedido (THÖREN Fase 6H,
+ * 0033_order_operational_status.sql) — independiente de `status` de
+ * arriba (ver DECISIÓN en la migración). Mismo patrón que setOrderStatus:
+ * un UPDATE directo protegido únicamente por la RLS ya existente de
+ * `orders` (orders_update_own_or_admin) — sin RPC nueva. El historial
+ * (quién/cuándo) lo registra automáticamente el trigger
+ * trg_orders_operational_status_history en la base de datos; esta acción
+ * nunca escribe en order_operational_status_history directamente (esa
+ * tabla ni siquiera tiene policy de INSERT para `authenticated`).
+ */
+export async function setOrderOperationalStatus(
+  orderId: string,
+  operationalStatus: OrderOperationalStatus
+): Promise<OrderActionResult> {
+  const supabase = createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ operational_status: operationalStatus })
+    .eq("id", orderId);
+  if (error) return { error: mapDbError(error, "No se pudo actualizar el seguimiento del pedido.") };
 
   revalidatePath("/pedidos");
   revalidatePath(`/pedidos/${orderId}`);

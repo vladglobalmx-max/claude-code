@@ -70,6 +70,14 @@ export interface Database {
           product_type: string;
           product_type_name_snapshot: string | null;
           status: string;
+          // THÖREN Fase 6H (0033_order_operational_status.sql) — seguimiento
+          // operativo, INDEPENDIENTE de `status` (ver DECISIÓN en la
+          // migración): 'pedido'|'en_proceso'|'ordenado_a_proveedor'|
+          // 'en_transito'|'recibido'|'programado_entrega_instalacion'|
+          // 'completado'|'cancelado'. Default 'pedido'; cambiarlo genera
+          // automáticamente una fila en order_operational_status_history
+          // (trigger, nunca manual).
+          operational_status: string;
           general_notes: string | null;
           vendor_notes: string | null;
           vendor_notes_en: string | null;
@@ -130,6 +138,11 @@ export interface Database {
           // La calcula rpc_create_order/rpc_update_order internamente; no se envía desde la app.
           product_type_name_snapshot?: string | null;
           status?: string;
+          // Nunca se envía desde rpc_update_order (no está en su lista
+          // explícita de columnas) — solo el UPDATE directo de la app
+          // (setOrderOperationalStatus) la toca, vía la RLS ya existente de
+          // orders. Ver DECISIÓN en 0033_order_operational_status.sql.
+          operational_status?: string;
           general_notes?: string | null;
           vendor_notes?: string | null;
           vendor_notes_en?: string | null;
@@ -188,6 +201,42 @@ export interface Database {
             columns: ["business_unit_id"];
             isOneToOne: false;
             referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6H (0033_order_operational_status.sql) — historial de
+      // operational_status. INSERT-only vía trigger (SECURITY DEFINER); no
+      // hay policy de INSERT/UPDATE/DELETE para `authenticated`, así que el
+      // shape de Insert/Update de aquí abajo nunca se ejercita desde la app
+      // (documentado igual, por si algún día se necesita leer con tipos
+      // fuertes en un contexto server-only).
+      order_operational_status_history: {
+        Row: {
+          id: string;
+          order_id: string;
+          previous_status: string | null;
+          new_status: string;
+          changed_by_user_id: string | null;
+          changed_by_name: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          previous_status?: string | null;
+          new_status: string;
+          changed_by_user_id?: string | null;
+          changed_by_name?: string | null;
+          changed_at?: string;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["order_operational_status_history"]["Insert"], "id">>;
+        Relationships: [
+          {
+            foreignKeyName: "order_operational_status_history_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
             referencedColumns: ["id"];
           },
         ];

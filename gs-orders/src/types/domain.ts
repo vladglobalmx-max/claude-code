@@ -142,6 +142,69 @@ export const ORDER_STATUS_BADGE: Record<OrderStatus, "neutral" | "accent" | "suc
   cancelado: "danger",
 };
 
+/**
+ * THÖREN Fase 6H (0033_order_operational_status.sql) — seguimiento
+ * operativo de un pedido, INDEPENDIENTE de `OrderStatus` de arriba (ver
+ * DECISIÓN en la migración): `status` es el gate de captura (¿sigue siendo
+ * borrador editable? ¿ya se envió? ¿consumió folio?); `operational_status`
+ * es en qué paso de cumplimiento logístico va un pedido ya enviado. Ningún
+ * valor es terminal — las transiciones son libres, igual que `status` hoy
+ * (mismo criterio que OrderStatusQuickActions: es una herramienta de
+ * seguimiento, no un documento legal con estados terminales como Quotes).
+ */
+export type OrderOperationalStatus =
+  | "pedido"
+  | "en_proceso"
+  | "ordenado_a_proveedor"
+  | "en_transito"
+  | "recibido"
+  | "programado_entrega_instalacion"
+  | "completado"
+  | "cancelado";
+
+export const ORDER_OPERATIONAL_STATUS_LABELS: Record<OrderOperationalStatus, string> = {
+  pedido: "Pedido",
+  en_proceso: "En proceso",
+  ordenado_a_proveedor: "Ordenado a proveedor",
+  en_transito: "En tránsito",
+  recibido: "Recibido",
+  programado_entrega_instalacion: "Programado para entrega/instalación",
+  completado: "Completado",
+  cancelado: "Cancelado",
+};
+
+export const ORDER_OPERATIONAL_STATUS_BADGE: Record<
+  OrderOperationalStatus,
+  "neutral" | "accent" | "success" | "warning" | "danger"
+> = {
+  pedido: "neutral",
+  en_proceso: "accent",
+  ordenado_a_proveedor: "accent",
+  en_transito: "warning",
+  recibido: "accent",
+  programado_entrega_instalacion: "warning",
+  completado: "success",
+  cancelado: "danger",
+};
+
+/**
+ * Una fila de order_operational_status_history (0033) — INSERT-only vía
+ * trigger, nunca escrita directamente por la app. `changed_by_name` es un
+ * snapshot del nombre en el momento del cambio (igual criterio que
+ * client_name/product_type_name_snapshot en el resto del proyecto): si el
+ * usuario cambia de nombre o se desactiva después, el historial sigue
+ * mostrando quién lo hizo tal como se llamaba ese día.
+ */
+export interface OrderOperationalStatusHistoryEntry {
+  id: string;
+  order_id: string;
+  previous_status: OrderOperationalStatus | null;
+  new_status: OrderOperationalStatus;
+  changed_by_user_id: string | null;
+  changed_by_name: string | null;
+  changed_at: string;
+}
+
 export type SizeUnit = "m" | "cm";
 export type HeightUnit = "m" | "cm" | "pies";
 export type Orientation = "piso" | "pared" | "inclinado" | "otro";
@@ -329,6 +392,11 @@ export interface Order {
   order_date: string;
   client_name: string;
   supplier_name: string | null;
+  // THÖREN Fase 6H (0033_order_operational_status.sql) — seguimiento
+  // operativo, independiente de `status` (ver OrderOperationalStatus
+  // arriba). Cambiarlo genera una fila en order_operational_status_history
+  // automáticamente (trigger).
+  operational_status: OrderOperationalStatus;
   // Código estable del tipo de producto (product_types.code) — ver
   // 0010_product_types.sql. Ya no es un literal fijo: puede ser cualquier
   // código dado de alta desde Configuración → Tipos de producto. La UI

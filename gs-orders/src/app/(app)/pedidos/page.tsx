@@ -10,7 +10,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
-import { ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
+import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS, ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
 import type { ProductTypeItem, Salesperson } from "@/types/domain";
 import { OrderFilters } from "./order-filters";
 import { DuplicateButton } from "./duplicate-button";
@@ -26,6 +26,7 @@ interface OrderRow {
   product_type: string;
   product_type_name_snapshot: string | null;
   status: string;
+  operational_status: string;
   salesperson: { name: string; prefix: string } | { name: string; prefix: string }[] | null;
 }
 
@@ -55,7 +56,7 @@ export default async function PedidosPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, salesperson:salespeople(name, prefix)"
+      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, operational_status, salesperson:salespeople(name, prefix)"
     )
     .order("created_at", { ascending: false });
 
@@ -123,6 +124,13 @@ export default async function PedidosPage({
                 <p className="mt-2 text-xs text-ink-faint">
                   {salespersonName(order)} · {formatDateShort(order.order_date)}
                 </p>
+                <div className="mt-1.5">
+                  <StatusBadge
+                    status={order.operational_status as keyof typeof ORDER_OPERATIONAL_STATUS_LABELS}
+                    labels={ORDER_OPERATIONAL_STATUS_LABELS}
+                    variants={ORDER_OPERATIONAL_STATUS_BADGE}
+                  />
+                </div>
                 <div className="mt-3 flex items-center gap-1 border-t border-border pt-2">
                   <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver pedido">
                     <Eye className="h-4 w-4" />
@@ -155,6 +163,7 @@ export default async function PedidosPage({
                   <Th>Cliente</Th>
                   <Th>Tipo</Th>
                   <Th>Estado</Th>
+                  <Th>Seguimiento</Th>
                   <Th />
                 </Tr>
               </Thead>
@@ -172,6 +181,13 @@ export default async function PedidosPage({
                     <Td className="text-ink-soft">{order.product_type_name_snapshot ?? order.product_type}</Td>
                     <Td>
                       <StatusBadge status={order.status as keyof typeof ORDER_STATUS_LABELS} labels={ORDER_STATUS_LABELS} variants={ORDER_STATUS_BADGE} />
+                    </Td>
+                    <Td>
+                      <StatusBadge
+                        status={order.operational_status as keyof typeof ORDER_OPERATIONAL_STATUS_LABELS}
+                        labels={ORDER_OPERATIONAL_STATUS_LABELS}
+                        variants={ORDER_OPERATIONAL_STATUS_BADGE}
+                      />
                     </Td>
                     <Td>
                       <div className="flex items-center justify-end gap-3 text-sm">

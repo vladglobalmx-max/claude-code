@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { ArrowLeft, Pencil, Printer } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils/cn";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
+import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS } from "@/types/domain";
+import type { OrderOperationalStatusHistoryEntry } from "@/types/domain";
 import { DuplicateButton } from "../duplicate-button";
 import { OrderStatusQuickActions } from "./status-quick-actions";
+import { OrderOperationalStatusActions } from "./operational-status-actions";
+import { OrderOperationalStatusHistory } from "./operational-status-history";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +27,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function VerPedidoPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
+  const supabase = createSupabaseServerClient();
 
   let sourceQuoteFolio: string | null = null;
   if (detail.order.source_quote_id) {
-    const supabase = createSupabaseServerClient();
     const { data: sourceQuote } = await supabase
       .from("quotes")
       .select("folio")
@@ -33,6 +38,14 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
       .maybeSingle();
     sourceQuoteFolio = sourceQuote?.folio ?? null;
   }
+
+  // Seguimiento operativo (THÖREN Fase 6H) — más reciente primero.
+  const { data: operationalHistoryData } = await supabase
+    .from("order_operational_status_history")
+    .select("*")
+    .eq("order_id", detail.order.id)
+    .order("changed_at", { ascending: false });
+  const operationalHistory = (operationalHistoryData ?? []) as OrderOperationalStatusHistoryEntry[];
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -70,6 +83,27 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
           )}
         </p>
       )}
+
+      <Card className="no-print mb-6">
+        <CardHeader>
+          <CardTitle>Seguimiento operativo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge
+              status={detail.order.operational_status}
+              labels={ORDER_OPERATIONAL_STATUS_LABELS}
+              variants={ORDER_OPERATIONAL_STATUS_BADGE}
+              className="text-sm"
+            />
+            <OrderOperationalStatusActions order={detail.order} />
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">Historial</p>
+            <OrderOperationalStatusHistory entries={operationalHistory} />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6">

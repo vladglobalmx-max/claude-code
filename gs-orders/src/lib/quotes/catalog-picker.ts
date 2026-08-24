@@ -1,38 +1,36 @@
 import type { QuoteCurrency } from "@/types/domain";
 import type { QuoteCatalogProductOption, QuoteItemDraft } from "@/components/quotes/types";
+import {
+  isProductEligibleForBusinessUnit,
+  filterEligibleCatalogProducts as filterEligibleCatalogProductsShared,
+  searchCatalogProducts as searchCatalogProductsShared,
+  findIncompatibleItems as findIncompatibleItemsShared,
+  catalogProductsById as catalogProductsByIdShared,
+} from "@/lib/catalog/eligibility";
 
 /**
- * Lógica pura del selector de productos del Catálogo Maestro dentro del
- * Quote Builder (THÖREN Fase 6D — Integración Catálogo Maestro / Quote
- * Builder). Separada de los componentes React para poder probarla con
- * Vitest sin renderizar nada (mismo patrón que quote-totals.ts).
- *
- * Semántica de elegibilidad por Business Unit: idéntica a
- * product_business_units (0019_core_product_catalog_pricing.sql) — lista
- * vacía = compartido con TODAS las Business Units de la organización, 1+
- * ids = solo esas. NUNCA fuzzy, NUNCA se reinterpreta aquí.
+ * Lógica específica de Quotes sobre el selector de productos del Catálogo
+ * Maestro (THÖREN Fase 6D — Integración Catálogo Maestro / Quote Builder).
+ * Búsqueda/elegibilidad por Business Unit viven en src/lib/catalog/
+ * eligibility.ts (compartidas con Orders desde Fase 6F, pedido explícito
+ * de no duplicar esa lógica) — este archivo solo re-exporta esas funciones
+ * ya tipadas para QuoteCatalogProductOption/QuoteItemDraft, y agrega lo que
+ * SÍ es exclusivo de Quotes: precio (Orders no maneja dinero) y el
+ * snapshot inicial de una línea.
  */
 
-const canonicalize = (value: string) => value.trim().toLowerCase();
-
-export function isProductEligibleForBusinessUnit(businessUnitIds: string[], businessUnitId: string): boolean {
-  return businessUnitIds.length === 0 || businessUnitIds.includes(businessUnitId);
-}
+export { isProductEligibleForBusinessUnit };
 
 export function filterEligibleCatalogProducts(
   products: QuoteCatalogProductOption[],
   businessUnitId: string
 ): QuoteCatalogProductOption[] {
-  return products.filter((p) => isProductEligibleForBusinessUnit(p.businessUnitIds, businessUnitId));
+  return filterEligibleCatalogProductsShared(products, businessUnitId);
 }
 
 /** Búsqueda por SKU, nombre, modelo o marca — substring, insensible a mayúsculas, NUNCA fuzzy. */
 export function searchCatalogProducts(products: QuoteCatalogProductOption[], query: string): QuoteCatalogProductOption[] {
-  const q = canonicalize(query);
-  if (!q) return products;
-  return products.filter((p) =>
-    [p.sku, p.name, p.model, p.brand].some((field) => field && canonicalize(field).includes(q))
-  );
+  return searchCatalogProductsShared(products, query);
 }
 
 /**
@@ -92,21 +90,12 @@ export interface IncompatibleQuoteItem {
  */
 export function findIncompatibleItems(
   items: QuoteItemDraft[],
-  catalogProductsById: Map<string, QuoteCatalogProductOption>,
+  catalogProductsByIdMap: Map<string, QuoteCatalogProductOption>,
   businessUnitId: string
 ): IncompatibleQuoteItem[] {
-  const incompatible: IncompatibleQuoteItem[] = [];
-  for (const item of items) {
-    if (!item.catalogProductId) continue;
-    const product = catalogProductsById.get(item.catalogProductId);
-    if (!product) continue;
-    if (!isProductEligibleForBusinessUnit(product.businessUnitIds, businessUnitId)) {
-      incompatible.push({ item, product });
-    }
-  }
-  return incompatible;
+  return findIncompatibleItemsShared(items, catalogProductsByIdMap, businessUnitId);
 }
 
 export function catalogProductsById(products: QuoteCatalogProductOption[]): Map<string, QuoteCatalogProductOption> {
-  return new Map(products.map((p) => [p.id, p]));
+  return catalogProductsByIdShared(products);
 }

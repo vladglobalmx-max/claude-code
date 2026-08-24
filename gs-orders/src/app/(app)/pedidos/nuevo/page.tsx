@@ -17,34 +17,64 @@ export default async function NuevoPedidoPage() {
   // Para VENDEDOR, RLS (0011) ya limita esta consulta a su propia fila sin
   // importar el filtro .eq("active", true) que sigue aquí para el caso
   // ADMIN (lista completa de vendedores activos para elegir).
-  const [{ data }, { data: catalogData }, { data: productTypesData }] = await Promise.all([
-    supabase.from("salespeople").select("*").eq("active", true).order("name", { ascending: true }),
-    supabase
-      .from("product_catalog")
-      .select("*")
-      .eq("active", true)
-      .order("category", { ascending: true })
-      .order("name", { ascending: true }),
-    supabase.from("product_types").select("*").eq("active", true).order("name", { ascending: true }),
-  ]);
+  //
+  // Fase 6F — catálogo homologado con el Quote Builder (Fase 6D): se
+  // agrega el join a product_types (nombre legible) y a
+  // product_business_units (elegibilidad por BU); un pedido nuevo solo
+  // puede seleccionar catálogo ACTIVO — el histórico inactivo solo aplica
+  // a un Order ya existente (ver pedidos/[id]/editar/page.tsx).
+  const [{ data }, { data: catalogData }, { data: catalogBuData }, { data: productTypesData }, { data: businessUnitsData }] =
+    await Promise.all([
+      supabase.from("salespeople").select("*").eq("active", true).order("name", { ascending: true }),
+      supabase
+        .from("product_catalog")
+        .select("*, product_types(name)")
+        .eq("active", true)
+        .order("category", { ascending: true })
+        .order("name", { ascending: true }),
+      supabase.from("product_business_units").select("product_id, business_unit_id"),
+      supabase.from("product_types").select("*").eq("active", true).order("name", { ascending: true }),
+      supabase.from("business_units").select("id, name").eq("active", true).order("name", { ascending: true }),
+    ]);
 
   const salespeople = (data ?? []) as Salesperson[];
   const productTypes = (productTypesData ?? []) as ProductTypeItem[];
-  const catalogRows = (catalogData ?? []) as ProductCatalogItem[];
+  const businessUnits = (businessUnitsData ?? []) as { id: string; name: string }[];
+
+  const businessUnitNamesById = new Map(businessUnits.map((bu) => [bu.id, bu.name]));
+  const businessUnitIdsByProduct = new Map<string, string[]>();
+  for (const row of (catalogBuData ?? []) as { product_id: string; business_unit_id: string }[]) {
+    const list = businessUnitIdsByProduct.get(row.product_id) ?? [];
+    list.push(row.business_unit_id);
+    businessUnitIdsByProduct.set(row.product_id, list);
+  }
+
+  type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null };
+  const catalogRows = (catalogData ?? []) as unknown as CatalogRow[];
   const catalogImagePaths = catalogRows.map((p) => p.image_path).filter((p): p is string => !!p);
   const catalogImageUrls = await getSignedUrls("order-media", catalogImagePaths);
-  const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => ({
-    id: p.id,
-    category: p.category ?? "",
-    sku: p.sku,
-    name: p.name,
-    description: p.description,
-    power: p.power,
-    color: p.color,
-    technicalNotes: p.technical_notes,
-    imagePath: p.image_path,
-    imagePreviewUrl: p.image_path ? catalogImageUrls[p.image_path] ?? null : null,
-  }));
+  const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => {
+    const businessUnitIds = businessUnitIdsByProduct.get(p.id) ?? [];
+    return {
+      id: p.id,
+      category: p.category ?? "",
+      sku: p.sku,
+      name: p.name,
+      description: p.description,
+      model: p.model,
+      brand: p.brand,
+      unit: p.unit,
+      productTypeName: p.product_types?.name ?? null,
+      power: p.power,
+      color: p.color,
+      technicalNotes: p.technical_notes,
+      active: p.active,
+      businessUnitIds,
+      businessUnitNames: businessUnitIds.map((id) => businessUnitNamesById.get(id) ?? "—"),
+      imagePath: p.image_path,
+      imagePreviewUrl: p.image_path ? catalogImageUrls[p.image_path] ?? null : null,
+    };
+  });
 
   const orderId = randomUUID();
   const today = getBusinessToday();
@@ -67,6 +97,7 @@ export default async function NuevoPedidoPage() {
       <OrderForm
         orderId={orderId}
         salespeople={salespeople}
+        businessUnits={businessUnits}
         catalogProducts={catalogProducts}
         productTypes={productTypes}
         initialState={initialState}

@@ -10,16 +10,27 @@ import type { OrderFormState } from "./types";
 export function DatosGeneralesSection({
   state,
   salespeople,
+  businessUnits,
   productTypes,
   onChange,
+  onBusinessUnitChange,
   folioPreview,
   locked = false,
   canChooseSalesperson = true,
 }: {
   state: OrderFormState;
   salespeople: Salesperson[];
+  /** Fase 6F — para el selector de Business Unit del Order. */
+  businessUnits: { id: string; name: string }[];
   productTypes: ProductTypeItem[];
   onChange: (patch: Partial<OrderFormState>) => void;
+  /**
+   * Fase 6F — cambio de Business Unit pasa por el padre (OrderForm) en vez
+   * de `onChange` directo: OrderForm debe poder bloquear el cambio si hay
+   * líneas de catálogo que dejarían de ser válidas (§5), nunca eliminarlas
+   * en silencio.
+   */
+  onBusinessUnitChange: (businessUnitId: string) => void;
   folioPreview: string | null;
   locked?: boolean;
   /** false para VENDEDOR: el vendedor del pedido siempre es él mismo, nunca un selector (ver Fase 3). */
@@ -75,6 +86,25 @@ export function DatosGeneralesSection({
           {!locked && !canChooseSalesperson && (
             <p className="mt-1 text-xs text-ink-faint">El pedido se genera a tu nombre automáticamente.</p>
           )}
+        </div>
+
+        <div>
+          <Label htmlFor="business_unit">Business Unit</Label>
+          <Select
+            id="business_unit"
+            value={state.businessUnitId}
+            onChange={(e) => onBusinessUnitChange(e.target.value)}
+          >
+            <option value="">Sin elegir</option>
+            {businessUnits.map((bu) => (
+              <option key={bu.id} value={bu.id}>
+                {bu.name}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-ink-faint">
+            Necesaria para poder buscar productos del Catálogo Maestro en la pestaña Productos.
+          </p>
         </div>
 
         <div>

@@ -20,6 +20,13 @@ export const orderItemSchema = z.object({
   catalog_product_id: z.string().uuid().nullable().optional(),
   color: z.string().trim().optional(),
 
+  // Datos operativos por línea (0029, Fase 6F). `unit` se autocompleta
+  // desde product_catalog.unit al elegir un producto del catálogo (sigue
+  // editable); `customer_requirements` es captura operativa manual, nunca
+  // se infiere del catálogo.
+  unit: z.string().trim().optional(),
+  customer_requirements: z.string().trim().optional(),
+
   // Especificaciones técnicas del equipo (antes vivían una sola vez en el
   // pedido; ahora cada producto tiene las suyas — ver 0006_item_projection.sql).
   power: z.string().trim().optional(),
@@ -73,6 +80,11 @@ export const orderFileSchema = z.object({
 export const orderPayloadSchema = z.object({
   order_date: z.string().min(1, "La fecha es obligatoria"),
   salesperson_id: z.string().uuid("Selecciona un vendedor"),
+  // Nullable a propósito (0022_orders_v2_foundation.sql, Fase 6F): un
+  // Order puede no tener Business Unit elegida — el chequeo de elegibilidad
+  // de catálogo por BU (0032) se omite por completo en ese caso, nunca se
+  // inventa un valor.
+  business_unit_id: z.string().uuid().nullable().optional(),
   client_name: z.string().trim().min(1, "El cliente es obligatorio"),
   supplier_name: z.string().trim().optional(),
   // Ya no es un enum fijo: los tipos válidos viven en product_types (ver

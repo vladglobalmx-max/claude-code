@@ -30,6 +30,7 @@ export function buildOrderFormState(
   return {
     orderDate: order.order_date,
     salespersonId: order.salesperson_id,
+    businessUnitId: order.business_unit_id ?? "",
     clientName: order.client_name,
     supplierName: order.supplier_name ?? "",
     productType: order.product_type,
@@ -60,6 +61,8 @@ export function buildOrderFormState(
           referenceImages,
           catalogProductId: item.catalog_product_id,
           color: item.color ?? "",
+          unit: item.unit ?? "",
+          customerRequirements: item.customer_requirements ?? "",
           power: item.power ?? "",
           lensType: item.lens_pending_factory ? "" : item.lens_type ?? "",
           lensPendingFactory: item.lens_pending_factory,

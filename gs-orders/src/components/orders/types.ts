@@ -22,7 +22,23 @@ export interface MediaDraft {
 /**
  * Producto del catálogo administrable, ya con la imagen resuelta a una URL
  * firmada — para mostrar en el selector de Nuevo Pedido / Editar (ver
- * catalog-product-picker.tsx). Solo incluye catálogo activo.
+ * catalog-product-picker.tsx).
+ *
+ * Fase 6F (homologación con el Quote Builder de Fase 6D): `model`/`brand`
+ * reutilizan las columnas reales del Catálogo Maestro (0030); `unit` se
+ * usa para autocompletar order_items.unit; `productTypeName` y
+ * `businessUnitNames` son solo metadata para mostrar/filtrar en el
+ * picker — `businessUnitNames` nunca se copia a order_items, es
+ * display únicamente (mismo criterio que Product Type en Quotes, Fase 6D).
+ * `businessUnitIds` es la elegibilidad real (0 = TODAS, 1+ = solo esas).
+ *
+ * La lista de productos que llega aquí NO se limita a `active = true`:
+ * las páginas de Nuevo/Editar Pedido incluyen también, cuando aplica, el
+ * o los productos inactivos que un Order YA tiene asociados (ver
+ * DECISIÓN "producto histórico inactivo", Fase 6F) — `active` viaja
+ * explícito para que el picker pueda ocultar exclusivamente los inactivos
+ * de la lista de SELECCIÓN nueva sin perder la capacidad de mostrar
+ * correctamente una línea ya existente.
  */
 export interface CatalogProductOption {
   id: string;
@@ -30,9 +46,16 @@ export interface CatalogProductOption {
   sku: string;
   name: string;
   description: string | null;
+  model: string | null;
+  brand: string | null;
+  unit: string | null;
+  productTypeName: string | null;
   power: string | null;
   color: string | null;
   technicalNotes: string | null;
+  active: boolean;
+  businessUnitIds: string[];
+  businessUnitNames: string[];
   imagePath: string | null;
   imagePreviewUrl: string | null;
 }
@@ -52,6 +75,15 @@ export interface ProductItemDraft {
   // nunca se vuelve a consultar el catálogo para este producto.
   catalogProductId: string | null;
   color: string;
+
+  /**
+   * Datos operativos por línea (0029, Fase 6F). `unit` se autocompleta
+   * desde product_catalog.unit al elegir del catálogo (sigue editable);
+   * `customerRequirements` es captura operativa manual, nunca se infiere
+   * del catálogo.
+   */
+  unit: string;
+  customerRequirements: string;
 
   // Especificaciones técnicas del equipo (potencia aplica a cualquier
   // producto; lente/pendiente-de-fábrica solo cuando el pedido es
@@ -86,6 +118,16 @@ export interface ProductItemDraft {
 export interface OrderFormState {
   orderDate: string;
   salespersonId: string;
+  /**
+   * Fase 6F — antes no existía en el Order Form (orders.business_unit_id
+   * siempre quedaba NULL para un pedido manual, ver DECISIÓN "Business
+   * Unit nula" de 0032). "" = sin elegir; el picker de catálogo exige una
+   * Business Unit seleccionada antes de habilitarse (Fase 6F §4). A
+   * diferencia de salespersonId/orderDate, business_unit_id NO se congela
+   * al generar folio — rpc_update_order ya lo permite editar (0022,
+   * "ausente ≠ null"), así que sigue editable en modo edición.
+   */
+  businessUnitId: string;
   clientName: string;
   supplierName: string;
   // Código de product_types.code (administrable, ver 0010_product_types.sql) — ya no un literal fijo.
@@ -110,6 +152,8 @@ export function emptyProductItem(): ProductItemDraft {
     referenceImages: [],
     catalogProductId: null,
     color: "",
+    unit: "",
+    customerRequirements: "",
     power: "",
     lensType: "",
     lensPendingFactory: false,
@@ -135,6 +179,7 @@ export function emptyOrderForm(defaultDate: string): OrderFormState {
   return {
     orderDate: defaultDate,
     salespersonId: "",
+    businessUnitId: "",
     clientName: "",
     supplierName: "",
     productType: "proyector_gobo",

@@ -25,6 +25,11 @@ function buildOrderRow(payload: OrderPayload) {
   return {
     salesperson_id: payload.salesperson_id,
     order_date: payload.order_date,
+    // Siempre se incluye la clave (nunca se omite) aunque venga null:
+    // rpc_update_order distingue "ausente" (preserva el valor actual) de
+    // "presente con null" (limpia la selección) — omitir la clave aquí
+    // impediría que el usuario pueda quitar la Business Unit ya elegida.
+    business_unit_id: payload.business_unit_id ?? null,
     client_name: payload.client_name,
     supplier_name: payload.supplier_name || null,
     product_type: payload.product_type,

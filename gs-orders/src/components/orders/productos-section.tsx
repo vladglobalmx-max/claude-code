@@ -13,15 +13,19 @@ import { uploadMediaFile } from "./media-client";
 import { CatalogProductPicker } from "./catalog-product-picker";
 import { ORIENTATION_LABELS, SURFACE_MATERIAL_LABELS, SURFACE_TYPE_LABELS, USE_LABELS } from "@/types/domain";
 import { emptyProductItem, type CatalogProductOption, type ProductItemDraft } from "./types";
+import { buildItemPatchFromCatalogProduct, catalogProductsById } from "@/lib/orders/catalog-picker";
 
 export function ProductosSection({
   orderId,
+  businessUnitId,
   items,
   isProjector,
   catalogProducts,
   onChange,
 }: {
   orderId: string;
+  /** "" = sin elegir — el picker de catálogo exige una Business Unit antes de habilitarse (Fase 6F §4). */
+  businessUnitId: string;
   items: ProductItemDraft[];
   isProjector: boolean;
   catalogProducts: CatalogProductOption[];
@@ -39,13 +43,17 @@ export function ProductosSection({
     onChange(items.filter((item) => item.key !== key));
   }
 
+  const productsById = catalogProductsById(catalogProducts);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Productos</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {items.map((item, index) => (
+        {items.map((item, index) => {
+          const linkedProduct = item.catalogProductId ? productsById.get(item.catalogProductId) : undefined;
+          return (
           <div key={item.key} className="rounded-lg border border-border p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-faint">
@@ -62,6 +70,22 @@ export function ProductosSection({
                 </button>
               )}
             </div>
+
+            {linkedProduct?.imagePreviewUrl && (
+              <div className="mb-3 flex items-center gap-2 text-xs text-ink-faint">
+                {/* Miniatura del catálogo — nunca se copia el archivo, solo se muestra (Fase 6F §9). */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={linkedProduct.imagePreviewUrl}
+                  alt={linkedProduct.name}
+                  className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
+                />
+                <span>
+                  Producto del catálogo: {linkedProduct.sku}
+                  {!linkedProduct.active && " (desactivado en el catálogo — esta línea histórica se conserva sin cambios)"}
+                </span>
+              </div>
+            )}
 
             {/* ---- Equipo ---- */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -98,14 +122,10 @@ export function ProductosSection({
                 <div className="sm:col-span-2">
                   <CatalogProductPicker
                     products={catalogProducts}
+                    businessUnitId={businessUnitId}
                     onSelect={(product) =>
                       updateItem(item.key, {
-                        model: product.sku,
-                        description: product.name,
-                        power: product.power ?? "",
-                        color: product.color ?? "",
-                        notes: item.notes || product.technicalNotes || "",
-                        catalogProductId: product.id,
+                        ...buildItemPatchFromCatalogProduct(product, item.notes),
                         image: product.imagePath
                           ? {
                               key: crypto.randomUUID(),
@@ -150,6 +170,27 @@ export function ProductosSection({
                   rows={2}
                   value={item.description}
                   onChange={(e) => updateItem(item.key, { description: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor={`unit-${item.key}`}>Unidad (opcional)</Label>
+                <Input
+                  id={`unit-${item.key}`}
+                  value={item.unit}
+                  onChange={(e) => updateItem(item.key, { unit: e.target.value })}
+                  placeholder="Ej. pza, caja, servicio"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor={`customer-requirements-${item.key}`}>Requisitos del cliente (opcional)</Label>
+                <Textarea
+                  id={`customer-requirements-${item.key}`}
+                  rows={2}
+                  value={item.customerRequirements}
+                  onChange={(e) => updateItem(item.key, { customerRequirements: e.target.value })}
+                  placeholder="Color, dimensiones, instalación, indicaciones particulares…"
                 />
               </div>
 
@@ -447,7 +488,8 @@ export function ProductosSection({
               </>
             )}
           </div>
-        ))}
+          );
+        })}
 
         <Button type="button" variant="outline" onClick={addItem}>
           <Plus className="h-4 w-4" />

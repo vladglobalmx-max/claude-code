@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
 import { computeFolioPreview } from "@/lib/folio-preview";
+import { catalogProductsById, findIncompatibleItems } from "@/lib/orders/catalog-picker";
 import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
 import { DatosGeneralesSection } from "./datos-generales-section";
@@ -31,6 +32,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
   return {
     order_date: state.orderDate,
     salesperson_id: state.salespersonId,
+    business_unit_id: state.businessUnitId || null,
     client_name: state.clientName,
     supplier_name: state.supplierName || undefined,
     product_type: state.productType,
@@ -47,6 +49,8 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       reference_images: item.referenceImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
       catalog_product_id: !isProjector ? item.catalogProductId : null,
       color: !isProjector ? item.color || undefined : undefined,
+      unit: item.unit || undefined,
+      customer_requirements: item.customerRequirements || undefined,
       power: item.power || undefined,
       lens_type: isProjector ? item.lensType || undefined : undefined,
       lens_pending_factory: isProjector ? item.lensPendingFactory : undefined,
@@ -81,6 +85,7 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
 export function OrderForm({
   orderId,
   salespeople,
+  businessUnits,
   catalogProducts,
   productTypes,
   initialState,
@@ -91,6 +96,8 @@ export function OrderForm({
 }: {
   orderId: string;
   salespeople: Salesperson[];
+  /** Fase 6F — Business Units de la organización, para el selector de datos generales. */
+  businessUnits: { id: string; name: string }[];
   catalogProducts: CatalogProductOption[];
   productTypes: ProductTypeItem[];
   initialState: OrderFormState;
@@ -109,6 +116,33 @@ export function OrderForm({
 
   function patch(p: Partial<OrderFormState>) {
     setState((prev) => ({ ...prev, ...p }));
+  }
+
+  const productsById = useMemo(() => catalogProductsById(catalogProducts), [catalogProducts]);
+
+  /**
+   * Bloquea el cambio de Business Unit del Order (Fase 6F §5) si alguna
+   * línea ya elegida del catálogo dejaría de ser válida para la nueva BU.
+   * A diferencia de Quotes, business_unit_id de un Order NUNCA queda
+   * inmutable por generar folio (0022/0032 lo permiten editar siempre vía
+   * rpc_update_order) — este bloqueo aplica tanto en crear como en editar.
+   * Nunca elimina líneas en silencio: si hay incompatibles, se rechaza el
+   * cambio y se explica cuáles hay que quitar primero.
+   */
+  function tryChangeBusinessUnit(businessUnitId: string) {
+    if (!businessUnitId || businessUnitId === state.businessUnitId) {
+      patch({ businessUnitId });
+      return;
+    }
+    const incompatible = findIncompatibleItems(state.items, productsById, businessUnitId);
+    if (incompatible.length > 0) {
+      const names = incompatible.map(({ product }) => product.name).join(", ");
+      toast.error(
+        `No puedes cambiar de Business Unit: ${names} no ${incompatible.length === 1 ? "está disponible" : "están disponibles"} para la nueva Business Unit. Quita esa línea primero.`
+      );
+      return;
+    }
+    patch({ businessUnitId });
   }
 
   const activeSalesperson = salespeople.find((sp) => sp.id === state.salespersonId);
@@ -182,8 +216,10 @@ export function OrderForm({
           <DatosGeneralesSection
             state={state}
             salespeople={salespeople}
+            businessUnits={businessUnits}
             productTypes={productTypes}
             onChange={patch}
+            onBusinessUnitChange={tryChangeBusinessUnit}
             folioPreview={folioPreview}
             locked={!!folio}
             canChooseSalesperson={canChooseSalesperson}
@@ -193,6 +229,7 @@ export function OrderForm({
         <TabsContent value="productos">
           <ProductosSection
             orderId={orderId}
+            businessUnitId={state.businessUnitId}
             items={state.items}
             isProjector={state.productType === "proyector_gobo"}
             catalogProducts={catalogProducts}

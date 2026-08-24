@@ -225,6 +225,15 @@ export interface OrderItem {
   catalog_product_id: string | null;
   color: string | null;
 
+  /**
+   * Datos operativos por línea (0029_quote_order_hardening.sql, Fase 6F).
+   * `unit` se autocompleta desde product_catalog.unit al elegir un
+   * producto del catálogo (sigue editable); `customer_requirements` es
+   * captura operativa manual, nunca se infiere del catálogo.
+   */
+  unit: string | null;
+  customer_requirements: string | null;
+
   // Especificaciones técnicas del equipo (solo aplica si el pedido es
   // proyector_gobo). Antes vivían una sola vez en `orders`; ahora cada
   // producto tiene las suyas, porque un pedido puede incluir varios

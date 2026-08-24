@@ -378,7 +378,12 @@ export interface Database {
       product_catalog: {
         Row: {
           id: string;
-          category: string;
+          // Fase 6C (0030_product_catalog_master.sql): category se volvió
+          // nullable — product_type_id es el nuevo eje de clasificación
+          // primario para productos nuevos (reutiliza product_types, ver
+          // más abajo); category se conserva intacta para filas ya
+          // existentes, sin backfill.
+          category: string | null;
           sku: string;
           name: string;
           description: string | null;
@@ -393,10 +398,14 @@ export interface Database {
           active: boolean;
           created_at: string;
           updated_at: string;
+          product_type_id: string | null;
+          brand: string | null;
+          model: string | null;
+          unit: string | null;
         };
         Insert: {
           id?: string;
-          category: string;
+          category?: string | null;
           sku: string;
           name: string;
           description?: string | null;
@@ -411,6 +420,10 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          product_type_id?: string | null;
+          brand?: string | null;
+          model?: string | null;
+          unit?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["product_catalog"]["Insert"]>;
         Relationships: [
@@ -419,6 +432,13 @@ export interface Database {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_catalog_product_type_id_fkey";
+            columns: ["product_type_id"];
+            isOneToOne: false;
+            referencedRelation: "product_types";
             referencedColumns: ["id"];
           },
         ];
@@ -1067,6 +1087,17 @@ export interface Database {
       rpc_delete_order: {
         Args: { p_order_id: string };
         Returns: { orphaned_media_paths: string[]; orphaned_file_paths: string[] }[];
+      };
+      // Fase 6C (0030_product_catalog_master.sql) — INSERT/UPDATE atómico
+      // del Catálogo de Productos. SECURITY INVOKER, sujeto a
+      // product_catalog_admin_write (ADMIN-only). Cada elemento de
+      // p_products: { action: 'insert'|'update', id?, sku, name,
+      // description?, product_type_id?, brand?, model?, unit?,
+      // currency: 'MXN'|'USD', base_price?, active, business_unit_id? }.
+      // Cualquier fila inválida aborta TODA la llamada.
+      rpc_import_product_catalog: {
+        Args: { p_products: Json };
+        Returns: { sku: string; action: string; product_id: string }[];
       };
       admin_list_user_profiles: {
         Args: Record<string, never>;

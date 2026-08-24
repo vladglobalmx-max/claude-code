@@ -35,7 +35,7 @@ export default async function NuevoPedidoPage() {
   const catalogImageUrls = await getSignedUrls("order-media", catalogImagePaths);
   const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => ({
     id: p.id,
-    category: p.category,
+    category: p.category ?? "",
     sku: p.sku,
     name: p.name,
     description: p.description,

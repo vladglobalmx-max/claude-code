@@ -102,7 +102,7 @@ export default async function NuevaCotizacionPage() {
 
   const catalogProducts: QuoteCatalogProductOption[] = ((catalogData ?? []) as ProductCatalogItem[]).map((p) => ({
     id: p.id,
-    category: p.category,
+    category: p.category ?? "",
     sku: p.sku,
     name: p.name,
     defaultPriceMxn: p.default_price_mxn,

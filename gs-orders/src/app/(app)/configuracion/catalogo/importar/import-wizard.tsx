@@ -10,30 +10,29 @@ import { Badge } from "@/components/ui/badge";
 import {
   parseProductImportRow,
   classifyProductRows,
+  formatBusinessUnitCell,
   type ImportRowError,
   type ParsedProductRow,
-  type ValidProductRow,
-  type DuplicateProductRow,
+  type ClassifiedProductRow,
 } from "@/lib/products/import-parsing";
 import { getProductImportCandidates, commitProductImport, type ImportCommitResult } from "./actions";
 
 /**
- * Wizard de importación de Productos — mismo patrón exacto que
- * ImportWizard de Clientes (clientes/importar/import-wizard.tsx):
+ * Wizard de importación del Catálogo Maestro de Productos (Fase 6C) —
  * parseo/preview 100% client-side con read-excel-file/browser (ya
- * instalado, sin dependencias nuevas), candidatos leídos del servidor
- * antes de construir el preview, commit final vía Server Action. Más
- * simple que el de Clientes: sin "resolución" por fila — un duplicado
- * simplemente no se importa, esta fase es INSERT de productos nuevos, no
- * actualización masiva (fuera de alcance explícito).
+ * instalado), candidatos leídos del servidor antes de construir el
+ * preview, commit final vía Server Action → RPC atómico. A diferencia de
+ * la fase anterior: clasifica NUEVO/ACTUALIZAR/SIN CAMBIOS/ERROR con diff
+ * real (no solo "duplicado, se omite"), y CUALQUIER error bloquea TODA la
+ * importación — el botón "Importar" queda deshabilitado mientras existan
+ * filas con error, no solo las excluye en silencio.
  */
 export function ImportWizard() {
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
   const [isLoading, setIsLoading] = useState(false);
   const [rowErrors, setRowErrors] = useState<ImportRowError[]>([]);
   const [totalRows, setTotalRows] = useState(0);
-  const [validRows, setValidRows] = useState<ValidProductRow[]>([]);
-  const [duplicateRows, setDuplicateRows] = useState<DuplicateProductRow[]>([]);
+  const [classified, setClassified] = useState<ClassifiedProductRow[]>([]);
   const [result, setResult] = useState<ImportCommitResult | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
@@ -60,16 +59,16 @@ export function ImportWizard() {
         return;
       }
 
-      const { valid, duplicates, errors: classifyErrors } = classifyProductRows(
+      const { classified: classifiedRows, errors: classifyErrors } = classifyProductRows(
         parsedRows,
         candidatesResult.businessUnits,
-        candidatesResult.existingSkus
+        candidatesResult.productTypes,
+        candidatesResult.existingProducts
       );
 
       setTotalRows(parsedRows.length + parsedErrors.length);
       setRowErrors([...parsedErrors, ...classifyErrors].sort((a, b) => a.rowNumber - b.rowNumber));
-      setValidRows(valid);
-      setDuplicateRows(duplicates);
+      setClassified(classifiedRows);
       setStep("preview");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo leer el archivo. Verifica que sea un .xlsx válido.");
@@ -78,18 +77,30 @@ export function ImportWizard() {
     }
   }
 
+  const newRows = classified.filter((r) => r.classification === "new");
+  const updateRows = classified.filter((r) => r.classification === "update");
+  const unchangedRows = classified.filter((r) => r.classification === "unchanged");
+  const hasBlockingErrors = rowErrors.length > 0;
+  const rowsToImport = [...newRows, ...updateRows];
+
   async function handleConfirm() {
+    if (hasBlockingErrors) return;
     setIsCommitting(true);
     try {
       const commitResult = await commitProductImport(
-        validRows.map((r) => ({
-          businessUnitId: r.businessUnitId,
-          category: r.category,
+        rowsToImport.map((r) => ({
+          action: r.classification === "new" ? "insert" : "update",
+          existingId: r.existingId,
           sku: r.sku,
           name: r.name,
           description: r.description,
-          priceMxn: r.priceMxn,
-          priceUsd: r.priceUsd,
+          businessUnitIds: r.businessUnitIds,
+          productTypeId: r.productTypeId,
+          brand: r.brand,
+          model: r.model,
+          unit: r.unit,
+          currency: r.currency,
+          basePrice: r.basePrice,
           active: r.active,
         }))
       );
@@ -140,66 +151,51 @@ export function ImportWizard() {
             <CardTitle>2. Revisa antes de importar</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <Stat label="Total filas" value={totalRows} />
-              <Stat label="Productos nuevos" value={validRows.length} />
-              <Stat label="Posibles duplicados" value={duplicateRows.length} />
-              <Stat label="Errores" value={rowErrors.length} />
+              <Stat label="Nuevos" value={newRows.length} />
+              <Stat label="Actualizaciones" value={updateRows.length} />
+              <Stat label="Sin cambios" value={unchangedRows.length} />
+              <Stat label="Errores" value={rowErrors.length} accent={rowErrors.length > 0 ? "danger" : undefined} />
             </div>
           </CardContent>
         </Card>
 
-        {rowErrors.length > 0 && (
+        {hasBlockingErrors && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-danger">
                 <FileWarning className="h-4 w-4" />
-                Filas con error (no se importarán)
+                Filas con error — la importación está bloqueada
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="mb-2 text-sm text-ink-soft">
+                Corrige estas filas en el Excel y vuelve a subirlo. Mientras existan errores, no se importa nada.
+              </p>
               <ul className="space-y-1 text-sm text-danger">
                 {rowErrors.map((e) => (
-                  <li key={e.rowNumber}>{e.message}</li>
+                  <li key={`${e.rowNumber}-${e.message}`}>{e.message}</li>
                 ))}
               </ul>
             </CardContent>
           </Card>
         )}
 
-        {duplicateRows.length > 0 && (
+        {newRows.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm text-ink">Posibles duplicados (no se importarán)</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-sm text-ink">
+                <Badge variant="success">Nuevo</Badge>
+                Productos que se crearán
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1.5 text-sm">
-                {duplicateRows.map((d) => (
-                  <li key={d.rowNumber} className="flex flex-wrap items-center gap-2">
-                    <span className="text-ink-soft">
-                      Fila {d.rowNumber}: modelo <span className="font-mono">{d.sku}</span> ({d.name})
-                    </span>
-                    <Badge variant="warning">
-                      {d.reason === "existing" ? "ya existe en el catálogo" : "repetido en el mismo archivo"}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {validRows.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-ink">Productos que se importarán</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1.5 text-sm">
-                {validRows.map((r) => (
+                {newRows.map((r) => (
                   <li key={r.rowNumber} className="text-ink-soft">
                     Fila {r.rowNumber}: <span className="font-mono">{r.sku}</span> — {r.name} ·{" "}
-                    <span className="text-ink-faint">{r.businessUnitName}</span>
+                    <span className="text-ink-faint">{formatBusinessUnitCell(r.businessUnitNames)}</span>
                   </li>
                 ))}
               </ul>
@@ -207,14 +203,68 @@ export function ImportWizard() {
           </Card>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" loading={isCommitting} disabled={isCommitting || validRows.length === 0} onClick={handleConfirm}>
-            Importar productos
+        {updateRows.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm text-ink">
+                <Badge variant="warning">Actualizar</Badge>
+                Productos que se actualizarán
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {updateRows.map((r) => (
+                  <li key={r.rowNumber} className="text-ink-soft">
+                    <div>
+                      Fila {r.rowNumber}: <span className="font-mono">{r.sku}</span> — {r.name}
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {r.changedFields.map((field) => (
+                        <Badge key={field} variant="neutral">
+                          {field}
+                        </Badge>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {unchangedRows.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm text-ink">Sin cambios (no se tocarán)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm text-ink-faint">
+                {unchangedRows.map((r) => (
+                  <li key={r.rowNumber}>
+                    Fila {r.rowNumber}: <span className="font-mono">{r.sku}</span> — {r.name}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            loading={isCommitting}
+            disabled={isCommitting || hasBlockingErrors || rowsToImport.length === 0}
+            onClick={handleConfirm}
+          >
+            Importar {rowsToImport.length} producto{rowsToImport.length === 1 ? "" : "s"}
           </Button>
           <Button type="button" variant="outline" onClick={() => setStep("upload")}>
             <ArrowLeft className="h-4 w-4" />
             Elegir otro archivo
           </Button>
+          {hasBlockingErrors && (
+            <span className="text-xs text-danger">Corrige los errores antes de poder importar.</span>
+          )}
         </div>
       </div>
     );
@@ -226,21 +276,15 @@ export function ImportWizard() {
         <CardTitle>Importación completada</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Stat label="Productos importados" value={result?.productsCreated ?? 0} />
-          <Stat label="Duplicados omitidos" value={duplicateRows.length} />
-          <Stat label="Filas con error" value={rowErrors.length + (result?.errors.length ?? 0)} />
-        </div>
-        {result && result.errors.length > 0 && (
-          <div>
-            <p className="mb-1 text-sm font-medium text-danger">Errores durante la importación</p>
-            <ul className="space-y-1 text-sm text-danger">
-              {result.errors.map((e, i) => (
-                <li key={i}>
-                  {e.row}: {e.message}
-                </li>
-              ))}
-            </ul>
+        {result?.error ? (
+          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {result.error}
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Stat label="Productos escritos" value={result?.productsWritten ?? 0} />
+            <Stat label="Nuevos" value={newRows.length} />
+            <Stat label="Actualizados" value={updateRows.length} />
           </div>
         )}
         <div className="flex gap-2">
@@ -256,11 +300,11 @@ export function ImportWizard() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, accent }: { label: string; value: number; accent?: "danger" }) {
   return (
     <div className="rounded-lg border border-border p-3">
       <p className="text-xs uppercase tracking-wide text-ink-faint">{label}</p>
-      <p className="text-xl font-semibold text-ink">{value}</p>
+      <p className={`text-xl font-semibold ${accent === "danger" && value > 0 ? "text-danger" : "text-ink"}`}>{value}</p>
     </div>
   );
 }

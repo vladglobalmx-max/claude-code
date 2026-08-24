@@ -382,7 +382,7 @@ export interface OrderWithRelations extends Order {
  */
 export interface ProductCatalogItem {
   id: string;
-  category: string;
+  category: string | null;
   sku: string;
   name: string;
   description: string | null;
@@ -397,6 +397,11 @@ export interface ProductCatalogItem {
   active: boolean;
   created_at: string;
   updated_at: string;
+  // Fase 6C (0030_product_catalog_master.sql) — Catálogo Maestro.
+  product_type_id: string | null;
+  brand: string | null;
+  model: string | null;
+  unit: string | null;
 }
 
 /**

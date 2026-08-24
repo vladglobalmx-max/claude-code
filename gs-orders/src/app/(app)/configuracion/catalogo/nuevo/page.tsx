@@ -5,12 +5,12 @@ import { createCatalogProduct } from "../actions";
 
 export default async function NuevoCatalogoPage() {
   const supabase = createSupabaseServerClient();
-  const [{ data }, { data: buData }] = await Promise.all([
-    supabase.from("product_catalog").select("category"),
+  const [{ data: buData }, { data: ptData }] = await Promise.all([
     supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+    supabase.from("product_types").select("id, name").eq("active", true).order("name"),
   ]);
-  const categories = Array.from(new Set(((data ?? []) as { category: string }[]).map((r) => r.category))).sort();
   const businessUnits = (buData ?? []) as { id: string; name: string }[];
+  const productTypes = (ptData ?? []) as { id: string; name: string }[];
 
   const productId = randomUUID();
 
@@ -21,19 +21,22 @@ export default async function NuevoCatalogoPage() {
       </div>
       <CatalogForm
         productId={productId}
-        categories={categories}
         businessUnits={businessUnits}
+        productTypes={productTypes}
         initialState={{
-          category: "",
           sku: "",
           name: "",
           description: "",
+          productTypeId: "",
+          brand: "",
+          model: "",
+          unit: "",
           power: "",
           color: "",
           lensType: "",
           technicalNotes: "",
-          defaultPriceMxn: "",
-          defaultPriceUsd: "",
+          currency: "MXN",
+          basePrice: "",
           businessUnitIds: [],
           active: true,
           image: null,

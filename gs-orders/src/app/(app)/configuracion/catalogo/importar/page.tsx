@@ -28,9 +28,24 @@ export default function ImportarProductosPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-ink-soft">
-            Columnas: <strong>Business Unit</strong> (obligatorio, debe existir y estar activa),{" "}
-            <strong>Categoría</strong> (obligatorio), <strong>Modelo / SKU</strong> (obligatorio, único),{" "}
-            <strong>Nombre</strong> (obligatorio), Descripción, Precio MXN, Precio USD, Activo.
+            Columnas: <strong>SKU</strong> (obligatorio, único por organización), <strong>Nombre</strong>{" "}
+            (obligatorio), Descripción, <strong>Business Unit</strong> (obligatorio, debe existir y estar activa),{" "}
+            <strong>Tipo de producto</strong> (obligatorio, debe existir y estar activo), Marca, Modelo, Unidad,{" "}
+            <strong>Moneda</strong> (obligatorio, MXN o USD), Precio base, Activo.
+          </p>
+          <p className="text-sm text-ink-soft">
+            <strong>Business Unit</strong> admite varias unidades separadas por{" "}
+            <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs">{" | "}</code> — ej.{" "}
+            <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs">
+              Thunder LED Lights | Thunder Safety Solutions
+            </code>
+            . Para un producto compartido con todas las Business Units de la organización, escribe exactamente{" "}
+            <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs">TODAS</code>.
+          </p>
+          <p className="text-sm text-ink-soft">
+            Si el SKU ya existe en el catálogo, la fila se trata como actualización — se muestra qué campos
+            cambiarán antes de confirmar (incluidas altas/bajas de Business Units). Puedes reimportar el mismo
+            archivo sin duplicar nada.
           </p>
           <a href="/plantillas/productos.xlsx" download>
             <Button type="button" variant="outline">

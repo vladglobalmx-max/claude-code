@@ -85,7 +85,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
 
   const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => ({
     id: p.id,
-    category: p.category,
+    category: p.category ?? "",
     sku: p.sku,
     name: p.name,
     description: p.description,

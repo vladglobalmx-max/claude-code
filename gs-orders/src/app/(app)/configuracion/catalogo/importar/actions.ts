@@ -2,117 +2,150 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCurrentOrganizationId } from "@/lib/user-access";
 import { mapDbError } from "@/lib/db-errors";
-import type { BusinessUnitCandidate } from "@/lib/products/import-parsing";
+import type { BusinessUnitCandidate, Currency, ExistingProductRow, ProductTypeCandidate } from "@/lib/products/import-parsing";
 
 /**
- * Candidatos para el preview de importación de Productos (THÖREN
- * Importación masiva de Productos desde Excel) — solo lectura.
- *
- * businessUnits: SOLO activas — mismo criterio que
- * configuracion/catalogo/nuevo/page.tsx (el formulario manual tampoco
- * ofrece Business Units inactivas). existingSkus: TODOS los SKU de la
- * organización, activos e inactivos — product_catalog_sku_unique
- * (0009_product_catalog.sql) es una restricción GLOBAL sobre upper(sku)
- * que no distingue estado, así que el duplicado debe verificarse contra
- * absolutamente todos los productos existentes, no solo los activos.
+ * Candidatos para el preview de importación del Catálogo Maestro (Fase
+ * 6C) — solo lectura. businessUnits/productTypes: SOLO activos (mismo
+ * criterio que los selects del formulario manual, catalog-form.tsx).
+ * existingProducts: TODOS los productos de la organización (activos e
+ * inactivos — product_catalog_org_sku_unique, 0030, no distingue estado),
+ * con TODAS sus Business Units resueltas (product_business_units es N:M,
+ * ver ExistingProductRow.businessUnitIds) para poder clasificar NUEVO/
+ * ACTUALIZAR/SIN CAMBIOS con diff real de conjuntos, no solo "el SKU ya
+ * existe" ni "la primera Business Unit coincide".
  */
 export async function getProductImportCandidates(): Promise<
-  { businessUnits: BusinessUnitCandidate[]; existingSkus: string[] } | { error: string }
+  | { businessUnits: BusinessUnitCandidate[]; productTypes: ProductTypeCandidate[]; existingProducts: ExistingProductRow[] }
+  | { error: string }
 > {
   const supabase = createSupabaseServerClient();
-  const [{ data: businessUnits, error: buError }, { data: products, error: productsError }] = await Promise.all([
-    supabase.from("business_units").select("id, name").eq("active", true).order("name"),
-    supabase.from("product_catalog").select("sku"),
-  ]);
+  const [{ data: businessUnits, error: buError }, { data: productTypes, error: ptError }, { data: products, error: productsError }] =
+    await Promise.all([
+      supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+      supabase.from("product_types").select("id, name").eq("active", true).order("name"),
+      supabase.from("product_catalog").select("*, product_business_units(business_unit_id)"),
+    ]);
 
-  if (buError || productsError) {
-    return { error: mapDbError(buError ?? productsError, "No se pudieron leer los datos existentes.") };
+  if (buError || ptError || productsError) {
+    return { error: mapDbError(buError ?? ptError ?? productsError, "No se pudieron leer los datos existentes.") };
   }
+
+  const existingProducts: ExistingProductRow[] = (
+    (products ?? []) as unknown as {
+      id: string;
+      sku: string;
+      name: string;
+      description: string | null;
+      product_type_id: string | null;
+      brand: string | null;
+      model: string | null;
+      unit: string | null;
+      default_price_mxn: number | null;
+      default_price_usd: number | null;
+      active: boolean;
+      product_business_units: { business_unit_id: string }[] | null;
+    }[]
+  ).map((p) => {
+    let currency: Currency | null = null;
+    let basePrice: number | null = null;
+    // Mismo criterio de prioridad que [id]/editar/page.tsx: si un producto
+    // legado tiene ambas monedas, USD gana para efectos de comparación —
+    // consistente en toda la app.
+    if (p.default_price_usd != null) {
+      currency = "USD";
+      basePrice = p.default_price_usd;
+    } else if (p.default_price_mxn != null) {
+      currency = "MXN";
+      basePrice = p.default_price_mxn;
+    }
+
+    return {
+      id: p.id,
+      sku: p.sku,
+      name: p.name,
+      description: p.description,
+      productTypeId: p.product_type_id,
+      brand: p.brand,
+      model: p.model,
+      unit: p.unit,
+      currency,
+      basePrice,
+      active: p.active,
+      businessUnitIds: (p.product_business_units ?? []).map((r) => r.business_unit_id),
+    };
+  });
 
   return {
     businessUnits: (businessUnits ?? []) as BusinessUnitCandidate[],
-    existingSkus: (products ?? []).map((p) => p.sku as string),
+    productTypes: (productTypes ?? []) as ProductTypeCandidate[],
+    existingProducts,
   };
 }
 
 export interface ImportCommitProductRow {
-  businessUnitId: string;
-  category: string;
+  action: "insert" | "update";
+  existingId: string | null;
   sku: string;
   name: string;
   description: string | null;
-  priceMxn: number | null;
-  priceUsd: number | null;
+  businessUnitIds: string[];
+  productTypeId: string;
+  brand: string | null;
+  model: string | null;
+  unit: string | null;
+  currency: Currency;
+  basePrice: number | null;
   active: boolean;
 }
 
 export interface ImportCommitResult {
-  productsCreated: number;
-  errors: { row: string; message: string }[];
+  productsWritten: number;
+  error: string | null;
 }
 
 /**
- * Confirma la importación de Productos. Cada fila válida se procesa como
- * unidad independiente (una fila que falla no revierte las demás — mismo
- * criterio que commitCustomerImport). organization_id se resuelve
- * server-side (resolveCurrentOrganizationId), NUNCA se toma del Excel ni
- * del navegador — mismo patrón exacto que createCatalogProduct
- * (configuracion/catalogo/actions.ts) y createBusinessUnit (0026). Cada
- * fila es un INSERT nuevo en `product_catalog` + exactamente 1 fila en
- * `product_business_units` (la Business Unit resuelta en el preview) —
- * esta fase NUNCA actualiza un producto existente, NUNCA crea Business
- * Units ni Product Types.
+ * Confirma la importación del Catálogo Maestro — UNA sola llamada a
+ * rpc_import_product_catalog (0030_product_catalog_master.sql), atómica:
+ * si CUALQUIER fila falla (SKU duplicado por condición de carrera,
+ * Business Unit/Tipo eliminado entre el preview y la confirmación, etc.),
+ * la función completa se revierte y NO se escribe nada — a diferencia de
+ * la fase anterior (INSERT-only, una fila por statement, fallos
+ * parciales posibles). `errors` de fila calculados en el preview
+ * (classifyProductRows) NUNCA llegan aquí: solo se envían filas NUEVO/
+ * ACTUALIZAR ya validadas; SIN CAMBIOS tampoco se envía (evita un
+ * UPDATE/trigger updated_at innecesario sobre filas idénticas).
  */
 export async function commitProductImport(rows: ImportCommitProductRow[]): Promise<ImportCommitResult> {
-  const supabase = createSupabaseServerClient();
-  const result: ImportCommitResult = { productsCreated: 0, errors: [] };
-
-  const orgResult = await resolveCurrentOrganizationId(supabase);
-  if ("error" in orgResult) {
-    return { productsCreated: 0, errors: rows.map((r) => ({ row: r.sku, message: orgResult.error })) };
+  if (rows.length === 0) {
+    return { productsWritten: 0, error: null };
   }
 
-  for (const row of rows) {
-    const { data: product, error: insertError } = await supabase
-      .from("product_catalog")
-      .insert({
-        organization_id: orgResult.organizationId,
-        category: row.category,
-        sku: row.sku,
-        name: row.name,
-        description: row.description,
-        default_price_mxn: row.priceMxn,
-        default_price_usd: row.priceUsd,
-        active: row.active,
-      })
-      .select("id")
-      .single();
+  const supabase = createSupabaseServerClient();
 
-    if (insertError || !product) {
-      if (insertError?.code === "23505") {
-        result.errors.push({ row: row.sku, message: `Ya existe un producto con el SKU "${row.sku}".` });
-      } else {
-        result.errors.push({ row: row.sku, message: mapDbError(insertError, "No se pudo crear el producto.") });
-      }
-      continue;
-    }
+  const payload = rows.map((r) => ({
+    action: r.action,
+    id: r.existingId,
+    sku: r.sku,
+    name: r.name,
+    description: r.description,
+    business_unit_ids: r.businessUnitIds,
+    product_type_id: r.productTypeId,
+    brand: r.brand,
+    model: r.model,
+    unit: r.unit,
+    currency: r.currency,
+    base_price: r.basePrice,
+    active: r.active,
+  }));
 
-    const { error: buError } = await supabase
-      .from("product_business_units")
-      .insert({ product_id: product.id, business_unit_id: row.businessUnitId });
+  const { data, error } = await supabase.rpc("rpc_import_product_catalog", { p_products: payload });
 
-    if (buError) {
-      result.errors.push({
-        row: row.sku,
-        message: `Producto "${row.sku}" creado, pero no se pudo asociar a su Business Unit: ${mapDbError(buError)}`,
-      });
-    }
-
-    result.productsCreated += 1;
+  if (error) {
+    return { productsWritten: 0, error: mapDbError(error, "No se pudo importar el catálogo. Intenta de nuevo.") };
   }
 
   revalidatePath("/configuracion/catalogo");
-  return result;
+  return { productsWritten: (data ?? []).length, error: null };
 }

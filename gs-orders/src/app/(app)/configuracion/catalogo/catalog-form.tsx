@@ -15,39 +15,20 @@ import type { MediaDraft } from "@/components/orders/types";
 import type { CatalogProductPayload } from "@/lib/validations/catalog";
 import type { CatalogActionResult } from "./actions";
 
-const NEW_CATEGORY_VALUE = "__new__";
-
-/**
- * Calcula el estado inicial de los 3 campos de categoría a partir de la
- * categoría del producto (vacía si es un producto nuevo) y las categorías
- * ya existentes. Aislado en una función pura para poder probarlo sin
- * montar el componente: el bug reportado (categoría mostrada por default
- * pero no registrada hasta tocar el select) vivía exactamente aquí — si
- * `initialCategory` es "" pero hay categorías, el <select> no tiene un
- * <option value=""> y el navegador cae visualmente en la primera opción
- * aunque el estado se hubiera quedado en "". `category` debe coincidir con
- * la primera opción que el select va a mostrar, no quedarse en "".
- */
-export function resolveCategoryFormInit(initialCategory: string, categories: string[]) {
-  const isNewCategory = categories.length === 0 || (initialCategory !== "" && !categories.includes(initialCategory));
-  return {
-    isNewCategory,
-    category: isNewCategory ? "" : initialCategory || categories[0] || "",
-    newCategory: isNewCategory ? initialCategory : "",
-  };
-}
-
 export interface CatalogFormInitialState {
-  category: string;
   sku: string;
   name: string;
   description: string;
+  productTypeId: string;
+  brand: string;
+  model: string;
+  unit: string;
   power: string;
   color: string;
   lensType: string;
   technicalNotes: string;
-  defaultPriceMxn: string;
-  defaultPriceUsd: string;
+  currency: "MXN" | "USD";
+  basePrice: string;
   businessUnitIds: string[];
   active: boolean;
   image: MediaDraft | null;
@@ -58,35 +39,40 @@ export interface BusinessUnitOption {
   name: string;
 }
 
+export interface ProductTypeOption {
+  id: string;
+  name: string;
+}
+
 export function CatalogForm({
   productId,
-  categories,
   businessUnits,
+  productTypes,
   initialState,
   submitLabel = "Guardar producto",
   onSubmit,
 }: {
   productId: string;
-  categories: string[];
   businessUnits: BusinessUnitOption[];
+  productTypes: ProductTypeOption[];
   initialState: CatalogFormInitialState;
   submitLabel?: string;
   onSubmit: (id: string, payload: CatalogProductPayload) => Promise<CatalogActionResult>;
 }) {
   const router = useRouter();
-  const categoryInit = resolveCategoryFormInit(initialState.category, categories);
-  const [isNewCategory, setIsNewCategory] = useState(categoryInit.isNewCategory);
-  const [category, setCategory] = useState(categoryInit.category);
-  const [newCategory, setNewCategory] = useState(categoryInit.newCategory);
   const [sku, setSku] = useState(initialState.sku);
   const [name, setName] = useState(initialState.name);
   const [description, setDescription] = useState(initialState.description);
+  const [productTypeId, setProductTypeId] = useState(initialState.productTypeId);
+  const [brand, setBrand] = useState(initialState.brand);
+  const [model, setModel] = useState(initialState.model);
+  const [unit, setUnit] = useState(initialState.unit);
   const [power, setPower] = useState(initialState.power);
   const [color, setColor] = useState(initialState.color);
   const [lensType, setLensType] = useState(initialState.lensType);
   const [technicalNotes, setTechnicalNotes] = useState(initialState.technicalNotes);
-  const [defaultPriceMxn, setDefaultPriceMxn] = useState(initialState.defaultPriceMxn);
-  const [defaultPriceUsd, setDefaultPriceUsd] = useState(initialState.defaultPriceUsd);
+  const [currency, setCurrency] = useState<"MXN" | "USD">(initialState.currency);
+  const [basePrice, setBasePrice] = useState(initialState.basePrice);
   const [shareAllBusinessUnits, setShareAllBusinessUnits] = useState(initialState.businessUnitIds.length === 0);
   const [businessUnitIds, setBusinessUnitIds] = useState<string[]>(initialState.businessUnitIds);
   const [active, setActive] = useState(initialState.active);
@@ -99,40 +85,43 @@ export function CatalogForm({
   }
 
   function handleSubmit() {
-    const finalCategory = isNewCategory ? newCategory.trim() : category;
-    if (!finalCategory) {
-      toast.error("Selecciona o escribe una categoría");
-      return;
-    }
     if (!sku.trim()) {
-      toast.error("El modelo/SKU es obligatorio");
+      toast.error("El SKU es obligatorio");
       return;
     }
     if (!name.trim()) {
       toast.error("El nombre es obligatorio");
       return;
     }
-    if (defaultPriceMxn.trim() && Number(defaultPriceMxn) < 0) {
-      toast.error("El precio en MXN no puede ser negativo");
+    if (!productTypeId) {
+      toast.error("Selecciona un tipo de producto");
       return;
     }
-    if (defaultPriceUsd.trim() && Number(defaultPriceUsd) < 0) {
-      toast.error("El precio en USD no puede ser negativo");
+    if (basePrice.trim() && Number(basePrice) < 0) {
+      toast.error("El precio base no puede ser negativo");
       return;
     }
 
+    const priceValue = basePrice.trim() ? Number(basePrice) : undefined;
+
     const payload: CatalogProductPayload = {
-      category: finalCategory,
       sku: sku.trim(),
       name: name.trim(),
       description: description || undefined,
       image_path: image?.path ?? null,
+      product_type_id: productTypeId || null,
+      brand: brand || undefined,
+      model: model || undefined,
+      unit: unit || undefined,
       power: power || undefined,
       color: color || undefined,
       lens_type: lensType || undefined,
       technical_notes: technicalNotes || undefined,
-      default_price_mxn: defaultPriceMxn.trim() ? Number(defaultPriceMxn) : undefined,
-      default_price_usd: defaultPriceUsd.trim() ? Number(defaultPriceUsd) : undefined,
+      // Moneda + Precio base (UI) se mapean a las 2 columnas reales
+      // (default_price_mxn/default_price_usd, 0019) según la moneda
+      // elegida — ver DECISIÓN en 0030_product_catalog_master.sql.
+      default_price_mxn: currency === "MXN" ? priceValue : null,
+      default_price_usd: currency === "USD" ? priceValue : null,
       business_unit_ids: shareAllBusinessUnits ? [] : businessUnitIds,
       active,
     };
@@ -168,60 +157,26 @@ export function CatalogForm({
             />
           </div>
 
-          <div>
-            <Label htmlFor="category">Categoría</Label>
-            {!isNewCategory ? (
-              <Select
-                id="category"
-                value={category}
-                onChange={(e) => {
-                  if (e.target.value === NEW_CATEGORY_VALUE) {
-                    setIsNewCategory(true);
-                    setNewCategory("");
-                  } else {
-                    setCategory(e.target.value);
-                  }
-                }}
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-                <option value={NEW_CATEGORY_VALUE}>+ Nueva categoría…</option>
-              </Select>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="Nombre de la categoría"
-                  autoFocus
-                />
-                {categories.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsNewCategory(false);
-                      setCategory(categories[0] ?? "");
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="sku">Modelo / SKU</Label>
-              <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Ej. TLLTPB140R" />
+              <Label htmlFor="sku">SKU</Label>
+              <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Ej. TP-RT40076-2" />
             </div>
             <div>
-              <Label htmlFor="color">Color (opcional)</Label>
-              <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+              <Label htmlFor="product_type">Tipo de producto</Label>
+              <Select id="product_type" value={productTypeId} onChange={(e) => setProductTypeId(e.target.value)}>
+                <option value="">Selecciona un tipo…</option>
+                {productTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+              {productTypes.length === 0 && (
+                <p className="mt-1 text-xs text-warning">
+                  No hay tipos de producto activos. Créalos primero en Configuración → Tipos de producto.
+                </p>
+              )}
             </div>
           </div>
 
@@ -231,13 +186,28 @@ export function CatalogForm({
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Luz LED Grúa Viajera Roja"
+              placeholder="Ej. Proyector señalización LED dual"
             />
           </div>
 
           <div>
             <Label htmlFor="description">Descripción (opcional)</Label>
             <Textarea id="description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="brand">Marca (opcional)</Label>
+              <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="model">Modelo (opcional)</Label>
+              <Input id="model" value={model} onChange={(e) => setModel(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="unit">Unidad (opcional)</Label>
+              <Input id="unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="pza" />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -251,38 +221,34 @@ export function CatalogForm({
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="technical_notes">Observaciones técnicas (opcional)</Label>
-            <Textarea
-              id="technical_notes"
-              rows={2}
-              value={technicalNotes}
-              onChange={(e) => setTechnicalNotes(e.target.value)}
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="color">Color (opcional)</Label>
+              <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="technical_notes">Observaciones técnicas (opcional)</Label>
+              <Input id="technical_notes" value={technicalNotes} onChange={(e) => setTechnicalNotes(e.target.value)} />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="default_price_mxn">Precio sugerido MXN (opcional)</Label>
-              <Input
-                id="default_price_mxn"
-                type="number"
-                min="0"
-                step="0.01"
-                value={defaultPriceMxn}
-                onChange={(e) => setDefaultPriceMxn(e.target.value)}
-                placeholder="0.00"
-              />
+              <Label htmlFor="currency">Moneda</Label>
+              <Select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value as "MXN" | "USD")}>
+                <option value="MXN">MXN</option>
+                <option value="USD">USD</option>
+              </Select>
             </div>
             <div>
-              <Label htmlFor="default_price_usd">Precio sugerido USD (opcional)</Label>
+              <Label htmlFor="base_price">Precio base (opcional)</Label>
               <Input
-                id="default_price_usd"
+                id="base_price"
                 type="number"
                 min="0"
                 step="0.01"
-                value={defaultPriceUsd}
-                onChange={(e) => setDefaultPriceUsd(e.target.value)}
+                value={basePrice}
+                onChange={(e) => setBasePrice(e.target.value)}
                 placeholder="0.00"
               />
             </div>
@@ -331,7 +297,7 @@ export function CatalogForm({
               onChange={(e) => setActive(e.target.checked)}
               className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
             />
-            Activo (visible en Nuevo Pedido)
+            Activo (visible en Cotizaciones y Pedidos)
           </label>
         </CardContent>
       </Card>

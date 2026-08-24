@@ -88,9 +88,11 @@ begin
 end $$;
 select test_set_user(:'admin');
 
--- 4) SKU duplicado rechazado — product_catalog_sku_unique es GLOBAL sobre
---    upper(sku), no "Business Unit + SKU" como sugería el brief original;
---    se respeta la restricción real.
+-- 4) SKU duplicado DENTRO de la misma organización rechazado —
+--    ACTUALIZADO por Fase 6C (0030_product_catalog_master.sql): el índice
+--    de unicidad pasó de GLOBAL (upper(sku)) a
+--    (organization_id, upper(sku)) — ver DECISIÓN "natural key" en 0030.
+--    Sigue siendo case-insensitive dentro de la MISMA organización.
 do $$
 declare
   v_org1 uuid;
@@ -104,10 +106,33 @@ begin
     v_failed := true;
   end;
   if not v_failed then
-    raise exception 'TEST 4 FALLÓ: se permitió un SKU duplicado (case-insensitive)';
+    raise exception 'TEST 4 FALLÓ: se permitió un SKU duplicado (case-insensitive) dentro de la misma organización';
   end if;
-  raise notice 'TEST 4 OK: SKU duplicado rechazado por product_catalog_sku_unique (case-insensitive, global)';
+  raise notice 'TEST 4 OK: SKU duplicado dentro de la misma organización rechazado (case-insensitive, org-scoped desde 0030)';
 end $$;
+
+-- 4b) NUEVO comportamiento de Fase 6C: el MISMO SKU en OTRA organización
+--     ahora SÍ se permite (antes de 0030 era imposible: el índice era
+--     global). Confirma que la corrección del natural key realmente
+--     relajó el scope correctamente, sin romper la protección dentro de
+--     una misma organización (TEST 4).
+select test_set_user(:'admin_orgb');
+do $$
+declare
+  v_failed boolean := false;
+begin
+  begin
+    insert into product_catalog (organization_id, category, sku, name, active)
+    values ('20000000-0000-0000-0000-000000000001', 'Otra categoría', 'IMPORT-SKU-001', 'Mismo SKU, otra organización', true);
+  exception when others then
+    v_failed := true;
+  end;
+  if v_failed then
+    raise exception 'TEST 4b FALLÓ: el mismo SKU en OTRA organización debería permitirse tras 0030 (org-scoped), pero fue rechazado';
+  end if;
+  raise notice 'TEST 4b OK: el mismo SKU en otra organización se permite — el índice de unicidad es por organización, no global';
+end $$;
+select test_set_user(:'admin');
 
 -- 5) La importación NO crea Business Units ni Product Types — conteos
 --    antes/después de TEST 1 (única inserción real de este archivo)

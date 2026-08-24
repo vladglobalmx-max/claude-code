@@ -11,13 +11,24 @@ import type { Database } from "@/types/database.types";
 
 export type CatalogActionResult = { error: string } | void;
 
+/**
+ * `category` (0009, texto libre) deliberadamente NO se incluye aquí desde
+ * Fase 6C — el formulario ya no la captura (product_type_id es el eje de
+ * clasificación nuevo, ver 0030_product_catalog_master.sql). Al omitir la
+ * clave, un UPDATE de Supabase no la toca: un producto legado conserva su
+ * category intacta; un producto nuevo simplemente la deja NULL (columna ya
+ * nullable), nunca se inventa un valor.
+ */
 function buildRow(payload: CatalogProductPayload, organizationId: string) {
   return {
-    category: payload.category,
     sku: payload.sku,
     name: payload.name,
     description: payload.description || null,
     image_path: payload.image_path || null,
+    product_type_id: payload.product_type_id,
+    brand: payload.brand || null,
+    model: payload.model || null,
+    unit: payload.unit || null,
     power: payload.power || null,
     color: payload.color || null,
     lens_type: payload.lens_type || null,

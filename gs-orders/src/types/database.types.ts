@@ -766,6 +766,201 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Fase 6L (0035_purchases_suppliers.sql) — a quién le
+      // compramos, tabla propia (no customers/people, ver DECISIÓN en la
+      // migración). "contacto" es un campo de texto libre en la propia
+      // fila, sin tabla de contactos múltiples en esta fase.
+      suppliers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          tax_id: string | null;
+          contact_name: string | null;
+          email: string | null;
+          phone: string | null;
+          preferred_currency: string | null;
+          notes: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          tax_id?: string | null;
+          contact_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          preferred_currency?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["suppliers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6L (0035_purchases_suppliers.sql) — motor de folio de
+      // Purchase Orders, una fila por organización. Solo la escribe
+      // fn_next_purchase_order_folio() (SECURITY DEFINER) — sin uso directo
+      // desde la app.
+      purchase_order_sequences: {
+        Row: {
+          organization_id: string;
+          prefix: string;
+          sequence_current: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          prefix?: string;
+          sequence_current?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_order_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6L (0035_purchases_suppliers.sql) — cabecera de Orden
+      // de Compra. business_unit_id NO existe aquí — se deriva vía
+      // order_id -> orders.business_unit_id. folio/sequence_number/
+      // organization_id/order_id/supplier_id son inmutables tras crearse.
+      purchase_orders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          order_id: string;
+          supplier_id: string;
+          folio: string;
+          sequence_number: number;
+          po_date: string;
+          supplier_commitment_date: string | null;
+          estimated_reception_date: string | null;
+          supplier_reference: string | null;
+          notes: string | null;
+          status: string;
+          pre_receiving_status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          order_id: string;
+          supplier_id: string;
+          folio: string;
+          sequence_number: number;
+          po_date?: string;
+          supplier_commitment_date?: string | null;
+          estimated_reception_date?: string | null;
+          supplier_reference?: string | null;
+          notes?: string | null;
+          status?: string;
+          pre_receiving_status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_orders"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_orders_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6L (0035_purchases_suppliers.sql) — partidas de una
+      // Purchase Order, snapshot operativo de order_items al crearse.
+      // order_item_id es INFORMATIVO, SIN FK real — ver DECISIÓN
+      // ESTRUCTURAL en la migración (rpc_update_order borra y reinserta
+      // order_items en cada edición del Pedido; una FK real rompería o
+      // borraría Purchase Orders ya creadas).
+      purchase_order_items: {
+        Row: {
+          id: string;
+          purchase_order_id: string;
+          order_item_id: string | null;
+          position: number;
+          catalog_product_id: string | null;
+          model: string;
+          description: string | null;
+          color: string | null;
+          unit: string | null;
+          customer_requirements: string | null;
+          quantity_ordered: number;
+          quantity_received: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          purchase_order_id: string;
+          order_item_id?: string | null;
+          position?: number;
+          catalog_product_id?: string | null;
+          model: string;
+          description?: string | null;
+          color?: string | null;
+          unit?: string | null;
+          customer_requirements?: string | null;
+          quantity_ordered: number;
+          quantity_received?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_order_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey";
+            columns: ["purchase_order_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_order_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
       // de auth.users/organization_members/salespeople. Sin UI ni RPC
       // consumidora todavía; solo el bootstrap (owner de la tabla) y
@@ -1075,6 +1270,52 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      // THÖREN Fase 6L (0035) — SECURITY INVOKER, ADMIN-only (verificado
+      // dentro del RPC). Crea la PO + sus partidas en una transacción.
+      // p_items es un array de {order_item_id, quantity_ordered} — el
+      // resto de cada partida (modelo/descripción/catalog_product_id/
+      // unit/customer_requirements) se snapshotea server-side desde
+      // order_items, nunca se confía en lo que mande el cliente.
+      rpc_create_purchase_order: {
+        Args: {
+          p_purchase_order_id: string;
+          p_purchase_order: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
+      };
+      // THÖREN Fase 6L (0035) — transición manual de estado. Rechaza
+      // 'recibida'/'recibida_parcial' (solo los asigna
+      // rpc_receive_purchase_order_item) y cualquier cambio si la PO ya
+      // está 'cancelada' (terminal).
+      rpc_update_purchase_order_status: {
+        Args: {
+          p_purchase_order_id: string;
+          p_status: string;
+        };
+        Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
+      };
+      // THÖREN Fase 6L (0035) — edita solo los campos operativos de
+      // cabecera (fechas/referencia/notas). folio/proveedor/Pedido origen
+      // son inmutables; el estado se cambia con rpc_update_purchase_order_status.
+      rpc_update_purchase_order_details: {
+        Args: {
+          p_purchase_order_id: string;
+          p_purchase_order: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
+      };
+      // THÖREN Fase 6L (0035) — registra la cantidad recibida ACUMULADA
+      // (valor absoluto, no delta) de una partida y recalcula el estado de
+      // la PO (recibida_parcial/recibida). Nunca permite recibido >
+      // ordenado (también protegido por CHECK en la tabla).
+      rpc_receive_purchase_order_item: {
+        Args: {
+          p_purchase_order_item_id: string;
+          p_quantity_received: number;
+        };
+        Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"];
+      };
       // THÖREN Quotes Q3 (0020) — SECURITY INVOKER, transacción única:
       // resuelve snapshots, pide folio a fn_next_quote_folio() y calcula
       // totales server-side. p_items es un array de objetos con

@@ -16,6 +16,7 @@ import { DuplicateButton } from "../duplicate-button";
 import { OrderStatusQuickActions } from "./status-quick-actions";
 import { OrderOperationalStatusActions } from "./operational-status-actions";
 import { OrderOperationalStatusHistory } from "./operational-status-history";
+import { PurchaseOrdersSection } from "./purchase-orders-section";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,8 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
           </div>
         </CardContent>
       </Card>
+
+      <PurchaseOrdersSection orderId={detail.order.id} />
 
       <Card>
         <CardContent className="p-6">

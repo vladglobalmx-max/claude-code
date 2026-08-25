@@ -1,4 +1,4 @@
-import { Briefcase, Building2, Contact, FileSpreadsheet, FileText, Users, Settings, Home, type LucideIcon } from "lucide-react";
+import { Briefcase, Building2, Contact, FileSpreadsheet, FileText, Package, Truck, Users, Settings, Home, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -39,6 +39,15 @@ export interface NavGroup {
  *   pero vive como Card dentro de /configuracion (ya admin-only), no como
  *   entrada propia de este árbol — mismo patrón que Catálogo/Tipos de
  *   producto/Usuarios.
+ * - Compras (THÖREN Fase 6L, 0035_purchases_suppliers.sql):
+ *   `purchase_orders_select` permite a VENDEDOR ver las Purchase Orders de
+ *   Pedidos que le pertenecen (visibilidad heredada, nunca un acceso
+ *   nuevo) — por eso NO es adminOnly, aunque solo ADMIN puede crear/
+ *   gestionar (gateado dentro de las propias páginas, no a nivel de nav).
+ * - Proveedores: mismo criterio que Clientes —
+ *   `suppliers_select_member`/`suppliers_insert_member` permiten a
+ *   cualquier miembro activo ver y crear; solo editar es admin-only
+ *   (`suppliers_update_admin`).
  *
  * "Configuración" queda como entrada de nivel superior (no como grupo con
  * un solo hijo "Usuarios"): /configuracion es hoy el hub que también da
@@ -63,6 +72,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
+    ],
+  },
+  {
+    label: "Compras",
+    items: [
+      { href: "/compras", label: "Compras", icon: Package, adminOnly: false },
+      { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false },
     ],
   },
   {

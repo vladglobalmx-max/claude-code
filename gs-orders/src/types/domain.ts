@@ -101,6 +101,29 @@ export interface CustomerContact {
   updated_at: string;
 }
 
+/**
+ * THÖREN Fase 6L (0035_purchases_suppliers.sql) — A QUIÉN LE COMPRAMOS,
+ * relación inversa de Customer (a quién le vendemos) — tabla propia, no
+ * reutiliza `customers` ni `people` (ver DECISIÓN en la migración).
+ * "contacto" es un campo de texto libre en la propia fila (nombre de la
+ * persona de contacto) — no hay tabla de contactos múltiples en esta fase.
+ * Sin cuentas por pagar ni datos bancarios todavía.
+ */
+export interface Supplier {
+  id: string;
+  organization_id: string;
+  name: string;
+  tax_id: string | null;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  preferred_currency: string | null;
+  notes: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PersonBusinessUnit {
   person_id: string;
   business_unit_id: string;
@@ -689,4 +712,128 @@ export interface SalespersonQuoteSequence {
   active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * THÖREN Fase 6L (0035_purchases_suppliers.sql) — capa simple de Compras
+ * vinculada a un Pedido. Un Pedido puede generar 0, 1 o varias Purchase
+ * Orders (repartiendo sus partidas entre distintos proveedores).
+ * organization_id/order_id/supplier_id/folio/sequence_number son
+ * inmutables una vez creada (trg_purchase_orders_prevent_folio_change).
+ * business_unit_id NO existe aquí — se deriva siempre vía
+ * order_id -> orders.business_unit_id, nunca se duplica.
+ *
+ * `status`: 'recibida'/'recibida_parcial' SOLO los asigna
+ * rpc_receive_purchase_order_item según cantidades reales recibidas —
+ * nunca se asignan a mano (ver rpc_update_purchase_order_status).
+ * 'cancelada' es terminal: ninguna PO cancelada admite más cambios.
+ */
+export type PurchaseOrderStatus =
+  | "borrador"
+  | "ordenada"
+  | "confirmada"
+  | "en_transito"
+  | "recibida_parcial"
+  | "recibida"
+  | "cancelada";
+
+export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
+  borrador: "Borrador",
+  ordenada: "Ordenada",
+  confirmada: "Confirmada",
+  en_transito: "En tránsito",
+  recibida_parcial: "Recibida parcial",
+  recibida: "Recibida",
+  cancelada: "Cancelada",
+};
+
+export const PURCHASE_ORDER_STATUS_BADGE: Record<
+  PurchaseOrderStatus,
+  "neutral" | "accent" | "success" | "warning" | "danger"
+> = {
+  borrador: "neutral",
+  ordenada: "accent",
+  confirmada: "accent",
+  en_transito: "warning",
+  recibida_parcial: "warning",
+  recibida: "success",
+  cancelada: "danger",
+};
+
+/** Estados en los que ya se puede registrar recepción (ver rpc_receive_purchase_order_item: bloqueado en 'borrador' y 'cancelada'). */
+export const PURCHASE_ORDER_RECEIVABLE_STATUSES: PurchaseOrderStatus[] = [
+  "ordenada",
+  "confirmada",
+  "en_transito",
+  "recibida_parcial",
+  "recibida",
+];
+
+/** Estados asignables a mano vía rpc_update_purchase_order_status — 'recibida'/'recibida_parcial' quedan fuera a propósito. */
+export const PURCHASE_ORDER_MANUAL_STATUSES: PurchaseOrderStatus[] = [
+  "borrador",
+  "ordenada",
+  "confirmada",
+  "en_transito",
+  "cancelada",
+];
+
+export interface PurchaseOrder {
+  id: string;
+  organization_id: string;
+  order_id: string;
+  supplier_id: string;
+  folio: string;
+  sequence_number: number;
+  po_date: string;
+  supplier_commitment_date: string | null;
+  estimated_reception_date: string | null;
+  supplier_reference: string | null;
+  notes: string | null;
+  status: PurchaseOrderStatus;
+  /**
+   * THÖREN Fase 6L — AJUSTE FINAL. Última transición MANUAL de `status`
+   * (la mantiene rpc_update_purchase_order_status en cada cambio). La lee
+   * rpc_receive_purchase_order_item para volver aquí cuando el recibido
+   * total de todas las partidas cae a 0 — así el estado nunca se queda en
+   * 'recibida'/'recibida_parcial' sin recepción real. No es un campo que
+   * la UI edite directamente.
+   */
+  pre_receiving_status: PurchaseOrderStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Partida de una Purchase Order — snapshot operativo de un order_item al
+ * momento de crear la PO (nunca se vuelve a consultar order_items después,
+ * mismo criterio que catalog_product_id en order_items). `order_item_id`
+ * es INFORMATIVO, SIN constraint de FK a propósito: rpc_update_order borra
+ * y reinserta todas las filas de order_items en cada edición del Pedido
+ * (los id nunca son estables), así que una FK real rompería o borraría en
+ * silencio Purchase Orders ya creadas al editar el Pedido origen — decisión
+ * estructural consultada y confirmada con el usuario antes de implementar.
+ * quantity_received nunca puede superar quantity_ordered (CHECK en DB,
+ * además del guard de rpc_receive_purchase_order_item).
+ */
+export interface PurchaseOrderItem {
+  id: string;
+  purchase_order_id: string;
+  order_item_id: string | null;
+  position: number;
+  catalog_product_id: string | null;
+  model: string;
+  description: string | null;
+  color: string | null;
+  unit: string | null;
+  customer_requirements: string | null;
+  quantity_ordered: number;
+  quantity_received: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderWithRelations extends PurchaseOrder {
+  supplier: Supplier;
+  items: PurchaseOrderItem[];
 }

@@ -8,8 +8,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { AttentionLevelIndicator } from "@/components/ui/attention-level-indicator";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
+import {
+  ACTIVE_OPERATIONAL_STATUSES,
+  buildLatestChangeMap,
+  calculateDaysInStatus,
+  classifyAttentionLevel,
+  type AttentionLevel,
+} from "@/lib/dashboard/attention-queue";
 import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS, ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
 import type { ProductTypeItem, Salesperson } from "@/types/domain";
 import { OrderFilters } from "./order-filters";
@@ -28,6 +36,9 @@ interface OrderRow {
   status: string;
   operational_status: string;
   salesperson: { name: string; prefix: string } | { name: string; prefix: string }[] | null;
+  /** THÖREN Fase 6J — solo se calcula para operational_status activo (ver ACTIVE_OPERATIONAL_STATUSES); undefined para completado/cancelado, que nunca se consideran atrasados. */
+  attentionLevel?: AttentionLevel;
+  daysInStatus?: number;
 }
 
 function salespersonName(row: OrderRow) {
@@ -41,7 +52,15 @@ const iconButtonClass = cn(buttonVariants({ variant: "ghost", size: "icon" }), "
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: { q?: string; vendedor?: string; estado?: string; seguimiento?: string; bu?: string; tipo?: string };
+  searchParams: {
+    q?: string;
+    vendedor?: string;
+    estado?: string;
+    seguimiento?: string;
+    bu?: string;
+    tipo?: string;
+    atencion?: string;
+  };
 }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
@@ -83,7 +102,36 @@ export default async function PedidosPage({
   }
 
   const { data } = await query.limit(200);
-  const orders = (data ?? []) as unknown as OrderRow[];
+  let orders = (data ?? []) as unknown as OrderRow[];
+
+  // THÖREN Fase 6J — antigüedad/semáforo para la columna Seguimiento y el
+  // filtro de atención. Reutiliza exactamente la misma lógica del
+  // Dashboard (lib/dashboard/attention-queue.ts) — nunca se reimplementa.
+  // Solo se calcula para pedidos con operational_status activo:
+  // completado/cancelado nunca se consideran atrasados (§1).
+  const activeOrderIds = orders
+    .filter((o) => (ACTIVE_OPERATIONAL_STATUSES as string[]).includes(o.operational_status))
+    .map((o) => o.id);
+  if (activeOrderIds.length > 0) {
+    const { data: historyRows } = await supabase
+      .from("order_operational_status_history")
+      .select("order_id, changed_at")
+      .in("order_id", activeOrderIds)
+      .order("changed_at", { ascending: false });
+
+    const latestChangeByOrder = buildLatestChangeMap((historyRows ?? []) as { order_id: string; changed_at: string }[]);
+    const now = new Date();
+    orders = orders.map((order) => {
+      const lastChangedAt = latestChangeByOrder.get(order.id);
+      if (!lastChangedAt) return order;
+      const daysInStatus = calculateDaysInStatus(lastChangedAt, now);
+      return { ...order, daysInStatus, attentionLevel: classifyAttentionLevel(daysInStatus) };
+    });
+  }
+
+  if (searchParams.atencion) {
+    orders = orders.filter((order) => order.attentionLevel === searchParams.atencion);
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -131,12 +179,15 @@ export default async function PedidosPage({
                 <p className="mt-2 text-xs text-ink-faint">
                   {salespersonName(order)} · {formatDateShort(order.order_date)}
                 </p>
-                <div className="mt-1.5">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <StatusBadge
                     status={order.operational_status as keyof typeof ORDER_OPERATIONAL_STATUS_LABELS}
                     labels={ORDER_OPERATIONAL_STATUS_LABELS}
                     variants={ORDER_OPERATIONAL_STATUS_BADGE}
                   />
+                  {order.attentionLevel && order.daysInStatus !== undefined && (
+                    <AttentionLevelIndicator level={order.attentionLevel} daysInStatus={order.daysInStatus} />
+                  )}
                 </div>
                 <div className="mt-3 flex items-center gap-1 border-t border-border pt-2">
                   <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver pedido">

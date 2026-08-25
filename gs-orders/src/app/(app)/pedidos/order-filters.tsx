@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Select } from "@/components/ui/select";
+import { ATTENTION_LEVEL_LABELS } from "@/lib/dashboard/attention-queue";
 import { ORDER_OPERATIONAL_STATUS_LABELS, ORDER_STATUS_LABELS } from "@/types/domain";
 import type { ProductTypeItem, Salesperson } from "@/types/domain";
 
@@ -99,6 +100,19 @@ export function OrderFilters({
         {productTypes.map((t) => (
           <option key={t.id} value={t.code}>
             {t.name}
+          </option>
+        ))}
+      </Select>
+
+      <Select
+        className="w-auto"
+        defaultValue={searchParams.get("atencion") ?? ""}
+        onChange={(e) => updateParam("atencion", e.target.value)}
+      >
+        <option value="">Toda antigüedad</option>
+        {Object.entries(ATTENTION_LEVEL_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
           </option>
         ))}
       </Select>

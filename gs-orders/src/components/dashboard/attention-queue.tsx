@@ -3,20 +3,19 @@ import { AlertTriangle } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AttentionLevelIndicator } from "@/components/ui/attention-level-indicator";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
-import { formatDateShort, formatNumber } from "@/lib/utils/format";
+import { formatDateShort } from "@/lib/utils/format";
+import { formatDaysInStatus } from "@/lib/dashboard/attention-queue";
 import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS } from "@/types/domain";
 import type { AttentionQueueRow } from "@/components/dashboard/get-dashboard-data";
 
-function daysLabel(days: number): string {
-  return days === 1 ? "1 día" : `${formatNumber(days)} días`;
-}
-
 /**
- * THÖREN Fase 6I — pedidos activos (fuera de completado/cancelado) más
- * antiguos en su estado actual primero — la lista de "qué revisar hoy".
- * Mobile: tarjetas; desktop: tabla — mismo patrón responsive que /pedidos
- * (page.tsx, `sm:hidden` / `hidden sm:block`).
+ * THÖREN Fase 6I/6J — pedidos activos (fuera de completado/cancelado)
+ * ordenados por prioridad de atención (crítico -> atención -> normal;
+ * dentro de cada nivel, más días primero — ver buildAttentionQueue) — la
+ * lista de "qué revisar hoy". Mobile: tarjetas; desktop: tabla — mismo
+ * patrón responsive que /pedidos (page.tsx, `sm:hidden` / `hidden sm:block`).
  */
 export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
   return (
@@ -58,9 +57,12 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                 <p className="mt-2 text-xs text-ink-faint">
                   {row.businessUnitName} · {row.salespersonName}
                 </p>
-                <p className="mt-1 text-xs text-ink-faint">
-                  Desde {formatDateShort(row.lastChangedAt)} · {daysLabel(row.daysInStatus)} en este estado
-                </p>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <AttentionLevelIndicator level={row.attentionLevel} />
+                  <p className="text-xs text-ink-faint">
+                    Desde {formatDateShort(row.lastChangedAt)} · {formatDaysInStatus(row.daysInStatus)}
+                  </p>
+                </div>
               </Link>
             ))}
           </div>
@@ -77,6 +79,7 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                   <Th>Seguimiento</Th>
                   <Th>Último cambio</Th>
                   <Th>Días en el estado</Th>
+                  <Th>Nivel</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -98,7 +101,10 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                       />
                     </Td>
                     <Td className="text-ink-soft">{formatDateShort(row.lastChangedAt)}</Td>
-                    <Td className="tabular-nums text-ink-soft">{daysLabel(row.daysInStatus)}</Td>
+                    <Td className="tabular-nums text-ink-soft">{formatDaysInStatus(row.daysInStatus)}</Td>
+                    <Td>
+                      <AttentionLevelIndicator level={row.attentionLevel} />
+                    </Td>
                   </Tr>
                 ))}
               </Tbody>

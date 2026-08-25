@@ -2,7 +2,13 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { buildAttentionQueue, buildOperationalStatusBreakdown, type AttentionQueueRow } from "@/lib/dashboard/attention-queue";
+import {
+  ACTIVE_OPERATIONAL_STATUSES,
+  buildAttentionQueue,
+  buildLatestChangeMap,
+  buildOperationalStatusBreakdown,
+  type AttentionQueueRow,
+} from "@/lib/dashboard/attention-queue";
 import { BUSINESS_UNIT_LABELS } from "@/types/domain";
 import type { OrderOperationalStatus, OrderStatus } from "@/types/domain";
 
@@ -14,25 +20,6 @@ import type { OrderOperationalStatus, OrderStatus } from "@/types/domain";
  */
 const OPEN_STATUSES: OrderStatus[] = ["borrador", "pedido"];
 
-/**
- * THÖREN Fase 6I — los 8 valores de operational_status (0033), en el orden
- * de la línea de tiempo del pedido. 'completado'/'cancelado' son las
- * salidas del pipeline — todo lo demás cuenta como "activo" para la
- * sección "Requieren atención".
- */
-const OPERATIONAL_STATUSES: OrderOperationalStatus[] = [
-  "pedido",
-  "en_proceso",
-  "ordenado_a_proveedor",
-  "en_transito",
-  "recibido",
-  "programado_entrega_instalacion",
-  "completado",
-  "cancelado",
-];
-const ACTIVE_OPERATIONAL_STATUSES = OPERATIONAL_STATUSES.filter(
-  (s) => s !== "completado" && s !== "cancelado"
-);
 /** Techo de la sección "Requieren atención" — es un resumen de dashboard, no el listado completo (para eso está /pedidos). */
 const ATTENTION_QUEUE_LIMIT = 15;
 
@@ -253,11 +240,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       )
       .order("changed_at", { ascending: false });
 
-    const latestChangeByOrder = new Map<string, string>();
-    for (const row of (historyRows ?? []) as { order_id: string; changed_at: string }[]) {
-      // Ordenado desc: la primera ocurrencia por order_id ya es la más reciente.
-      if (!latestChangeByOrder.has(row.order_id)) latestChangeByOrder.set(row.order_id, row.changed_at);
-    }
+    const latestChangeByOrder = buildLatestChangeMap((historyRows ?? []) as { order_id: string; changed_at: string }[]);
 
     attentionQueue = buildAttentionQueue(
       typedAttentionRows.map((row) => ({

@@ -96,6 +96,13 @@ export const orderPayloadSchema = z.object({
   general_notes: z.string().trim().optional(),
   vendor_notes: z.string().trim().optional(),
   vendor_notes_en: z.string().trim().optional(),
+  // Fase 6K (0034) — fechas compromiso de cumplimiento logístico, captura
+  // manual opcional. Sobrescritura directa en rpc_update_order (no aplican
+  // "ausente ≠ null": son campos escalares, no relaciones).
+  supplier_commitment_date: z.string().trim().optional(),
+  estimated_reception_date: z.string().trim().optional(),
+  scheduled_delivery_date: z.string().trim().optional(),
+  actual_completion_date: z.string().trim().optional(),
   items: z.array(orderItemSchema).min(1, "Agrega al menos un producto"),
   images: z.array(orderImageSchema).default([]),
   files: z.array(orderFileSchema).default([]),

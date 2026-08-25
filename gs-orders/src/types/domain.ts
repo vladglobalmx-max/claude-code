@@ -412,6 +412,15 @@ export interface Order {
   vendor_notes: string | null;
   vendor_notes_en: string | null;
 
+  // THÖREN Fase 6K (0034_order_commitment_dates.sql) — fechas compromiso
+  // de cumplimiento logístico, capturadas manualmente (nunca inferidas).
+  // Cuál es "la relevante" para el estado de vencimiento depende de
+  // operational_status — ver lib/dashboard/due-dates.ts.
+  supplier_commitment_date: string | null;
+  estimated_reception_date: string | null;
+  scheduled_delivery_date: string | null;
+  actual_completion_date: string | null;
+
   projector_model: string | null;
   projector_quantity: number | null;
   projector_power: string | null;

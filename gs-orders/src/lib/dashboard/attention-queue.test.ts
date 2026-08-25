@@ -16,6 +16,7 @@ function row(overrides: Partial<AttentionQueueSourceRow> = {}): AttentionQueueSo
     businessUnitName: "Thunder LED Lights",
     salespersonName: "Vendedor Uno",
     operationalStatus: "pedido",
+    dueDateStatus: null,
     ...overrides,
   };
 }
@@ -113,6 +114,71 @@ describe("buildAttentionQueue", () => {
     // El de 10 días (critico-4d, por su fecha real) debe ir primero.
     expect(result[0]?.id).toBe("critico-4d");
     expect(result[0]?.daysInStatus).toBe(10);
+  });
+
+  it("Fase 6K §4: Vencido va primero, incluso antes que un pedido normal-con-más-días o crítico no vencido", () => {
+    const rows = [
+      row({ id: "critico-no-vencido", dueDateStatus: "en_tiempo" }),
+      row({ id: "vencido-pero-normal", dueDateStatus: "vencido" }),
+    ];
+    const latest = new Map([
+      ["critico-no-vencido", "2026-08-01T00:00:00Z"], // 23 días -> crítico
+      ["vencido-pero-normal", "2026-08-23T00:00:00Z"], // 1 día -> normal
+    ]);
+    const result = buildAttentionQueue(rows, latest, now, 15);
+    expect(result.map((r) => r.id)).toEqual(["vencido-pero-normal", "critico-no-vencido"]);
+  });
+
+  it("Fase 6K §4: 'próximo_a_vencer'/'en_tiempo' no alteran el orden por antigüedad", () => {
+    const rows = [
+      row({ id: "critico", dueDateStatus: "proximo_a_vencer" }),
+      row({ id: "normal", dueDateStatus: "en_tiempo" }),
+    ];
+    const latest = new Map([
+      ["critico", "2026-08-01T00:00:00Z"], // 23 días -> crítico
+      ["normal", "2026-08-23T00:00:00Z"], // 1 día -> normal
+    ]);
+    const result = buildAttentionQueue(rows, latest, now, 15);
+    expect(result.map((r) => r.id)).toEqual(["critico", "normal"]);
+  });
+
+  it("Fase 6K §4: entre dos vencidos, sigue aplicando antigüedad como desempate", () => {
+    const rows = [row({ id: "vencido-poco", dueDateStatus: "vencido" }), row({ id: "vencido-mucho", dueDateStatus: "vencido" })];
+    const latest = new Map([
+      ["vencido-poco", "2026-08-22T00:00:00Z"], // 2 días
+      ["vencido-mucho", "2026-08-01T00:00:00Z"], // 23 días
+    ]);
+    const result = buildAttentionQueue(rows, latest, now, 15);
+    expect(result.map((r) => r.id)).toEqual(["vencido-mucho", "vencido-poco"]);
+  });
+
+  it("Fase 6K — AJUSTE FINAL: orden combinado de 5 niveles — Vencido > Crítico > Próximo a vencer > Atención > Normal", () => {
+    const rows = [
+      row({ id: "normal", dueDateStatus: "en_tiempo" }),
+      row({ id: "atencion", dueDateStatus: "sin_fecha" }),
+      row({ id: "proximo", dueDateStatus: "proximo_a_vencer" }),
+      row({ id: "critico", dueDateStatus: null }),
+      row({ id: "vencido", dueDateStatus: "vencido" }),
+    ];
+    const latest = new Map([
+      ["normal", "2026-08-23T00:00:00Z"], // 1 día -> normal
+      ["atencion", "2026-08-20T00:00:00Z"], // 4 días -> atención
+      ["proximo", "2026-08-23T00:00:00Z"], // 1 día -> normal (el nivel lo pone dueDateStatus)
+      ["critico", "2026-08-18T00:00:00Z"], // 6 días -> crítico
+      ["vencido", "2026-08-23T00:00:00Z"], // 1 día -> normal (Vencido manda igual)
+    ]);
+    const result = buildAttentionQueue(rows, latest, now, 15);
+    expect(result.map((r) => r.id)).toEqual(["vencido", "critico", "proximo", "atencion", "normal"]);
+  });
+
+  it("Fase 6K — AJUSTE FINAL: 'sin_fecha' no altera el orden — se ubica solo por su nivel de antigüedad", () => {
+    const rows = [row({ id: "atencion-sin-fecha", dueDateStatus: "sin_fecha" }), row({ id: "critico-null", dueDateStatus: null })];
+    const latest = new Map([
+      ["atencion-sin-fecha", "2026-08-20T00:00:00Z"], // 4 días -> atención
+      ["critico-null", "2026-08-18T00:00:00Z"], // 6 días -> crítico
+    ]);
+    const result = buildAttentionQueue(rows, latest, now, 15);
+    expect(result.map((r) => r.id)).toEqual(["critico-null", "atencion-sin-fecha"]);
   });
 });
 

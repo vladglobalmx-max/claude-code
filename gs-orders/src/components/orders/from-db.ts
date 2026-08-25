@@ -38,6 +38,10 @@ export function buildOrderFormState(
     generalNotes: order.general_notes ?? "",
     vendorNotes: order.vendor_notes ?? "",
     vendorNotesEn: order.vendor_notes_en ?? "",
+    supplierCommitmentDate: order.supplier_commitment_date ?? "",
+    estimatedReceptionDate: order.estimated_reception_date ?? "",
+    scheduledDeliveryDate: order.scheduled_delivery_date ?? "",
+    actualCompletionDate: order.actual_completion_date ?? "",
     items: items
       .sort((a, b) => a.position - b.position)
       .map((item) => {

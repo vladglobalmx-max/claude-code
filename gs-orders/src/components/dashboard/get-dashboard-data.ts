@@ -9,6 +9,7 @@ import {
   buildOperationalStatusBreakdown,
   type AttentionQueueRow,
 } from "@/lib/dashboard/attention-queue";
+import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
 import { BUSINESS_UNIT_LABELS } from "@/types/domain";
 import type { OrderOperationalStatus, OrderStatus } from "@/types/domain";
 
@@ -114,6 +115,9 @@ type AttentionSourceRow = {
   business_unit_id: string | null;
   business_unit: string;
   operational_status: OrderOperationalStatus;
+  supplier_commitment_date: string | null;
+  estimated_reception_date: string | null;
+  scheduled_delivery_date: string | null;
   salesperson: OneOrMany<{ name: string }> | null;
   business_units: OneOrMany<{ name: string }> | null;
 };
@@ -164,7 +168,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     supabase
       .from("orders")
       .select(
-        "id, folio, client_name, business_unit_id, business_unit, operational_status, salesperson:salespeople(name), business_units(name)"
+        "id, folio, client_name, business_unit_id, business_unit, operational_status, supplier_commitment_date, estimated_reception_date, scheduled_delivery_date, salesperson:salespeople(name), business_units(name)"
       )
       .in("operational_status", ACTIVE_OPERATIONAL_STATUSES)
       .limit(300),
@@ -241,6 +245,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       .order("changed_at", { ascending: false });
 
     const latestChangeByOrder = buildLatestChangeMap((historyRows ?? []) as { order_id: string; changed_at: string }[]);
+    const now = new Date();
 
     attentionQueue = buildAttentionQueue(
       typedAttentionRows.map((row) => ({
@@ -251,9 +256,18 @@ export async function getDashboardData(): Promise<DashboardData> {
           one(row.business_units)?.name ?? BUSINESS_UNIT_LABELS[row.business_unit as keyof typeof BUSINESS_UNIT_LABELS] ?? "—",
         salespersonName: one(row.salesperson)?.name ?? "—",
         operationalStatus: row.operational_status,
+        dueDateStatus: classifyDueDateStatus(
+          row.operational_status,
+          {
+            supplierCommitmentDate: row.supplier_commitment_date,
+            estimatedReceptionDate: row.estimated_reception_date,
+            scheduledDeliveryDate: row.scheduled_delivery_date,
+          },
+          now
+        ),
       })),
       latestChangeByOrder,
-      new Date(),
+      now,
       ATTENTION_QUEUE_LIMIT
     );
   }

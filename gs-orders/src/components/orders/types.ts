@@ -136,6 +136,16 @@ export interface OrderFormState {
   generalNotes: string;
   vendorNotes: string;
   vendorNotesEn: string;
+  /**
+   * Fase 6K (0034) — fechas compromiso de cumplimiento logístico, captura
+   * manual (nunca inferidas). "" = sin capturar. Sobrescritura directa en
+   * rpc_update_order (no aplica "ausente ≠ null" — son campos escalares,
+   * no relaciones — ver DECISIÓN en la migración).
+   */
+  supplierCommitmentDate: string;
+  estimatedReceptionDate: string;
+  scheduledDeliveryDate: string;
+  actualCompletionDate: string;
   items: ProductItemDraft[];
   images: MediaDraft[];
   files: MediaDraft[];
@@ -187,6 +197,10 @@ export function emptyOrderForm(defaultDate: string): OrderFormState {
     generalNotes: "",
     vendorNotes: "",
     vendorNotesEn: "",
+    supplierCommitmentDate: "",
+    estimatedReceptionDate: "",
+    scheduledDeliveryDate: "",
+    actualCompletionDate: "",
     items: [emptyProductItem()],
     images: [],
     files: [],

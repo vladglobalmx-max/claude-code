@@ -40,6 +40,10 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
     general_notes: state.generalNotes || undefined,
     vendor_notes: state.vendorNotes || undefined,
     vendor_notes_en: state.vendorNotesEn || undefined,
+    supplier_commitment_date: state.supplierCommitmentDate || undefined,
+    estimated_reception_date: state.estimatedReceptionDate || undefined,
+    scheduled_delivery_date: state.scheduledDeliveryDate || undefined,
+    actual_completion_date: state.actualCompletionDate || undefined,
     items: state.items.map((item) => ({
       model: item.model,
       description: item.description || undefined,

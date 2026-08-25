@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AttentionLevelIndicator } from "@/components/ui/attention-level-indicator";
+import { DueDateStatusIndicator } from "@/components/ui/due-date-status-indicator";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import {
@@ -18,8 +19,9 @@ import {
   classifyAttentionLevel,
   type AttentionLevel,
 } from "@/lib/dashboard/attention-queue";
+import { classifyDueDateStatus, type DueDateStatus } from "@/lib/dashboard/due-dates";
 import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS, ORDER_STATUS_BADGE, ORDER_STATUS_LABELS } from "@/types/domain";
-import type { ProductTypeItem, Salesperson } from "@/types/domain";
+import type { OrderOperationalStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import { OrderFilters } from "./order-filters";
 import { DuplicateButton } from "./duplicate-button";
 import { DeleteButton } from "./delete-button";
@@ -35,10 +37,15 @@ interface OrderRow {
   product_type_name_snapshot: string | null;
   status: string;
   operational_status: string;
+  supplier_commitment_date: string | null;
+  estimated_reception_date: string | null;
+  scheduled_delivery_date: string | null;
   salesperson: { name: string; prefix: string } | { name: string; prefix: string }[] | null;
   /** THÖREN Fase 6J — solo se calcula para operational_status activo (ver ACTIVE_OPERATIONAL_STATUSES); undefined para completado/cancelado, que nunca se consideran atrasados. */
   attentionLevel?: AttentionLevel;
   daysInStatus?: number;
+  /** THÖREN Fase 6K — null si no hay fecha compromiso relevante capturada para el operational_status actual (nunca se inventa un vencimiento). */
+  dueDateStatus?: DueDateStatus | null;
 }
 
 function salespersonName(row: OrderRow) {
@@ -79,7 +86,7 @@ export default async function PedidosPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, operational_status, salesperson:salespeople(name, prefix)"
+      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, operational_status, supplier_commitment_date, estimated_reception_date, scheduled_delivery_date, salesperson:salespeople(name, prefix)"
     )
     .order("created_at", { ascending: false });
 
@@ -103,6 +110,24 @@ export default async function PedidosPage({
 
   const { data } = await query.limit(200);
   let orders = (data ?? []) as unknown as OrderRow[];
+
+  // THÖREN Fase 6K — vencimiento contra la fecha compromiso relevante según
+  // operational_status (lib/dashboard/due-dates.ts, misma lógica que el
+  // Dashboard — nunca reimplementada). No depende del historial de
+  // cambios, así que se calcula aparte del bloque de antigüedad de abajo.
+  const dueDateNow = new Date();
+  orders = orders.map((order) => ({
+    ...order,
+    dueDateStatus: classifyDueDateStatus(
+      order.operational_status as OrderOperationalStatus,
+      {
+        supplierCommitmentDate: order.supplier_commitment_date,
+        estimatedReceptionDate: order.estimated_reception_date,
+        scheduledDeliveryDate: order.scheduled_delivery_date,
+      },
+      dueDateNow
+    ),
+  }));
 
   // THÖREN Fase 6J — antigüedad/semáforo para la columna Seguimiento y el
   // filtro de atención. Reutiliza exactamente la misma lógica del
@@ -188,6 +213,7 @@ export default async function PedidosPage({
                   {order.attentionLevel && order.daysInStatus !== undefined && (
                     <AttentionLevelIndicator level={order.attentionLevel} daysInStatus={order.daysInStatus} />
                   )}
+                  {order.dueDateStatus && <DueDateStatusIndicator status={order.dueDateStatus} />}
                 </div>
                 <div className="mt-3 flex items-center gap-1 border-t border-border pt-2">
                   <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver pedido">
@@ -222,6 +248,7 @@ export default async function PedidosPage({
                   <Th>Tipo</Th>
                   <Th>Estado</Th>
                   <Th>Seguimiento</Th>
+                  <Th>Vencimiento</Th>
                   <Th />
                 </Tr>
               </Thead>
@@ -246,7 +273,13 @@ export default async function PedidosPage({
                         labels={ORDER_OPERATIONAL_STATUS_LABELS}
                         variants={ORDER_OPERATIONAL_STATUS_BADGE}
                       />
+                      {order.attentionLevel && order.daysInStatus !== undefined && (
+                        <div className="mt-1">
+                          <AttentionLevelIndicator level={order.attentionLevel} daysInStatus={order.daysInStatus} />
+                        </div>
+                      )}
                     </Td>
+                    <Td>{order.dueDateStatus ? <DueDateStatusIndicator status={order.dueDateStatus} /> : "—"}</Td>
                     <Td>
                       <div className="flex items-center justify-end gap-3 text-sm">
                         <Link href={`/pedidos/${order.id}`} className="text-ink-soft hover:text-accent">

@@ -1,5 +1,6 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { formatNumber } from "@/lib/utils/format";
+import type { DueDateStatus } from "@/lib/dashboard/due-dates";
 import type { OrderOperationalStatus } from "@/types/domain";
 
 /**
@@ -68,13 +69,6 @@ export function classifyAttentionLevel(daysInStatus: number): AttentionLevel {
   return "normal";
 }
 
-/** Orden de prioridad para mostrar primero lo más urgente (crítico -> atención -> normal). */
-export const ATTENTION_LEVEL_PRIORITY: Record<AttentionLevel, number> = {
-  critico: 0,
-  atencion: 1,
-  normal: 2,
-};
-
 /** Etiquetas del semáforo — usadas tanto por el Dashboard como por el listado de Pedidos (Fase 6J §5, una sola fuente). */
 export const ATTENTION_LEVEL_LABELS: Record<AttentionLevel, string> = {
   normal: "Normal",
@@ -120,6 +114,13 @@ export interface AttentionQueueSourceRow {
   businessUnitName: string;
   salespersonName: string;
   operationalStatus: OrderOperationalStatus;
+  /**
+   * THÖREN Fase 6K — vencimiento contra la fecha compromiso relevante (ver
+   * lib/dashboard/due-dates.ts). null = sin fecha relevante capturada
+   * todavía (nunca se inventa un vencimiento). Solo afecta el orden de
+   * prioridad cuando vale 'vencido' — ver DECISIÓN de buildAttentionQueue.
+   */
+  dueDateStatus: DueDateStatus | null;
 }
 
 export interface AttentionQueueRow extends AttentionQueueSourceRow {
@@ -129,13 +130,33 @@ export interface AttentionQueueRow extends AttentionQueueSourceRow {
 }
 
 /**
+ * Prioridad combinada final (Fase 6K — AJUSTE FINAL, confirmada por el
+ * usuario), un único orden total de 5 niveles que entrelaza vencimiento y
+ * antigüedad — NO son dos ejes independientes:
+ *   1) Vencido (sin importar el nivel de antigüedad)
+ *   2) Crítico por antigüedad (que no esté ya Vencido)
+ *   3) Próximo a vencer (que no sea ya Crítico)
+ *   4) Atención por antigüedad
+ *   5) Normal
+ * 'sin_fecha'/'en_tiempo'/null (estado sin concepto de vencimiento) no
+ * alteran el orden — el pedido se ubica solo por su nivel de antigüedad.
+ */
+function combinedPriority(row: { dueDateStatus: DueDateStatus | null; attentionLevel: AttentionLevel }): number {
+  if (row.dueDateStatus === "vencido") return 0;
+  if (row.attentionLevel === "critico") return 1;
+  if (row.dueDateStatus === "proximo_a_vencer") return 2;
+  if (row.attentionLevel === "atencion") return 3;
+  return 4;
+}
+
+/**
  * Cruza pedidos activos con la fecha del cambio de operational_status más
  * reciente por pedido (order_operational_status_history, 0033), calcula el
- * semáforo de antigüedad y ordena por prioridad: CRÍTICO primero, luego
- * ATENCIÓN, luego NORMAL — dentro de cada nivel, el que lleve más días en
- * ese estado primero (Fase 6J §2). Un pedido sin entrada en
- * `latestChangeByOrder` se descarta (defensivo: el trigger 0033 siempre
- * debería dejar al menos una fila, pero nunca se inventa una fecha).
+ * semáforo de antigüedad y ordena por la prioridad combinada de arriba;
+ * dentro de cada nivel, el que lleve más días en su estado actual va
+ * primero. Un pedido sin entrada en `latestChangeByOrder` se descarta
+ * (defensivo: el trigger 0033 siempre debería dejar al menos una fila,
+ * pero nunca se inventa una fecha).
  */
 export function buildAttentionQueue(
   rows: AttentionQueueSourceRow[],
@@ -157,7 +178,7 @@ export function buildAttentionQueue(
     })
     .filter((row): row is AttentionQueueRow => row !== null)
     .sort((a, b) => {
-      const priorityDiff = ATTENTION_LEVEL_PRIORITY[a.attentionLevel] - ATTENTION_LEVEL_PRIORITY[b.attentionLevel];
+      const priorityDiff = combinedPriority(a) - combinedPriority(b);
       if (priorityDiff !== 0) return priorityDiff;
       return b.daysInStatus - a.daysInStatus;
     })

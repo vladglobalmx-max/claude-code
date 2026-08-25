@@ -3,10 +3,13 @@ import { ArrowLeft, Pencil, Printer } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DueDateStatusIndicator } from "@/components/ui/due-date-status-indicator";
 import { cn } from "@/lib/utils/cn";
+import { formatDateShort } from "@/lib/utils/format";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
+import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
 import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS } from "@/types/domain";
 import type { OrderOperationalStatusHistoryEntry } from "@/types/domain";
 import { DuplicateButton } from "../duplicate-button";
@@ -46,6 +49,19 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
     .eq("order_id", detail.order.id)
     .order("changed_at", { ascending: false });
   const operationalHistory = (operationalHistoryData ?? []) as OrderOperationalStatusHistoryEntry[];
+
+  // THÖREN Fase 6K — vencimiento contra la fecha compromiso relevante según
+  // operational_status (lib/dashboard/due-dates.ts, misma lógica que el
+  // Dashboard y el listado — nunca reimplementada).
+  const dueDateStatus = classifyDueDateStatus(
+    detail.order.operational_status,
+    {
+      supplierCommitmentDate: detail.order.supplier_commitment_date,
+      estimatedReceptionDate: detail.order.estimated_reception_date,
+      scheduledDeliveryDate: detail.order.scheduled_delivery_date,
+    },
+    new Date()
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -97,6 +113,33 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
               className="text-sm"
             />
             <OrderOperationalStatusActions order={detail.order} />
+            {dueDateStatus && <DueDateStatusIndicator status={dueDateStatus} />}
+          </div>
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Fecha compromiso proveedor</p>
+              <p className="text-ink-soft">
+                {detail.order.supplier_commitment_date ? formatDateShort(detail.order.supplier_commitment_date) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Fecha estimada de recepción</p>
+              <p className="text-ink-soft">
+                {detail.order.estimated_reception_date ? formatDateShort(detail.order.estimated_reception_date) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Fecha programada de entrega/instalación</p>
+              <p className="text-ink-soft">
+                {detail.order.scheduled_delivery_date ? formatDateShort(detail.order.scheduled_delivery_date) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Fecha real de entrega/cierre</p>
+              <p className="text-ink-soft">
+                {detail.order.actual_completion_date ? formatDateShort(detail.order.actual_completion_date) : "—"}
+              </p>
+            </div>
           </div>
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">Historial</p>

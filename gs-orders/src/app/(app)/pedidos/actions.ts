@@ -38,6 +38,13 @@ function buildOrderRow(payload: OrderPayload) {
     general_notes: payload.general_notes || null,
     vendor_notes: payload.vendor_notes || null,
     vendor_notes_en: payload.vendor_notes_en || null,
+    // Fase 6K (0034) — sobrescritura directa (no "ausente ≠ null"): son
+    // campos escalares, no relaciones. `|| null` deja limpiar una fecha ya
+    // capturada, igual que el resto de los campos escalares de arriba.
+    supplier_commitment_date: payload.supplier_commitment_date || null,
+    estimated_reception_date: payload.estimated_reception_date || null,
+    scheduled_delivery_date: payload.scheduled_delivery_date || null,
+    actual_completion_date: payload.actual_completion_date || null,
   };
 }
 

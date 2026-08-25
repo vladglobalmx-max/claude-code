@@ -142,6 +142,51 @@ export function DatosGeneralesSection({
           </Select>
         </div>
       </CardContent>
+
+      <CardHeader>
+        <CardTitle>Fechas compromiso</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="supplier_commitment_date">Fecha compromiso proveedor</Label>
+          <Input
+            id="supplier_commitment_date"
+            type="date"
+            value={state.supplierCommitmentDate}
+            onChange={(e) => onChange({ supplierCommitmentDate: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="estimated_reception_date">Fecha estimada de recepción</Label>
+          <Input
+            id="estimated_reception_date"
+            type="date"
+            value={state.estimatedReceptionDate}
+            onChange={(e) => onChange({ estimatedReceptionDate: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="scheduled_delivery_date">Fecha programada de entrega/instalación</Label>
+          <Input
+            id="scheduled_delivery_date"
+            type="date"
+            value={state.scheduledDeliveryDate}
+            onChange={(e) => onChange({ scheduledDeliveryDate: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="actual_completion_date">Fecha real de entrega/cierre</Label>
+          <Input
+            id="actual_completion_date"
+            type="date"
+            value={state.actualCompletionDate}
+            onChange={(e) => onChange({ actualCompletionDate: e.target.value })}
+          />
+        </div>
+      </CardContent>
     </Card>
   );
 }

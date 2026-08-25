@@ -90,6 +90,15 @@ export interface Database {
           delivery_time: string | null;
           warranty: string | null;
           customer_notes: string | null;
+          // THÖREN Fase 6K (0034_order_commitment_dates.sql) — fechas
+          // compromiso de cumplimiento logístico del pedido, capturadas
+          // manualmente (nunca inferidas). Todas nullable, sin default —
+          // ver DECISIÓN en la migración para qué fecha es "la relevante"
+          // según operational_status (lib/dashboard/due-dates.ts).
+          supplier_commitment_date: string | null;
+          estimated_reception_date: string | null;
+          scheduled_delivery_date: string | null;
+          actual_completion_date: string | null;
           projector_model: string | null;
           projector_quantity: number | null;
           projector_power: string | null;
@@ -150,6 +159,10 @@ export interface Database {
           delivery_time?: string | null;
           warranty?: string | null;
           customer_notes?: string | null;
+          supplier_commitment_date?: string | null;
+          estimated_reception_date?: string | null;
+          scheduled_delivery_date?: string | null;
+          actual_completion_date?: string | null;
           projector_model?: string | null;
           projector_quantity?: number | null;
           projector_power?: string | null;

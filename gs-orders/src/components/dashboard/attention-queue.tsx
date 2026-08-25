@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AttentionLevelIndicator } from "@/components/ui/attention-level-indicator";
+import { DueDateStatusIndicator } from "@/components/ui/due-date-status-indicator";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { formatDaysInStatus } from "@/lib/dashboard/attention-queue";
@@ -63,6 +64,11 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                     Desde {formatDateShort(row.lastChangedAt)} · {formatDaysInStatus(row.daysInStatus)}
                   </p>
                 </div>
+                {row.dueDateStatus && (
+                  <div className="mt-1">
+                    <DueDateStatusIndicator status={row.dueDateStatus} />
+                  </div>
+                )}
               </Link>
             ))}
           </div>
@@ -80,6 +86,7 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                   <Th>Último cambio</Th>
                   <Th>Días en el estado</Th>
                   <Th>Nivel</Th>
+                  <Th>Vencimiento</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -105,6 +112,7 @@ export function AttentionQueue({ rows }: { rows: AttentionQueueRow[] }) {
                     <Td>
                       <AttentionLevelIndicator level={row.attentionLevel} />
                     </Td>
+                    <Td>{row.dueDateStatus ? <DueDateStatusIndicator status={row.dueDateStatus} /> : "—"}</Td>
                   </Tr>
                 ))}
               </Tbody>

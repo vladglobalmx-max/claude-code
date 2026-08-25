@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
-import type { PurchaseOrder, PurchaseOrderItem, Supplier } from "@/types/domain";
+import type { PurchaseOrder, PurchaseOrderItem, Supplier, Warehouse } from "@/types/domain";
 import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
 import { ReceiveItemForm } from "./receive-item-form";
@@ -52,6 +52,28 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
     .eq("purchase_order_id", po.id)
     .order("position");
   const items = (itemsData ?? []) as PurchaseOrderItem[];
+
+  // THÖREN Fase 6M — almacenes activos (para el selector de recepción) y
+  // el almacén ya usado por cada partida (si empezó a recibirse) — se
+  // deriva de inventory_movements, nunca se duplica en purchase_order_items.
+  const [{ data: warehousesData }, { data: movementsData }] = await Promise.all([
+    supabase.from("warehouses").select("*").eq("active", true).order("name"),
+    items.length > 0
+      ? supabase
+          .from("inventory_movements")
+          .select("purchase_order_item_id, warehouse_id")
+          .in(
+            "purchase_order_item_id",
+            items.map((i) => i.id)
+          )
+      : Promise.resolve({ data: [] as { purchase_order_item_id: string | null; warehouse_id: string }[] }),
+  ]);
+  const warehouses = (warehousesData ?? []) as Warehouse[];
+  const lockedWarehouseByItem = new Map(
+    ((movementsData ?? []) as { purchase_order_item_id: string | null; warehouse_id: string }[])
+      .filter((m) => m.purchase_order_item_id)
+      .map((m) => [m.purchase_order_item_id as string, m.warehouse_id])
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -169,6 +191,9 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                         quantityOrdered={item.quantity_ordered}
                         quantityReceived={item.quantity_received}
                         status={po.status}
+                        hasCatalogProduct={item.catalog_product_id !== null}
+                        warehouses={warehouses}
+                        lockedWarehouseId={lockedWarehouseByItem.get(item.id) ?? null}
                       />
                     </Td>
                   )}

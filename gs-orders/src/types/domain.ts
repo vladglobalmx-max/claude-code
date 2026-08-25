@@ -837,3 +837,100 @@ export interface PurchaseOrderWithRelations extends PurchaseOrder {
   supplier: Supplier;
   items: PurchaseOrderItem[];
 }
+
+/**
+ * THÖREN Fase 6M (0036_inventory_mvp.sql) — catálogo de almacenes por
+ * organización. A diferencia de suppliers/customers, solo ADMIN puede
+ * crear (no solo editar) — ver DECISIÓN en la migración.
+ */
+export interface Warehouse {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  location: string | null;
+  notes: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * THÖREN Fase 6M — ledger inmutable de inventario, ÚNICA fuente de verdad
+ * de ON HAND (nunca un contador cacheado — ver DECISIÓN "ON HAND es un
+ * ledger" en la migración). Sin UPDATE/DELETE posibles desde la app.
+ * `purchase_order_id`/`purchase_order_item_id` solo existen para
+ * 'recepcion_compra'/'correccion_recepcion' (trazabilidad a la compra de
+ * origen); NULL para movimientos manuales.
+ */
+export type InventoryMovementType =
+  | "recepcion_compra"
+  | "entrada_manual"
+  | "salida_manual"
+  | "ajuste_positivo"
+  | "ajuste_negativo"
+  | "correccion_recepcion";
+
+export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, string> = {
+  recepcion_compra: "Recepción de compra",
+  entrada_manual: "Entrada manual",
+  salida_manual: "Salida manual",
+  ajuste_positivo: "Ajuste positivo",
+  ajuste_negativo: "Ajuste negativo",
+  correccion_recepcion: "Corrección de recepción",
+};
+
+/** Tipos que ADMIN puede registrar manualmente desde /inventario — 'recepcion_compra'/'correccion_recepcion' solo los genera la recepción de una Purchase Order. */
+export const INVENTORY_MANUAL_MOVEMENT_TYPES: InventoryMovementType[] = [
+  "entrada_manual",
+  "salida_manual",
+  "ajuste_positivo",
+  "ajuste_negativo",
+];
+
+export interface InventoryMovement {
+  id: string;
+  organization_id: string;
+  product_id: string;
+  warehouse_id: string;
+  quantity_delta: number;
+  movement_type: InventoryMovementType;
+  purchase_order_id: string | null;
+  purchase_order_item_id: string | null;
+  reference: string | null;
+  notes: string | null;
+  created_by_user_id: string;
+  created_by_name: string;
+  created_at: string;
+}
+
+/** Resultado de rpc_inventory_stock_levels — ON HAND agregado por producto × almacén (nunca almacenado, siempre derivado de inventory_movements). */
+export interface InventoryStockLevel {
+  product_id: string;
+  warehouse_id: string;
+  on_hand: number;
+}
+
+/** Resultado de rpc_inventory_incoming_by_product — INCOMING derivado de Purchase Orders activas, nunca una copia manual. */
+export interface InventoryIncomingByProduct {
+  product_id: string;
+  incoming: number;
+}
+
+/**
+ * Resultado de rpc_inventory_incoming_detail — trazabilidad completa de lo
+ * que viene en camino para un producto (Purchase Order, proveedor, Pedido
+ * origen, cantidad pendiente, fechas) sin duplicar esos datos dentro de
+ * Inventory: se resuelven vía join en la propia RPC.
+ */
+export interface InventoryIncomingDetail {
+  purchase_order_id: string;
+  purchase_order_folio: string;
+  supplier_id: string;
+  supplier_name: string;
+  order_id: string;
+  order_folio: string;
+  quantity_pending: number;
+  supplier_commitment_date: string | null;
+  estimated_reception_date: string | null;
+}

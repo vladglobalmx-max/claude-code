@@ -961,6 +961,116 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Fase 6M (0036_inventory_mvp.sql) — catálogo de almacenes.
+      // A diferencia de suppliers/customers, INSERT también es admin-only.
+      warehouses: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          location: string | null;
+          notes: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          location?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["warehouses"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "warehouses_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6M (0036_inventory_mvp.sql) — ledger inmutable, única
+      // fuente de verdad de ON HAND. Sin policy de insert/update/delete
+      // para `authenticated` — solo lo escriben rpc_create_inventory_movement
+      // y rpc_receive_purchase_order_item (ambas SECURITY DEFINER).
+      inventory_movements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          product_id: string;
+          warehouse_id: string;
+          quantity_delta: number;
+          movement_type: string;
+          purchase_order_id: string | null;
+          purchase_order_item_id: string | null;
+          reference: string | null;
+          notes: string | null;
+          created_by_user_id: string;
+          created_by_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          product_id: string;
+          warehouse_id: string;
+          quantity_delta: number;
+          movement_type: string;
+          purchase_order_id?: string | null;
+          purchase_order_item_id?: string | null;
+          reference?: string | null;
+          notes?: string | null;
+          created_by_user_id: string;
+          created_by_name: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_movements"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_warehouse_id_fkey";
+            columns: ["warehouse_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_purchase_order_id_fkey";
+            columns: ["purchase_order_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_purchase_order_item_id_fkey";
+            columns: ["purchase_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_order_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
       // de auth.users/organization_members/salespeople. Sin UI ni RPC
       // consumidora todavía; solo el bootstrap (owner de la tabla) y
@@ -1305,16 +1415,68 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
       };
-      // THÖREN Fase 6L (0035) — registra la cantidad recibida ACUMULADA
-      // (valor absoluto, no delta) de una partida y recalcula el estado de
-      // la PO (recibida_parcial/recibida). Nunca permite recibido >
-      // ordenado (también protegido por CHECK en la tabla).
+      // THÖREN Fase 6L (0035), firma actualizada en Fase 6M (0036) —
+      // registra la cantidad recibida ACUMULADA (valor absoluto, no delta)
+      // de una partida y recalcula el estado de la PO (recibida_parcial/
+      // recibida). Nunca permite recibido > ordenado (también protegido
+      // por CHECK en la tabla). Ahora SECURITY DEFINER: p_warehouse_id es
+      // obligatorio para partidas con catalog_product_id — genera un
+      // movimiento de inventario (delta = nueva cantidad - anterior,
+      // idempotente) y queda fijo tras el primer movimiento de esa partida.
       rpc_receive_purchase_order_item: {
         Args: {
           p_purchase_order_item_id: string;
           p_quantity_received: number;
+          p_warehouse_id: string | null;
         };
         Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"];
+      };
+      // THÖREN Fase 6M (0036) — ON HAND agregado por producto × almacén,
+      // derivado de inventory_movements (nunca un contador cacheado).
+      // p_product_id opcional filtra a un solo producto (detalle/kardex).
+      rpc_inventory_stock_levels: {
+        Args: {
+          p_product_id?: string | null;
+        };
+        Returns: { product_id: string; warehouse_id: string; on_hand: number }[];
+      };
+      // THÖREN Fase 6M (0036) — INCOMING agregado por producto, derivado de
+      // Purchase Orders activas (nunca una copia manual). SECURITY DEFINER
+      // con filtro explícito de organización — ver DECISIÓN de visibilidad
+      // en la migración (purchase_order_items tiene RLS más restrictiva
+      // que lo que Inventory debe mostrar a VENDEDOR).
+      rpc_inventory_incoming_by_product: {
+        Args: Record<PropertyKey, never>;
+        Returns: { product_id: string; incoming: number }[];
+      };
+      // THÖREN Fase 6M (0036) — detalle trazable de lo que viene en camino
+      // para UN producto (Purchase Order/proveedor/Pedido origen/cantidad
+      // pendiente/fechas), resuelto vía join — nunca duplicado en Inventory.
+      rpc_inventory_incoming_detail: {
+        Args: {
+          p_product_id: string;
+        };
+        Returns: {
+          purchase_order_id: string;
+          purchase_order_folio: string;
+          supplier_id: string;
+          supplier_name: string;
+          order_id: string;
+          order_folio: string;
+          quantity_pending: number;
+          supplier_commitment_date: string | null;
+          estimated_reception_date: string | null;
+        }[];
+      };
+      // THÖREN Fase 6M (0036) — entradas/salidas/ajustes manuales de
+      // inventario. Solo ADMIN; bloquea cualquier operación que deje ON
+      // HAND negativo.
+      rpc_create_inventory_movement: {
+        Args: {
+          p_movement_id: string;
+          p_movement: Json;
+        };
+        Returns: Database["public"]["Tables"]["inventory_movements"]["Row"];
       };
       // THÖREN Quotes Q3 (0020) — SECURITY INVOKER, transacción única:
       // resuelve snapshots, pide folio a fn_next_quote_folio() y calcula

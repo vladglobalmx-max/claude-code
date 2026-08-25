@@ -1,4 +1,17 @@
-import { Briefcase, Building2, Contact, FileSpreadsheet, FileText, Package, Truck, Users, Settings, Home, type LucideIcon } from "lucide-react";
+import {
+  Boxes,
+  Briefcase,
+  Building2,
+  Contact,
+  FileSpreadsheet,
+  FileText,
+  Package,
+  Truck,
+  Users,
+  Settings,
+  Home,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -48,6 +61,16 @@ export interface NavGroup {
  *   `suppliers_select_member`/`suppliers_insert_member` permiten a
  *   cualquier miembro activo ver y crear; solo editar es admin-only
  *   (`suppliers_update_admin`).
+ * - Inventario (THÖREN Fase 6M, 0036_inventory_mvp.sql):
+ *   `inventory_movements_select` permite a CUALQUIER miembro activo ver
+ *   los movimientos/existencias de su organización (Inventory es una vista
+ *   de organización, no de vendedor/Pedido propio, a diferencia de
+ *   Compras) — por eso no es adminOnly, aunque solo ADMIN puede registrar
+ *   movimientos (gateado dentro de la página, no a nivel de nav).
+ * - Almacenes: `warehouses_select_member` también permite a cualquier
+ *   miembro activo ver los almacenes activos — no es adminOnly, aunque a
+ *   diferencia de Proveedores/Clientes, CREAR también es admin-only
+ *   (`warehouses_insert_admin`, ver DECISIÓN en 0036).
  *
  * "Configuración" queda como entrada de nivel superior (no como grupo con
  * un solo hijo "Usuarios"): /configuracion es hoy el hub que también da
@@ -79,6 +102,13 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/compras", label: "Compras", icon: Package, adminOnly: false },
       { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false },
+    ],
+  },
+  {
+    label: "Inventario",
+    items: [
+      { href: "/inventario", label: "Inventario", icon: Boxes, adminOnly: false },
+      { href: "/almacenes", label: "Almacenes", icon: Building2, adminOnly: false },
     ],
   },
   {

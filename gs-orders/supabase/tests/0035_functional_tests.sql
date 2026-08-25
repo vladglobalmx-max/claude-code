@@ -64,6 +64,21 @@ begin
   raise notice 'SETUP OK: Pedido % con 2 partidas, proveedor % creados', v_order.folio, v_supplier.name;
 end $$;
 
+-- THÖREN Fase 6M (0036) — rpc_receive_purchase_order_item ahora exige un
+-- almacén; se agrega un almacén de fixture aquí para que las pruebas de
+-- recepción de ESTA suite (0035) sigan siendo válidas como regresión tras
+-- 0036, sin cambiar el alcance de lo que 0035 prueba (Compras/Proveedores).
+do $$
+declare
+  v_org1 uuid; v_warehouse warehouses;
+begin
+  select org1 into v_org1 from _ids;
+  insert into warehouses (organization_id, name, code)
+  values (v_org1, 'Almacén de pruebas 0035', 'ALM-0035')
+  returning * into v_warehouse;
+  perform set_config('test.warehouse0035_id', v_warehouse.id::text, false);
+end $$;
+
 -- =========================================================================
 -- TEST 1: suppliers — VENDEDOR puede crear (customers_insert_member,
 -- mismo criterio que Customers), pero NO editar (solo ADMIN).
@@ -313,7 +328,7 @@ declare
   v_msg text;
 begin
   begin
-    perform rpc_receive_purchase_order_item(v_poi_id, 1);
+    perform rpc_receive_purchase_order_item(v_poi_id, 1, current_setting('test.warehouse0035_id')::uuid);
   exception when others then
     v_failed := true;
     get stacked diagnostics v_msg = message_text;
@@ -395,14 +410,14 @@ begin
   -- edición (fuera de esta fase); se usa una segunda Purchase Order propia
   -- para probar el caso "una sola partida, recepción total = recibida" sin
   -- ambigüedad, y la primera PO (con 1 sola partida) para "parcial".
-  perform rpc_receive_purchase_order_item(v_poi_id, 1);
+  perform rpc_receive_purchase_order_item(v_poi_id, 1, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po_id;
   if v_po.status <> 'recibida_parcial' then
     raise exception 'TEST 11 FALLÓ: recepción parcial (1 de 3) debería dejar la PO en "recibida_parcial", es %', v_po.status;
   end if;
 
   begin
-    perform rpc_receive_purchase_order_item(v_poi_id, 999);
+    perform rpc_receive_purchase_order_item(v_poi_id, 999, current_setting('test.warehouse0035_id')::uuid);
   exception when others then
     v_failed := true;
   end;
@@ -410,7 +425,7 @@ begin
     raise exception 'TEST 11 FALLÓ: no debería permitirse recibir más de lo ordenado';
   end if;
 
-  perform rpc_receive_purchase_order_item(v_poi_id, 3);
+  perform rpc_receive_purchase_order_item(v_poi_id, 3, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po_id;
   if v_po.status <> 'recibida' then
     raise exception 'TEST 11 FALLÓ: recepción total (3 de 3) debería dejar la PO en "recibida", es %', v_po.status;
@@ -433,7 +448,7 @@ declare
   v_po purchase_orders;
 begin
   -- Corrige un error: la partida en realidad no había llegado.
-  perform rpc_receive_purchase_order_item(v_poi_id, 0);
+  perform rpc_receive_purchase_order_item(v_poi_id, 0, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po_id;
   if v_po.status <> 'ordenada' then
     raise exception 'TEST 11b FALLÓ: al corregir la recepción a 0 en todas las partidas, la PO debería volver a "ordenada" (su pre_receiving_status), es %', v_po.status;
@@ -441,7 +456,7 @@ begin
 
   -- Vuelve a recibir parcialmente, para que TESTS posteriores encuentren
   -- el mismo estado ("recibida") que antes de este ajuste.
-  perform rpc_receive_purchase_order_item(v_poi_id, 3);
+  perform rpc_receive_purchase_order_item(v_poi_id, 3, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po_id;
   if v_po.status <> 'recibida' then
     raise exception 'TEST 11b FALLÓ: al volver a recibir el total, la PO debería quedar en "recibida" otra vez, es %', v_po.status;
@@ -495,7 +510,7 @@ begin
   perform rpc_update_purchase_order_status(v_po.id, 'cancelada');
 
   begin
-    perform rpc_receive_purchase_order_item(v_poi.id, 1);
+    perform rpc_receive_purchase_order_item(v_poi.id, 1, current_setting('test.warehouse0035_id')::uuid);
   exception when others then
     v_failed := true;
   end;
@@ -541,7 +556,7 @@ begin
   select * into v_poi from purchase_order_items where purchase_order_id = v_po.id;
 
   perform rpc_update_purchase_order_status(v_po.id, 'ordenada');
-  perform rpc_receive_purchase_order_item(v_poi.id, 2);
+  perform rpc_receive_purchase_order_item(v_poi.id, 2, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po.id;
   if v_po.status <> 'recibida_parcial' then
     raise exception 'TEST 13b FALLÓ (setup): se esperaba recibida_parcial, es %', v_po.status;
@@ -551,7 +566,7 @@ begin
   perform rpc_update_purchase_order_status(v_po.id, 'en_transito');
 
   -- Ahora se corrige la recepción a 0 (se detectó que aún no llegaba nada).
-  perform rpc_receive_purchase_order_item(v_poi.id, 0);
+  perform rpc_receive_purchase_order_item(v_poi.id, 0, current_setting('test.warehouse0035_id')::uuid);
   select * into v_po from purchase_orders where id = v_po.id;
   if v_po.status <> 'en_transito' then
     raise exception 'TEST 13b FALLÓ: debería volver a "en_transito" (última transición manual), es %', v_po.status;

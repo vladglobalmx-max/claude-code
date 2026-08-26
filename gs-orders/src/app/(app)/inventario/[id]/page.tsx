@@ -10,7 +10,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateShort, formatDateTime, formatNumber } from "@/lib/utils/format";
 import { INVENTORY_MOVEMENT_TYPE_LABELS } from "@/types/domain";
-import type { InventoryIncomingDetail, InventoryMovement, InventoryStockLevel, Warehouse } from "@/types/domain";
+import type { InventoryCommittedLevel, InventoryIncomingDetail, InventoryMovement, InventoryStockLevel, Warehouse } from "@/types/domain";
 import { ManualMovementForm } from "./manual-movement-form";
 
 export const dynamic = "force-dynamic";
@@ -53,25 +53,29 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
   if (!productData) notFound();
   const product = productData as ProductRow;
 
-  const [{ data: warehousesData }, { data: levelsData }, { data: incomingData }, { data: movementsData }] = await Promise.all([
-    supabase.from("warehouses").select("*").eq("active", true).order("name"),
-    supabase.rpc("rpc_inventory_stock_levels", { p_product_id: product.id }),
-    supabase.rpc("rpc_inventory_incoming_detail", { p_product_id: product.id }),
-    supabase
-      .from("inventory_movements")
-      .select("*, warehouse:warehouses(name), purchase_order:purchase_orders(folio)")
-      .eq("product_id", product.id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: warehousesData }, { data: levelsData }, { data: committedData }, { data: incomingData }, { data: movementsData }] =
+    await Promise.all([
+      supabase.from("warehouses").select("*").eq("active", true).order("name"),
+      supabase.rpc("rpc_inventory_stock_levels", { p_product_id: product.id }),
+      supabase.rpc("rpc_inventory_committed_levels", { p_product_id: product.id }),
+      supabase.rpc("rpc_inventory_incoming_detail", { p_product_id: product.id }),
+      supabase
+        .from("inventory_movements")
+        .select("*, warehouse:warehouses(name), purchase_order:purchase_orders(folio)")
+        .eq("product_id", product.id)
+        .order("created_at", { ascending: false }),
+    ]);
 
   const warehouses = (warehousesData ?? []) as Warehouse[];
   const levels = (levelsData ?? []) as InventoryStockLevel[];
+  const committedLevels = (committedData ?? []) as InventoryCommittedLevel[];
   const incomingDetail = (incomingData ?? []) as InventoryIncomingDetail[];
   const movements = (movementsData ?? []) as unknown as MovementRow[];
 
   const onHandByWarehouse = new Map(levels.map((l) => [l.warehouse_id, l.on_hand]));
+  const committedByWarehouse = new Map(committedLevels.map((l) => [l.warehouse_id, l.committed]));
   const totalOnHand = levels.reduce((sum, l) => sum + l.on_hand, 0);
-  const totalCommitted = 0;
+  const totalCommitted = committedLevels.reduce((sum, l) => sum + l.committed, 0);
   const totalIncoming = incomingDetail.reduce((sum, d) => sum + d.quantity_pending, 0);
 
   return (
@@ -118,15 +122,23 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
                 <Tr>
                   <Th>Almacén</Th>
                   <Th>On Hand</Th>
+                  <Th>Committed</Th>
+                  <Th>Available</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {warehouses.map((w) => (
-                  <Tr key={w.id}>
-                    <Td>{w.name}</Td>
-                    <Td className="tabular-nums">{formatNumber(onHandByWarehouse.get(w.id) ?? 0)}</Td>
-                  </Tr>
-                ))}
+                {warehouses.map((w) => {
+                  const onHand = onHandByWarehouse.get(w.id) ?? 0;
+                  const committed = committedByWarehouse.get(w.id) ?? 0;
+                  return (
+                    <Tr key={w.id}>
+                      <Td>{w.name}</Td>
+                      <Td className="tabular-nums">{formatNumber(onHand)}</Td>
+                      <Td className="tabular-nums text-ink-soft">{formatNumber(committed)}</Td>
+                      <Td className="tabular-nums font-medium">{formatNumber(onHand - committed)}</Td>
+                    </Tr>
+                  );
+                })}
               </Tbody>
             </Table>
           )}

@@ -934,3 +934,57 @@ export interface InventoryIncomingDetail {
   supplier_commitment_date: string | null;
   estimated_reception_date: string | null;
 }
+
+/** Resultado de rpc_inventory_committed_levels — COMMITTED agregado por producto × almacén = SUMA de reservas ACTIVAS (nunca almacenado, siempre derivado de inventory_reservations). */
+export interface InventoryCommittedLevel {
+  product_id: string;
+  warehouse_id: string;
+  committed: number;
+}
+
+/**
+ * THÖREN Fase 6N — reserva explícita de inventario desde un Pedido. La
+ * fila NUNCA se borra: liberar marca `released_at`, conservando el
+ * historial (ver DECISIÓN en 0037_inventory_reservations.sql). Como mucho
+ * una reserva ACTIVA (released_at is null) por (order_id, product_id).
+ */
+export interface InventoryReservation {
+  id: string;
+  organization_id: string;
+  order_id: string;
+  product_id: string;
+  warehouse_id: string;
+  quantity: number;
+  created_by_user_id: string;
+  created_by_name: string;
+  released_by_user_id: string | null;
+  released_by_name: string | null;
+  released_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type InventoryReservationEventType = "creada" | "aumentada" | "reducida" | "liberada";
+
+export const INVENTORY_RESERVATION_EVENT_LABELS: Record<InventoryReservationEventType, string> = {
+  creada: "Reservada",
+  aumentada: "Aumentada",
+  reducida: "Reducida",
+  liberada: "Liberada",
+};
+
+/** Ledger insert-only de cada cambio de una reserva — mismo criterio que order_operational_status_history. */
+export interface InventoryReservationEvent {
+  id: string;
+  reservation_id: string;
+  organization_id: string;
+  order_id: string;
+  product_id: string;
+  warehouse_id: string;
+  event_type: InventoryReservationEventType;
+  previous_quantity: number | null;
+  new_quantity: number;
+  changed_by_user_id: string;
+  changed_by_name: string;
+  changed_at: string;
+}

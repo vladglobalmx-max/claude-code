@@ -1071,6 +1071,120 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Fase 6N (0037_inventory_reservations.sql) — reserva
+      // explícita de inventario desde un Pedido. Nunca se borra (liberar
+      // marca released_at); a lo sumo una fila ACTIVA por (order_id,
+      // product_id) — ver índice único parcial en la migración. Sin
+      // policy de insert/update para `authenticated`: solo las RPCs
+      // rpc_reserve_inventory/rpc_adjust_inventory_reservation/
+      // rpc_release_inventory_reservation (SECURITY DEFINER) escriben aquí.
+      inventory_reservations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          order_id: string;
+          product_id: string;
+          warehouse_id: string;
+          quantity: number;
+          created_by_user_id: string;
+          created_by_name: string;
+          released_by_user_id: string | null;
+          released_by_name: string | null;
+          released_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          order_id: string;
+          product_id: string;
+          warehouse_id: string;
+          quantity: number;
+          created_by_user_id: string;
+          created_by_name: string;
+          released_by_user_id?: string | null;
+          released_by_name?: string | null;
+          released_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_reservations"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_reservations_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_reservations_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_reservations_warehouse_id_fkey";
+            columns: ["warehouse_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6N (0037_inventory_reservations.sql) — ledger
+      // insert-only de cada cambio de una reserva (creada/aumentada/
+      // reducida/liberada). Sin policy de insert/update/delete para
+      // `authenticated`.
+      inventory_reservation_events: {
+        Row: {
+          id: string;
+          reservation_id: string;
+          organization_id: string;
+          order_id: string;
+          product_id: string;
+          warehouse_id: string;
+          event_type: string;
+          previous_quantity: number | null;
+          new_quantity: number;
+          changed_by_user_id: string;
+          changed_by_name: string;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          reservation_id: string;
+          organization_id: string;
+          order_id: string;
+          product_id: string;
+          warehouse_id: string;
+          event_type: string;
+          previous_quantity?: number | null;
+          new_quantity: number;
+          changed_by_user_id: string;
+          changed_by_name: string;
+          changed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_reservation_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_events_reservation_id_fkey";
+            columns: ["reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Core 2B (0015_core_people.sql) — identidad humana, distinta
       // de auth.users/organization_members/salespeople. Sin UI ni RPC
       // consumidora todavía; solo el bootstrap (owner de la tabla) y
@@ -1477,6 +1591,51 @@ export interface Database {
           p_movement: Json;
         };
         Returns: Database["public"]["Tables"]["inventory_movements"]["Row"];
+      };
+      // THÖREN Fase 6N (0037) — crea una reserva NUEVA para un producto de
+      // catálogo dentro de un Pedido. SECURITY DEFINER; permiso "propio o
+      // admin" del Pedido (mismo criterio que orders_update_own_or_admin).
+      // Falla si ya existe una reserva activa para ese Pedido+producto
+      // (usar rpc_adjust_inventory_reservation) o si excede AVAILABLE.
+      rpc_reserve_inventory: {
+        Args: {
+          p_reservation_id: string;
+          p_order_id: string;
+          p_product_id: string;
+          p_warehouse_id: string;
+          p_quantity: number;
+        };
+        Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
+      };
+      // THÖREN Fase 6N (0037) — cambia la cantidad (valor ABSOLUTO, no
+      // delta) de una reserva ACTIVA existente. Reenviar la cantidad
+      // actual es idempotente (sin evento nuevo). Rechaza si excede
+      // AVAILABLE (excluyendo la propia reserva del cálculo).
+      rpc_adjust_inventory_reservation: {
+        Args: {
+          p_reservation_id: string;
+          p_quantity: number;
+        };
+        Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
+      };
+      // THÖREN Fase 6N (0037) — libera una reserva activa (released_at =
+      // ahora). Nunca borra la fila — el historial de la reserva se
+      // conserva.
+      rpc_release_inventory_reservation: {
+        Args: {
+          p_reservation_id: string;
+        };
+        Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
+      };
+      // THÖREN Fase 6N (0037) — COMMITTED agregado por producto × almacén,
+      // derivado de inventory_reservations (nunca un contador cacheado).
+      // SECURITY DEFINER con filtro explícito de organización — mismo
+      // criterio de visibilidad de organización que rpc_inventory_incoming_by_product.
+      rpc_inventory_committed_levels: {
+        Args: {
+          p_product_id?: string | null;
+        };
+        Returns: { product_id: string; warehouse_id: string; committed: number }[];
       };
       // THÖREN Quotes Q3 (0020) — SECURITY INVOKER, transacción única:
       // resuelve snapshots, pide folio a fn_next_quote_folio() y calcula

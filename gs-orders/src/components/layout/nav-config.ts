@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   FileText,
   Package,
+  PackageCheck,
   Truck,
   Users,
   Settings,
@@ -71,6 +72,12 @@ export interface NavGroup {
  *   miembro activo ver los almacenes activos — no es adminOnly, aunque a
  *   diferencia de Proveedores/Clientes, CREAR también es admin-only
  *   (`warehouses_insert_admin`, ver DECISIÓN en 0036).
+ * - Entregas (THÖREN Fase 6P, 0039_deliveries.sql): `deliveries_select_own_or_admin`
+ *   sigue EXACTAMENTE el mismo criterio que Pedidos — VENDEDOR ve/gestiona
+ *   las Entregas de sus propios Pedidos, ADMIN todas — por eso NO es
+ *   adminOnly (a diferencia de Compras/Inventario/Almacenes, aquí no hay
+ *   restricción de gestión adicional: crear/editar/cambiar estado ya está
+ *   disponible a VENDEDOR sobre lo suyo, ver DECISIÓN de permisos en 0039).
  *
  * "Configuración" queda como entrada de nivel superior (no como grupo con
  * un solo hijo "Usuarios"): /configuracion es hoy el hub que también da
@@ -86,7 +93,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Operación",
-    items: [{ href: "/pedidos", label: "Pedidos", icon: FileText, adminOnly: false }],
+    items: [
+      { href: "/pedidos", label: "Pedidos", icon: FileText, adminOnly: false },
+      { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false },
+    ],
   },
   {
     label: "Comercial",

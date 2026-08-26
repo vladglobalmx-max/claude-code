@@ -1001,3 +1001,117 @@ export interface InventoryReservationEvent {
   changed_by_name: string;
   changed_at: string;
 }
+
+/**
+ * THÖREN Fase 6P — Entregas e Instalaciones. Una Entrega SOLO consume
+ * cantidades YA SURTIDAS (Fase 6O); nunca vuelve a tocar inventario. Sin
+ * folio propio: se muestra como "{folio del Pedido}-E{sequence_number}"
+ * (ver DECISIÓN en 0039_deliveries.sql) — nunca almacenado, siempre
+ * resuelto vía join.
+ */
+export type DeliveryType = "entrega" | "instalacion" | "entrega_instalacion";
+
+export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = {
+  entrega: "Entrega",
+  instalacion: "Instalación",
+  entrega_instalacion: "Entrega + Instalación",
+};
+
+export type DeliveryStatus = "programada" | "en_proceso" | "completada" | "cancelada";
+
+export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
+  programada: "Programada",
+  en_proceso: "En proceso",
+  completada: "Completada",
+  cancelada: "Cancelada",
+};
+
+export const DELIVERY_STATUS_BADGE: Record<DeliveryStatus, "neutral" | "accent" | "success" | "danger"> = {
+  programada: "neutral",
+  en_proceso: "accent",
+  completada: "success",
+  cancelada: "danger",
+};
+
+/** Estados finales — una vez alcanzados, rpc_update_delivery_status rechaza cualquier cambio posterior. */
+export const DELIVERY_TERMINAL_STATUSES: DeliveryStatus[] = ["completada", "cancelada"];
+
+export interface Delivery {
+  id: string;
+  organization_id: string;
+  order_id: string;
+  sequence_number: number;
+  delivery_type: DeliveryType;
+  status: DeliveryStatus;
+  scheduled_date: string | null;
+  actual_datetime: string | null;
+  address: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  responsible_name: string | null;
+  installer_name: string | null;
+  installation_datetime: string | null;
+  installation_notes: string | null;
+  notes: string | null;
+  received_by_name: string | null;
+  customer_observations: string | null;
+  completed_at: string | null;
+  created_by_user_id: string;
+  created_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Partida de una Entrega — snapshot de order_items (nunca se vuelve a consultar). INMUTABLE una vez creada (ver DECISIÓN en 0039). */
+export interface DeliveryItem {
+  id: string;
+  delivery_id: string;
+  catalog_product_id: string;
+  model: string;
+  description: string | null;
+  unit: string | null;
+  quantity_delivered: number;
+  created_at: string;
+}
+
+/** Ledger insert-only de cambios de estado de una Entrega — mismo criterio que order_operational_status_history (0033). */
+export interface DeliveryStatusHistoryEntry {
+  id: string;
+  delivery_id: string;
+  previous_status: DeliveryStatus | null;
+  new_status: DeliveryStatus;
+  changed_by_user_id: string | null;
+  changed_by_name: string | null;
+  changed_at: string;
+}
+
+export type DeliveryFileKind = "foto" | "documento";
+
+/** Evidencia de una Entrega — reutiliza los buckets order-media/order-files existentes (ver DECISIÓN en 0039), nunca un sistema de archivos nuevo. */
+export interface DeliveryFile {
+  id: string;
+  delivery_id: string;
+  kind: DeliveryFileKind;
+  storage_path: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  position: number;
+  created_at: string;
+}
+
+/**
+ * Resultado de rpc_order_delivery_progress — pedido/surtido/entregado/
+ * pendiente por producto de catálogo de UN Pedido. `delivered`/
+ * `pending_to_deliver` cuentan CUALQUIER Entrega no cancelada (para poder
+ * seguir creando entregas sin sobre-reservar el surtido) — NO es lo mismo
+ * que "completada" (ver DECISIÓN en 0039_deliveries.sql sobre los dos
+ * agregados distintos de "entregado").
+ */
+export interface OrderDeliveryProgress {
+  catalog_product_id: string;
+  ordered: number;
+  fulfilled: number;
+  delivered: number;
+  pending_to_deliver: number;
+}

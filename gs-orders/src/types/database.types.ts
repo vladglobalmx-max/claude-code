@@ -1518,6 +1518,195 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
+      // Sin policy de insert/update/delete para `authenticated`: solo las
+      // RPCs rpc_create_delivery/rpc_update_delivery_status/
+      // rpc_update_delivery_details (SECURITY DEFINER) escriben aquí.
+      deliveries: {
+        Row: {
+          id: string;
+          organization_id: string;
+          order_id: string;
+          sequence_number: number;
+          delivery_type: string;
+          status: string;
+          scheduled_date: string | null;
+          actual_datetime: string | null;
+          address: string | null;
+          contact_name: string | null;
+          contact_phone: string | null;
+          responsible_name: string | null;
+          installer_name: string | null;
+          installation_datetime: string | null;
+          installation_notes: string | null;
+          notes: string | null;
+          received_by_name: string | null;
+          customer_observations: string | null;
+          completed_at: string | null;
+          created_by_user_id: string;
+          created_by_name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          order_id: string;
+          sequence_number: number;
+          delivery_type: string;
+          status?: string;
+          scheduled_date?: string | null;
+          actual_datetime?: string | null;
+          address?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
+          responsible_name?: string | null;
+          installer_name?: string | null;
+          installation_datetime?: string | null;
+          installation_notes?: string | null;
+          notes?: string | null;
+          received_by_name?: string | null;
+          customer_observations?: string | null;
+          completed_at?: string | null;
+          created_by_user_id: string;
+          created_by_name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["deliveries"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deliveries_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6P (0039_deliveries.sql) — partidas de la Entrega,
+      // snapshot de order_items. INMUTABLES: sin policy de insert/update/
+      // delete para `authenticated` salvo el insert que hace
+      // rpc_create_delivery (SECURITY DEFINER).
+      delivery_items: {
+        Row: {
+          id: string;
+          delivery_id: string;
+          catalog_product_id: string;
+          model: string;
+          description: string | null;
+          unit: string | null;
+          quantity_delivered: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          delivery_id: string;
+          catalog_product_id: string;
+          model: string;
+          description?: string | null;
+          unit?: string | null;
+          quantity_delivered: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["delivery_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "delivery_items_delivery_id_fkey";
+            columns: ["delivery_id"];
+            isOneToOne: false;
+            referencedRelation: "deliveries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6P (0039_deliveries.sql) — ledger insert-only de cada
+      // cambio de estado de una Entrega. Mismo patrón exacto que
+      // order_operational_status_history (0033). Sin policy de insert/
+      // update/delete — solo el trigger trg_deliveries_status_history
+      // escribe aquí.
+      delivery_status_history: {
+        Row: {
+          id: string;
+          delivery_id: string;
+          previous_status: string | null;
+          new_status: string;
+          changed_by_user_id: string | null;
+          changed_by_name: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          delivery_id: string;
+          previous_status?: string | null;
+          new_status: string;
+          changed_by_user_id?: string | null;
+          changed_by_name?: string | null;
+          changed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["delivery_status_history"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "delivery_status_history_delivery_id_fkey";
+            columns: ["delivery_id"];
+            isOneToOne: false;
+            referencedRelation: "deliveries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 6P (0039_deliveries.sql) — evidencia (fotos/documento)
+      // de una Entrega. storage_path apunta a los buckets EXISTENTES
+      // order-media/order-files (mismo criterio que order_images/
+      // order_files) — cero infraestructura de Storage nueva.
+      delivery_files: {
+        Row: {
+          id: string;
+          delivery_id: string;
+          kind: string;
+          storage_path: string;
+          file_name: string;
+          file_type: string | null;
+          file_size: number | null;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          delivery_id: string;
+          kind: string;
+          storage_path: string;
+          file_name: string;
+          file_type?: string | null;
+          file_size?: number | null;
+          position?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["delivery_files"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "delivery_files_delivery_id_fkey";
+            columns: ["delivery_id"];
+            isOneToOne: false;
+            referencedRelation: "deliveries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1807,6 +1996,57 @@ export interface Database {
           p_active: boolean;
         };
         Returns: undefined;
+      };
+      // THÖREN Fase 6P (0039) — SECURITY DEFINER, permiso "propio o admin"
+      // del Pedido (verificado explícitamente dentro, no delegado a RLS —
+      // deliveries/delivery_items solo tienen policy de SELECT). Crea la
+      // Entrega + sus partidas en una transacción; nunca permite entregar
+      // más de lo surtido disponible (surtido total - ya entregado en
+      // Entregas no canceladas).
+      rpc_create_delivery: {
+        Args: {
+          p_delivery_id: string;
+          p_delivery: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["deliveries"]["Row"];
+      };
+      // THÖREN Fase 6P (0039) — transición de estado. 'completada'/
+      // 'cancelada' son finales (rechaza cualquier cambio posterior). Al
+      // completar, un trigger (trg_deliveries_status_history) verifica si
+      // el Pedido completo quedó pedido=surtido=entregado y, de ser así,
+      // marca operational_status='completado' reutilizando el historial
+      // de 0033.
+      rpc_update_delivery_status: {
+        Args: {
+          p_delivery_id: string;
+          p_status: string;
+        };
+        Returns: Database["public"]["Tables"]["deliveries"]["Row"];
+      };
+      // THÖREN Fase 6P (0039) — edita solo cabecera (fechas/contacto/
+      // responsable/instalación/notas/recepción cliente). Nunca toca
+      // partidas ni estado; bloqueado si la Entrega ya está en estado final.
+      rpc_update_delivery_details: {
+        Args: {
+          p_delivery_id: string;
+          p_delivery: Json;
+        };
+        Returns: Database["public"]["Tables"]["deliveries"]["Row"];
+      };
+      // THÖREN Fase 6P (0039) — pedido/surtido/entregado/pendiente por
+      // producto de catálogo de UN Pedido. SECURITY INVOKER: la
+      // visibilidad que necesita ya coincide con la de quien puede ver ese
+      // Pedido (own-or-admin), sin descalce como en Inventory (6M/6N).
+      rpc_order_delivery_progress: {
+        Args: { p_order_id: string };
+        Returns: {
+          catalog_product_id: string;
+          ordered: number;
+          fulfilled: number;
+          delivered: number;
+          pending_to_deliver: number;
+        }[];
       };
     };
     Enums: Record<string, never>;

@@ -13,12 +13,15 @@ export function Kpi({
   value,
   icon: Icon,
   trend,
+  helper,
   className,
 }: {
   label: string;
   value: string;
   icon?: LucideIcon;
   trend?: { label: string; positive: boolean } | null;
+  /** Contexto secundario útil (Fase 6Q — Command Center), ej. "12 unidades en camino". Independiente de `trend`: no requiere una base comparativa. */
+  helper?: string;
   className?: string;
 }) {
   return (
@@ -35,6 +38,7 @@ export function Kpi({
           </span>
         )}
       </div>
+      {helper && <p className="mt-1 text-xs text-ink-faint">{helper}</p>}
     </div>
   );
 }

@@ -70,3 +70,17 @@ export function addDays(dateStr: string, days: number): string {
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return date.toISOString().slice(0, 10);
 }
+
+/**
+ * Saludo por hora del día en America/Monterrey (Fase 6Q — Command Center),
+ * misma zona horaria de negocio que el resto de este módulo — nunca la
+ * hora UTC del servidor (Vercel).
+ */
+export function getBusinessGreeting(): "Buenos días" | "Buenas tardes" | "Buenas noches" {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: BUSINESS_TIMEZONE, hour: "numeric", hour12: false }).format(new Date())
+  );
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
+}

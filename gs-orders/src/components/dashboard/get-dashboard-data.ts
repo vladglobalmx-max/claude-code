@@ -13,14 +13,6 @@ import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
 import { BUSINESS_UNIT_LABELS } from "@/types/domain";
 import type { OrderOperationalStatus, OrderStatus } from "@/types/domain";
 
-/**
- * Estados que cuentan como "pipeline abierto" — ver ORDER_STATUS_LABELS en
- * types/domain.ts. borrador/pedido todavía requieren trabajo; cerrado ya
- * se completó, cancelado ya no aplica. Decisión documentada en el reporte
- * de THÖREN Experience 1B, no inventada aquí.
- */
-const OPEN_STATUSES: OrderStatus[] = ["borrador", "pedido"];
-
 /** Techo de la sección "Requieren atención" — es un resumen de dashboard, no el listado completo (para eso está /pedidos). */
 const ATTENTION_QUEUE_LIMIT = 15;
 
@@ -54,6 +46,35 @@ export interface SalespersonBreakdownRow {
  */
 export type { AttentionQueueRow } from "@/lib/dashboard/attention-queue";
 
+/** THÖREN Fase 6Q — Command Center: una fila del bloque "Compras en tránsito" (PO abierta, no recibida/cancelada). */
+export interface PurchaseOrderInTransitRow {
+  id: string;
+  folio: string;
+  status: string;
+  supplierName: string;
+  orderFolio: string;
+  estimatedReceptionDate: string | null;
+}
+
+/** THÖREN Fase 6Q — una fila del bloque "Entregas próximas" (programada/en_proceso). */
+export interface UpcomingDeliveryRow {
+  id: string;
+  label: string;
+  status: string;
+  deliveryType: string;
+  scheduledDate: string | null;
+  orderId: string;
+  orderFolio: string;
+  clientName: string;
+}
+
+/** THÖREN Fase 6Q — una fila del bloque "Pedidos por Business Unit — {mes}" (Analítica A). */
+export interface BusinessUnitOrderCountRow {
+  businessUnitId: string;
+  name: string;
+  count: number;
+}
+
 export interface DashboardData {
   role: "admin" | "vendedor";
   name: string;
@@ -61,7 +82,8 @@ export interface DashboardData {
   hasAnyOrders: boolean;
   monthOrderCount: number;
   previousMonthOrderCount: number;
-  activeOrderCount: number;
+  /** THÖREN Fase 6Q — reemplaza al antiguo activeOrderCount (basado en `status` legacy borrador/pedido): cuenta por operational_status (0033) fuera de completado/cancelado, la misma fuente que "Requieren atención" y el Flujo Operativo — un solo número de "pedidos activos" en toda la app. */
+  activeOperationalOrderCount: number;
   closedThisMonthCount: number;
   distinctClientsThisMonth: number;
   statusBreakdown: Record<OrderStatus, number>;
@@ -72,6 +94,24 @@ export interface DashboardData {
   attentionQueue: AttentionQueueRow[];
   /** null para VENDEDOR — RLS ya limita sus datos a sus propios pedidos, un comparativo de 1 fila no aporta nada (ver reporte 1B). */
   salespersonBreakdown: SalespersonBreakdownRow[] | null;
+  /** THÖREN Fase 6Q — Pedidos de este mes agrupados por Business Unit real (0014), calculado sobre las mismas filas que monthOrderCount (cero queries extra). */
+  ordersByBusinessUnit: BusinessUnitOrderCountRow[];
+  /** THÖREN Fase 6Q — Cotizaciones en 'borrador'/'enviada' (no resueltas todavía). */
+  quotesActiveCount: number;
+  /** THÖREN Fase 6Q — Purchase Orders con status fuera de 'recibida'/'cancelada'. */
+  purchaseOrdersOpenCount: number;
+  /** THÖREN Fase 6Q — hasta 3 POs abiertas, más próximas a su fecha estimada de recepción primero. */
+  purchaseOrdersInTransit: PurchaseOrderInTransitRow[];
+  /** THÖREN Fase 6Q — suma de `rpc_inventory_committed_levels` (6O) en toda la organización — "unidades reservadas para Pedidos activos". */
+  committedUnitsTotal: number;
+  /** THÖREN Fase 6Q — suma de `rpc_inventory_incoming_by_product` (6M) en toda la organización — "unidades ordenadas a proveedor, aún no recibidas". */
+  incomingUnitsTotal: number;
+  /** THÖREN Fase 6Q — unidades ya surtidas (0038) menos unidades ya entregadas en Entregas no canceladas (0039) — "pendiente de entregar" físico, no de pedido. Nunca negativo por construcción (ver DECISIÓN abajo). */
+  pendingToDeliverUnitsTotal: number;
+  /** THÖREN Fase 6Q — Entregas en 'programada'/'en_proceso'. */
+  deliveriesUpcomingCount: number;
+  /** THÖREN Fase 6Q — hasta 3 Entregas próximas, más próximas a su fecha programada primero. */
+  deliveriesUpcoming: UpcomingDeliveryRow[];
   /** true si alguna consulta falló — la página muestra un error explícito en vez de datos parciales silenciosos. */
   hasError: boolean;
 }
@@ -84,6 +124,8 @@ type MonthOrderRow = {
   order_date: string;
   created_at: string;
   salesperson_id: string;
+  business_unit_id: string | null;
+  business_units: OneOrMany<{ name: string }> | null;
   salesperson: { name: string } | { name: string }[] | null;
 };
 
@@ -133,15 +175,23 @@ export async function getDashboardData(): Promise<DashboardData> {
     { count: totalCount, error: totalError },
     { data: monthRows, error: monthError },
     { count: previousMonthCount, error: previousMonthError },
-    { count: activeCount, error: activeError },
     { data: recentRows, error: recentError },
     { data: operationalStatusRows, error: operationalStatusError },
     { data: attentionSourceRows, error: attentionError },
+    { count: quotesActiveCountRaw, error: quotesError },
+    { data: purchaseOrderRows, error: purchaseOrdersError },
+    { data: deliveryRows, error: deliveriesError },
+    { data: committedRows, error: committedError },
+    { data: incomingRows, error: incomingError },
+    { data: fulfilledRows, error: fulfilledError },
+    { data: deliveredRows, error: deliveredError },
   ] = await Promise.all([
     supabase.from("orders").select("id", { count: "exact", head: true }),
     supabase
       .from("orders")
-      .select("id, folio, client_name, status, order_date, created_at, salesperson_id, salesperson:salespeople(name)")
+      .select(
+        "id, folio, client_name, status, order_date, created_at, salesperson_id, business_unit_id, business_units(name), salesperson:salespeople(name)"
+      )
       .gte("order_date", currentMonth.start)
       .lt("order_date", currentMonth.end),
     supabase
@@ -149,12 +199,14 @@ export async function getDashboardData(): Promise<DashboardData> {
       .select("id", { count: "exact", head: true })
       .gte("order_date", previousMonth.start)
       .lt("order_date", previousMonth.end),
-    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", OPEN_STATUSES),
+    // THÖREN Fase 6Q.1 — "Pedidos recientes" del Command Center: 3
+    // registros (resumen, no listado — para eso está /pedidos), no 8 como
+    // en 1B ni 5 como en la primera pasada de 6Q.
     supabase
       .from("orders")
       .select("id, folio, client_name, status, order_date, salesperson:salespeople(name)")
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(3),
     // THÖREN Fase 6I — snapshot ACTUAL de operational_status (0033), no
     // acotado al mes: "qué pedidos requieren atención" es una pregunta de
     // hoy, no de este calendario. Escala del proyecto (herramienta interna
@@ -172,10 +224,64 @@ export async function getDashboardData(): Promise<DashboardData> {
       )
       .in("operational_status", ACTIVE_OPERATIONAL_STATUSES)
       .limit(300),
+    // THÖREN Fase 6Q — Cotizaciones sin resolver ("activas" = ni aceptada/
+    // rechazada/cancelada todavía, ver domain.ts QuoteStatus). RLS
+    // (quotes_select_own_or_admin, 0020) ya escopea admin=org/vendedor=propias.
+    supabase.from("quotes").select("id", { count: "exact", head: true }).in("status", ["borrador", "enviada"]),
+    // THÖREN Fase 6Q — Purchase Orders abiertas (fuera de recibida/cancelada),
+    // más próximas a su fecha estimada de recepción primero — misma fila
+    // sirve para el conteo (purchaseOrdersOpenCount = length) y para el
+    // bloque "Compras en tránsito" (slice a 5), sin una segunda consulta.
+    // RLS (purchase_orders_select, 0035) ya escopea admin=org/vendedor=propias.
+    supabase
+      .from("purchase_orders")
+      .select(
+        "id, folio, status, estimated_reception_date, supplier:suppliers(name), order:orders(folio)"
+      )
+      .not("status", "in", "(recibida,cancelada)")
+      .order("estimated_reception_date", { ascending: true, nullsFirst: false })
+      .limit(50),
+    // THÖREN Fase 6Q — Entregas próximas (programada/en_proceso), más
+    // próximas a su fecha programada primero — misma fila sirve para el
+    // conteo y para el bloque "Entregas próximas" (slice a 5). RLS
+    // (deliveries_select_own_or_admin, 0039) ya escopea admin=org/vendedor=propias.
+    supabase
+      .from("deliveries")
+      .select("id, sequence_number, status, delivery_type, scheduled_date, order:orders(id, folio, client_name)")
+      .in("status", ["programada", "en_proceso"])
+      .order("scheduled_date", { ascending: true, nullsFirst: false })
+      .limit(50),
+    // THÖREN Fase 6Q — mismas RPCs ya usadas por /inventario (6M/6O), sin
+    // filtro de producto: devuelven el dataset completo de la organización.
+    // Se suman en JS (mismo criterio que la página de Inventario, que ya
+    // hace su cruce producto×almacén en JS en vez de en SQL).
+    supabase.rpc("rpc_inventory_committed_levels"),
+    supabase.rpc("rpc_inventory_incoming_by_product"),
+    // THÖREN Fase 6Q — "surtido total" (ver DECISIÓN en 0038/0039: TODAS las
+    // reservas, activas o liberadas) menos "ya entregado en Entregas no
+    // canceladas" (ver DECISIÓN en 0039) = pendiente de entregar físico.
+    // inventory_reservations_select (0037) ya es own-or-admin (igual que
+    // Orders/Deliveries) — ninguna columna adicional de organización/
+    // vendedor hace falta aquí, a diferencia de Inventory (movimientos),
+    // que sí es org-wide.
+    supabase.from("inventory_reservations").select("fulfilled_quantity"),
+    supabase.from("delivery_items").select("quantity_delivered, deliveries!inner(status)").neq("deliveries.status", "cancelada"),
   ]);
 
   const hasError = Boolean(
-    totalError || monthError || previousMonthError || activeError || recentError || operationalStatusError || attentionError
+    totalError ||
+      monthError ||
+      previousMonthError ||
+      recentError ||
+      operationalStatusError ||
+      attentionError ||
+      quotesError ||
+      purchaseOrdersError ||
+      deliveriesError ||
+      committedError ||
+      incomingError ||
+      fulfilledError ||
+      deliveredError
   );
 
   const typedMonthRows = (monthRows ?? []) as unknown as MonthOrderRow[];
@@ -188,6 +294,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   };
   const clientSet = new Set<string>();
   const salespersonCounts = new Map<string, SalespersonBreakdownRow>();
+  const businessUnitCounts = new Map<string, BusinessUnitOrderCountRow>();
 
   for (const row of typedMonthRows) {
     statusBreakdown[row.status] = (statusBreakdown[row.status] ?? 0) + 1;
@@ -205,12 +312,27 @@ export async function getDashboardData(): Promise<DashboardData> {
         });
       }
     }
+
+    if (row.business_unit_id) {
+      const existing = businessUnitCounts.get(row.business_unit_id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        businessUnitCounts.set(row.business_unit_id, {
+          businessUnitId: row.business_unit_id,
+          name: one(row.business_units)?.name ?? "—",
+          count: 1,
+        });
+      }
+    }
   }
 
   const salespersonBreakdown =
     profile?.role === "admin"
       ? Array.from(salespersonCounts.values()).sort((a, b) => b.count - a.count)
       : null;
+
+  const ordersByBusinessUnit = Array.from(businessUnitCounts.values()).sort((a, b) => b.count - a.count);
 
   const recentOrders: RecentOrderRow[] = ((recentRows ?? []) as unknown as RecentSourceRow[]).map((row) => ({
     id: row.id,
@@ -272,13 +394,84 @@ export async function getDashboardData(): Promise<DashboardData> {
     );
   }
 
+  const activeOperationalOrderCount = ACTIVE_OPERATIONAL_STATUSES.reduce(
+    (sum, status) => sum + operationalStatusBreakdown[status],
+    0
+  );
+
+  const typedPurchaseOrderRows = (purchaseOrderRows ?? []) as unknown as {
+    id: string;
+    folio: string;
+    status: string;
+    estimated_reception_date: string | null;
+    supplier: OneOrMany<{ name: string }> | null;
+    order: OneOrMany<{ folio: string }> | null;
+  }[];
+  const purchaseOrdersInTransit: PurchaseOrderInTransitRow[] = typedPurchaseOrderRows.slice(0, 3).map((row) => ({
+    id: row.id,
+    folio: row.folio,
+    status: row.status,
+    supplierName: one(row.supplier)?.name ?? "—",
+    orderFolio: one(row.order)?.folio ?? "—",
+    estimatedReceptionDate: row.estimated_reception_date,
+  }));
+
+  const typedDeliveryRows = (deliveryRows ?? []) as unknown as {
+    id: string;
+    sequence_number: number;
+    status: string;
+    delivery_type: string;
+    scheduled_date: string | null;
+    order: OneOrMany<{ id: string; folio: string; client_name: string }> | null;
+  }[];
+  const deliveriesUpcoming: UpcomingDeliveryRow[] = typedDeliveryRows.slice(0, 3).map((row) => {
+    const order = one(row.order);
+    return {
+      id: row.id,
+      label: `${order?.folio ?? "—"}-E${row.sequence_number}`,
+      status: row.status,
+      deliveryType: row.delivery_type,
+      scheduledDate: row.scheduled_date,
+      orderId: order?.id ?? "",
+      orderFolio: order?.folio ?? "—",
+      clientName: order?.client_name ?? "—",
+    };
+  });
+
+  const committedUnitsTotal = ((committedRows ?? []) as { committed: number }[]).reduce(
+    (sum, row) => sum + row.committed,
+    0
+  );
+  const incomingUnitsTotal = ((incomingRows ?? []) as { incoming: number }[]).reduce(
+    (sum, row) => sum + row.incoming,
+    0
+  );
+
+  // THÖREN Fase 6Q — pendiente de entregar físico = surtido total (0038,
+  // TODAS las reservas) menos ya entregado en Entregas no canceladas
+  // (0039) — misma fórmula que rpc_order_delivery_progress, agregada a
+  // nivel organización/vendedor en vez de por Pedido (ver DECISIÓN en
+  // get-dashboard-data.ts arriba). Nunca negativo: la invariante de 6P
+  // (nunca se puede entregar más de lo surtido) garantiza fulfilled >=
+  // delivered por partida, y la suma preserva esa propiedad — el
+  // Math.max(0, ...) es solo defensivo.
+  const fulfilledTotal = ((fulfilledRows ?? []) as { fulfilled_quantity: number }[]).reduce(
+    (sum, row) => sum + row.fulfilled_quantity,
+    0
+  );
+  const deliveredTotal = ((deliveredRows ?? []) as { quantity_delivered: number }[]).reduce(
+    (sum, row) => sum + row.quantity_delivered,
+    0
+  );
+  const pendingToDeliverUnitsTotal = Math.max(0, fulfilledTotal - deliveredTotal);
+
   return {
     role: (profile?.role ?? "vendedor") as "admin" | "vendedor",
     name: profile?.name ?? "",
     hasAnyOrders: (totalCount ?? 0) > 0,
     monthOrderCount: typedMonthRows.length,
     previousMonthOrderCount: previousMonthCount ?? 0,
-    activeOrderCount: activeCount ?? 0,
+    activeOperationalOrderCount,
     closedThisMonthCount: statusBreakdown.cerrado,
     distinctClientsThisMonth: clientSet.size,
     statusBreakdown,
@@ -286,6 +479,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     recentOrders,
     attentionQueue,
     salespersonBreakdown,
+    ordersByBusinessUnit,
+    quotesActiveCount: quotesActiveCountRaw ?? 0,
+    purchaseOrdersOpenCount: typedPurchaseOrderRows.length,
+    purchaseOrdersInTransit,
+    committedUnitsTotal,
+    incomingUnitsTotal,
+    pendingToDeliverUnitsTotal,
+    deliveriesUpcomingCount: typedDeliveryRows.length,
+    deliveriesUpcoming,
     hasError,
   };
 }

@@ -9,6 +9,12 @@ export function formatDateShort(dateStr: string) {
   return format(parseISO(dateStr), "dd/MM/yyyy");
 }
 
+/** "Martes, 26 de agosto de 2026" — Command Center (Fase 6Q), única fecha larga con día de la semana del proyecto. */
+export function formatDateLong(dateStr: string) {
+  const label = format(parseISO(dateStr), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function formatDateTime(dateStr: string) {
   return format(parseISO(dateStr), "d MMM yyyy, HH:mm", { locale: es });
 }

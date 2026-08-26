@@ -13,7 +13,7 @@ import type { RecentOrderRow } from "@/components/dashboard/get-dashboard-data";
  * hoy (ver reporte de THÖREN Experience 1B). No duplica /pedidos — solo
  * los últimos 3 (Fase 6Q.1: resumen compacto, no listado; para eso está
  * /pedidos), sin filtros ni acciones, con link al detalle real. Lista, no
- * tabla — mismo criterio que Entregas próximas/Compras en tránsito.
+ * tabla — mismo criterio que Entregas próximas/Órdenes de compra abiertas.
  */
 export function RecentOrdersTable({ orders }: { orders: RecentOrderRow[] }) {
   return (

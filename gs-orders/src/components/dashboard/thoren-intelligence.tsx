@@ -52,8 +52,11 @@ export function buildThorenInsights(data: {
       iconColorClassName: "bg-accent/15 text-accent",
     },
     {
+      // Fase 6Q — Hotfix semántico: "orden de compra", no "compra" a secas
+      // — mismo wording que el KPI del hero y el bloque inferior, misma
+      // métrica exacta (purchaseOrdersOpenCount) en los tres lugares.
       value: data.purchaseOrdersOpenCount,
-      text: data.purchaseOrdersOpenCount === 1 ? "compra abierta" : "compras abiertas",
+      text: data.purchaseOrdersOpenCount === 1 ? "orden de compra abierta" : "órdenes de compra abiertas",
       icon: Truck,
       iconColorClassName: "bg-accent/15 text-accent",
     },

@@ -100,19 +100,31 @@ export function DashboardView({ data }: { data: DashboardData }) {
       icon: ClipboardList,
     },
     {
-      label: "Por entregar",
+      // Fase 6Q — Hotfix semántico: el valor es una cantidad de UNIDADES
+      // físicas (pendingToDeliverUnitsTotal), no un conteo de Pedidos —
+      // el label lo hace explícito para no confundirlo con "96 pedidos".
+      label: "Unidades por entregar",
       value: formatNumber(data.pendingToDeliverUnitsTotal),
-      helper: "Unidades surtidas, pendientes",
+      helper: "Surtidas, pendientes de entrega",
       icon: PackageCheck,
     },
     {
-      label: "Inventario comprometido",
+      // Fase 6Q — Hotfix semántico: mismo criterio — es un total de
+      // UNIDADES (committedUnitsTotal), no un conteo de productos/pedidos.
+      label: "Unidades comprometidas",
       value: formatNumber(data.committedUnitsTotal),
-      helper: "Unidades reservadas",
+      helper: "Reservadas para pedidos activos",
       icon: Boxes,
     },
     {
-      label: "Compras en tránsito",
+      // Fase 6Q — Hotfix semántico: el valor es purchaseOrdersOpenCount —
+      // TODAS las Purchase Orders abiertas (fuera de recibida/cancelada),
+      // sin importar su status puntual. NO es un subconjunto "realmente en
+      // tránsito" (no existe ese cálculo por separado) — por eso el label
+      // dice "Órdenes de compra abiertas", igual que en THÖREN Intelligence
+      // y en el bloque "Órdenes de compra abiertas" más abajo: una sola
+      // métrica, una sola forma de nombrarla en todo Inicio.
+      label: "Órdenes de compra abiertas",
       value: formatNumber(data.purchaseOrdersOpenCount),
       helper: `${formatNumber(data.incomingUnitsTotal)} unidades en camino`,
       icon: Package,

@@ -46,7 +46,7 @@ export interface SalespersonBreakdownRow {
  */
 export type { AttentionQueueRow } from "@/lib/dashboard/attention-queue";
 
-/** THÖREN Fase 6Q — Command Center: una fila del bloque "Compras en tránsito" (PO abierta, no recibida/cancelada). */
+/** THÖREN Fase 6Q — Command Center: una fila del bloque "Órdenes de compra abiertas" (PO abierta, no recibida/cancelada). */
 export interface PurchaseOrderInTransitRow {
   id: string;
   folio: string;
@@ -231,7 +231,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     // THÖREN Fase 6Q — Purchase Orders abiertas (fuera de recibida/cancelada),
     // más próximas a su fecha estimada de recepción primero — misma fila
     // sirve para el conteo (purchaseOrdersOpenCount = length) y para el
-    // bloque "Compras en tránsito" (slice a 5), sin una segunda consulta.
+    // bloque "Órdenes de compra abiertas" (slice a 5), sin una segunda consulta.
     // RLS (purchase_orders_select, 0035) ya escopea admin=org/vendedor=propias.
     supabase
       .from("purchase_orders")

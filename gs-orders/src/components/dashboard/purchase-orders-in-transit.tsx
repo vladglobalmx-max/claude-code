@@ -9,21 +9,23 @@ import type { PurchaseOrderStatus } from "@/types/domain";
 import type { PurchaseOrderInTransitRow } from "@/components/dashboard/get-dashboard-data";
 
 /**
- * THÖREN Fase 6Q — bloque compacto "Compras en tránsito" (POs fuera de
- * recibida/cancelada, ver get-dashboard-data.ts). Resumen, no listado —
- * máximo 3 filas; para el detalle completo está /compras.
+ * THÖREN Fase 6Q — bloque compacto "Órdenes de compra abiertas" (POs fuera
+ * de recibida/cancelada, ver get-dashboard-data.ts — mismo
+ * purchaseOrdersOpenCount que el KPI del hero y THÖREN Intelligence, ver
+ * hotfix semántico 6Q). Resumen, no listado — máximo 3 filas; para el
+ * detalle completo está /compras.
  */
 export function PurchaseOrdersInTransit({ rows, totalCount }: { rows: PurchaseOrderInTransitRow[]; totalCount: number }) {
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>Compras en tránsito</CardTitle>
+        <CardTitle>Órdenes de compra abiertas</CardTitle>
         <Link href="/compras" className="text-xs font-medium text-accent hover:underline">
           Ver todas
         </Link>
       </CardHeader>
       {rows.length === 0 ? (
-        <EmptyState icon={Package} title="Sin compras abiertas" description="Las Purchase Orders abiertas aparecerán aquí." />
+        <EmptyState icon={Package} title="Sin órdenes de compra abiertas" description="Las Purchase Orders abiertas aparecerán aquí." />
       ) : (
         <div className="divide-y divide-border">
           {rows.map((row) => (

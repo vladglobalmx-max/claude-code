@@ -32,6 +32,7 @@ interface ProductRow {
 interface MovementRow extends InventoryMovement {
   warehouse: OneOrMany<{ name: string }> | null;
   purchase_order: OneOrMany<{ folio: string }> | null;
+  order: OneOrMany<{ folio: string }> | null;
 }
 
 /**
@@ -61,7 +62,7 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
       supabase.rpc("rpc_inventory_incoming_detail", { p_product_id: product.id }),
       supabase
         .from("inventory_movements")
-        .select("*, warehouse:warehouses(name), purchase_order:purchase_orders(folio)")
+        .select("*, warehouse:warehouses(name), purchase_order:purchase_orders(folio), order:orders(folio)")
         .eq("product_id", product.id)
         .order("created_at", { ascending: false }),
     ]);
@@ -221,6 +222,7 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
                 {movements.map((m) => {
                   const warehouse = one(m.warehouse);
                   const po = one(m.purchase_order);
+                  const order = one(m.order);
                   return (
                     <Tr key={m.id}>
                       <Td className="text-ink-soft">{formatDateTime(m.created_at)}</Td>
@@ -236,6 +238,10 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
                         {po && m.purchase_order_id ? (
                           <Link href={`/compras/${m.purchase_order_id}`} className="font-mono text-accent hover:underline">
                             {po.folio}
+                          </Link>
+                        ) : order && m.order_id ? (
+                          <Link href={`/pedidos/${m.order_id}`} className="font-mono text-accent hover:underline">
+                            {order.folio}
                           </Link>
                         ) : (
                           m.reference ?? "—"

@@ -6,6 +6,7 @@ import { mapDbError } from "@/lib/db-errors";
 import {
   reserveInventoryPayloadSchema,
   adjustInventoryReservationPayloadSchema,
+  fulfillInventoryReservationPayloadSchema,
   type ReserveInventoryPayload,
 } from "@/lib/validations/inventory-reservation";
 
@@ -83,6 +84,40 @@ export async function releaseInventoryReservation(
 
   if (error) {
     return { error: mapDbError(error, "No se pudo liberar la reserva.") };
+  }
+
+  revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath("/inventario");
+  revalidatePath(`/inventario/${productId}`);
+}
+
+/**
+ * THÖREN Fase 6O — surte una reserva activa. `quantity` es el acumulado
+ * SURTIDO absoluto (no un delta) — mismo criterio que
+ * adjustInventoryReservation/receivePurchaseOrderItem. Genera un
+ * movimiento en inventory_movements (ON HAND baja) y avanza
+ * fulfilled_quantity (COMMITTED baja igual). Rechazado server-side si la
+ * reserva es huérfana (producto ya no en las partidas del Pedido).
+ */
+export async function fulfillInventoryReservation(
+  orderId: string,
+  productId: string,
+  reservationId: string,
+  quantity: number
+): Promise<InventoryReservationActionResult> {
+  const parsed = fulfillInventoryReservationPayloadSchema.safeParse({ reservation_id: reservationId, quantity });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_fulfill_inventory_reservation", {
+    p_reservation_id: parsed.data.reservation_id,
+    p_fulfilled_quantity: parsed.data.quantity,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo registrar el surtido.") };
   }
 
   revalidatePath(`/pedidos/${orderId}`);

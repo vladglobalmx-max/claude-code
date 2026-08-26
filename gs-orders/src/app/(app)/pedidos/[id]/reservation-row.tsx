@@ -10,20 +10,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { formatNumber } from "@/lib/utils/format";
-import { reserveInventory, adjustInventoryReservation, releaseInventoryReservation } from "./reservation-actions";
+import {
+  reserveInventory,
+  adjustInventoryReservation,
+  releaseInventoryReservation,
+  fulfillInventoryReservation,
+} from "./reservation-actions";
 import type { ReservationRowData } from "./reservations-section";
 
 /**
  * THÖREN Fase 6N — fila de reserva para UN producto de catálogo del
  * Pedido. Sin reserva activa: formulario "Reservar" (almacén + cantidad).
- * Con reserva activa: cantidad editable ("Actualizar") + "Liberar". El
- * disponible mostrado por almacén ya es el AVAILABLE real (server-side se
- * revalida siempre en la RPC, esto es solo una guía en la UI).
+ * Con reserva activa: cantidad editable ("Actualizar") + "Liberar" +
+ * "Surtir" (Fase 6O). El disponible mostrado por almacén ya es el
+ * AVAILABLE real (server-side se revalida siempre en la RPC, esto es solo
+ * una guía en la UI).
  *
- * AJUSTE FINAL — `row.isOrphaned` (el producto ya no está entre las
- * partidas actuales del Pedido, pero la reserva sigue activa) solo agrega
- * una alerta visual: Actualizar/Liberar siguen funcionando exactamente
- * igual que en una reserva normal (nunca se libera sola).
+ * AJUSTE FINAL (6N) — `row.isOrphaned` (el producto ya no está entre las
+ * partidas actuales del Pedido, pero la reserva sigue activa) agrega una
+ * alerta visual: Actualizar/Liberar siguen funcionando exactamente igual
+ * que en una reserva normal (nunca se libera sola). Fase 6O (requisito
+ * #8): el formulario de Surtir NO se muestra para una reserva huérfana —
+ * server-side la RPC la rechazaría de todas formas, esto solo evita
+ * ofrecer una acción que sabemos que va a fallar.
+ *
+ * El campo "Surtir" pide la cantidad INCREMENTAL a surtir AHORA (no el
+ * acumulado) — internamente se traduce al valor absoluto que espera
+ * rpc_fulfill_inventory_reservation (fulfilled_quantity + incremento),
+ * igual que "Actualizar" ya usa el total absoluto para `quantity`.
  */
 export function ReservationRow({ orderId, row }: { orderId: string; row: ReservationRowData }) {
   const router = useRouter();
@@ -31,11 +45,15 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
   const [warehouseId, setWarehouseId] = useState(row.availability[0]?.warehouseId ?? "");
   const [newQuantity, setNewQuantity] = useState(1);
   const [adjustQuantity, setAdjustQuantity] = useState(row.reservation?.quantity ?? 1);
+  const [fulfillIncrement, setFulfillIncrement] = useState(1);
 
   const selectedAvailability = row.availability.find((a) => a.warehouseId === warehouseId);
   const ownWarehouseAvailability = row.reservation
     ? row.availability.find((a) => a.warehouseId === row.reservation!.warehouse_id)
     : undefined;
+
+  const pendingToFulfill = row.reservation ? row.reservation.quantity - row.reservation.fulfilled_quantity : 0;
+  const maxFulfillNow = Math.min(pendingToFulfill, ownWarehouseAvailability?.onHand ?? 0);
 
   function handleReserve() {
     if (!warehouseId) {
@@ -92,6 +110,33 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
     });
   }
 
+  function handleFulfill() {
+    if (!row.reservation) return;
+    if (fulfillIncrement <= 0) {
+      toast.error("La cantidad a surtir debe ser mayor a cero");
+      return;
+    }
+    if (fulfillIncrement > pendingToFulfill) {
+      toast.error(`No puedes surtir más de lo pendiente (${pendingToFulfill})`);
+      return;
+    }
+    startTransition(async () => {
+      const result = await fulfillInventoryReservation(
+        orderId,
+        row.productId,
+        row.reservation!.id,
+        row.reservation!.fulfilled_quantity + fulfillIncrement
+      );
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Surtido registrado");
+      setFulfillIncrement(1);
+      router.refresh();
+    });
+  }
+
   return (
     <div className={`rounded-lg border p-4 ${row.isOrphaned ? "border-warning/40 bg-warning/5" : "border-border"}`}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -104,8 +149,9 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
         </div>
         {row.reservation && (
           <p className="text-xs text-ink-faint">
-            Reservado: <span className="font-medium text-ink">{formatNumber(row.reservation.quantity)}</span> en{" "}
-            {row.reservationWarehouseName ?? "—"}
+            Reservado: <span className="font-medium text-ink">{formatNumber(row.reservation.quantity)}</span> · Surtido:{" "}
+            <span className="font-medium text-ink">{formatNumber(row.reservation.fulfilled_quantity)}</span> · Pendiente de surtir:{" "}
+            <span className="font-medium text-ink">{formatNumber(pendingToFulfill)}</span> en {row.reservationWarehouseName ?? "—"}
           </p>
         )}
       </div>
@@ -140,7 +186,33 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
             Liberar
           </Button>
         </div>
-      ) : (
+      ) : null}
+
+      {row.reservation && !row.isOrphaned && pendingToFulfill > 0 && (
+        <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border pt-3">
+          <div>
+            <Label htmlFor={`fulfill-${row.productId}`}>Surtir ahora</Label>
+            <Input
+              id={`fulfill-${row.productId}`}
+              type="number"
+              min={1}
+              max={maxFulfillNow}
+              className="w-28"
+              value={fulfillIncrement}
+              onChange={(e) => setFulfillIncrement(Number(e.target.value))}
+            />
+          </div>
+          <p className="pb-2 text-xs text-ink-faint">
+            Máximo ahora: {formatNumber(maxFulfillNow)} (pendiente {formatNumber(pendingToFulfill)}, ON HAND en{" "}
+            {row.reservationWarehouseName}: {formatNumber(ownWarehouseAvailability?.onHand ?? 0)})
+          </p>
+          <Button type="button" size="sm" variant="primary" loading={isPending} disabled={isPending} onClick={handleFulfill}>
+            Surtir
+          </Button>
+        </div>
+      )}
+
+      {row.reservation ? null : (
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor={`warehouse-${row.productId}`}>Almacén</Label>

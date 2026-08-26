@@ -23,11 +23,13 @@ export interface ReservationRowData {
   unit: string | null;
   reservation: InventoryReservation | null;
   reservationWarehouseName: string | null;
-  // AVAILABLE por almacén (on_hand - committed). Para el almacén de la
-  // reserva activa (si existe), YA incluye de vuelta la cantidad de esa
-  // misma reserva (on_hand - (committed - reservation.quantity)) — es el
-  // tope real al que se puede AUMENTAR, no el disponible "para alguien más".
-  availability: { warehouseId: string; warehouseName: string; available: number }[];
+  // AVAILABLE por almacén (on_hand - committed) y ON HAND real (sin
+  // ajustar) — este último es el tope real de SURTIR (Fase 6O). Para el
+  // almacén de la reserva activa (si existe), `available` YA incluye de
+  // vuelta el PENDIENTE de esa misma reserva (on_hand - (committed -
+  // pendiente)) — es el tope real al que se puede AUMENTAR, no el
+  // disponible "para alguien más".
+  availability: { warehouseId: string; warehouseName: string; available: number; onHand: number }[];
   // THÖREN Fase 6N — AJUSTE FINAL: true cuando este producto ya NO está
   // entre las partidas actuales del Pedido (se eliminó/editó), pero la
   // reserva sigue activa — ver DECISIÓN abajo.
@@ -35,24 +37,26 @@ export interface ReservationRowData {
 }
 
 /**
- * THÖREN Fase 6N §3/6 — sección "Reservas de Inventario" en el detalle del
- * Pedido: para cada producto de catálogo de este Pedido (líneas manuales
- * sin catalog_product_id no aparecen aquí, requisito #4), permite
- * reservar/aumentar/reducir/liberar. Visible para quien ya puede ver este
- * Pedido (RLS de `orders`) — ver DECISIÓN de permisos "propio o admin" en
- * 0037_inventory_reservations.sql: si esta página cargó, quien la ve ya es
- * ADMIN o el vendedor dueño, así que los controles no se ocultan aparte.
+ * THÖREN Fase 6N §3/6, extendido en Fase 6O — sección "Reservas de
+ * Inventario" en el detalle del Pedido: para cada producto de catálogo de
+ * este Pedido (líneas manuales sin catalog_product_id no aparecen aquí,
+ * requisito #4), permite reservar/aumentar/reducir/liberar/surtir.
+ * Visible para quien ya puede ver este Pedido (RLS de `orders`) — ver
+ * DECISIÓN de permisos "propio o admin" en 0037_inventory_reservations.sql:
+ * si esta página cargó, quien la ve ya es ADMIN o el vendedor dueño, así
+ * que los controles no se ocultan aparte.
  *
- * DECISIÓN (AJUSTE FINAL) — reservas "huérfanas": editar el Pedido borra y
- * reinserta order_items (rpc_update_order, 0034) sin tocar
- * inventory_reservations (la reserva es por order_id+product_id, nunca por
- * order_item_id — ver 0037). Si el producto reservado deja de estar entre
- * las partidas actuales, la reserva NO se libera ni se borra
+ * DECISIÓN (AJUSTE FINAL 6N, reforzada en 6O) — reservas "huérfanas":
+ * editar el Pedido borra y reinserta order_items (rpc_update_order, 0034)
+ * sin tocar inventory_reservations (la reserva es por order_id+product_id,
+ * nunca por order_item_id — ver 0037). Si el producto reservado deja de
+ * estar entre las partidas actuales, la reserva NO se libera ni se borra
  * automáticamente (ninguna lógica destructiva): se sigue calculando desde
  * `reservations` (fuente real vía RLS/RPC, no desde `items`) y se marca
  * `isOrphaned` para que la UI la señale como "Reserva sin partida activa" y
  * quede visible para que ADMIN/propietario decida — liberarla sigue
- * funcionando exactamente igual que cualquier otra reserva activa.
+ * funcionando con total normalidad, pero surtirla queda bloqueado
+ * server-side (rpc_fulfill_inventory_reservation, requisito #8 de 6O).
  */
 export async function ReservationsSection({ orderId }: { orderId: string }) {
   const supabase = createSupabaseServerClient();
@@ -116,8 +120,9 @@ export async function ReservationsSection({ orderId }: { orderId: string }) {
       availability: warehouses.map((w) => {
         const onHand = onHandMap.get(`${product.id}:${w.id}`) ?? 0;
         const committed = committedMap.get(`${product.id}:${w.id}`) ?? 0;
-        const ownReservationHere = reservation && reservation.warehouse_id === w.id ? reservation.quantity : 0;
-        return { warehouseId: w.id, warehouseName: w.name, available: onHand - committed + ownReservationHere };
+        const ownPendingHere =
+          reservation && reservation.warehouse_id === w.id ? reservation.quantity - reservation.fulfilled_quantity : 0;
+        return { warehouseId: w.id, warehouseName: w.name, available: onHand - committed + ownPendingHere, onHand };
       }),
       isOrphaned: orphanProductIdSet.has(product.id),
     };

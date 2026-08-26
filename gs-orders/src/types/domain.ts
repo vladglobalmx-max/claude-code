@@ -861,7 +861,9 @@ export interface Warehouse {
  * ledger" en la migración). Sin UPDATE/DELETE posibles desde la app.
  * `purchase_order_id`/`purchase_order_item_id` solo existen para
  * 'recepcion_compra'/'correccion_recepcion' (trazabilidad a la compra de
- * origen); NULL para movimientos manuales.
+ * origen). `order_id`/`inventory_reservation_id` (Fase 6O) solo existen
+ * para 'surtido_pedido' (trazabilidad al Pedido/reserva de origen). NULL
+ * para movimientos manuales; nunca ambos pares de columnas a la vez.
  */
 export type InventoryMovementType =
   | "recepcion_compra"
@@ -869,7 +871,8 @@ export type InventoryMovementType =
   | "salida_manual"
   | "ajuste_positivo"
   | "ajuste_negativo"
-  | "correccion_recepcion";
+  | "correccion_recepcion"
+  | "surtido_pedido";
 
 export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, string> = {
   recepcion_compra: "Recepción de compra",
@@ -878,9 +881,10 @@ export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, strin
   ajuste_positivo: "Ajuste positivo",
   ajuste_negativo: "Ajuste negativo",
   correccion_recepcion: "Corrección de recepción",
+  surtido_pedido: "Surtido de Pedido",
 };
 
-/** Tipos que ADMIN puede registrar manualmente desde /inventario — 'recepcion_compra'/'correccion_recepcion' solo los genera la recepción de una Purchase Order. */
+/** Tipos que ADMIN puede registrar manualmente desde /inventario — 'recepcion_compra'/'correccion_recepcion'/'surtido_pedido' los genera el sistema (recepción de PO / surtido de reserva), nunca un formulario manual. */
 export const INVENTORY_MANUAL_MOVEMENT_TYPES: InventoryMovementType[] = [
   "entrada_manual",
   "salida_manual",
@@ -897,6 +901,8 @@ export interface InventoryMovement {
   movement_type: InventoryMovementType;
   purchase_order_id: string | null;
   purchase_order_item_id: string | null;
+  order_id: string | null;
+  inventory_reservation_id: string | null;
   reference: string | null;
   notes: string | null;
   created_by_user_id: string;
@@ -947,6 +953,11 @@ export interface InventoryCommittedLevel {
  * fila NUNCA se borra: liberar marca `released_at`, conservando el
  * historial (ver DECISIÓN en 0037_inventory_reservations.sql). Como mucho
  * una reserva ACTIVA (released_at is null) por (order_id, product_id).
+ * `quantity` es el total reservado/comprometido (lo que administra
+ * reservar/aumentar/reducir); `fulfilled_quantity` (Fase 6O) es el
+ * acumulado ya surtido — nunca lo mismo, ver DECISIÓN en
+ * 0038_inventory_fulfillment.sql. Pendiente por surtir = quantity -
+ * fulfilled_quantity; eso, no `quantity`, es lo que cuenta para COMMITTED.
  */
 export interface InventoryReservation {
   id: string;
@@ -955,6 +966,7 @@ export interface InventoryReservation {
   product_id: string;
   warehouse_id: string;
   quantity: number;
+  fulfilled_quantity: number;
   created_by_user_id: string;
   created_by_name: string;
   released_by_user_id: string | null;
@@ -964,13 +976,14 @@ export interface InventoryReservation {
   updated_at: string;
 }
 
-export type InventoryReservationEventType = "creada" | "aumentada" | "reducida" | "liberada";
+export type InventoryReservationEventType = "creada" | "aumentada" | "reducida" | "liberada" | "surtida";
 
 export const INVENTORY_RESERVATION_EVENT_LABELS: Record<InventoryReservationEventType, string> = {
   creada: "Reservada",
   aumentada: "Aumentada",
   reducida: "Reducida",
   liberada: "Liberada",
+  surtida: "Surtida",
 };
 
 /** Ledger insert-only de cada cambio de una reserva — mismo criterio que order_operational_status_history. */

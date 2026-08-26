@@ -997,10 +997,13 @@ export interface Database {
           },
         ];
       };
-      // THÖREN Fase 6M (0036_inventory_mvp.sql) — ledger inmutable, única
-      // fuente de verdad de ON HAND. Sin policy de insert/update/delete
-      // para `authenticated` — solo lo escriben rpc_create_inventory_movement
-      // y rpc_receive_purchase_order_item (ambas SECURITY DEFINER).
+      // THÖREN Fase 6M (0036_inventory_mvp.sql), extendido en Fase 6O
+      // (0038_inventory_fulfillment.sql) — ledger inmutable, única fuente
+      // de verdad de ON HAND. Sin policy de insert/update/delete para
+      // `authenticated` — solo lo escriben rpc_create_inventory_movement,
+      // rpc_receive_purchase_order_item y rpc_fulfill_inventory_reservation
+      // (las tres SECURITY DEFINER). order_id/inventory_reservation_id
+      // solo se llenan para movement_type = 'surtido_pedido'.
       inventory_movements: {
         Row: {
           id: string;
@@ -1011,6 +1014,8 @@ export interface Database {
           movement_type: string;
           purchase_order_id: string | null;
           purchase_order_item_id: string | null;
+          order_id: string | null;
+          inventory_reservation_id: string | null;
           reference: string | null;
           notes: string | null;
           created_by_user_id: string;
@@ -1026,6 +1031,8 @@ export interface Database {
           movement_type: string;
           purchase_order_id?: string | null;
           purchase_order_item_id?: string | null;
+          order_id?: string | null;
+          inventory_reservation_id?: string | null;
           reference?: string | null;
           notes?: string | null;
           created_by_user_id: string;
@@ -1069,15 +1076,33 @@ export interface Database {
             referencedRelation: "purchase_order_items";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "inventory_movements_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_reservation_id_fkey";
+            columns: ["inventory_reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["id"];
+          },
         ];
       };
-      // THÖREN Fase 6N (0037_inventory_reservations.sql) — reserva
-      // explícita de inventario desde un Pedido. Nunca se borra (liberar
-      // marca released_at); a lo sumo una fila ACTIVA por (order_id,
-      // product_id) — ver índice único parcial en la migración. Sin
-      // policy de insert/update para `authenticated`: solo las RPCs
+      // THÖREN Fase 6N (0037_inventory_reservations.sql), extendido en Fase
+      // 6O (0038_inventory_fulfillment.sql) — reserva explícita de
+      // inventario desde un Pedido. Nunca se borra (liberar marca
+      // released_at); a lo sumo una fila ACTIVA por (order_id, product_id)
+      // — ver índice único parcial en la migración. `fulfilled_quantity`
+      // es el acumulado ya surtido (0 <= fulfilled_quantity <= quantity);
+      // COMMITTED = quantity - fulfilled_quantity (rpc_inventory_committed_levels).
+      // Sin policy de insert/update para `authenticated`: solo las RPCs
       // rpc_reserve_inventory/rpc_adjust_inventory_reservation/
-      // rpc_release_inventory_reservation (SECURITY DEFINER) escriben aquí.
+      // rpc_release_inventory_reservation/rpc_fulfill_inventory_reservation
+      // (SECURITY DEFINER) escriben aquí.
       inventory_reservations: {
         Row: {
           id: string;
@@ -1086,6 +1111,7 @@ export interface Database {
           product_id: string;
           warehouse_id: string;
           quantity: number;
+          fulfilled_quantity: number;
           created_by_user_id: string;
           created_by_name: string;
           released_by_user_id: string | null;
@@ -1101,6 +1127,7 @@ export interface Database {
           product_id: string;
           warehouse_id: string;
           quantity: number;
+          fulfilled_quantity?: number;
           created_by_user_id: string;
           created_by_name: string;
           released_by_user_id?: string | null;
@@ -1607,10 +1634,11 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
       };
-      // THÖREN Fase 6N (0037) — cambia la cantidad (valor ABSOLUTO, no
-      // delta) de una reserva ACTIVA existente. Reenviar la cantidad
-      // actual es idempotente (sin evento nuevo). Rechaza si excede
-      // AVAILABLE (excluyendo la propia reserva del cálculo).
+      // THÖREN Fase 6N (0037), corregido en Fase 6O (0038) — cambia la
+      // cantidad (valor ABSOLUTO, no delta) de una reserva ACTIVA
+      // existente. Reenviar la cantidad actual es idempotente (sin evento
+      // nuevo). Rechaza si el nuevo PENDIENTE (quantity - fulfilled_quantity)
+      // excede AVAILABLE, o si la nueva cantidad es menor a lo ya surtido.
       rpc_adjust_inventory_reservation: {
         Args: {
           p_reservation_id: string;
@@ -1627,10 +1655,26 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
       };
-      // THÖREN Fase 6N (0037) — COMMITTED agregado por producto × almacén,
-      // derivado de inventory_reservations (nunca un contador cacheado).
-      // SECURITY DEFINER con filtro explícito de organización — mismo
-      // criterio de visibilidad de organización que rpc_inventory_incoming_by_product.
+      // THÖREN Fase 6O (0038) — surte físicamente una reserva ACTIVA:
+      // p_fulfilled_quantity es el acumulado ABSOLUTO (no un delta, mismo
+      // criterio que rpc_receive_purchase_order_item/rpc_adjust_inventory_reservation).
+      // Genera un movimiento 'surtido_pedido' (ON HAND baja) y avanza
+      // fulfilled_quantity (COMMITTED baja igual, AVAILABLE sin cambio).
+      // Rechaza: más de lo reservado, más del ON HAND real, reducir el
+      // acumulado, o una reserva huérfana (producto ya no en las partidas
+      // del Pedido) — esa sí se puede liberar, nunca surtir.
+      rpc_fulfill_inventory_reservation: {
+        Args: {
+          p_reservation_id: string;
+          p_fulfilled_quantity: number;
+        };
+        Returns: Database["public"]["Tables"]["inventory_reservations"]["Row"];
+      };
+      // THÖREN Fase 6N (0037), corregido en Fase 6O (0038) — COMMITTED
+      // agregado por producto × almacén = SUM(quantity - fulfilled_quantity)
+      // de reservas activas (nunca `quantity` a secas — ver DECISIÓN en
+      // 0038). SECURITY DEFINER con filtro explícito de organización —
+      // mismo criterio de visibilidad que rpc_inventory_incoming_by_product.
       rpc_inventory_committed_levels: {
         Args: {
           p_product_id?: string | null;

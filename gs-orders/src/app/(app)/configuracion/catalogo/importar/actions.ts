@@ -3,7 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapDbError } from "@/lib/db-errors";
+import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import type { BusinessUnitCandidate, Currency, ExistingProductRow, ProductTypeCandidate } from "@/lib/products/import-parsing";
+
+/** Tamaño de página para traer product_catalog completo — ver DECISIÓN en paginated-fetch.ts (max_rows de PostgREST). */
+const PRODUCT_CATALOG_PAGE_SIZE = 1000;
+
+interface RawProductCatalogRow {
+  id: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  product_type_id: string | null;
+  brand: string | null;
+  model: string | null;
+  unit: string | null;
+  default_price_mxn: number | null;
+  default_price_usd: number | null;
+  active: boolean;
+  product_business_units: { business_unit_id: string }[] | null;
+}
 
 /**
  * Candidatos para el preview de importación del Catálogo Maestro (Fase
@@ -15,39 +34,44 @@ import type { BusinessUnitCandidate, Currency, ExistingProductRow, ProductTypeCa
  * ver ExistingProductRow.businessUnitIds) para poder clasificar NUEVO/
  * ACTUALIZAR/SIN CAMBIOS con diff real de conjuntos, no solo "el SKU ya
  * existe" ni "la primera Business Unit coincide".
+ *
+ * DECISIÓN — paginación explícita de product_catalog (fix "AUDITORÍA
+ * DIRIGIDA DEL ERROR DE IMPORTACIÓN"): un `select` sin `.range()` queda
+ * silenciosamente limitado a `max_rows` (1,000, supabase/config.toml) por
+ * PostgREST — sin error, HTTP 200 normal. Con más de 1,000 productos en
+ * la organización, los que caían fuera de esa ventana eran invisibles
+ * para classifyProductRows, que los clasificaba como "new" en vez de
+ * "update", y el INSERT resultante chocaba con
+ * product_catalog_org_sku_unique. `fetchAllPages` (paginated-fetch.ts)
+ * trae TODO el catálogo en páginas de PRODUCT_CATALOG_PAGE_SIZE,
+ * ordenadas por `id` (orden estable — evita saltos/duplicados entre
+ * páginas), sin depender de max_rows ni tocar configuración de Supabase.
  */
 export async function getProductImportCandidates(): Promise<
   | { businessUnits: BusinessUnitCandidate[]; productTypes: ProductTypeCandidate[]; existingProducts: ExistingProductRow[] }
   | { error: string }
 > {
   const supabase = createSupabaseServerClient();
-  const [{ data: businessUnits, error: buError }, { data: productTypes, error: ptError }, { data: products, error: productsError }] =
-    await Promise.all([
-      supabase.from("business_units").select("id, name").eq("active", true).order("name"),
-      supabase.from("product_types").select("id, name").eq("active", true).order("name"),
-      supabase.from("product_catalog").select("*, product_business_units(business_unit_id)"),
-    ]);
+  const [{ data: businessUnits, error: buError }, { data: productTypes, error: ptError }, productsResult] = await Promise.all([
+    supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+    supabase.from("product_types").select("id, name").eq("active", true).order("name"),
+    fetchAllPages<RawProductCatalogRow>(
+      async (from, to) =>
+        await supabase
+          .from("product_catalog")
+          .select("*, product_business_units(business_unit_id)")
+          .order("id", { ascending: true })
+          .range(from, to),
+      PRODUCT_CATALOG_PAGE_SIZE
+    ),
+  ]);
 
-  if (buError || ptError || productsError) {
+  if (buError || ptError || "error" in productsResult) {
+    const productsError = "error" in productsResult ? (productsResult.error as { code?: string | null; message: string }) : null;
     return { error: mapDbError(buError ?? ptError ?? productsError, "No se pudieron leer los datos existentes.") };
   }
 
-  const existingProducts: ExistingProductRow[] = (
-    (products ?? []) as unknown as {
-      id: string;
-      sku: string;
-      name: string;
-      description: string | null;
-      product_type_id: string | null;
-      brand: string | null;
-      model: string | null;
-      unit: string | null;
-      default_price_mxn: number | null;
-      default_price_usd: number | null;
-      active: boolean;
-      product_business_units: { business_unit_id: string }[] | null;
-    }[]
-  ).map((p) => {
+  const existingProducts: ExistingProductRow[] = productsResult.rows.map((p) => {
     let currency: Currency | null = null;
     let basePrice: number | null = null;
     // Mismo criterio de prioridad que [id]/editar/page.tsx: si un producto

@@ -2,8 +2,26 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { buildCatalogWorkbook, type CatalogWorkbookRow } from "@/lib/products/catalog-workbook";
+import { fetchAllPages } from "@/lib/products/paginated-fetch";
 
 export const dynamic = "force-dynamic";
+
+/** Tamaño de página para exportar product_catalog completo — ver DECISIÓN en paginated-fetch.ts (max_rows de PostgREST). */
+const PRODUCT_CATALOG_PAGE_SIZE = 1000;
+
+interface ExportCatalogRow {
+  sku: string;
+  name: string;
+  description: string | null;
+  brand: string | null;
+  model: string | null;
+  unit: string | null;
+  default_price_mxn: number | null;
+  default_price_usd: number | null;
+  active: boolean;
+  product_types: { name: string } | null;
+  product_business_units: { business_unit_id: string; business_units: { name: string } | null }[] | null;
+}
 
 /**
  * Exportar Excel del Catálogo Maestro (Fase 6C) — mismas columnas que la
@@ -22,30 +40,27 @@ export async function GET() {
   }
 
   const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("product_catalog")
-    .select("*, product_types(name), product_business_units(business_unit_id, business_units(name))")
-    .order("sku", { ascending: true });
+  // DECISIÓN — fix "FIX SISTÉMICO DE PAGINACIÓN DE PRODUCT CATALOG": sin
+  // .range() esto quedaba silenciosamente limitado a max_rows=1,000
+  // (PostgREST) — exportar un catálogo >1,000 SKUs producía un archivo
+  // incompleto sin ningún error visible. product_business_units viene
+  // embebido en el mismo select, así que paginar product_catalog trae
+  // también TODAS las asociaciones de Business Unit reales.
+  const productsResult = await fetchAllPages<ExportCatalogRow>(
+    async (from, to) =>
+      await supabase
+        .from("product_catalog")
+        .select("*, product_types(name), product_business_units(business_unit_id, business_units(name))")
+        .order("sku", { ascending: true })
+        .range(from, to),
+    PRODUCT_CATALOG_PAGE_SIZE
+  );
 
-  if (error) {
+  if ("error" in productsResult) {
     return NextResponse.json({ error: "No se pudo leer el catálogo." }, { status: 500 });
   }
 
-  type Row = {
-    sku: string;
-    name: string;
-    description: string | null;
-    brand: string | null;
-    model: string | null;
-    unit: string | null;
-    default_price_mxn: number | null;
-    default_price_usd: number | null;
-    active: boolean;
-    product_types: { name: string } | null;
-    product_business_units: { business_unit_id: string; business_units: { name: string } | null }[] | null;
-  };
-
-  const rows: CatalogWorkbookRow[] = ((data ?? []) as unknown as Row[]).map((p) => {
+  const rows: CatalogWorkbookRow[] = productsResult.rows.map((p) => {
     const buRows = p.product_business_units ?? [];
     // Lista COMPLETA de nombres — nunca se recorta a la primera. El orden
     // determinístico (por nombre canonicalizado) lo aplica

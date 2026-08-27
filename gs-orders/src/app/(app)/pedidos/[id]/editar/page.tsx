@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { fetchAllPages } from "@/lib/products/paginated-fetch";
+import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
 import type { CatalogProductOption } from "@/components/orders/types";
@@ -16,6 +19,11 @@ import type {
   ProductTypeItem,
   Salesperson,
 } from "@/types/domain";
+
+/** Tamaño de página para traer product_catalog/product_business_units completos — ver DECISIÓN en paginated-fetch.ts (max_rows de PostgREST). */
+const PRODUCT_CATALOG_PAGE_SIZE = 1000;
+
+type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null };
 
 export default async function EditarPedidoPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
@@ -66,34 +74,61 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     new Set(typedItems.map((i) => i.catalog_product_id).filter((id): id is string => !!id))
   );
 
-  type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null };
-  const [{ data: catalogActiveData }, { data: catalogReferencedData }, { data: catalogBuData }] = await Promise.all([
-    supabase
-      .from("product_catalog")
-      .select("*, product_types(name)")
-      .eq("active", true)
-      .order("category", { ascending: true })
-      .order("name", { ascending: true }),
+  const [catalogActiveResult, { data: catalogReferencedData }, catalogBuResult] = await Promise.all([
+    // DECISIÓN — fix "FIX SISTÉMICO DE PAGINACIÓN DE PRODUCT CATALOG": sin
+    // .range() esto quedaba silenciosamente limitado a max_rows=1,000
+    // (PostgREST). La consulta ".in(...)" de referencedCatalogProductIds
+    // NO se toca — está acotada por las líneas de este Order, nunca cerca
+    // de 1,000 filas.
+    fetchAllPages<CatalogRow>(
+      async (from, to) =>
+        await supabase
+          .from("product_catalog")
+          .select("*, product_types(name)")
+          .eq("active", true)
+          .order("category", { ascending: true })
+          .order("name", { ascending: true })
+          .range(from, to),
+      PRODUCT_CATALOG_PAGE_SIZE
+    ),
     referencedCatalogProductIds.length > 0
       ? supabase.from("product_catalog").select("*, product_types(name)").in("id", referencedCatalogProductIds)
       : Promise.resolve({ data: [] as unknown[] }),
-    supabase.from("product_business_units").select("product_id, business_unit_id"),
+    fetchAllPages<ProductBusinessUnitRow>(
+      async (from, to) =>
+        await supabase
+          .from("product_business_units")
+          .select("product_id, business_unit_id")
+          .order("product_id", { ascending: true })
+          .order("business_unit_id", { ascending: true })
+          .range(from, to),
+      PRODUCT_CATALOG_PAGE_SIZE
+    ),
   ]);
 
+  if ("error" in catalogActiveResult || "error" in catalogBuResult) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
+          <AlertTriangle className="h-8 w-8 text-danger" />
+          <p className="text-sm font-medium text-ink">No se pudo cargar el catálogo completo</p>
+          <p className="max-w-sm text-sm text-ink-faint">
+            Ocurrió un error leyendo los productos. Intenta recargar la página en unos momentos.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const catalogRowsById = new Map<string, CatalogRow>();
-  for (const row of (catalogActiveData ?? []) as unknown as CatalogRow[]) catalogRowsById.set(row.id, row);
+  for (const row of catalogActiveResult.rows) catalogRowsById.set(row.id, row);
   for (const row of (catalogReferencedData ?? []) as unknown as CatalogRow[]) {
     if (!catalogRowsById.has(row.id)) catalogRowsById.set(row.id, row);
   }
   const catalogRows = Array.from(catalogRowsById.values());
 
   const businessUnitNamesById = new Map(businessUnits.map((bu) => [bu.id, bu.name]));
-  const businessUnitIdsByProduct = new Map<string, string[]>();
-  for (const row of (catalogBuData ?? []) as { product_id: string; business_unit_id: string }[]) {
-    const list = businessUnitIdsByProduct.get(row.product_id) ?? [];
-    list.push(row.business_unit_id);
-    businessUnitIdsByProduct.set(row.product_id, list);
-  }
+  const businessUnitIdsByProduct = buildBusinessUnitIdsByProduct(catalogBuResult.rows);
 
   const itemIds = typedItems.map((i) => i.id);
   const { data: itemImages } =

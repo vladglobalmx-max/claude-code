@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Boxes } from "lucide-react";
+import { AlertTriangle, Boxes } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -7,10 +7,14 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatNumber } from "@/lib/utils/format";
 import { canonicalize } from "@/lib/products/import-parsing";
+import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import type { InventoryCommittedLevel, InventoryIncomingByProduct, InventoryStockLevel, Warehouse } from "@/types/domain";
 import { InventoryFilters } from "./inventory-filters";
 
 export const dynamic = "force-dynamic";
+
+/** Tamaño de página para traer product_catalog completo — ver DECISIÓN en paginated-fetch.ts (max_rows de PostgREST). */
+const PRODUCT_CATALOG_PAGE_SIZE = 1000;
 
 interface CatalogRow {
   id: string;
@@ -55,18 +59,28 @@ export default async function InventarioPage({
   const supabase = createSupabaseServerClient();
 
   const [
-    { data: productsData },
+    productsResult,
     { data: businessUnitsData },
     { data: warehousesData },
     { data: onHandData },
     { data: committedData },
     { data: incomingData },
   ] = await Promise.all([
-    supabase
-      .from("product_catalog")
-      .select("id, sku, name, model, unit, product_business_units(business_unit_id)")
-      .eq("active", true)
-      .order("sku"),
+    // DECISIÓN — fix "FIX SISTÉMICO DE PAGINACIÓN DE PRODUCT CATALOG": sin
+    // .range() esto quedaba silenciosamente limitado a max_rows=1,000
+    // (PostgREST) — product_business_units viene embebido en el mismo
+    // select, así que paginar product_catalog trae también TODAS sus
+    // asociaciones de Business Unit reales.
+    fetchAllPages<CatalogRow>(
+      async (from, to) =>
+        await supabase
+          .from("product_catalog")
+          .select("id, sku, name, model, unit, product_business_units(business_unit_id)")
+          .eq("active", true)
+          .order("sku", { ascending: true })
+          .range(from, to),
+      PRODUCT_CATALOG_PAGE_SIZE
+    ),
     supabase.from("business_units").select("id, name").eq("active", true).order("name"),
     supabase.from("warehouses").select("*").eq("active", true).order("name"),
     supabase.rpc("rpc_inventory_stock_levels"),
@@ -74,7 +88,22 @@ export default async function InventarioPage({
     supabase.rpc("rpc_inventory_incoming_by_product"),
   ]);
 
-  const products = (productsData ?? []) as unknown as CatalogRow[];
+  if ("error" in productsResult) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <PageHeader title="Inventario" description="On Hand, Available e Incoming por producto y almacén." />
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
+          <AlertTriangle className="h-8 w-8 text-danger" />
+          <p className="text-sm font-medium text-ink">No se pudo cargar el catálogo completo</p>
+          <p className="max-w-sm text-sm text-ink-faint">
+            Ocurrió un error leyendo los productos. Intenta recargar la página en unos momentos.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const products = productsResult.rows;
   const businessUnits = (businessUnitsData ?? []) as { id: string; name: string }[];
   const warehouses = (warehousesData ?? []) as Warehouse[];
   const onHandLevels = (onHandData ?? []) as InventoryStockLevel[];

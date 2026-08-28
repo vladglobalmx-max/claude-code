@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -115,7 +116,7 @@ export default async function CotizacionesPage({
                   <Link href={`/cotizaciones/${quote.id}`} className="text-ink-soft hover:text-accent">
                     Ver
                   </Link>
-                  {quote.status === "borrador" && (
+                  {quote.status === "borrador" && canWriteRecord(profile, quote.salesperson_id) && (
                     <Link href={`/cotizaciones/${quote.id}/editar`} className="text-ink-soft hover:text-accent">
                       Editar
                     </Link>

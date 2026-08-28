@@ -1,5 +1,8 @@
 import { randomUUID } from "crypto";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +22,22 @@ export interface DeliverableItem {
 
 /**
  * THÖREN Fase 6P — Nueva Entrega. Sin gate admin-only (a diferencia de
- * Compras): "propio o admin" ya lo resuelve rpc_create_delivery. El tope
- * real por producto (pendingToDeliver) viene de rpc_order_delivery_progress
- * — NUNCA la cantidad pedida — para que el formulario nunca ofrezca
- * entregar más de lo físicamente surtido.
+ * Compras): "propio o admin" ya lo resuelve rpc_create_delivery, que sigue
+ * siendo la autoridad final. THÖREN 6R.1B-1 UX fix: can_view_all_sales
+ * (0041) permite que getOrderDetail resuelva un Pedido ajeno, así que este
+ * página además bloquea el render ANTES de mostrar el formulario (mismo
+ * criterio que /pedidos/[id]/editar) — no basta con ocultar el botón
+ * "Nueva entrega" en deliveries-section.tsx. El tope real por producto
+ * (pendingToDeliver) viene de rpc_order_delivery_progress — NUNCA la
+ * cantidad pedida — para que el formulario nunca ofrezca entregar más de
+ * lo físicamente surtido.
  */
 export default async function NuevaEntregaPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
+  const profile = await getCurrentProfile();
+  if (!canWriteRecord(profile, detail.order.salesperson_id)) {
+    redirect(`/pedidos/${detail.order.id}`);
+  }
   const supabase = createSupabaseServerClient();
   const { data: progressData } = await supabase.rpc("rpc_order_delivery_progress", { p_order_id: params.id });
   const progress = (progressData ?? []) as OrderDeliveryProgress[];

@@ -22,7 +22,15 @@ interface DeliverySummaryRow extends Delivery {
  * directamente — eso lo hace, cuando corresponde, el trigger de 0039 al
  * completar una Entrega.
  */
-export async function DeliveriesSection({ orderId, orderFolio }: { orderId: string; orderFolio: string }) {
+export async function DeliveriesSection({
+  orderId,
+  orderFolio,
+  canWrite,
+}: {
+  orderId: string;
+  orderFolio: string;
+  canWrite: boolean;
+}) {
   const supabase = createSupabaseServerClient();
 
   const { data } = await supabase
@@ -37,12 +45,14 @@ export async function DeliveriesSection({ orderId, orderFolio }: { orderId: stri
     <Card className="no-print mb-6">
       <CardHeader className="flex items-center justify-between">
         <CardTitle>Entregas / Instalaciones</CardTitle>
-        <Link href={`/pedidos/${orderId}/nueva-entrega`}>
-          <Button size="sm" variant="outline">
-            <Plus className="h-3.5 w-3.5" />
-            Nueva entrega
-          </Button>
-        </Link>
+        {canWrite && (
+          <Link href={`/pedidos/${orderId}/nueva-entrega`}>
+            <Button size="sm" variant="outline">
+              <Plus className="h-3.5 w-3.5" />
+              Nueva entrega
+            </Button>
+          </Link>
+        )}
       </CardHeader>
       <CardContent>
         {deliveries.length === 0 ? (

@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { QuoteForm } from "@/components/quotes/quote-form";
@@ -24,6 +26,7 @@ type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null 
  * el guard de rol — aquí el guard es de status, no de rol).
  */
 export default async function EditarCotizacionPage({ params }: { params: { id: string } }) {
+  const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
 
   const [{ data: quoteData }, { data: itemsData }, { data: customersData }, catalogResult, catalogBuResult] =
@@ -59,6 +62,14 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
   const quote = quoteData as Quote;
 
   if (quote.status !== "borrador") {
+    redirect(`/cotizaciones/${quote.id}`);
+  }
+
+  // THÖREN 6R.1B-1 UX fix — no basta con ocultar el link "Editar": can_view_
+  // all_sales (0041) permite que este SELECT cargue para una cotización
+  // ajena, así que hay que bloquear el formulario ANTES de renderizarlo,
+  // no solo confiar en que updateQuote falle al guardar.
+  if (!canWriteRecord(profile, quote.salesperson_id)) {
     redirect(`/cotizaciones/${quote.id}`);
   }
 

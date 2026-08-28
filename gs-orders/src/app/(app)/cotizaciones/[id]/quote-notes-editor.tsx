@@ -12,7 +12,15 @@ import { updateQuoteNotes } from "../actions";
  * de trg_quote_status_transition (0020). El copy deja claro que es una
  * anotación de equipo, nunca contenido comercial/legal de la cotización.
  */
-export function QuoteNotesEditor({ quoteId, initialNotes }: { quoteId: string; initialNotes: string }) {
+export function QuoteNotesEditor({
+  quoteId,
+  initialNotes,
+  canWrite,
+}: {
+  quoteId: string;
+  initialNotes: string;
+  canWrite: boolean;
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialNotes);
   const [savedValue, setSavedValue] = useState(initialNotes);
@@ -40,7 +48,7 @@ export function QuoteNotesEditor({ quoteId, initialNotes }: { quoteId: string; i
     <div>
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wide text-ink-faint">Nota interna</p>
-        {!isEditing && (
+        {!isEditing && canWrite && (
           <button type="button" onClick={() => setIsEditing(true)} className="text-xs text-accent hover:underline">
             {savedValue ? "Editar" : "Agregar nota"}
           </button>
@@ -50,7 +58,7 @@ export function QuoteNotesEditor({ quoteId, initialNotes }: { quoteId: string; i
         Visible solo para tu equipo — no forma parte del contenido comercial de la cotización.
       </p>
 
-      {isEditing ? (
+      {isEditing && canWrite ? (
         <div className="mt-2 space-y-2">
           <Textarea rows={3} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           <div className="flex gap-2">

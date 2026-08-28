@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { OrderForm } from "@/components/orders/order-form";
@@ -55,6 +56,15 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   if (!order) notFound();
 
   const typedOrder = order as Order;
+
+  // THÖREN 6R.1B-1 UX fix — no basta con ocultar el link "Editar":
+  // can_view_all_sales (0041) permite que este SELECT cargue para un
+  // Pedido ajeno, así que hay que bloquear el formulario ANTES de
+  // renderizarlo, no solo confiar en que updateOrder falle al guardar.
+  if (!canWriteRecord(profile, typedOrder.salesperson_id)) {
+    redirect(`/pedidos/${typedOrder.id}`);
+  }
+
   const typedItems = (items ?? []) as OrderItem[];
   const typedImages = (images ?? []) as OrderImage[];
   const typedFiles = (files ?? []) as OrderFile[];

@@ -39,7 +39,15 @@ import type { ReservationRowData } from "./reservations-section";
  * rpc_fulfill_inventory_reservation (fulfilled_quantity + incremento),
  * igual que "Actualizar" ya usa el total absoluto para `quantity`.
  */
-export function ReservationRow({ orderId, row }: { orderId: string; row: ReservationRowData }) {
+export function ReservationRow({
+  orderId,
+  row,
+  canWrite,
+}: {
+  orderId: string;
+  row: ReservationRowData;
+  canWrite: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [warehouseId, setWarehouseId] = useState(row.availability[0]?.warehouseId ?? "");
@@ -163,7 +171,7 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
         </Badge>
       )}
 
-      {row.reservation ? (
+      {row.reservation && canWrite ? (
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor={`adjust-${row.productId}`}>Cantidad reservada</Label>
@@ -188,7 +196,7 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
         </div>
       ) : null}
 
-      {row.reservation && !row.isOrphaned && pendingToFulfill > 0 && (
+      {row.reservation && canWrite && !row.isOrphaned && pendingToFulfill > 0 && (
         <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border pt-3">
           <div>
             <Label htmlFor={`fulfill-${row.productId}`}>Surtir ahora</Label>
@@ -212,7 +220,7 @@ export function ReservationRow({ orderId, row }: { orderId: string; row: Reserva
         </div>
       )}
 
-      {row.reservation ? null : (
+      {row.reservation || !canWrite ? null : (
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor={`warehouse-${row.productId}`}>Almacén</Label>

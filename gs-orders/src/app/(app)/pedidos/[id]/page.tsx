@@ -7,6 +7,8 @@ import { DueDateStatusIndicator } from "@/components/ui/due-date-status-indicato
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
 import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
@@ -34,6 +36,9 @@ export const dynamic = "force-dynamic";
 export default async function VerPedidoPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
   const supabase = createSupabaseServerClient();
+  const profile = await getCurrentProfile();
+  // VIEW != WRITE (THÖREN 6R.1B-1 UX fix) — ver src/lib/auth/ownership.ts.
+  const canWrite = canWriteRecord(profile, detail.order.salesperson_id);
 
   let sourceQuoteFolio: string | null = null;
   if (detail.order.source_quote_id) {
@@ -74,15 +79,17 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
           Pedidos
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <OrderStatusQuickActions order={detail.order} />
+          {canWrite && <OrderStatusQuickActions order={detail.order} />}
           <DuplicateButton
             orderId={detail.order.id}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           />
-          <Link href={`/pedidos/${detail.order.id}/editar`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-            <Pencil className="h-3.5 w-3.5" />
-            Editar
-          </Link>
+          {canWrite && (
+            <Link href={`/pedidos/${detail.order.id}/editar`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Link>
+          )}
           <Link href={`/pedidos/${detail.order.id}/pdf`} target="_blank" className={cn(buttonVariants({ size: "sm" }))}>
             <Printer className="h-3.5 w-3.5" />
             PDF
@@ -115,7 +122,7 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
               variants={ORDER_OPERATIONAL_STATUS_BADGE}
               className="text-sm"
             />
-            <OrderOperationalStatusActions order={detail.order} />
+            {canWrite && <OrderOperationalStatusActions order={detail.order} />}
             {dueDateStatus && <DueDateStatusIndicator status={dueDateStatus} />}
           </div>
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -153,9 +160,9 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
 
       <PurchaseOrdersSection orderId={detail.order.id} />
 
-      <ReservationsSection orderId={detail.order.id} />
+      <ReservationsSection orderId={detail.order.id} canWrite={canWrite} />
 
-      <DeliveriesSection orderId={detail.order.id} orderFolio={detail.order.folio} />
+      <DeliveriesSection orderId={detail.order.id} orderFolio={detail.order.folio} canWrite={canWrite} />
 
       <Card>
         <CardContent className="p-6">

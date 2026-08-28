@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Download, FileText, Pencil, Trash2 } from "lucid
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,12 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
   const items = (itemsData ?? []) as QuoteItem[];
   const expired = isQuoteExpired(quote);
   const isAdmin = profile?.role === "admin";
+  // VIEW != WRITE (THÖREN 6R.1B-1 UX fix): can_view_all_sales (0041) amplió
+  // qué cotizaciones puede VER un vendedor, pero canWriteRecord nunca
+  // conoce esa capacidad — ver src/lib/auth/ownership.ts. RLS sigue siendo
+  // la autoridad final; esto solo evita ofrecer en la UI un control que el
+  // backend rechazaría en silencio.
+  const canWrite = canWriteRecord(profile, quote.salesperson_id);
   const isHistorical = quote.source === "cotizia";
   const historicalPdfUrl = quote.historical_pdf_path
     ? await getSignedUrl("quote-archive", quote.historical_pdf_path)
@@ -48,7 +55,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
           Cotizaciones
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <QuoteStatusActions quote={quote} />
+          {canWrite && <QuoteStatusActions quote={quote} />}
           <DuplicateQuoteButton quoteId={quote.id} />
           {linkedOrder ? (
             <Link
@@ -88,7 +95,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
               Ver PDF original de CotizIA
             </a>
           )}
-          {quote.status === "borrador" && (
+          {quote.status === "borrador" && canWrite && (
             <Link
               href={`/cotizaciones/${quote.id}/editar`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -200,7 +207,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             </div>
           )}
 
-          <QuoteNotesEditor quoteId={quote.id} initialNotes={quote.notes ?? ""} />
+          <QuoteNotesEditor quoteId={quote.id} initialNotes={quote.notes ?? ""} canWrite={canWrite} />
 
           <div>
             <p className="mb-2 text-xs uppercase tracking-wide text-ink-faint">Productos</p>

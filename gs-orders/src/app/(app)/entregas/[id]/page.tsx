@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, History } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDateTime, formatNumber } from "@/lib/utils/format";
+import { formatDateShort, formatDateTime, formatNumber } from "@/lib/utils/format";
 import { DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABELS, DELIVERY_TYPE_LABELS } from "@/types/domain";
 import type { Delivery, DeliveryFile, DeliveryItem, DeliveryStatusHistoryEntry } from "@/types/domain";
 import { DeliveryStatusActions } from "./status-actions";
@@ -22,6 +24,7 @@ interface OrderRow {
   id: string;
   folio: string;
   client_name: string;
+  salesperson_id: string;
 }
 
 /**
@@ -32,19 +35,27 @@ interface OrderRow {
  */
 export default async function EntregaDetallePage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
+  const profile = await getCurrentProfile();
 
   const { data: deliveryData } = await supabase.from("deliveries").select("*").eq("id", params.id).maybeSingle();
   if (!deliveryData) notFound();
   const delivery = deliveryData as Delivery;
 
   const [{ data: orderData }, { data: itemsData }, { data: historyData }, { data: filesData }] = await Promise.all([
-    supabase.from("orders").select("id, folio, client_name").eq("id", delivery.order_id).maybeSingle(),
+    // salesperson_id se agrega aquí (THÖREN 6R.1B-1 UX fix) únicamente
+    // para resolver ownership de la Entrega A TRAVÉS del Pedido origen —
+    // sin cambio de esquema, es un campo más del mismo select existente.
+    supabase.from("orders").select("id, folio, client_name, salesperson_id").eq("id", delivery.order_id).maybeSingle(),
     supabase.from("delivery_items").select("*").eq("delivery_id", delivery.id).order("created_at"),
     supabase.from("delivery_status_history").select("*").eq("delivery_id", delivery.id).order("changed_at", { ascending: false }),
     supabase.from("delivery_files").select("*").eq("delivery_id", delivery.id).order("created_at", { ascending: false }),
   ]);
 
   const order = orderData as OrderRow | null;
+  // VIEW != WRITE (THÖREN 6R.1B-1 UX fix) — ownership de la Entrega se
+  // resuelve vía el salesperson_id del Pedido origen, no de la Entrega
+  // misma (deliveries no tiene su propio salesperson_id).
+  const canWrite = canWriteRecord(profile, order?.salesperson_id ?? null);
   const items = (itemsData ?? []) as DeliveryItem[];
   const history = (historyData ?? []) as DeliveryStatusHistoryEntry[];
   const files = (filesData ?? []) as DeliveryFile[];
@@ -75,7 +86,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={delivery.status} labels={DELIVERY_STATUS_LABELS} variants={DELIVERY_STATUS_BADGE} className="text-sm" />
-            <DeliveryStatusActions deliveryId={delivery.id} orderId={delivery.order_id} status={delivery.status} />
+            {canWrite && <DeliveryStatusActions deliveryId={delivery.id} orderId={delivery.order_id} status={delivery.status} />}
           </div>
           {delivery.completed_at && (
             <p className="text-xs text-ink-faint">Completada el {formatDateTime(delivery.completed_at)}</p>
@@ -118,7 +129,72 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
           <CardTitle>Datos de la entrega</CardTitle>
         </CardHeader>
         <CardContent>
-          <DeliveryDetailsForm delivery={delivery} />
+          {canWrite ? (
+            <DeliveryDetailsForm delivery={delivery} />
+          ) : (
+            <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-xs text-ink-faint">Fecha programada</dt>
+                <dd className="text-ink">{delivery.scheduled_date ? formatDateShort(delivery.scheduled_date) : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-faint">Fecha/hora real</dt>
+                <dd className="text-ink">{delivery.actual_datetime ? formatDateTime(delivery.actual_datetime) : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-faint">Dirección/lugar</dt>
+                <dd className="text-ink">{delivery.address ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-faint">Responsable interno</dt>
+                <dd className="text-ink">{delivery.responsible_name ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-faint">Contacto en sitio</dt>
+                <dd className="text-ink">{delivery.contact_name ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-faint">Teléfono de contacto</dt>
+                <dd className="text-ink">{delivery.contact_phone ?? "—"}</dd>
+              </div>
+              {(delivery.delivery_type === "instalacion" || delivery.delivery_type === "entrega_instalacion") && (
+                <>
+                  <div>
+                    <dt className="text-xs text-ink-faint">Técnico/responsable</dt>
+                    <dd className="text-ink">{delivery.installer_name ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-ink-faint">Fecha/hora de instalación</dt>
+                    <dd className="text-ink">
+                      {delivery.installation_datetime ? formatDateTime(delivery.installation_datetime) : "—"}
+                    </dd>
+                  </div>
+                  {delivery.installation_notes && (
+                    <div className="col-span-1 sm:col-span-2">
+                      <dt className="text-xs text-ink-faint">Notas de instalación</dt>
+                      <dd className="whitespace-pre-wrap text-ink">{delivery.installation_notes}</dd>
+                    </div>
+                  )}
+                </>
+              )}
+              {delivery.notes && (
+                <div className="col-span-1 sm:col-span-2">
+                  <dt className="text-xs text-ink-faint">Notas</dt>
+                  <dd className="whitespace-pre-wrap text-ink">{delivery.notes}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-xs text-ink-faint">Recibido por</dt>
+                <dd className="text-ink">{delivery.received_by_name ?? "—"}</dd>
+              </div>
+              {delivery.customer_observations && (
+                <div className="col-span-1 sm:col-span-2">
+                  <dt className="text-xs text-ink-faint">Observaciones del cliente</dt>
+                  <dd className="whitespace-pre-wrap text-ink">{delivery.customer_observations}</dd>
+                </div>
+              )}
+            </dl>
+          )}
         </CardContent>
       </Card>
 
@@ -127,10 +203,12 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
           <CardTitle>Evidencia</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <EvidenceUpload deliveryId={delivery.id} orderId={delivery.order_id} kind="foto" />
-            <EvidenceUpload deliveryId={delivery.id} orderId={delivery.order_id} kind="documento" />
-          </div>
+          {canWrite && (
+            <div className="flex flex-wrap gap-3">
+              <EvidenceUpload deliveryId={delivery.id} orderId={delivery.order_id} kind="foto" />
+              <EvidenceUpload deliveryId={delivery.id} orderId={delivery.order_id} kind="documento" />
+            </div>
+          )}
 
           {photoFiles.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -146,9 +224,11 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
                       </div>
                     )}
                   </div>
-                  <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <EvidenceRemoveButton fileId={f.id} deliveryId={delivery.id} orderId={delivery.order_id} />
-                  </div>
+                  {canWrite && (
+                    <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <EvidenceRemoveButton fileId={f.id} deliveryId={delivery.id} orderId={delivery.order_id} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -173,7 +253,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
                       <p className="truncate text-sm text-ink">{f.file_name}</p>
                     )}
                   </div>
-                  <EvidenceRemoveButton fileId={f.id} deliveryId={delivery.id} orderId={delivery.order_id} />
+                  {canWrite && <EvidenceRemoveButton fileId={f.id} deliveryId={delivery.id} orderId={delivery.order_id} />}
                 </div>
               ))}
             </div>

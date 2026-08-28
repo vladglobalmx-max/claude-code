@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Copy, Eye, FileText, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canWriteRecord } from "@/lib/auth/ownership";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -31,6 +32,7 @@ export const dynamic = "force-dynamic";
 interface OrderRow {
   id: string;
   folio: string;
+  salesperson_id: string;
   order_date: string;
   client_name: string;
   product_type: string;
@@ -86,7 +88,7 @@ export default async function PedidosPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, folio, order_date, client_name, product_type, product_type_name_snapshot, status, operational_status, supplier_commitment_date, estimated_reception_date, scheduled_delivery_date, salesperson:salespeople(name, prefix)"
+      "id, folio, salesperson_id, order_date, client_name, product_type, product_type_name_snapshot, status, operational_status, supplier_commitment_date, estimated_reception_date, scheduled_delivery_date, salesperson:salespeople(name, prefix)"
     )
     .order("created_at", { ascending: false });
 
@@ -219,18 +221,22 @@ export default async function PedidosPage({
                   <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver pedido">
                     <Eye className="h-4 w-4" />
                   </Link>
-                  <Link href={`/pedidos/${order.id}/editar`} className={iconLinkClass} aria-label="Editar pedido">
-                    <Pencil className="h-4 w-4" />
-                  </Link>
+                  {canWriteRecord(profile, order.salesperson_id) && (
+                    <Link href={`/pedidos/${order.id}/editar`} className={iconLinkClass} aria-label="Editar pedido">
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                  )}
                   <DuplicateButton orderId={order.id} className={iconLinkClass} aria-label="Duplicar pedido">
                     <Copy className="h-4 w-4" />
                   </DuplicateButton>
                   <Link href={`/pedidos/${order.id}/pdf`} target="_blank" className={iconLinkClass} aria-label="Ver PDF">
                     <Printer className="h-4 w-4" />
                   </Link>
-                  <DeleteButton orderId={order.id} folio={order.folio} className={iconButtonClass} aria-label="Eliminar pedido">
-                    <Trash2 className="h-4 w-4" />
-                  </DeleteButton>
+                  {canWriteRecord(profile, order.salesperson_id) && (
+                    <DeleteButton orderId={order.id} folio={order.folio} className={iconButtonClass} aria-label="Eliminar pedido">
+                      <Trash2 className="h-4 w-4" />
+                    </DeleteButton>
+                  )}
                 </div>
               </Card>
             ))}
@@ -285,14 +291,18 @@ export default async function PedidosPage({
                         <Link href={`/pedidos/${order.id}`} className="text-ink-soft hover:text-accent">
                           Ver
                         </Link>
-                        <Link href={`/pedidos/${order.id}/editar`} className="text-ink-soft hover:text-accent">
-                          Editar
-                        </Link>
+                        {canWriteRecord(profile, order.salesperson_id) && (
+                          <Link href={`/pedidos/${order.id}/editar`} className="text-ink-soft hover:text-accent">
+                            Editar
+                          </Link>
+                        )}
                         <DuplicateButton orderId={order.id} className="text-ink-soft hover:text-accent" />
                         <Link href={`/pedidos/${order.id}/pdf`} className="text-ink-soft hover:text-accent">
                           PDF
                         </Link>
-                        <DeleteButton orderId={order.id} folio={order.folio} className="text-ink-soft hover:text-danger" />
+                        {canWriteRecord(profile, order.salesperson_id) && (
+                          <DeleteButton orderId={order.id} folio={order.folio} className="text-ink-soft hover:text-danger" />
+                        )}
                       </div>
                     </Td>
                   </Tr>

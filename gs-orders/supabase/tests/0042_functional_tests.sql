@@ -95,7 +95,11 @@ begin
   raise notice 'TEST 2 OK: reutiliza la Person histórica, sin crear una segunda.';
 
   select email into v_final_email from people where id = v_person_id;
-  if v_final_email <> 'historica-0042-2@test.local' then
+  -- NOTA (corrección 0043): `<>` con un v_final_email NULL evalúa a
+  -- NULL/desconocido en SQL, nunca a TRUE — un IF con esa condición NUNCA
+  -- dispara, así que esta comparación original habría reportado "OK" sin
+  -- importar el resultado real. Se usa `is distinct from` (NULL-safe).
+  if v_final_email is distinct from 'historica-0042-2@test.local' then
     raise exception 'TEST 3 FALLÓ: el email NULL debía completarse con el del login, quedó "%"', v_final_email;
   end if;
   raise notice 'TEST 3 OK: people.email NULL se completó con el email del nuevo login.';
@@ -144,7 +148,8 @@ begin
     raise exception 'TEST 4 FALLÓ: NO debía crearse una Person nueva';
   end if;
   select email into v_final_email from people where id = v_person_id;
-  if v_final_email <> 'email-igual-0042-4@test.local' then
+  -- NULL-safe (ver nota de TEST 3 más arriba).
+  if v_final_email is distinct from 'email-igual-0042-4@test.local' then
     raise exception 'TEST 4 FALLÓ: el email debía mantenerse igual, quedó "%"', v_final_email;
   end if;
   raise notice 'TEST 4 OK: email ya igual -> permitido, sin duplicar, sin sobrescribir innecesariamente.';
@@ -182,7 +187,8 @@ begin
   if not v_failed then raise exception 'TEST 5 FALLÓ: debía bloquear un email distinto, no lo hizo'; end if;
 
   select email into v_email_after from people where id = v_person_id;
-  if v_email_after <> 'email-original-0042-5@test.local' then
+  -- NULL-safe (ver nota de TEST 3 más arriba).
+  if v_email_after is distinct from 'email-original-0042-5@test.local' then
     raise exception 'TEST 5 FALLÓ: el email original NO debía cambiar, quedó "%"', v_email_after;
   end if;
   raise notice 'TEST 5 OK: email distinto -> bloqueado, email original intacto.';

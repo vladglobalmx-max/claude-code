@@ -4,7 +4,8 @@ import { ArrowLeft, FileText, History } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { canWriteRecord } from "@/lib/auth/ownership";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { canManageDeliveries } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -32,6 +33,19 @@ interface OrderRow {
  * partidas (inmutables, snapshot de order_items), cambio de estado,
  * evidencia (fotos/documento, reutiliza Storage existente) e historial de
  * estado (delivery_status_history, 0039).
+ *
+ * THÖREN 6R.1B-2B — `canWrite` aquí es en realidad `canManageDeliveries()`
+ * (ownership/admin OR can_manage_deliveries, 0044): gobierna status,
+ * formulario de detalles y subir/quitar evidencia por igual. Requisito
+ * operativo conocido (documentado también en 0044): un usuario con
+ * SOLO can_manage_deliveries (sin can_view_all_sales) puede ver este botón
+ * de evidencia, pero el INSERT/DELETE de delivery_files le será rechazado
+ * por RLS — la policy de delivery_files hace JOIN contra orders/deliveries,
+ * cuya propia SELECT RLS no reconoce can_manage_deliveries. Para Rodolfo,
+ * el plan de 6R.1B-2C ya contempla asignarle también can_view_all_sales,
+ * así que esta limitación no debe afectar su combinación prevista de
+ * permisos — no se corrige aquí porque es una decisión de asignación de
+ * capabilities (2C), no un bug de esta UI.
  */
 export default async function EntregaDetallePage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -54,8 +68,12 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
   const order = orderData as OrderRow | null;
   // VIEW != WRITE (THÖREN 6R.1B-1 UX fix) — ownership de la Entrega se
   // resuelve vía el salesperson_id del Pedido origen, no de la Entrega
-  // misma (deliveries no tiene su propio salesperson_id).
-  const canWrite = canWriteRecord(profile, order?.salesperson_id ?? null);
+  // misma (deliveries no tiene su propio salesperson_id). THÖREN 6R.1B-2B:
+  // canManageDeliveries() ya combina esa autoridad de ownership/admin CON
+  // la capability logística can_manage_deliveries (0044) — una sola
+  // llamada cubre ambas vías, igual que en /pedidos/[id]/nueva-entrega.
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  const canWrite = canManageDeliveries(profile, capabilities, order?.salesperson_id ?? null);
   const items = (itemsData ?? []) as DeliveryItem[];
   const history = (historyData ?? []) as DeliveryStatusHistoryEntry[];
   const files = (filesData ?? []) as DeliveryFile[];

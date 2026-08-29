@@ -9,6 +9,8 @@ import { formatDateShort } from "@/lib/utils/format";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { canFulfillInventory, canManageDeliveries, canReserveInventory } from "@/lib/auth/logistics";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
 import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
@@ -39,6 +41,13 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
   const profile = await getCurrentProfile();
   // VIEW != WRITE (THÖREN 6R.1B-1 UX fix) — ver src/lib/auth/ownership.ts.
   const canWrite = canWriteRecord(profile, detail.order.salesperson_id);
+  // Autoridad LOGÍSTICA cross-sales (THÖREN 6R.1B-2B) — segunda vía,
+  // independiente de canWrite, ver src/lib/auth/logistics.ts. Una sola
+  // query de capabilities por página, reutilizada en las 3 llamadas.
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  const canReserve = canReserveInventory(profile, capabilities, detail.order.salesperson_id);
+  const canFulfill = canFulfillInventory(profile, capabilities, detail.order.salesperson_id);
+  const canManageDel = canManageDeliveries(profile, capabilities, detail.order.salesperson_id);
 
   let sourceQuoteFolio: string | null = null;
   if (detail.order.source_quote_id) {
@@ -160,9 +169,9 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
 
       <PurchaseOrdersSection orderId={detail.order.id} />
 
-      <ReservationsSection orderId={detail.order.id} canWrite={canWrite} />
+      <ReservationsSection orderId={detail.order.id} canReserve={canReserve} canFulfill={canFulfill} />
 
-      <DeliveriesSection orderId={detail.order.id} orderFolio={detail.order.folio} canWrite={canWrite} />
+      <DeliveriesSection orderId={detail.order.id} orderFolio={detail.order.folio} canWrite={canWrite} canManageDeliveries={canManageDel} />
 
       <Card>
         <CardContent className="p-6">

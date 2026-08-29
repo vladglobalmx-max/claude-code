@@ -2,7 +2,8 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { canWriteRecord } from "@/lib/auth/ownership";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { canManageDeliveries } from "@/lib/auth/logistics";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,15 +28,19 @@ export interface DeliverableItem {
  * (0041) permite que getOrderDetail resuelva un Pedido ajeno, así que este
  * página además bloquea el render ANTES de mostrar el formulario (mismo
  * criterio que /pedidos/[id]/editar) — no basta con ocultar el botón
- * "Nueva entrega" en deliveries-section.tsx. El tope real por producto
- * (pendingToDeliver) viene de rpc_order_delivery_progress — NUNCA la
- * cantidad pedida — para que el formulario nunca ofrezca entregar más de
- * lo físicamente surtido.
+ * "Nueva entrega" en deliveries-section.tsx. THÖREN 6R.1B-2B: el guard
+ * ahora acepta también autoridad logística — canManageDeliveries() ya
+ * combina canWriteRecord (ownership/admin) OR can_manage_deliveries
+ * (capability, 0044), así que una sola llamada cubre ambas vías. El tope
+ * real por producto (pendingToDeliver) viene de rpc_order_delivery_progress
+ * — NUNCA la cantidad pedida — para que el formulario nunca ofrezca
+ * entregar más de lo físicamente surtido.
  */
 export default async function NuevaEntregaPage({ params }: { params: { id: string } }) {
   const detail = await getOrderDetail(params.id);
   const profile = await getCurrentProfile();
-  if (!canWriteRecord(profile, detail.order.salesperson_id)) {
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  if (!canManageDeliveries(profile, capabilities, detail.order.salesperson_id)) {
     redirect(`/pedidos/${detail.order.id}`);
   }
   const supabase = createSupabaseServerClient();

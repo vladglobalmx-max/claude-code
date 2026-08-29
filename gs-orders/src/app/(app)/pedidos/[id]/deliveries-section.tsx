@@ -21,15 +21,22 @@ interface DeliverySummaryRow extends Delivery {
  * nueva usando las partidas ya surtidas. NO cambia operational_status
  * directamente — eso lo hace, cuando corresponde, el trigger de 0039 al
  * completar una Entrega.
+ *
+ * THÖREN 6R.1B-2B — "Nueva entrega" se muestra por dos vías independientes:
+ * `canWrite` (ownership/admin, ver src/lib/auth/ownership.ts) O
+ * `canManageDeliveries` (capability logística, ver
+ * src/lib/auth/logistics.ts) — cualquiera de las dos basta.
  */
 export async function DeliveriesSection({
   orderId,
   orderFolio,
   canWrite,
+  canManageDeliveries,
 }: {
   orderId: string;
   orderFolio: string;
   canWrite: boolean;
+  canManageDeliveries: boolean;
 }) {
   const supabase = createSupabaseServerClient();
 
@@ -45,7 +52,7 @@ export async function DeliveriesSection({
     <Card className="no-print mb-6">
       <CardHeader className="flex items-center justify-between">
         <CardTitle>Entregas / Instalaciones</CardTitle>
-        {canWrite && (
+        {(canWrite || canManageDeliveries) && (
           <Link href={`/pedidos/${orderId}/nueva-entrega`}>
             <Button size="sm" variant="outline">
               <Plus className="h-3.5 w-3.5" />

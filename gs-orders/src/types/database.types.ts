@@ -1707,6 +1707,44 @@ export interface Database {
           },
         ];
       };
+      // THÖREN 6R.1B (0040_roles_capabilities.sql) — otorgamiento de una
+      // capability a un usuario dentro de una organización. Escritura
+      // exclusiva de admin (ver RLS); lectura server-only vía
+      // getCurrentCapabilities() (src/lib/auth/capabilities.ts, 6R.1B-2B).
+      user_capabilities: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          capability: string;
+          active: boolean;
+          granted_by_user_id: string;
+          granted_at: string;
+          revoked_by_user_id: string | null;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          capability: string;
+          active?: boolean;
+          granted_by_user_id: string;
+          granted_at?: string;
+          revoked_by_user_id?: string | null;
+          revoked_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_capabilities"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "user_capabilities_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

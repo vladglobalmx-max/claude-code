@@ -43,11 +43,12 @@ export interface ReservationRowData {
  * requisito #4), permite reservar/aumentar/reducir/liberar/surtir.
  * Visible para quien ya puede ver este Pedido (RLS de `orders`) — desde
  * THÖREN 6R.1B-1 (can_view_all_sales, 0041) eso ya NO implica ser ADMIN o
- * el vendedor dueño (premisa original de 0037, ahora inválida): `canWrite`
- * (calculado en pedidos/[id]/page.tsx vía canWriteRecord, ver
- * src/lib/auth/ownership.ts) se propaga hasta ReservationRow para ocultar
- * reservar/ajustar/liberar/surtir cuando el Pedido no es propio ni el
- * usuario es admin — la lectura de reservas/disponibilidad nunca se oculta.
+ * el vendedor dueño. THÖREN 6R.1B-2B: `canReserve`/`canFulfill`
+ * (calculados en pedidos/[id]/page.tsx vía src/lib/auth/logistics.ts —
+ * cada uno ya combina ownership/admin + su capability específica, sin
+ * tocar canWriteRecord) se propagan hasta ReservationRow por separado —
+ * reservar/ajustar/liberar y surtir son autoridades independientes, ver
+ * 0044. La lectura de reservas/disponibilidad nunca se oculta.
  *
  * DECISIÓN (AJUSTE FINAL 6N, reforzada en 6O) — reservas "huérfanas":
  * editar el Pedido borra y reinserta order_items (rpc_update_order, 0034)
@@ -61,7 +62,15 @@ export interface ReservationRowData {
  * funcionando con total normalidad, pero surtirla queda bloqueado
  * server-side (rpc_fulfill_inventory_reservation, requisito #8 de 6O).
  */
-export async function ReservationsSection({ orderId, canWrite }: { orderId: string; canWrite: boolean }) {
+export async function ReservationsSection({
+  orderId,
+  canReserve,
+  canFulfill,
+}: {
+  orderId: string;
+  canReserve: boolean;
+  canFulfill: boolean;
+}) {
   const supabase = createSupabaseServerClient();
 
   const [{ data: itemsData }, { data: warehousesData }, { data: reservationsData }, { data: onHandData }, { data: committedData }] =
@@ -144,7 +153,9 @@ export async function ReservationsSection({ orderId, canWrite }: { orderId: stri
             description="Este Pedido no tiene partidas vinculadas al Catálogo de Productos — solo esas se pueden reservar."
           />
         ) : (
-          rows.map((row) => <ReservationRow key={row.productId} orderId={orderId} row={row} canWrite={canWrite} />)
+          rows.map((row) => (
+            <ReservationRow key={row.productId} orderId={orderId} row={row} canReserve={canReserve} canFulfill={canFulfill} />
+          ))
         )}
       </CardContent>
     </Card>

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { canReceiveInventory } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
@@ -29,6 +31,14 @@ function one<T>(value: OneOrMany<T> | null | undefined): T | null {
 export default async function CompraDetailPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
+  // THÖREN 6R.1B-2B — recepción física de mercancía (can_receive_inventory,
+  // 0044) es una autoridad SEPARADA de isAdmin: admin-only por diseño (sin
+  // rama de ownership, ver src/lib/auth/logistics.ts), pero un no-admin con
+  // la capability también puede recibir. Estado/detalles de la Purchase
+  // Order (aprobación comercial) permanecen exclusivos de isAdmin — no se
+  // tocan aquí.
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  const canReceive = canReceiveInventory(profile, capabilities);
   const supabase = createSupabaseServerClient();
 
   const { data } = await supabase
@@ -166,7 +176,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                 <Th>Ordenado</Th>
                 <Th>Recibido</Th>
                 <Th>Pendiente</Th>
-                {isAdmin && <Th />}
+                {canReceive && <Th />}
               </Tr>
             </Thead>
             <Tbody>
@@ -183,7 +193,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                   </Td>
                   <Td className="tabular-nums text-ink-soft">{item.quantity_received}</Td>
                   <Td className="tabular-nums text-ink-soft">{item.quantity_ordered - item.quantity_received}</Td>
-                  {isAdmin && (
+                  {canReceive && (
                     <Td>
                       <ReceiveItemForm
                         purchaseOrderId={po.id}

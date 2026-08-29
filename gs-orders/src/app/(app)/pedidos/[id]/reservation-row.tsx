@@ -38,15 +38,22 @@ import type { ReservationRowData } from "./reservations-section";
  * acumulado) — internamente se traduce al valor absoluto que espera
  * rpc_fulfill_inventory_reservation (fulfilled_quantity + incremento),
  * igual que "Actualizar" ya usa el total absoluto para `quantity`.
+ *
+ * THÖREN 6R.1B-2B — `canReserve` (Reservar/Actualizar/Liberar) y
+ * `canFulfill` (Surtir) son autoridades INDEPENDIENTES entre sí (0044:
+ * can_reserve_inventory y can_fulfill_inventory son capabilities
+ * separadas) — nunca se exige la una para la otra.
  */
 export function ReservationRow({
   orderId,
   row,
-  canWrite,
+  canReserve,
+  canFulfill,
 }: {
   orderId: string;
   row: ReservationRowData;
-  canWrite: boolean;
+  canReserve: boolean;
+  canFulfill: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -171,7 +178,7 @@ export function ReservationRow({
         </Badge>
       )}
 
-      {row.reservation && canWrite ? (
+      {row.reservation && canReserve ? (
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor={`adjust-${row.productId}`}>Cantidad reservada</Label>
@@ -196,7 +203,7 @@ export function ReservationRow({
         </div>
       ) : null}
 
-      {row.reservation && canWrite && !row.isOrphaned && pendingToFulfill > 0 && (
+      {row.reservation && canFulfill && !row.isOrphaned && pendingToFulfill > 0 && (
         <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border pt-3">
           <div>
             <Label htmlFor={`fulfill-${row.productId}`}>Surtir ahora</Label>
@@ -220,7 +227,7 @@ export function ReservationRow({
         </div>
       )}
 
-      {row.reservation || !canWrite ? null : (
+      {row.reservation || !canReserve ? null : (
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor={`warehouse-${row.productId}`}>Almacén</Label>

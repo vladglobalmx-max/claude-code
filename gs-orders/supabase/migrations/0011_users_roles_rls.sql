@@ -834,7 +834,12 @@ begin
   select id into v_admin_user_id from auth.users where email = v_admin_email;
 
   if v_admin_user_id is null then
-    raise warning 'No se encontró ningún usuario en auth.users con el email %. NINGÚN administrador quedó configurado por este bootstrap — créalo (p.ej. en Supabase Studio) y luego promuévelo a mano con: insert into user_profiles (user_id, name, role, active) select id, ''Administrador'', ''admin'', true from auth.users where email = %L on conflict (user_id) do update set role = ''admin'', active = true;', v_admin_email, v_admin_email;
+    -- RAISE solo soporta sustitución simple con %, NO el %L de format()
+    -- (quoting de literales) — por eso el snippet de SQL sugerido se arma
+    -- con format() primero y se inyecta ya listo con un solo % en el RAISE.
+    raise warning 'No se encontró ningún usuario en auth.users con el email %. NINGÚN administrador quedó configurado por este bootstrap — créalo (p.ej. en Supabase Studio) y luego promuévelo a mano con: %',
+      v_admin_email,
+      format('insert into user_profiles (user_id, name, role, active) select id, ''Administrador'', ''admin'', true from auth.users where email = %L on conflict (user_id) do update set role = ''admin'', active = true;', v_admin_email);
   else
     insert into user_profiles (user_id, name, role, salesperson_id, active)
     values (v_admin_user_id, 'Administrador', 'admin', null, true)

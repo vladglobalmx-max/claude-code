@@ -15,9 +15,11 @@ function safeFileName(name: string) {
  *
  * Usa el cliente con la sesión del usuario (NEXT_PUBLIC_SUPABASE_URL +
  * NEXT_PUBLIC_SUPABASE_ANON_KEY), no el service role: las policies RLS de
- * storage.objects (ver 0003_storage.sql, "order_media_authenticated_all")
- * ya permiten INSERT/SELECT/UPDATE/DELETE a cualquier usuario autenticado
- * en este bucket, así que no hace falta bypasear RLS con el admin client.
+ * storage.objects (ver 0047_storage_write_ownership.sql) ya autorizan a
+ * quien corresponda — INSERT sigue abierto a cualquier autenticado activo
+ * para rutas de pedido, pero UPDATE/DELETE están acotados a admin, al
+ * vendedor dueño del pedido, o a quien tenga can_manage_deliveries — así
+ * que no hace falta bypasear RLS con el admin client.
  *
  * Devuelve el error como dato (en vez de lanzarlo) porque Next.js redacta
  * el mensaje real de las excepciones de Server Actions en producción — así

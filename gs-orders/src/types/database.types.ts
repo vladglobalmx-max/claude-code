@@ -1783,6 +1783,19 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
       };
+      // THÖREN 6R.1B-3A (0045) — NUEVA. Reemplaza atómicamente el conjunto
+      // completo de partidas de una Purchase Order EN BORRADOR (admin
+      // incluido — nunca fuera de borrador, para nadie). p_items es un
+      // array de {order_item_id, quantity_ordered}, mismo shape que
+      // rpc_create_purchase_order — el resto de cada partida se
+      // snapshotea server-side desde order_items.
+      rpc_replace_purchase_order_items: {
+        Args: {
+          p_purchase_order_id: string;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"][];
+      };
       // THÖREN Fase 6L (0035), firma actualizada en Fase 6M (0036) —
       // registra la cantidad recibida ACUMULADA (valor absoluto, no delta)
       // de una partida y recalcula el estado de la PO (recibida_parcial/

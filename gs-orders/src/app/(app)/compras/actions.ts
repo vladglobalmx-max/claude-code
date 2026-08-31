@@ -7,17 +7,19 @@ import { mapDbError } from "@/lib/db-errors";
 import {
   purchaseOrderPayloadSchema,
   purchaseOrderDetailsPayloadSchema,
+  purchaseOrderItemsReplacePayloadSchema,
   type PurchaseOrderPayload,
   type PurchaseOrderDetailsPayload,
+  type PurchaseOrderItemsReplacePayload,
 } from "@/lib/validations/purchase-order";
 import type { PurchaseOrderStatus } from "@/types/domain";
 
 export type PurchaseOrderActionResult = { error: string } | void;
 
 /**
- * THÖREN Fase 6L — solo ADMIN gestiona Compras (ver DECISIÓN de permisos,
- * 0035_purchases_suppliers.sql); RLS ya lo bloquea, pero la RPC además da
- * un mensaje explícito ("Solo un administrador...") en vez de un error de
+ * THÖREN 6R.1B-3A (0045) — admin OR can_prepare_purchase_orders puede
+ * crear una Purchase Order (siempre nace en 'borrador'). RLS ya lo
+ * bloquea; la RPC además da un mensaje explícito en vez de un error de
  * RLS genérico.
  */
 export async function createPurchaseOrder(
@@ -93,6 +95,34 @@ export async function updatePurchaseOrderDetails(
 
   if (error) {
     return { error: mapDbError(error, "No se pudieron guardar los cambios de la Purchase Order.") };
+  }
+
+  revalidatePath(`/compras/${purchaseOrderId}`);
+}
+
+/**
+ * THÖREN 6R.1B-3B — reemplaza el conjunto completo de partidas de una
+ * Purchase Order EN BORRADOR (rpc_replace_purchase_order_items, 0045).
+ * Autoridad real (admin OR can_prepare_purchase_orders, SIEMPRE borrador)
+ * la decide el RPC/RLS — esta Server Action no gatea nada por su cuenta.
+ */
+export async function replacePurchaseOrderItems(
+  purchaseOrderId: string,
+  payload: PurchaseOrderItemsReplacePayload
+): Promise<PurchaseOrderActionResult> {
+  const parsed = purchaseOrderItemsReplacePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_replace_purchase_order_items", {
+    p_purchase_order_id: purchaseOrderId,
+    p_items: parsed.data.items,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar las partidas de la Purchase Order.") };
   }
 
   revalidatePath(`/compras/${purchaseOrderId}`);

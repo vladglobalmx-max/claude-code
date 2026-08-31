@@ -11,6 +11,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canFulfillInventory, canManageDeliveries, canReserveInventory } from "@/lib/auth/logistics";
+import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
 import { classifyDueDateStatus } from "@/lib/dashboard/due-dates";
@@ -48,6 +49,11 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
   const canReserve = canReserveInventory(profile, capabilities, detail.order.salesperson_id);
   const canFulfill = canFulfillInventory(profile, capabilities, detail.order.salesperson_id);
   const canManageDel = canManageDeliveries(profile, capabilities, detail.order.salesperson_id);
+  // Compras (THÖREN 6R.1B-3B) — sin relación de ownership con el Pedido
+  // (0045: preparar una OC nunca dependió de quién creó la OC ni del
+  // dueño del Pedido), solo requiere poder VER este Pedido primero (ya
+  // resuelto por canWrite/can_view_all_sales más arriba).
+  const canPreparePO = canPreparePurchaseOrders(profile, capabilities);
 
   let sourceQuoteFolio: string | null = null;
   if (detail.order.source_quote_id) {
@@ -167,7 +173,7 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
         </CardContent>
       </Card>
 
-      <PurchaseOrdersSection orderId={detail.order.id} />
+      <PurchaseOrdersSection orderId={detail.order.id} canPrepare={canPreparePO} />
 
       <ReservationsSection orderId={detail.order.id} canReserve={canReserve} canFulfill={canFulfill} />
 

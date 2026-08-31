@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getBusinessToday } from "@/lib/business-date";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,13 +12,17 @@ import type { Supplier } from "@/types/domain";
 import { NewPurchaseOrderForm } from "./new-purchase-order-form";
 
 /**
- * THÖREN Fase 6L — solo ADMIN puede crear una Purchase Order (ver
- * DECISIÓN de permisos, 0035_purchases_suppliers.sql). Redirige antes de
- * renderizar el formulario, igual que /clientes/[id]/editar.
+ * THÖREN 6R.1B-3B — admin OR can_prepare_purchase_orders puede crear una
+ * Purchase Order (ver src/lib/auth/purchase-orders.ts, 0045). Redirige
+ * antes de renderizar el formulario, igual que /clientes/[id]/editar.
+ * Deliberadamente NO usa canWriteRecord del Pedido — preparar una OC
+ * desde un Pedido ajeno es válido para Karla/Rodolfo, y la capability de
+ * preparación nunca abre edición comercial del Pedido en sí.
  */
 export default async function NuevaCompraPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
-  if (!profile || !profile.active || profile.role !== "admin") {
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  if (!canPreparePurchaseOrders(profile, capabilities)) {
     redirect(`/pedidos/${params.id}`);
   }
 

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Package, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth/profile";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,16 +26,16 @@ interface PurchaseOrderSummaryRow {
 }
 
 /**
- * THÖREN Fase 6L §5 — sección "Compras / Proveedores" en el detalle del
- * Pedido. Muestra las Purchase Orders relacionadas (RLS ya limita
- * visibilidad — mismo criterio que el resto de la página) y, solo para
- * ADMIN (única gestión de Compras, ver DECISIÓN de 0035), la acción para
- * crear una nueva usando sus partidas. NO cambia operational_status del
- * Pedido — fuera de alcance explícito de esta fase.
+ * THÖREN Fase 6L §5, autoridad actualizada en 6R.1B-3B — sección "Compras /
+ * Proveedores" en el detalle del Pedido. Muestra las Purchase Orders
+ * relacionadas (RLS ya limita visibilidad — mismo criterio que el resto de
+ * la página) y, si `canPrepare` (admin OR can_prepare_purchase_orders,
+ * ver src/lib/auth/purchase-orders.ts), la acción para crear una nueva
+ * usando sus partidas — preparar una OC desde un Pedido ajeno es válido
+ * para Karla/Rodolfo (0045: sin ownership de OC ni del Pedido). NO cambia
+ * operational_status del Pedido — fuera de alcance explícito de esta fase.
  */
-export async function PurchaseOrdersSection({ orderId }: { orderId: string }) {
-  const profile = await getCurrentProfile();
-  const isAdmin = profile?.role === "admin";
+export async function PurchaseOrdersSection({ orderId, canPrepare }: { orderId: string; canPrepare: boolean }) {
   const supabase = createSupabaseServerClient();
 
   const { data } = await supabase
@@ -51,7 +50,7 @@ export async function PurchaseOrdersSection({ orderId }: { orderId: string }) {
     <Card className="no-print mb-6">
       <CardHeader className="flex items-center justify-between">
         <CardTitle>Compras / Proveedores</CardTitle>
-        {isAdmin && (
+        {canPrepare && (
           <Link href={`/pedidos/${orderId}/nueva-compra`}>
             <Button size="sm" variant="outline">
               <Plus className="h-3.5 w-3.5" />

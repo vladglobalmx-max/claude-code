@@ -32,3 +32,14 @@ export const purchaseOrderDetailsPayloadSchema = z.object({
 });
 
 export type PurchaseOrderDetailsPayload = z.infer<typeof purchaseOrderDetailsPayloadSchema>;
+
+/**
+ * THÖREN 6R.1B-3B — payload de rpc_replace_purchase_order_items (0045):
+ * reemplaza el conjunto COMPLETO de partidas, mismo shape que las
+ * partidas de creación (purchaseOrderItemPayloadSchema) — nunca un delta.
+ */
+export const purchaseOrderItemsReplacePayloadSchema = z.object({
+  items: z.array(purchaseOrderItemPayloadSchema).min(1, "Debe incluir al menos una partida"),
+});
+
+export type PurchaseOrderItemsReplacePayload = z.infer<typeof purchaseOrderItemsReplacePayloadSchema>;

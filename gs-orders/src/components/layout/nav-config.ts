@@ -19,6 +19,14 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   adminOnly: boolean;
+  /**
+   * THÖREN 6R.1B-4B — excepción ESTRECHA a `adminOnly`: además de un admin
+   * pleno, un titular de can_manage_users también puede ver esta entrada.
+   * Deliberadamente por-ítem (no un booleano global) para que Personas/
+   * Vendedores sigan siendo admin-only exclusivo pese a compartir
+   * `adminOnly: true` con Configuración.
+   */
+  visibleForUserManager?: boolean;
 }
 
 export interface NavGroup {
@@ -127,6 +135,18 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: null,
-    items: [{ href: "/configuracion", label: "Configuración", icon: Settings, adminOnly: true }],
+    items: [
+      {
+        href: "/configuracion",
+        label: "Configuración",
+        icon: Settings,
+        adminOnly: true,
+        // THÖREN 6R.1B-4B: un titular de can_manage_users también debe
+        // llegar aquí (Configuración → Usuarios) — /configuracion/page.tsx
+        // y middleware.ts ya filtran el resto del contenido/subrutas para
+        // que solo vea la tarjeta y las rutas de Usuarios.
+        visibleForUserManager: true,
+      },
+    ],
   },
 ];

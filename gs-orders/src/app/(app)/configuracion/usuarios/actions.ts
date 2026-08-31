@@ -10,6 +10,7 @@ import { createUserAccessSchema, updateUserAccessSchema } from "@/lib/validation
 import { mapDbError } from "@/lib/db-errors";
 import { mapAuthError } from "@/lib/auth-errors";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { isFullAdmin, canManageUsers } from "@/lib/auth/user-management";
 import {
   preflightSalespersonTaken,
   insertProfileAndMembershipOrCompensate,
@@ -42,17 +43,14 @@ async function requireAdminOrUserManager(): Promise<
   { error: string } | { profile: CurrentProfile; isFullAdmin: boolean }
 > {
   const profile = await getCurrentProfile();
-  if (!profile || !profile.active) {
+  if (isFullAdmin(profile)) {
+    return { profile: profile as CurrentProfile, isFullAdmin: true };
+  }
+  const capabilities = await getCurrentCapabilities(profile?.userId);
+  if (!canManageUsers(profile, capabilities)) {
     return { error: "No tienes permiso para realizar esta acción." };
   }
-  if (profile.role === "admin") {
-    return { profile, isFullAdmin: true };
-  }
-  const capabilities = await getCurrentCapabilities(profile.userId);
-  if (!capabilities.has("can_manage_users")) {
-    return { error: "No tienes permiso para realizar esta acción." };
-  }
-  return { profile, isFullAdmin: false };
+  return { profile: profile as CurrentProfile, isFullAdmin: false };
 }
 
 /**

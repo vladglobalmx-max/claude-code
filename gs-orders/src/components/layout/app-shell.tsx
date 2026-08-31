@@ -16,11 +16,13 @@ const COLLAPSED_STORAGE_KEY = "thoren.sidebar.collapsed";
  */
 export function AppShell({
   role,
+  canManageUsers,
   name,
   email,
   children,
 }: {
   role: UserRole;
+  canManageUsers: boolean;
   name: string;
   email: string | null;
   children: ReactNode;
@@ -45,6 +47,7 @@ export function AppShell({
     <div className="flex h-screen w-full overflow-hidden bg-bg">
       <Sidebar
         role={role}
+        canManageUsers={canManageUsers}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         mobileOpen={mobileOpen}

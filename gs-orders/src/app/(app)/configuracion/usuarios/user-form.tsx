@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils/cn";
-import type { UserAccessRow, UserRole } from "@/types/domain";
+import { USER_ROLE_LABELS, type UserAccessRow, type UserRole } from "@/types/domain";
 import type { UserAccessFormState } from "./actions";
 import { resetUserPassword, createUserAccessLink, generatePasswordResetLink } from "./actions";
 
@@ -81,14 +81,24 @@ export function UserAccessForm({
   user,
   availableSalespeople,
   submitLabel,
+  canChooseRole = true,
 }: {
   action: (state: UserAccessFormState, formData: FormData) => Promise<UserAccessFormState>;
   user?: UserAccessRow;
   availableSalespeople: SalespersonOption[];
   submitLabel: string;
+  /**
+   * THÖREN 6R.1B-4B — false para un titular de can_manage_users (no admin):
+   * el role queda fijo en "vendedor", sin selector visible, y se manda un
+   * input oculto para que el payload siga incluyendo `role` como siempre
+   * espera el schema/servidor. El guard TS real (que un no-admin nunca
+   * puede mandar otro role) vive en actions.ts — esto es solo UX, nunca la
+   * única barrera.
+   */
+  canChooseRole?: boolean;
 }) {
   const [state, formAction] = useFormState(action, undefined);
-  const [role, setRole] = useState<UserRole>(user?.role ?? "vendedor");
+  const [role, setRole] = useState<UserRole>(canChooseRole ? user?.role ?? "vendedor" : "vendedor");
   const [isResetPending, startReset] = useTransition();
   const [isLinkPending, startLink] = useTransition();
   const [linkResult, setLinkResult] = useState<{ actionLink: string; email: string } | null>(null);
@@ -181,13 +191,23 @@ export function UserAccessForm({
         </div>
       )}
 
-      <div>
-        <Label htmlFor="role">Rol</Label>
-        <Select id="role" name="role" value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-          <option value="vendedor">VENDEDOR</option>
-          <option value="admin">ADMIN</option>
-        </Select>
-      </div>
+      {canChooseRole ? (
+        <div>
+          <Label htmlFor="role">Rol</Label>
+          <Select id="role" name="role" value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
+            <option value="vendedor">VENDEDOR</option>
+            <option value="admin">ADMIN</option>
+          </Select>
+        </div>
+      ) : (
+        <div>
+          <Label>Rol</Label>
+          <p className="flex h-9 items-center rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink-soft">
+            {USER_ROLE_LABELS.vendedor}
+          </p>
+          <input type="hidden" name="role" value="vendedor" />
+        </div>
+      )}
 
       {role === "vendedor" && (
         <div>

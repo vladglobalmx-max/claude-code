@@ -10,6 +10,18 @@ const PUBLIC_PATHS = ["/login", "/set-password"];
 const ADMIN_ONLY_PREFIXES = ["/configuracion", "/vendedores", "/personas"];
 
 /**
+ * THÖREN 6R.1B-4B — dentro de /configuracion, un titular de can_manage_users
+ * (sin ser admin) puede entrar SOLO al hub (/configuracion, cuyo propio
+ * page.tsx ya filtra el contenido a la sola tarjeta de Usuarios) y a
+ * /configuracion/usuarios/* — nunca a /configuracion/catalogo,
+ * /configuracion/tipos-producto ni /configuracion/folios-cotizaciones, que
+ * siguen siendo admin-only exclusivo, igual que /vendedores y /personas.
+ */
+function isUserManagerAllowedConfigPath(pathname: string): boolean {
+  return pathname === "/configuracion" || pathname.startsWith("/configuracion/usuarios");
+}
+
+/**
  * Protege toda la app: sin sesión válida, redirige a /login. Con sesión
  * válida pero sin perfil (user_profiles) o con el perfil desactivado,
  * cierra la sesión y redirige a /login — un token válido no basta para
@@ -65,7 +77,20 @@ export async function middleware(request: NextRequest) {
 
     const isAdminOnlyPath = ADMIN_ONLY_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
     if (isAdminOnlyPath && profile.role !== "admin") {
-      return NextResponse.redirect(new URL("/pedidos", request.url));
+      let allowed = false;
+      if (isUserManagerAllowedConfigPath(request.nextUrl.pathname)) {
+        const { data: capability } = await supabase
+          .from("user_capabilities")
+          .select("capability")
+          .eq("user_id", user.id)
+          .eq("capability", "can_manage_users")
+          .eq("active", true)
+          .maybeSingle();
+        allowed = !!capability;
+      }
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/pedidos", request.url));
+      }
     }
   }
 

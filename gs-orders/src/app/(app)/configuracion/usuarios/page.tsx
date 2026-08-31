@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Plus, Users as UsersIcon } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { isFullAdmin } from "@/lib/auth/user-management";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ActiveBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { USER_ROLE_LABELS, type UserAccessRow } from "@/types/domain";
+import { ADMIN_PROTECTED_ERROR } from "./constants";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +29,23 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : (value as T);
 }
 
-export default async function UsuariosPage() {
+export default async function UsuariosPage({ searchParams }: { searchParams?: { error?: string } }) {
   const supabase = createSupabaseServerClient();
+
+  // THÖREN 6R.1B-4B — un titular de can_manage_users llega aquí con el
+  // mismo listado, org-scoped por RLS/RPC desde 0046 (sin cambios de
+  // backend); lo único que distingue esta pantalla por actor es qué
+  // ACCIÓN se ofrece por fila (ver `admin` más abajo).
+  const [profile, { data: usersData }, { data: linksData }] = await Promise.all([
+    getCurrentProfile(),
+    supabase.rpc("admin_list_user_profiles"),
+    supabase.from("user_profiles").select("user_id, people(id, name)"),
+  ]);
+  const admin = isFullAdmin(profile);
 
   // admin_list_user_profiles() (0011) no expone person_id — se complementa
   // aquí con una lectura aparte de user_profiles.person_id + people, ambas
   // ya permitidas para admin por RLS existente. Ningún cambio de backend.
-  const [{ data: usersData }, { data: linksData }] = await Promise.all([
-    supabase.rpc("admin_list_user_profiles"),
-    supabase.from("user_profiles").select("user_id, people(id, name)"),
-  ]);
-
   const users = (usersData ?? []) as UserAccessRow[];
   const personByUserId = new Map<string, PersonLink>();
   for (const row of (linksData ?? []) as { user_id: string; people: PersonLink | OneOrMany<PersonLink> | null }[]) {
@@ -59,6 +68,12 @@ export default async function UsuariosPage() {
         }
       />
 
+      {searchParams?.error === ADMIN_PROTECTED_ERROR && (
+        <p className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+          No tienes autorización para modificar cuentas administradoras.
+        </p>
+      )}
+
       {users.length === 0 ? (
         <Card>
           <EmptyState
@@ -80,13 +95,25 @@ export default async function UsuariosPage() {
           <div className="space-y-3 sm:hidden">
             {users.map((u) => {
               const person = personByUserId.get(u.user_id);
+              // THÖREN 6R.1B-4B — un titular de can_manage_users (no admin)
+              // ve las cuentas admin en modo SOLO LECTURA: sin enlace a
+              // Editar. El backend (0046) ya lo rechazaría de todas formas,
+              // pero la UI no debe ni siquiera ofrecer el camino.
+              const readOnly = !admin && u.role === "admin";
+              const nameBlock = (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">{u.name}</p>
+                  <p className="truncate text-xs text-ink-faint">{u.email}</p>
+                </div>
+              );
               return (
                 <Card key={u.user_id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <Link href={`/configuracion/usuarios/${u.user_id}/editar`} className="min-w-0">
-                      <p className="truncate text-sm font-medium text-ink">{u.name}</p>
-                      <p className="truncate text-xs text-ink-faint">{u.email}</p>
-                    </Link>
+                    {readOnly ? nameBlock : (
+                      <Link href={`/configuracion/usuarios/${u.user_id}/editar`} className="min-w-0">
+                        {nameBlock}
+                      </Link>
+                    )}
                     <ActiveBadge active={u.active} />
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
@@ -150,9 +177,13 @@ export default async function UsuariosPage() {
                         <ActiveBadge active={u.active} />
                       </Td>
                       <Td className="text-right">
-                        <Link href={`/configuracion/usuarios/${u.user_id}/editar`} className="text-sm text-accent hover:underline">
-                          Editar
-                        </Link>
+                        {!admin && u.role === "admin" ? (
+                          <span className="text-sm text-ink-faint">Solo lectura</span>
+                        ) : (
+                          <Link href={`/configuracion/usuarios/${u.user_id}/editar`} className="text-sm text-accent hover:underline">
+                            Editar
+                          </Link>
+                        )}
                       </Td>
                     </Tr>
                   );

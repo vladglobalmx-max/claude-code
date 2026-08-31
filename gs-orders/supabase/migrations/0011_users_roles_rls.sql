@@ -828,18 +828,18 @@ $$;
 -- =========================================================================
 do $$
 declare
-  v_admin_email text := 'REEMPLAZA_CON_TU_EMAIL_DE_SUPABASE_AUTH@dominio.com'; -- <-- EDITA ESTA LÍNEA
+  v_admin_email text := 'aespino@globalsupplier.com.mx'; -- <-- EDITA ESTA LÍNEA
   v_admin_user_id uuid;
 begin
   select id into v_admin_user_id from auth.users where email = v_admin_email;
 
   if v_admin_user_id is null then
-    raise exception 'No se encontró ningún usuario en auth.users con el email %. Edita v_admin_email en esta migración con el correo EXACTO con el que entras hoy a GS Orders antes de volver a ejecutar. Si este bloque falla, NINGÚN administrador queda configurado.', v_admin_email;
+    raise warning 'No se encontró ningún usuario en auth.users con el email %. NINGÚN administrador quedó configurado por este bootstrap — créalo (p.ej. en Supabase Studio) y luego promuévelo a mano con: insert into user_profiles (user_id, name, role, active) select id, ''Administrador'', ''admin'', true from auth.users where email = %L on conflict (user_id) do update set role = ''admin'', active = true;', v_admin_email, v_admin_email;
+  else
+    insert into user_profiles (user_id, name, role, salesperson_id, active)
+    values (v_admin_user_id, 'Administrador', 'admin', null, true)
+    on conflict (user_id) do update set role = 'admin', active = true;
   end if;
-
-  insert into user_profiles (user_id, name, role, salesperson_id, active)
-  values (v_admin_user_id, 'Administrador', 'admin', null, true)
-  on conflict (user_id) do update set role = 'admin', active = true;
 end $$;
 
 commit;

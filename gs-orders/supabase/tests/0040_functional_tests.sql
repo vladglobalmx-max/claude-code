@@ -152,23 +152,29 @@ end $$;
 
 -- =========================================================================
 -- TEST 5 — can_manage_users NO puede convertir a un usuario (ni a sí
--- mismo) en admin — la RLS de user_profiles no fue tocada por esta
--- migración, sigue siendo admin-only exclusivo. `current_user_is_admin()`
--- es una condición de sesión (no de fila) en el USING de
--- user_profiles_admin_write: un UPDATE que no la cumple simplemente no
--- afecta ninguna fila (RLS filtra el WHERE antes de tocar nada), no lanza
--- excepción — por eso aquí se verifica FOUND en vez de esperar un error.
+-- mismo) en admin. Antes de 0046 (THÖREN 6R.1B-4A), la RLS de
+-- user_profiles era admin-only exclusivo y un UPDATE que no cumplía
+-- current_user_is_admin() simplemente no afectaba ninguna fila (0 rows,
+-- sin excepción). Desde 0046, trg_prevent_non_admin_role_escalation
+-- bloquea la misma escalación con una excepción explícita ANTES de que
+-- importe si alguna policy de UPDATE hubiera dejado pasar la fila —
+-- protección estrictamente más fuerte, no una regresión: se acepta
+-- cualquiera de las dos formas de bloqueo.
 -- =========================================================================
 select test_set_user(:'vendedor1');
 do $$
-declare v_vendedor1 uuid;
+declare v_vendedor1 uuid; v_blocked boolean := false;
 begin
   select vendedor1_id into v_vendedor1 from _ids;
-  update user_profiles set role = 'admin' where user_id = v_vendedor1;
-  if found then
+  begin
+    update user_profiles set role = 'admin' where user_id = v_vendedor1;
+    if not found then v_blocked := true; end if;
+  exception when others then v_blocked := true;
+  end;
+  if not v_blocked then
     raise exception 'TEST 5 FAILED: vendedor1 (con can_manage_users) pudo convertirse en admin';
   end if;
-  raise notice 'TEST 5 OK: update afectó 0 filas — RLS de user_profiles sigue admin-only';
+  raise notice 'TEST 5 OK: la escalación fue bloqueada (RLS de 0 filas o excepción del trigger de 0046).';
 end $$;
 
 select test_set_user(:'admin');

@@ -275,9 +275,17 @@ end $$;
 -- inmediato para el resto de la suite; todo esto vive dentro de la misma
 -- transacción que se revierte al final, así que el DROP/CREATE POLICY
 -- nunca persiste.
--- =========================================================================
+-- THÖREN 6R.1B-4A (0046) agregó una SEGUNDA policy de UPDATE en people
+-- (people_update_user_manager) — y current_user_has_capability() devuelve
+-- true para cualquier admin sin importar sus capabilities asignadas
+-- (current_user_is_admin() es su primer check), así que esa policy
+-- también cubriría al actor admin de este test si se deja en pie. Debe
+-- quitarse también para que el escenario siga siendo real "sin ninguna
+-- política de UPDATE aplicable" y la prueba siga validando el guard
+-- fail-loud de la RPC en sí, no una policy de RLS.
 reset role;
 drop policy "people_update_admin" on people;
+drop policy if exists "people_update_user_manager" on people;
 set role authenticated;
 
 select test_set_user(:'admin');
@@ -328,6 +336,9 @@ begin
   raise notice 'TEST 8 OK: sin política de UPDATE en people, la RPC lanza excepción explícita (guarda fail-loud) y NO deja person_id vinculado a medias.';
 end $$;
 
+-- No se restaura people_update_user_manager (0046): ningún test posterior
+-- en este archivo la necesita, y toda la suite corre dentro de un solo
+-- begin/rollback — nada de esto persiste más allá de este archivo.
 reset role;
 create policy "people_update_admin" on people
   for update

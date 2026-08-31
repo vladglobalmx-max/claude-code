@@ -828,7 +828,7 @@ $$;
 -- =========================================================================
 do $$
 declare
-  v_admin_email text := 'aespino@globalsupplier.com.mx'; -- <-- EDITA ESTA LÍNEA
+  v_admin_email text := 'REEMPLAZA-CON-TU-CORREO@globalsupplier.com.mx'; -- <-- EDITA ESTA LÍNEA
   v_admin_user_id uuid;
 begin
   select id into v_admin_user_id from auth.users where email = v_admin_email;

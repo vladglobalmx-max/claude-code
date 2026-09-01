@@ -1,0 +1,74 @@
+name: gs-orders CI
+
+# claude-code/ es un monorepo (gaios/, gs-orders/, platform/) — este
+# workflow SOLO corre cuando algo dentro de gs-orders/ cambia, para no
+# tronar (o gastar minutos de CI) por cambios en los otros proyectos.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "gs-orders/**"
+  push:
+    branches: [main]
+    paths:
+      - "gs-orders/**"
+
+defaults:
+  run:
+    working-directory: gs-orders
+
+jobs:
+  checks:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: gs-orders/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  migrations:
+    name: Validate Supabase migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versión fija, no "latest" — el CLI de Supabase tiene bugs que
+      # cambian entre versiones (ver gs-orders/README.md, sección
+      # "Problemas comunes en local"); pinear evita que el pipeline se
+      # rompa solo un día sin que nadie haya tocado el repo.
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.116.0
+
+      # supabase_storage/_studio a veces tardan más que el healthcheck del
+      # CLI y lo tumban con LegacyHealthCheckTimeoutError aunque el
+      # contenedor sí levantó bien (nos pasó en vivo durante desarrollo) —
+      # un reintento simple lo resuelve sin esconder una falla real.
+      - name: supabase start (con reintento)
+        run: |
+          for attempt in 1 2; do
+            if supabase start; then
+              exit 0
+            fi
+            echo "Intento $attempt de 'supabase start' falló, reintentando..."
+            supabase stop || true
+          done
+          echo "'supabase start' falló tras 2 intentos"
+          exit 1
+
+      # Reaplica las migraciones desde cero contra Postgres real — esto es
+      # lo único que hubiera cachado antes los bugs de 0011 (excepción
+      # dura si el admin bootstrap no existe) y de storage.objects (bug de
+      # search_path en la subquery) que se encontraron a mano en esta
+      # sesión.
+      - run: supabase db reset

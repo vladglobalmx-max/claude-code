@@ -43,6 +43,9 @@ const editarPageSource = readApp("configuracion/usuarios/[id]/editar/page.tsx");
 const nuevoPageSource = readApp("configuracion/usuarios/nuevo/page.tsx");
 const usuariosPageSource = readApp("configuracion/usuarios/page.tsx");
 const actionsSource = readApp("configuracion/usuarios/actions.ts");
+const navConfigSource = readFileSync(path.join(__dirname, "../../components/layout/nav-config.ts"), "utf8");
+const sidebarSource = readFileSync(path.join(__dirname, "../../components/layout/sidebar.tsx"), "utf8");
+const ownershipSource = readFileSync(path.join(__dirname, "./ownership.ts"), "utf8");
 
 /** Reproduce middleware.ts: isUserManagerAllowedConfigPath (solo hub y /configuracion/usuarios/*). */
 function isUserManagerAllowedConfigPath(pathname: string): boolean {
@@ -231,5 +234,66 @@ describe("[20] vendedor normal sin capability sigue sin entrar a Usuarios", () =
     const vendedor = profile();
     expect(canManageUsers(vendedor, NONE)).toBe(false);
     expect(configuracionLayoutSource).toContain('redirect("/pedidos")');
+  });
+});
+
+describe("[21] payload manipulado role=admin sigue rechazado por el guard del server action, no solo por la UI", () => {
+  it("createUserAccess/createUserAccessLink rechazan explícitamente role!=='vendedor' para un actor no-admin, ANTES de tocar Auth/DB", () => {
+    // El input oculto de user-form.tsx (canChooseRole=false) es solo UX —
+    // este es el guard real: si alguien manda un FormData con role=admin a
+    // mano (DevTools, curl directo a la Server Action), actions.ts lo
+    // rechaza igual, independientemente de lo que la UI haya renderizado.
+    const occurrences = actionsSource.match(/if \(!guard\.isFullAdmin && parsed\.data\.role !== "vendedor"\)/g) ?? [];
+    expect(occurrences.length).toBeGreaterThanOrEqual(2); // createUserAccess y createUserAccessLink
+    expect(actionsSource).toContain('return { error: "Solo un administrador puede crear una cuenta con ese rol." };');
+    // El guard debe evaluarse ANTES de crear la invitación en Auth (createSupabaseAdminClient/inviteUserByEmail).
+    const guardIndex = actionsSource.indexOf('if (!guard.isFullAdmin && parsed.data.role !== "vendedor")');
+    const inviteIndex = actionsSource.indexOf("inviteUserByEmail");
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(inviteIndex).toBeGreaterThan(guardIndex);
+  });
+
+  it("updateUserAccess también rechaza role manipulado para un target existente cuando el actor no es admin pleno", () => {
+    expect(actionsSource).toContain('if (parsed.data.role !== "vendedor") {');
+    expect(actionsSource).toContain('return { error: "Solo un administrador puede asignar ese rol." };');
+  });
+});
+
+describe("[22] sidebar/nav-config — Usuarios visible para can_manage_users, sin abrir nada más", () => {
+  it("nav-config.ts marca SOLO la entrada de Configuración con visibleForUserManager — Personas/Vendedores (también adminOnly) no lo tienen", () => {
+    const hrefIndex = navConfigSource.indexOf('href: "/configuracion",');
+    const flagIndex = navConfigSource.indexOf("visibleForUserManager: true");
+    expect(hrefIndex).toBeGreaterThan(-1);
+    expect(flagIndex).toBeGreaterThan(hrefIndex);
+    // Ningún OTRO href: aparece entre ambos — la bandera pertenece al
+    // mismo objeto NavItem que /configuracion, no a otra entrada.
+    const between = navConfigSource.slice(hrefIndex + 'href: "/configuracion",'.length, flagIndex);
+    expect(between).not.toContain("href:");
+    // Confirmar por conteo: es la ÚNICA entrada del árbol con la bandera —
+    // si algún día se agrega otra por error, este test lo detecta.
+    const flagCount = (navConfigSource.match(/visibleForUserManager:\s*true/g) ?? []).length;
+    expect(flagCount).toBe(1);
+  });
+
+  it("sidebar.tsx solo muestra un ítem adminOnly a un no-admin cuando visibleForUserManager Y canManageUsers son ambos verdaderos", () => {
+    expect(sidebarSource).toContain(
+      "!item.adminOnly || role === \"admin\" || (item.visibleForUserManager && canManageUsers)"
+    );
+    // Reproducción directa: Personas/Vendedores (adminOnly=true, sin la bandera) siguen ocultos para un user manager.
+    const role = "vendedor";
+    const canManage = true;
+    const personas = { adminOnly: true, visibleForUserManager: undefined as boolean | undefined };
+    const configuracion = { adminOnly: true, visibleForUserManager: true };
+    const visible = (item: typeof personas) =>
+      !item.adminOnly || (role as string) === "admin" || (item.visibleForUserManager === true && canManage);
+    expect(visible(personas)).toBe(false);
+    expect(visible(configuracion)).toBe(true);
+  });
+});
+
+describe("[23] can_manage_users no altera autoridad comercial (canWriteRecord/ownership)", () => {
+  it("ownership.ts no conoce can_manage_users — canWriteRecord sigue dependiendo únicamente de role/ownership, nunca de esta capability", () => {
+    expect(ownershipSource).not.toContain("can_manage_users");
+    expect(ownershipSource).not.toContain("canManageUsers");
   });
 });

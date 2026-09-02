@@ -1,5 +1,6 @@
 -- =========================================================================
--- GS Orders — Migración 0047: cierra el gap de ownership en INSERT/UPDATE/
+-- GS Orders — Migración 0050 (renumerada de 0047 por choque con otra rama —
+-- ver commit de renumeración): cierra el gap de ownership en INSERT/UPDATE/
 -- DELETE de storage.objects para order-media / order-files.
 -- =========================================================================
 -- HALLAZGO (auditoría de seguridad de supabase/migrations): 0011 dejó

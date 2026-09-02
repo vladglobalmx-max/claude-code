@@ -39,11 +39,20 @@ Requiere Node 20+, el [Supabase CLI](https://supabase.com/docs/guides/cli) y Doc
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key impresa por supabase start>
    SUPABASE_SERVICE_ROLE_KEY=<service_role key impresa por supabase start>
    ```
-5. **Crear un usuario** — el registro público está deshabilitado
-   (`enable_signup = false`, es un sistema interno). Créalo desde Supabase
-   Studio (`http://127.0.0.1:54323` → Authentication → Add user) o con
-   `supabase.auth.admin.createUser(...)`.
-6. **Correr la app**
+5. **Crear un usuario** — la app no tiene pantalla de registro (es un sistema
+   interno, de alta manual). Créalo desde Supabase Studio
+   (`http://127.0.0.1:54323` → Authentication → Add user, marca "Auto Confirm
+   User") o con `supabase.auth.admin.createUser(...)`.
+6. **(Opcional) Hacerlo admin** — corre esto en el SQL Editor de Studio,
+   cambiando el correo:
+   ```sql
+   insert into user_profiles (user_id, name, role, active)
+   select id, 'Administrador', 'admin', true
+   from auth.users
+   where email = 'tu-correo@globalsupplier.com.mx'
+   on conflict (user_id) do update set role = 'admin', active = true;
+   ```
+7. **Correr la app**
    ```bash
    npm run dev
    ```
@@ -53,6 +62,48 @@ Para un proyecto Supabase remoto (staging/producción) el flujo es el mismo:
 `supabase link`, `supabase db push` en lugar de `db reset` (el seed es solo
 para desarrollo), y las keys las tomas del dashboard del proyecto en vez de
 la salida de `supabase start`.
+
+## Problemas comunes en local (Windows)
+
+- **`supabase start` solo imprime `DB_URL`, sin `anon key` ni
+  `service_role key`.** Quedó un contenedor huérfano de un intento anterior
+  bloqueando que suba el resto del stack. Corre `supabase stop` y luego
+  `supabase start` de nuevo — con eso sale la tabla completa (API URL,
+  Studio URL, `anon key`, `service_role key`, etc.).
+- **`NotFound: FileSystem.readFile (...\.supabase\profile)` al correr
+  cualquier comando.** Bug conocido del CLI en Windows
+  ([supabase/cli#5890](https://github.com/supabase/cli/issues/5890)).
+  Inofensivo — el CLI cae al perfil por default. Ignóralo. **No** crees a
+  mano el archivo `~/.supabase/profile`: si existe pero no tiene el formato
+  exacto que el CLI espera, el error deja de ser un warning y se vuelve
+  fatal (`LegacyProfileLoadError`).
+- **`supabase db reset` truena** (a veces como `EUNKNOWN: unknown error,
+  uv_spawn`, a veces como `LegacyMigrationApplyError` apuntando a
+  `0011_users_roles_rls.sql`). La migración 0011 promueve a admin al primer
+  usuario que ya exista con cierto correo — como `db reset` recrea la DB
+  desde cero (borra usuarios), si nadie con ese correo existe todavía la
+  migración fallaba y tumbaba TODO el reset. Ya está arreglado en el repo
+  (avisa con `raise warning` en vez de `raise exception` si no encuentra al
+  usuario); si sigue tronando en 0011 después de un `git pull`, es que tu
+  copia local quedó desactualizada.
+- **`supabase start` (o `stop`) se cuelga en
+  `LegacyHealthCheckTimeoutError`** en `supabase_storage` o
+  `supabase_studio` ("container is not ready: unhealthy"), aunque sus logs
+  digan `Started Successfully`. Es Docker Desktop tardándose más del
+  timeout del CLI (normal si tienes otros proyectos con contenedores
+  corriendo al mismo tiempo). Reintenta con
+  `supabase start --ignore-health-check` y confirma a mano con
+  `docker ps --filter name=supabase` que todo diga `healthy` unos segundos
+  después.
+- **Login da `422 email_provider_disabled` ("Email logins are disabled")
+  aunque la cuenta exista y la password sea correcta.** En esta versión del
+  CLI, `[auth.email].enable_signup` controla tanto el auto-registro como si
+  el proveedor de email/password está prendido del todo
+  (`GOTRUE_EXTERNAL_EMAIL_ENABLED = enable_signup`, sin distinción). Por eso
+  `supabase/config.toml` trae `enable_signup = true` — es necesario para
+  poder hacer login local, no habilita ningún registro público porque la
+  app no expone esa pantalla. Esto solo aplica al stack local; no afecta el
+  proyecto de producción.
 
 ## Estructura
 

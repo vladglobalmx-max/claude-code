@@ -23,7 +23,12 @@ jwt_expiry = 3600
 enable_signup = false
 
 [auth.email]
-enable_signup = false
+# NOTA: en esta versión del CLI, enable_signup también controla si el
+# proveedor de email/password está prendido (GOTRUE_EXTERNAL_EMAIL_ENABLED),
+# no solo el auto-registro. Debe quedar en true para poder hacer login local,
+# aunque la app no exponga una pantalla de registro. Esto solo afecta el
+# stack local (supabase/config.toml) — no el proyecto de producción.
+enable_signup = true
 enable_confirmations = false
 
 [storage]

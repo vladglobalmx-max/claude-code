@@ -24,11 +24,23 @@ Requiere Node 20+, el [Supabase CLI](https://supabase.com/docs/guides/cli) y Doc
    ```
 3. **Aplicar migraciones y seed** — esto crea las tablas, los triggers de
    folio, los buckets de Storage (`order-media`, `order-files`) y sus
-   políticas, y dos vendedores de ejemplo. No hay que crear nada a mano en
-   el dashboard.
+   políticas, cuelga vendedores/clientes/catálogo/almacén/proveedor de
+   prueba de la organización real (`global-supplier-mty`, ya bootstrapeada
+   por las propias migraciones — el seed NO crea una organización nueva),
+   y deja 3 cuentas de login listas para usar. No hay que crear nada a mano
+   en el dashboard.
    ```bash
    supabase db reset
    ```
+   Cuentas de prueba (`supabase/seed/seed_demo_data.sql`), todas con
+   password **`Thoren2026!`** — SOLO existen en tu stack local, nunca en un
+   proyecto real:
+
+   | Correo                  | Rol      | Nota                          |
+   | ------------------------ | -------- | ----------------------------- |
+   | `admin@thoren.local`     | ADMIN    | acceso total                  |
+   | `vladimir@thoren.local`  | VENDEDOR | vendedor "Vladimir Peña", VPT |
+   | `karla@thoren.local`     | VENDEDOR | vendedor "Karla Saucedo", KST |
 4. **Variables de entorno** — copia el ejemplo y pega la URL y las keys que
    imprimió `supabase start`:
    ```bash
@@ -39,12 +51,11 @@ Requiere Node 20+, el [Supabase CLI](https://supabase.com/docs/guides/cli) y Doc
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key impresa por supabase start>
    SUPABASE_SERVICE_ROLE_KEY=<service_role key impresa por supabase start>
    ```
-5. **Crear un usuario** — la app no tiene pantalla de registro (es un sistema
-   interno, de alta manual). Créalo desde Supabase Studio
-   (`http://127.0.0.1:54323` → Authentication → Add user, marca "Auto Confirm
-   User") o con `supabase.auth.admin.createUser(...)`.
-6. **(Opcional) Hacerlo admin** — corre esto en el SQL Editor de Studio,
-   cambiando el correo:
+5. **(Opcional) Crear tu propio usuario** en vez de usar las cuentas de
+   prueba — la app no tiene pantalla de registro (es un sistema interno, de
+   alta manual). Créalo desde Supabase Studio (`http://127.0.0.1:54323` →
+   Authentication → Add user, marca "Auto Confirm User"), agrégalo a
+   `organization_members` (organización `global-supplier-mty`) y luego:
    ```sql
    insert into user_profiles (user_id, name, role, active)
    select id, 'Administrador', 'admin', true
@@ -52,7 +63,7 @@ Requiere Node 20+, el [Supabase CLI](https://supabase.com/docs/guides/cli) y Doc
    where email = 'tu-correo@globalsupplier.com.mx'
    on conflict (user_id) do update set role = 'admin', active = true;
    ```
-7. **Correr la app**
+6. **Correr la app**
    ```bash
    npm run dev
    ```

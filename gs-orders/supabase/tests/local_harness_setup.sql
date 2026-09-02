@@ -5,9 +5,16 @@
 create schema if not exists auth;
 create schema if not exists storage;
 
+-- email es character varying(255), NO text — así es auth.users en
+-- Supabase Cloud real (GoTrue). THÖREN 6R.1B-4C encontró en producción
+-- que admin_list_user_profiles() fallaba con "structure of query does not
+-- match function result type" porque su RETURN TABLE declara `email
+-- text` sin castear u.email — un mismatch de tipo invisible aquí mientras
+-- este stub usaba `text` para email. Nunca volver a `text` sin cast
+-- explícito en cualquier función nueva que seleccione auth.users.email.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text
+  email character varying(255)
 );
 
 do $$

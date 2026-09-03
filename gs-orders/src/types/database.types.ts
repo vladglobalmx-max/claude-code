@@ -9,6 +9,12 @@ export interface Database {
       salespeople: {
         Row: {
           id: string;
+          // THÖREN Fase 7A (0051) — NOT NULL, DEFAULT current_user_organization_id().
+          // Nunca la envía el cliente (vendedores/actions.ts no la incluye en su
+          // insert): se resuelve server-side desde la sesión de quien crea el
+          // vendedor. Único por (organization_id, business_unit, upper(prefix)) —
+          // ver salespeople_prefix_unique_per_org_unit.
+          organization_id: string;
           business_unit: string;
           name: string;
           prefix: string;
@@ -24,6 +30,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           business_unit?: string;
           name: string;
           prefix: string;
@@ -40,6 +47,13 @@ export interface Database {
             columns: ["person_id"];
             isOneToOne: true;
             referencedRelation: "people";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "salespeople_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
@@ -542,6 +556,12 @@ export interface Database {
       product_types: {
         Row: {
           id: string;
+          // THÖREN Fase 7A (0051) — NOT NULL, DEFAULT current_user_organization_id().
+          // Nunca la envía el cliente (tipos-producto/actions.ts no la incluye en
+          // su insert). `code` sigue siendo único GLOBAL a propósito (ver DECISIÓN
+          // en 0051) — fuera de alcance de 7A, orders.product_type lo referencia
+          // por code, no por organization_id.
+          organization_id: string;
           code: string;
           name: string;
           active: boolean;
@@ -550,6 +570,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           code: string;
           name: string;
           active?: boolean;
@@ -557,7 +578,15 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_types"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "product_types_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_profiles: {
         Row: {

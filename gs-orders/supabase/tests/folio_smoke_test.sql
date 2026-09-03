@@ -15,6 +15,7 @@ begin;
 
 do $$
 declare
+  v_org_id uuid;
   v_vlad_id uuid;
   v_karla_id uuid;
   v_order_id uuid;
@@ -22,11 +23,17 @@ declare
   v_seq_before integer;
   v_seq_after integer;
 begin
-  insert into salespeople (name, prefix, sequence_current, active)
-  values ('Test Vladimir', 'ZZV', 0, true) returning id into v_vlad_id;
+  -- THÖREN Fase 7A (0051) — organization_id explícito: este script corre
+  -- sin sesión de aplicación (psql -f directo), así que el DEFAULT
+  -- current_user_organization_id() resolvería NULL aquí. `supabase db
+  -- reset` deja exactamente una organización (Global Supplier MTY).
+  select id into v_org_id from organizations limit 1;
 
-  insert into salespeople (name, prefix, sequence_current, active)
-  values ('Test Karla', 'ZZK', 0, true) returning id into v_karla_id;
+  insert into salespeople (organization_id, name, prefix, sequence_current, active)
+  values (v_org_id, 'Test Vladimir', 'ZZV', 0, true) returning id into v_vlad_id;
+
+  insert into salespeople (organization_id, name, prefix, sequence_current, active)
+  values (v_org_id, 'Test Karla', 'ZZK', 0, true) returning id into v_karla_id;
 
   -- Formato AAAA + DD + MM (NO AAAA + MM + DD), consecutivo inicial 001
   insert into orders (salesperson_id, order_date, client_name, product_type)

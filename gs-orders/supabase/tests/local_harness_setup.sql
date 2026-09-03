@@ -25,6 +25,15 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then
     create role anon nologin;
   end if;
+  -- THÖREN 7B (0052) — Supabase Cloud siempre tiene este rol preexistente
+  -- (lo usa PostgREST cuando una llamada trae la service_role key). Se
+  -- agrega aquí para poder probar localmente que rpc_provision_organization
+  -- está genuinamente restringida (revoke de public/authenticated, grant
+  -- solo a service_role) — sin este rol, ese REVOKE/GRANT fallaría al
+  -- correr las migraciones contra este stub.
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin bypassrls;
+  end if;
 end $$;
 
 create or replace function auth.uid() returns uuid
@@ -83,3 +92,15 @@ grant all on all tables in schema storage to authenticated;
 grant all on all sequences in schema public to authenticated;
 alter default privileges in schema public grant all on tables to authenticated;
 alter default privileges in schema public grant all on sequences to authenticated;
+
+-- service_role en Supabase Cloud real tiene grants de tabla completos
+-- (además de BYPASSRLS) desde el bootstrap del propio proyecto — se
+-- replica aquí para que 0052 (rpc_provision_organization, restringida a
+-- service_role) se pueda probar localmente de forma fiel.
+grant usage on schema auth, storage, public to service_role;
+grant all on all tables in schema public to service_role;
+grant all on all tables in schema auth to service_role;
+grant all on all tables in schema storage to service_role;
+grant all on all sequences in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;

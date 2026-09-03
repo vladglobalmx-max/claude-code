@@ -22,6 +22,7 @@ function isActive(pathname: string, href: string) {
 export function Sidebar({
   role,
   canManageUsers,
+  organizationName,
   collapsed,
   onToggleCollapsed,
   mobileOpen,
@@ -29,6 +30,8 @@ export function Sidebar({
 }: {
   role: UserRole;
   canManageUsers: boolean;
+  /** THÖREN 7B — nombre real de la organización activa (ver src/lib/auth/organization.ts), nunca hardcodeado. */
+  organizationName: string;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   mobileOpen: boolean;
@@ -147,7 +150,7 @@ export function Sidebar({
               {!collapsed && "Colapsar"}
             </button>
             {!collapsed && (
-              <p className="mt-2 px-3 text-xs text-sidebar-ink-soft/70">Global Supplier MTY</p>
+              <p className="mt-2 truncate px-3 text-xs text-sidebar-ink-soft/70">{organizationName}</p>
             )}
           </div>
         </aside>

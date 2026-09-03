@@ -164,7 +164,7 @@ export default async function PedidosPage({
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
         title="Pedidos"
-        description="Pedidos internos para Thunder Safety Solutions"
+        description="Pedidos internos de tu organización"
         actions={
           <Link href="/pedidos/nuevo">
             <Button>

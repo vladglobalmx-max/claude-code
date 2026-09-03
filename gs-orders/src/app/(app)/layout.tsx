@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { getCurrentOrganizationName } from "@/lib/auth/organization";
 import { canManageUsers as canManageUsersGuard } from "@/lib/auth/user-management";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -27,9 +28,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // titular de can_manage_users no-admin (UX; la autorización real vive en
   // middleware.ts/layouts de servidor, no aquí).
   const capabilities = await getCurrentCapabilities(profile.userId);
+  // THÖREN 7B — nombre real de la organización para el sidebar (ver
+  // DECISIÓN en organization.ts). "THÖREN" es el único fallback neutro
+  // aceptable si por algún motivo no resuelve — nunca el nombre de un
+  // tenant específico.
+  const organizationName = (await getCurrentOrganizationName()) ?? "THÖREN";
 
   return (
-    <AppShell role={profile.role} canManageUsers={canManageUsersGuard(profile, capabilities)} name={profile.name} email={profile.email}>
+    <AppShell
+      role={profile.role}
+      canManageUsers={canManageUsersGuard(profile, capabilities)}
+      name={profile.name}
+      email={profile.email}
+      organizationName={organizationName}
+    >
       {children}
     </AppShell>
   );

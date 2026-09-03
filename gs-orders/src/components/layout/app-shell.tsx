@@ -19,12 +19,14 @@ export function AppShell({
   canManageUsers,
   name,
   email,
+  organizationName,
   children,
 }: {
   role: UserRole;
   canManageUsers: boolean;
   name: string;
   email: string | null;
+  organizationName: string;
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -48,6 +50,7 @@ export function AppShell({
       <Sidebar
         role={role}
         canManageUsers={canManageUsers}
+        organizationName={organizationName}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         mobileOpen={mobileOpen}

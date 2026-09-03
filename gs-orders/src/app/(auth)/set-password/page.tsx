@@ -16,7 +16,10 @@ export default function SetPasswordPage() {
           </div>
           <p className="text-sm font-extrabold uppercase tracking-wide text-ink">THÖREN</p>
           <h1 className="mt-3 text-xl font-semibold text-ink">Define tu contraseña</h1>
-          <p className="mt-1 text-sm text-ink-faint">Global Supplier MTY</p>
+          {/* THÖREN 7B — pantalla pública, previa a autenticarse: mismo
+              criterio que /login, branding neutro, nunca el nombre de un
+              tenant específico. */}
+          <p className="mt-1 text-sm text-ink-faint">Accede a tu espacio de trabajo</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-6 shadow-card">
           <Suspense fallback={null}>

@@ -17,7 +17,10 @@ export default function LoginPage() {
             Þ
           </div>
           <h1 className="text-xl font-extrabold uppercase tracking-wide text-ink">THÖREN</h1>
-          <p className="mt-1 text-sm text-ink-faint">Global Supplier MTY</p>
+          {/* THÖREN 7B — pantalla pública, previa a autenticarse: nunca puede
+              saber a qué organización pertenece quien la ve, así que usa
+              branding neutro (nunca el nombre de un tenant específico). */}
+          <p className="mt-1 text-sm text-ink-faint">Accede a tu espacio de trabajo</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-6 shadow-card">
           <Suspense fallback={null}>

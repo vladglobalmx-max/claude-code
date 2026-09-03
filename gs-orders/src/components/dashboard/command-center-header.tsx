@@ -31,7 +31,16 @@ export interface HeroKpi {
  * reportado explícitamente); 2 columnas limpias hasta desktop resuelve esa
  * lectura sin reducir tipografía.
  */
-export function CommandCenterHeader({ name, kpis }: { name: string; kpis?: HeroKpi[] }) {
+export function CommandCenterHeader({
+  name,
+  kpis,
+  contextLabel,
+}: {
+  name: string;
+  kpis?: HeroKpi[];
+  /** THÖREN 6R.1C — sustituye el subtítulo genérico por uno derivado de role+capabilities (ver dashboard-view.tsx). */
+  contextLabel?: string;
+}) {
   const greeting = getBusinessGreeting();
   const today = formatDateLong(getBusinessToday());
 
@@ -55,7 +64,7 @@ export function CommandCenterHeader({ name, kpis }: { name: string; kpis?: HeroK
               {greeting}
               {name ? `, ${name}` : ""}
             </h1>
-            <p className="mt-2 text-base text-sidebar-ink-soft">Control total de tu operación.</p>
+            <p className="mt-2 text-base text-sidebar-ink-soft">{contextLabel ?? "Control total de tu operación."}</p>
           </div>
           <p className="flex shrink-0 items-center gap-1.5 text-sm text-sidebar-ink-soft sm:text-right">
             <Calendar className="h-3.5 w-3.5" />

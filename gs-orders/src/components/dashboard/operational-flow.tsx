@@ -73,10 +73,17 @@ export function buildOperationalFlowStages(data: {
  * es un Link — hover cambia borde/color del ícono y del número, nada más
  * (sin escala/sombra exagerada).
  */
-export function OperationalFlow({ stages }: { stages: OperationalFlowStage[] }) {
+export function OperationalFlow({
+  stages,
+  title = "Flujo operativo",
+}: {
+  stages: OperationalFlowStage[];
+  /** THÖREN 6R.1C — contexto personal ("Tu flujo operativo") vs de organización, ver dashboard-view.tsx. */
+  title?: string;
+}) {
   return (
     <div>
-      <p className="mb-6 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">Flujo operativo</p>
+      <p className="mb-6 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">{title}</p>
       <div className="relative flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-0">
         <div aria-hidden="true" className="absolute left-7 right-7 top-7 hidden h-[1.5px] bg-accent/35 lg:block" />
         {stages.map((stage, index) => (

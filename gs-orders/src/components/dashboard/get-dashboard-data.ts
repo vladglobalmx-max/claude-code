@@ -2,6 +2,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import {
   ACTIVE_OPERATIONAL_STATUSES,
   buildAttentionQueue,
@@ -78,6 +79,8 @@ export interface BusinessUnitOrderCountRow {
 export interface DashboardData {
   role: "admin" | "vendedor";
   name: string;
+  /** THÖREN 6R.1C — una sola carga por request (ver getCurrentCapabilities), reutilizada para el contexto del Home, prioridad de KPIs y accesos rápidos. Nunca amplía el scoping de datos: RLS sigue siendo la única autoridad sobre qué filas se leen. */
+  capabilities: Set<string>;
   /** true si este usuario/organización no tiene NINGÚN pedido histórico — dispara el Empty State en vez de KPIs en cero. */
   hasAnyOrders: boolean;
   monthOrderCount: number;
@@ -172,6 +175,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const previousMonth = getBusinessMonthRange(1);
 
   const [
+    capabilities,
     { count: totalCount, error: totalError },
     { data: monthRows, error: monthError },
     { count: previousMonthCount, error: previousMonthError },
@@ -186,6 +190,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     { data: fulfilledRows, error: fulfilledError },
     { data: deliveredRows, error: deliveredError },
   ] = await Promise.all([
+    getCurrentCapabilities(profile?.userId),
     supabase.from("orders").select("id", { count: "exact", head: true }),
     supabase
       .from("orders")
@@ -468,6 +473,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   return {
     role: (profile?.role ?? "vendedor") as "admin" | "vendedor",
     name: profile?.name ?? "",
+    capabilities,
     hasAnyOrders: (totalCount ?? 0) > 0,
     monthOrderCount: typedMonthRows.length,
     previousMonthOrderCount: previousMonthCount ?? 0,

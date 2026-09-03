@@ -12,8 +12,55 @@ import { AttentionQueue } from "@/components/dashboard/attention-queue";
 import { ThorenIntelligence, buildThorenInsights } from "@/components/dashboard/thoren-intelligence";
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries";
 import { PurchaseOrdersInTransit } from "@/components/dashboard/purchase-orders-in-transit";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import { buildQuickActions } from "@/lib/dashboard/quick-actions";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { formatNumber, formatPercentDelta } from "@/lib/utils/format";
+
+/**
+ * THÖREN 6R.1C — Home contextual por role+capabilities (nunca por
+ * email/nombre). "Vista global" = admin pleno O cualquier capability que ya
+ * habilita ver ventas de toda la organización (can_view_all_sales, ver
+ * 0041) — es la única capability de este tipo ya cableada (DECISIÓN:
+ * can_view_global_dashboard permanece sin activar, ver auditoría 6R.1C).
+ */
+function isGlobalView(data: DashboardData): boolean {
+  return data.role === "admin" || data.capabilities.has("can_view_all_sales");
+}
+
+function buildContextLabel(data: DashboardData): string {
+  if (data.role === "admin") return "Vista general de la organización";
+  if (data.capabilities.has("can_view_all_sales")) return "Vista global de ventas";
+  return "Tu actividad comercial";
+}
+
+const KPI_IDS = [
+  "pedidos-mes",
+  "pedidos-activos",
+  "unidades-entregar",
+  "unidades-comprometidas",
+  "ordenes-compra-abiertas",
+] as const;
+
+/**
+ * THÖREN 6R.1C — prioridad de los 5 KPIs del hero (mismos 5 de siempre,
+ * nunca se agregan/quitan, ver DECISIÓN en get-dashboard-data.ts). Los
+ * roles operativos/logística (Rodolfo: entregas y/o recepción) necesitan
+ * ver primero lo que van a atender hoy, no "Pedidos del mes" — el resto de
+ * los actores (admin, vista global de ventas, vendedor normal) usa el
+ * orden comercial por defecto.
+ */
+function buildKpiOrder(data: DashboardData): (typeof KPI_IDS)[number][] {
+  const isLogisticsFocused =
+    data.role !== "admin" &&
+    (data.capabilities.has("can_manage_deliveries") || data.capabilities.has("can_receive_inventory"));
+
+  if (isLogisticsFocused) {
+    return ["unidades-entregar", "ordenes-compra-abiertas", "unidades-comprometidas", "pedidos-activos", "pedidos-mes"];
+  }
+
+  return ["pedidos-mes", "pedidos-activos", "unidades-entregar", "unidades-comprometidas", "ordenes-compra-abiertas"];
+}
 
 /**
  * Render puro del Dashboard — separado de page.tsx para poder probarlo con
@@ -86,20 +133,22 @@ export function DashboardView({ data }: { data: DashboardData }) {
   // recibe las hasta ATTENTION_QUEUE_LIMIT=15 filas sin recortar).
   const attentionQueuePreview = data.attentionQueue.slice(0, 5);
 
-  const kpis: HeroKpi[] = [
-    {
+  // THÖREN 6R.1C — los 5 KPIs de siempre (mismos datos/labels/helpers, ver
+  // DECISIÓN arriba), reordenados por role+capabilities vía buildKpiOrder().
+  const kpiByid: Record<(typeof KPI_IDS)[number], HeroKpi> = {
+    "pedidos-mes": {
       label: "Pedidos del mes",
       value: formatNumber(data.monthOrderCount),
       trend: monthTrend ? { label: `${monthTrend} vs. mes anterior`, positive: !monthTrend.startsWith("-") } : null,
       icon: FileText,
     },
-    {
+    "pedidos-activos": {
       label: "Pedidos activos",
       value: formatNumber(data.activeOperationalOrderCount),
       helper: "En el pipeline operativo",
       icon: ClipboardList,
     },
-    {
+    "unidades-entregar": {
       // Fase 6Q — Hotfix semántico: el valor es una cantidad de UNIDADES
       // físicas (pendingToDeliverUnitsTotal), no un conteo de Pedidos —
       // el label lo hace explícito para no confundirlo con "96 pedidos".
@@ -108,7 +157,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       helper: "Surtidas, pendientes de entrega",
       icon: PackageCheck,
     },
-    {
+    "unidades-comprometidas": {
       // Fase 6Q — Hotfix semántico: mismo criterio — es un total de
       // UNIDADES (committedUnitsTotal), no un conteo de productos/pedidos.
       label: "Unidades comprometidas",
@@ -116,7 +165,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       helper: "Reservadas para pedidos activos",
       icon: Boxes,
     },
-    {
+    "ordenes-compra-abiertas": {
       // Fase 6Q — Hotfix semántico: el valor es purchaseOrdersOpenCount —
       // TODAS las Purchase Orders abiertas (fuera de recibida/cancelada),
       // sin importar su status puntual. NO es un subconjunto "realmente en
@@ -129,20 +178,35 @@ export function DashboardView({ data }: { data: DashboardData }) {
       helper: `${formatNumber(data.incomingUnitsTotal)} unidades en camino`,
       icon: Package,
     },
-  ];
+  };
+  const kpis: HeroKpi[] = buildKpiOrder(data).map((id) => kpiByid[id]);
+
+  const globalView = isGlobalView(data);
+  const contextLabel = buildContextLabel(data);
+  const quickActions = buildQuickActions(data.role, data.capabilities);
+  const flowTitle = globalView ? "Flujo operativo de la organización" : "Tu flujo operativo";
+  const attentionTitle = globalView ? "Atención ejecutiva" : "Tus pendientes";
 
   return (
     <div>
-      <CommandCenterHeader name={data.name} kpis={kpis} />
+      <CommandCenterHeader name={data.name} kpis={kpis} contextLabel={contextLabel} />
 
       <div className="mx-auto max-w-[1440px] px-6 py-12 sm:px-10 lg:py-16">
+        {/* Accesos rápidos — hasta 3-4 acciones derivadas de role+capabilities. */}
+        {quickActions.length > 0 && (
+          <div className="mb-12">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">Accesos rápidos</p>
+            <QuickActions actions={quickActions} />
+          </div>
+        )}
+
         {/* Flujo operativo — pieza distintiva, sin card propia. */}
-        <OperationalFlow stages={flowStages} />
+        <OperationalFlow stages={flowStages} title={flowTitle} />
 
         {/* Atención ejecutiva + THÖREN Intelligence */}
         <div className="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="min-w-0 lg:col-span-2">
-            <AttentionQueue rows={attentionQueuePreview} title="Atención ejecutiva" compact />
+            <AttentionQueue rows={attentionQueuePreview} title={attentionTitle} compact />
           </div>
           <ThorenIntelligence headline={intelligenceHeadline} insights={insights} />
         </div>

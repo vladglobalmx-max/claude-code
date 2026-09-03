@@ -35,14 +35,17 @@ export function CommandCenterHeader({
   name,
   kpis,
   contextLabel,
+  timezone,
 }: {
   name: string;
   kpis?: HeroKpi[];
   /** THÖREN 6R.1C — sustituye el subtítulo genérico por uno derivado de role+capabilities (ver dashboard-view.tsx). */
   contextLabel?: string;
+  /** THÖREN 7C — timezone de la organización activa (ver get-dashboard-data.ts); undefined cae al default global. */
+  timezone?: string;
 }) {
-  const greeting = getBusinessGreeting();
-  const today = formatDateLong(getBusinessToday());
+  const greeting = getBusinessGreeting(timezone);
+  const today = formatDateLong(getBusinessToday(timezone));
 
   return (
     <div className="border-b border-black/10 bg-sidebar-bg">

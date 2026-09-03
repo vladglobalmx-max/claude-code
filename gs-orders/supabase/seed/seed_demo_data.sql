@@ -8,6 +8,26 @@
 --   admin@thoren.local     -> ADMIN (acceso total)
 --   vladimir@thoren.local  -> VENDEDOR (vendedor "Vladimir Peña", VPT)
 --   karla@thoren.local     -> VENDEDOR (vendedor "Karla Saucedo", KST)
+--
+-- =========================================================================
+-- THÖREN 7C — GUARD REAL (no solo un comentario): este archivo se niega a
+-- correr si la sesión de Postgres no trae explícitamente el GUC
+-- thoren.allow_demo_seed = 'local'. Nada en un proyecto Supabase Cloud fija
+-- ese GUC por accidente — solo lo hace scripts/reset-local-demo.sh, la
+-- única vía sancionada para sembrar estos datos (ver ese script y el README
+-- para el flujo completo). Corre ANTES de crear ningún usuario Auth con
+-- password conocida, así que un `psql <url-de-producción> -f
+-- seed_demo_data.sql` ejecutado por error revienta aquí mismo, sin llegar
+-- a insertar nada.
+-- =========================================================================
+do $$
+begin
+  if current_setting('thoren.allow_demo_seed', true) is distinct from 'local' then
+    raise exception
+      'BLOQUEADO: seed_demo_data.sql no puede correr sin thoren.allow_demo_seed=local. Este archivo crea usuarios de Auth con password conocida (Thoren2026!) y NUNCA debe ejecutarse contra un proyecto real. Usa scripts/reset-local-demo.sh en vez de invocar este archivo directamente (o `supabase db reset` a secas — el seed automático quedó deshabilitado en config.toml por esta misma razón).';
+  end if;
+end $$;
+
 do $$
 declare
   v_org_id uuid;
@@ -54,10 +74,14 @@ begin
   on conflict do nothing;
 
   -- 3) Vendedores (folios) --------------------------------------------------
-  insert into salespeople (id, business_unit, name, prefix, sequence_current, active, person_id)
+  -- THÖREN Fase 7A (0051) — organization_id explícito: este script corre
+  -- sin sesión de aplicación (sin auth.uid()), así que el DEFAULT
+  -- current_user_organization_id() resolvería NULL aquí (columna NOT NULL
+  -- desde 0051 — sin esto, el INSERT falla).
+  insert into salespeople (id, organization_id, business_unit, name, prefix, sequence_current, active, person_id)
   values
-    (v_vladimir_salesperson_id, 'thunder', 'Vladimir Peña (demo)', 'VPT', 0, true, v_vladimir_person_id),
-    (v_karla_salesperson_id, 'thunder', 'Karla Saucedo (demo)', 'KST', 0, true, v_karla_person_id)
+    (v_vladimir_salesperson_id, v_org_id, 'thunder', 'Vladimir Peña (demo)', 'VPT', 0, true, v_vladimir_person_id),
+    (v_karla_salesperson_id, v_org_id, 'thunder', 'Karla Saucedo (demo)', 'KST', 0, true, v_karla_person_id)
   on conflict do nothing;
 
   -- 4) Usuarios de auth (login local) ---------------------------------------

@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getBusinessToday, addDays } from "@/lib/business-date";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { getSignedUrls } from "@/lib/storage";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
@@ -168,7 +169,8 @@ export default async function NuevaCotizacionPage() {
 
   const quoteId = randomUUID();
   const [firstPair] = eligiblePairs;
-  const validUntil = addDays(getBusinessToday(), 15);
+  const timezone = await getCurrentOrganizationTimezone();
+  const validUntil = addDays(getBusinessToday(timezone), 15);
 
   if (!firstPair) {
     // Inalcanzable: eligiblePairs.length === 0 ya retornó arriba. Solo para que TypeScript estreche el tipo.

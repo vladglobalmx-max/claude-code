@@ -5,6 +5,14 @@
 create schema if not exists auth;
 create schema if not exists storage;
 
+-- THÖREN 7C — seed_demo_data.sql (supabase/tests/seed_guard_test.sh) inserta
+-- directo en auth.users/auth.identities con la receta estándar de seed local
+-- de Supabase (misma que usa `supabase db reset` contra el Postgres real de
+-- la CLI): necesita pgcrypto en el schema `extensions` (así lo instala
+-- Supabase, nunca en `public`) para poder hashear la contraseña de demo.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 -- email es character varying(255), NO text — así es auth.users en
 -- Supabase Cloud real (GoTrue). THÖREN 6R.1B-4C encontró en producción
 -- que admin_list_user_profiles() fallaba con "structure of query does not
@@ -12,9 +20,43 @@ create schema if not exists storage;
 -- text` sin castear u.email — un mismatch de tipo invisible aquí mientras
 -- este stub usaba `text` para email. Nunca volver a `text` sin cast
 -- explícito en cualquier función nueva que seleccione auth.users.email.
+--
+-- THÖREN 7C — columnas adicionales (instance_id, aud, role,
+-- encrypted_password, etc.) agregadas como nullable, solo para poder correr
+-- seed_demo_data.sql completo contra este stub (inserta con esas columnas,
+-- igual que la receta estándar de Supabase) — ningún test anterior las usa
+-- ni se ve afectado por que existan.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
-  email character varying(255)
+  email character varying(255),
+  instance_id uuid,
+  aud character varying(255),
+  role character varying(255),
+  encrypted_password character varying(255),
+  email_confirmed_at timestamptz,
+  raw_app_meta_data jsonb,
+  raw_user_meta_data jsonb,
+  created_at timestamptz,
+  updated_at timestamptz,
+  confirmation_token character varying(255),
+  recovery_token character varying(255),
+  email_change_token_new character varying(255),
+  email_change character varying(255)
+);
+
+-- THÖREN 7C — mismo motivo: seed_demo_data.sql inserta en auth.identities
+-- (receta estándar de seed local de Supabase, GoTrue exige una fila aquí
+-- por cada método de login).
+create table if not exists auth.identities (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  identity_data jsonb not null,
+  provider text not null,
+  last_sign_in_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  unique (provider_id, provider)
 );
 
 do $$

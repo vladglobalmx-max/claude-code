@@ -288,6 +288,35 @@ describe("buildSetPasswordLink", () => {
   });
 });
 
+// THÖREN 7C — TEST 3 del set de 16: un correo válido de CUALQUIER dominio
+// (no solo @globalsupplier.com.mx) debe poder invitarse — la auditoría de
+// Fase 7 confirmó que createUserAccessSchema (validations/user-access.ts)
+// nunca restringió por dominio; este test lo deja probado, no solo
+// documentado.
+describe("createUserAccessSchema — sin restricción de dominio (THÖREN 7C)", () => {
+  it("acepta un correo válido de un dominio distinto a globalsupplier.com.mx", async () => {
+    const { createUserAccessSchema } = await import("@/lib/validations/user-access");
+    const result = createUserAccessSchema.safeParse({
+      name: "Admin de Org B",
+      role: "admin",
+      active: true,
+      email: "admin@acme-cliente-piloto.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("sigue rechazando un correo con formato inválido, sin importar el dominio", async () => {
+    const { createUserAccessSchema } = await import("@/lib/validations/user-access");
+    const result = createUserAccessSchema.safeParse({
+      name: "Admin de Org B",
+      role: "admin",
+      active: true,
+      email: "no-es-un-correo",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("resolveSetPasswordRedemption", () => {
   const params = (entries: Record<string, string>) => ({
     get: (name: string) => entries[name] ?? null,

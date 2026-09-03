@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessToday } from "@/lib/business-date";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { mapDbError } from "@/lib/db-errors";
 import {
   orderPayloadSchema,
@@ -124,10 +125,11 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
  */
 export async function duplicateOrder(sourceOrderId: string): Promise<{ id: string }> {
   const supabase = createSupabaseServerClient();
+  const timezone = await getCurrentOrganizationTimezone();
 
   const { data, error } = await supabase.rpc("rpc_duplicate_order", {
     p_source_order_id: sourceOrderId,
-    p_order_date: getBusinessToday(),
+    p_order_date: getBusinessToday(timezone),
   });
 
   if (error || !data) {

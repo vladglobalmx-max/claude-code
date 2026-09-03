@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessMonthRange } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import {
   ACTIVE_OPERATIONAL_STATUSES,
   buildAttentionQueue,
@@ -81,6 +82,8 @@ export interface DashboardData {
   name: string;
   /** THÖREN 6R.1C — una sola carga por request (ver getCurrentCapabilities), reutilizada para el contexto del Home, prioridad de KPIs y accesos rápidos. Nunca amplía el scoping de datos: RLS sigue siendo la única autoridad sobre qué filas se leen. */
   capabilities: Set<string>;
+  /** THÖREN 7C — timezone real de la organización (organizations.timezone, 0053), ya usado para calcular monthOrderCount/previousMonthOrderCount arriba — se reexpone para que CommandCenterHeader muestre la hora/saludo/fecha en la zona horaria correcta, no siempre Monterrey. */
+  timezone: string;
   /** true si este usuario/organización no tiene NINGÚN pedido histórico — dispara el Empty State en vez de KPIs en cero. */
   hasAnyOrders: boolean;
   monthOrderCount: number;
@@ -170,9 +173,13 @@ type AttentionSourceRow = {
 export async function getDashboardData(): Promise<DashboardData> {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
+  // THÖREN 7C — timezone real de la organización: determina qué pedidos
+  // cuentan como "de este mes" (getBusinessMonthRange) y qué hora/saludo
+  // muestra CommandCenterHeader — nunca siempre Monterrey.
+  const timezone = await getCurrentOrganizationTimezone();
 
-  const currentMonth = getBusinessMonthRange(0);
-  const previousMonth = getBusinessMonthRange(1);
+  const currentMonth = getBusinessMonthRange(0, timezone);
+  const previousMonth = getBusinessMonthRange(1, timezone);
 
   const [
     capabilities,
@@ -474,6 +481,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     role: (profile?.role ?? "vendedor") as "admin" | "vendedor",
     name: profile?.name ?? "",
     capabilities,
+    timezone,
     hasAnyOrders: (totalCount ?? 0) > 0,
     monthOrderCount: typedMonthRows.length,
     previousMonthOrderCount: previousMonthCount ?? 0,

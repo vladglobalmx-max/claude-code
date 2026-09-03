@@ -81,8 +81,8 @@ function buildKpiOrder(data: DashboardData): (typeof KPI_IDS)[number][] {
  * componente y su lógica siguen intactos, solo no se invocan desde esta
  * vista, igual criterio que StatusDistribution (legacy) desde 6Q.
  */
-export function monthLabel(): string {
-  const { start } = getBusinessMonthRange(0);
+export function monthLabel(timezone?: string): string {
+  const { start } = getBusinessMonthRange(0, timezone);
   const label = format(parseISO(start), "MMMM yyyy", { locale: es });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
@@ -91,7 +91,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
   if (data.hasError) {
     return (
       <div>
-        <CommandCenterHeader name={data.name} />
+        <CommandCenterHeader name={data.name} timezone={data.timezone} />
         <div className="mx-auto max-w-[1440px] px-6 py-8 sm:px-10">
           <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
             No se pudo cargar la información del Command Center. Intenta recargar la página en unos momentos.
@@ -104,7 +104,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
   if (!data.hasAnyOrders) {
     return (
       <div>
-        <CommandCenterHeader name={data.name} />
+        <CommandCenterHeader name={data.name} timezone={data.timezone} />
         <div className="mx-auto max-w-[1440px] px-6 py-8 sm:px-10">
           <div className="rounded-xl border border-border bg-surface">
             <EmptyState
@@ -189,7 +189,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
 
   return (
     <div>
-      <CommandCenterHeader name={data.name} kpis={kpis} contextLabel={contextLabel} />
+      <CommandCenterHeader name={data.name} kpis={kpis} contextLabel={contextLabel} timezone={data.timezone} />
 
       <div className="mx-auto max-w-[1440px] px-6 py-12 sm:px-10 lg:py-16">
         {/* Accesos rápidos — hasta 3-4 acciones derivadas de role+capabilities. */}
@@ -213,7 +213,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
 
         {/* Analítica secundaria — deliberadamente ligera, sin competir con lo anterior. */}
         <div className="mt-16 grid grid-cols-1 gap-10 border-t border-border pt-10 sm:grid-cols-2">
-          <OrdersByBusinessUnit rows={data.ordersByBusinessUnit} monthLabel={monthLabel()} />
+          <OrdersByBusinessUnit rows={data.ordersByBusinessUnit} monthLabel={monthLabel(data.timezone)} />
           <OperationalStatusDistribution breakdown={data.operationalStatusBreakdown} />
         </div>
 

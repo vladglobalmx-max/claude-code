@@ -5,6 +5,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getBusinessToday } from "@/lib/business-date";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { getOrderDetail } from "@/components/orders/get-order-detail";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ export default async function NuevaCompraPage({ params }: { params: { id: string
   const suppliers = (suppliersData ?? []) as Supplier[];
 
   const purchaseOrderId = randomUUID();
+  const timezone = await getCurrentOrganizationTimezone();
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -47,7 +49,7 @@ export default async function NuevaCompraPage({ params }: { params: { id: string
             orderFolio={detail.order.folio}
             items={detail.items}
             suppliers={suppliers}
-            defaultDate={getBusinessToday()}
+            defaultDate={getBusinessToday(timezone)}
           />
         </CardContent>
       </Card>

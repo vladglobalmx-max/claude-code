@@ -35,6 +35,46 @@ describe("getBusinessToday", () => {
   });
 });
 
+// THÖREN 7C — organizations.timezone (0053): una organización en otra zona
+// horaria (Org B) debe generar su fecha de negocio con SU hora local, no la
+// de Monterrey (Org A, el default). Asia/Tokyo (UTC+9, sin horario de
+// verano) se usa como Org B por ser claramente distinta de Monterrey
+// (UTC-6) y no tener ambigüedad de DST que complique el caso de prueba.
+describe("getBusinessToday con timezone explícito (THÖREN 7C — multi-tenant)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("Org A (America/Monterrey) y Org B (Asia/Tokyo) ven días distintos en el mismo instante", () => {
+    vi.useFakeTimers();
+    // 2026-08-13T06:01:00Z -> Monterrey (UTC-6): 2026-08-13 00:01 -> "2026-08-13"
+    //                       -> Tokyo (UTC+9): 2026-08-13 15:01 -> "2026-08-13" (mismo día, no útil)
+    // Se usa un instante donde SÍ difieren: 2026-08-13T16:00:00Z
+    //   Monterrey (UTC-6): 2026-08-13 10:00 -> "2026-08-13"
+    //   Tokyo (UTC+9):     2026-08-14 01:00 -> "2026-08-14"
+    vi.setSystemTime(new Date("2026-08-13T16:00:00Z"));
+    expect(getBusinessToday("America/Monterrey")).toBe("2026-08-13");
+    expect(getBusinessToday("Asia/Tokyo")).toBe("2026-08-14");
+  });
+
+  it("cambio de día en frontera UTC para Org B (Asia/Tokyo) — nunca se adelanta/atrasa por error", () => {
+    vi.useFakeTimers();
+    // 2026-08-13 23:59 Tokyo = 2026-08-13T14:59:00Z
+    vi.setSystemTime(new Date("2026-08-13T14:59:00Z"));
+    expect(getBusinessToday("Asia/Tokyo")).toBe("2026-08-13");
+
+    // 2026-08-14 00:01 Tokyo = 2026-08-13T15:01:00Z
+    vi.setSystemTime(new Date("2026-08-13T15:01:00Z"));
+    expect(getBusinessToday("Asia/Tokyo")).toBe("2026-08-14");
+  });
+
+  it("sin argumento, sigue usando DEFAULT_BUSINESS_TIMEZONE (America/Monterrey) — compatibilidad con llamadas existentes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-13T16:00:00Z"));
+    expect(getBusinessToday()).toBe(getBusinessToday("America/Monterrey"));
+  });
+});
+
 describe("getBusinessMonthRange (THÖREN Experience 1B — KPIs de Dashboard)", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -69,5 +109,14 @@ describe("getBusinessMonthRange (THÖREN Experience 1B — KPIs de Dashboard)", 
     // 2026-08-31 23:59 Monterrey = 2026-09-01 05:59 UTC
     vi.setSystemTime(new Date("2026-09-01T05:59:00Z"));
     expect(getBusinessMonthRange(0)).toEqual({ start: "2026-08-01", end: "2026-09-01" });
+  });
+
+  it("CASO F (THÖREN 7C): Org B (Asia/Tokyo) ya cruzó a septiembre cuando Org A (Monterrey) sigue en agosto", () => {
+    vi.useFakeTimers();
+    // 2026-08-31T16:00:00Z -> Monterrey (UTC-6): 2026-08-31 10:00 (agosto)
+    //                       -> Tokyo (UTC+9):    2026-09-01 01:00 (ya septiembre)
+    vi.setSystemTime(new Date("2026-08-31T16:00:00Z"));
+    expect(getBusinessMonthRange(0, "America/Monterrey")).toEqual({ start: "2026-08-01", end: "2026-09-01" });
+    expect(getBusinessMonthRange(0, "Asia/Tokyo")).toEqual({ start: "2026-09-01", end: "2026-10-01" });
   });
 });

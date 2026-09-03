@@ -640,6 +640,11 @@ export interface Database {
           id: string;
           name: string;
           slug: string;
+          // THÖREN Fase 7C (0053) — NOT NULL, DEFAULT 'America/Monterrey'.
+          // IANA timezone identifier (ej. "America/Mexico_City") — usado por
+          // business-date.ts para calcular la fecha/hora de negocio de ESTA
+          // organización (folios de pedido/cotización, saludo del dashboard).
+          timezone: string;
           active: boolean;
           created_at: string;
           updated_at: string;
@@ -648,6 +653,7 @@ export interface Database {
           id?: string;
           name: string;
           slug: string;
+          timezone?: string;
           active?: boolean;
           created_at?: string;
           updated_at?: string;

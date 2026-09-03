@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessToday, addDays } from "@/lib/business-date";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { quotePayloadSchema } from "@/lib/validations/quote";
 import { createCustomerWithOptionalContact } from "@/lib/customers/create-with-contact";
 import { mapDbError } from "@/lib/db-errors";
@@ -127,6 +128,7 @@ export async function createQuote(quoteId: string, payload: QuoteWritePayload): 
   }
 
   const supabase = createSupabaseServerClient();
+  const timezone = await getCurrentOrganizationTimezone();
 
   const catalogError = await validateCatalogProductSelections(supabase, parsed.data.business_unit_id, parsed.data.items);
   if (catalogError) return catalogError;
@@ -137,7 +139,7 @@ export async function createQuote(quoteId: string, payload: QuoteWritePayload): 
       business_unit_id: parsed.data.business_unit_id,
       salesperson_id: parsed.data.salesperson_id,
       customer_id: parsed.data.customer_id,
-      quote_date: getBusinessToday(),
+      quote_date: getBusinessToday(timezone),
       currency: parsed.data.currency,
       tax_rate: parsed.data.tax_rate,
       global_discount_percent: parsed.data.global_discount_percent,
@@ -340,10 +342,11 @@ export async function updateQuoteNotes(quoteId: string, notes: string): Promise<
  */
 export async function convertQuoteToOrder(quoteId: string, productType: string): Promise<QuoteActionResult> {
   const supabase = createSupabaseServerClient();
+  const timezone = await getCurrentOrganizationTimezone();
   const { data: order, error } = await supabase.rpc("rpc_create_order_from_quote", {
     p_quote_id: quoteId,
     p_product_type: productType,
-    p_order_date: getBusinessToday(),
+    p_order_date: getBusinessToday(timezone),
   });
 
   if (error || !order) {
@@ -358,6 +361,7 @@ export async function convertQuoteToOrder(quoteId: string, productType: string):
 
 export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteActionResult> {
   const supabase = createSupabaseServerClient();
+  const timezone = await getCurrentOrganizationTimezone();
 
   const [{ data: sourceQuote }, { data: sourceItems }] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", sourceQuoteId).single(),
@@ -375,7 +379,7 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
     currency: sourceQuote.currency as QuoteCurrency,
     tax_rate: sourceQuote.tax_rate,
     global_discount_percent: sourceQuote.global_discount_percent,
-    valid_until: addDays(getBusinessToday(), 15),
+    valid_until: addDays(getBusinessToday(timezone), 15),
     notes: sourceQuote.notes ?? undefined,
     payment_terms: sourceQuote.payment_terms ?? undefined,
     delivery_time: sourceQuote.delivery_time ?? undefined,

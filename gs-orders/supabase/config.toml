@@ -12,7 +12,12 @@ port = 54322
 major_version = 15
 
 [db.seed]
-enabled = true
+# THÖREN 7C — deshabilitado a propósito: seed_demo_data.sql ahora exige un
+# GUC de sesión (thoren.allow_demo_seed=local) que la ruta automática de
+# `supabase db reset` no fija. Sembrar datos de demo es un paso EXPLÍCITO
+# vía scripts/reset-local-demo.sh (ver ese script y el README) — nunca algo
+# que "db reset" haga solo, en ningún entorno.
+enabled = false
 sql_paths = ["./seed/seed_demo_data.sql"]
 
 [studio]

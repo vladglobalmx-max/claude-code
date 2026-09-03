@@ -49,7 +49,7 @@ export function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="nombre@globalsuppliermty.com"
+          placeholder="nombre@tuempresa.com"
         />
       </div>
       <div>

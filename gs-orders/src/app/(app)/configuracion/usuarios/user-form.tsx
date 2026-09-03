@@ -182,7 +182,7 @@ export function UserAccessForm({
       ) : (
         <div>
           <Label htmlFor="email">Correo</Label>
-          <Input id="email" name="email" type="email" required placeholder="karla@globalsuppliermty.com" />
+          <Input id="email" name="email" type="email" required placeholder="nombre@tuempresa.com" />
           <p className="mt-1 text-xs text-ink-faint">
             &ldquo;Enviar invitación por correo&rdquo; manda un enlace automático. Si el envío de correo está
             limitado temporalmente, usa &ldquo;Generar enlace de acceso&rdquo; para compartirlo tú mismo. THÖREN

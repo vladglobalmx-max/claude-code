@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getBusinessToday } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { OrderForm } from "@/components/orders/order-form";
@@ -110,7 +111,8 @@ export default async function NuevoPedidoPage() {
   });
 
   const orderId = randomUUID();
-  const today = getBusinessToday();
+  const timezone = await getCurrentOrganizationTimezone();
+  const today = getBusinessToday(timezone);
   const initialState = emptyOrderForm(today);
   // El vendedor nunca elige a nombre de quién se crea el pedido — se
   // prellena con su propio salesperson_id, y el RPC (0011) lo vuelve a

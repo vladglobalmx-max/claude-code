@@ -30,8 +30,17 @@ Requiere Node 20+, el [Supabase CLI](https://supabase.com/docs/guides/cli) y Doc
    y deja 3 cuentas de login listas para usar. No hay que crear nada a mano
    en el dashboard.
    ```bash
-   supabase db reset
+   ./scripts/reset-local-demo.sh
    ```
+   THÖREN 7C — `supabase db reset` a secas YA NO siembra datos (ver
+   `supabase/config.toml`): `seed_demo_data.sql` exige explícitamente un
+   GUC de sesión que solo este script fija, precisamente para que un
+   `psql <url-real> -f seed_demo_data.sql` corrido por error contra un
+   proyecto real (staging/producción) falle de inmediato en vez de crear
+   usuarios con password conocida ahí. Si solo necesitas reaplicar el
+   esquema sin datos de demo, `supabase db reset` solo sigue funcionando
+   igual que antes.
+
    Cuentas de prueba (`supabase/seed/seed_demo_data.sql`), todas con
    password **`Thoren2026!`** — SOLO existen en tu stack local, nunca en un
    proyecto real:

@@ -49,20 +49,46 @@ export function SetPasswordForm() {
 
     const redemption = resolveSetPasswordRedemption(searchParams);
     if (redemption.action === "invalid") {
+      // THÖREN — instrumentación mínima: nunca el token_hash en sí (es una
+      // credencial de un solo uso), solo si estaba presente y qué type traía
+      // — suficiente para diagnosticar en Runtime Logs/Console sin exponer
+      // nada sensible.
+      console.error("[set-password] enlace sin token_hash/type reconocible", {
+        hasTokenHash: searchParams.has("token_hash"),
+        type: searchParams.get("type"),
+      });
       setStatus("invalid");
       return;
     }
 
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.verifyOtp(redemption.params).then(({ data, error: verifyError }) => {
-      if (verifyError || !data.session) {
+    supabase.auth
+      .verifyOtp(redemption.params)
+      .then(({ data, error: verifyError }) => {
+        if (verifyError || !data.session) {
+          console.error("[set-password] verifyOtp falló", {
+            type: redemption.params.type,
+            message: verifyError?.message,
+            code: verifyError?.code,
+          });
+          setStatus("invalid");
+          return;
+        }
+        // Limpia el token de la barra de direcciones ahora que ya se consumió.
+        window.history.replaceState(null, "", "/set-password");
+        setStatus("ready");
+      })
+      .catch((err: unknown) => {
+        // Antes de este fix, un rechazo de la promesa (ej. fallo de red) no
+        // se capturaba en ningún lado: dejaba status="checking" para
+        // siempre, sin loguear nada. Ahora se registra y se resuelve a un
+        // estado visible en vez de quedar colgado en silencio.
+        console.error("[set-password] excepción inesperada verificando el enlace", {
+          type: redemption.params.type,
+          message: err instanceof Error ? err.message : String(err),
+        });
         setStatus("invalid");
-        return;
-      }
-      // Limpia el token de la barra de direcciones ahora que ya se consumió.
-      window.history.replaceState(null, "", "/set-password");
-      setStatus("ready");
-    });
+      });
   }, [searchParams]);
 
   async function handleSubmit(e: FormEvent) {

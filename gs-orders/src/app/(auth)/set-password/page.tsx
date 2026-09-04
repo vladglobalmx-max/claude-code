@@ -22,7 +22,7 @@ export default function SetPasswordPage() {
           <p className="mt-1 text-sm text-ink-faint">Accede a tu espacio de trabajo</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-6 shadow-card">
-          <Suspense fallback={null}>
+          <Suspense fallback={<p className="text-sm text-ink-faint">Verificando enlace…</p>}>
             <SetPasswordForm />
           </Suspense>
         </div>

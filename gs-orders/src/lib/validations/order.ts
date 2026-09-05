@@ -63,6 +63,15 @@ export const orderItemSchema = z.object({
   // de cada una).
   reference_images: z.array(orderItemImageSchema).default([]),
   projection_images: z.array(orderItemImageSchema).default([]),
+
+  // THÖREN 8B — valores de custom_field_definitions (entity_type=
+  // "order_item") por `key`, crudos (sin tipar todavía: validateCustomFields
+  // los tipa/valida server-side en pedidos/actions.ts). Opcional (no
+  // `.default()`) para no obligar a los constructores existentes de
+  // OrderItemPayload a incluirla — ausente se trata igual que {}. El RPC
+  // ignora esta clave (jsonb_array_elements + extracción explícita por
+  // columna, ver 0034_order_commitment_dates.sql) — nunca llega a order_items.
+  custom_field_values: z.record(z.string()).optional(),
 });
 
 export const orderImageSchema = z.object({

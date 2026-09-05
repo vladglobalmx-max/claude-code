@@ -38,3 +38,10 @@ export async function getCurrentOrganizationTimezone(): Promise<string> {
   const { data } = await supabase.from("organizations").select("timezone").eq("id", organizationId).single();
   return data?.timezone ?? DEFAULT_BUSINESS_TIMEZONE;
 }
+
+/** THÖREN 8B — organization_id del usuario actual, sin resolver ningún otro dato. Null si no hay sesión/organización resoluble. */
+export async function getCurrentOrganizationId(): Promise<string | null> {
+  const supabase = createSupabaseServerClient();
+  const { data } = await supabase.rpc("current_user_organization_id");
+  return data ?? null;
+}

@@ -284,7 +284,9 @@ export const SURFACE_MATERIAL_LABELS: Record<SurfaceMaterial, string> = {
 
 export interface Salesperson {
   id: string;
-  business_unit: BusinessUnit;
+  // THÖREN Fase 8B (0056) — legacy, deprecated desde 0022, ya nullable
+  // (nunca la escribe la app). Nunca asumir non-null en código nuevo.
+  business_unit: BusinessUnit | null;
   name: string;
   prefix: string;
   sequence_current: number;
@@ -408,7 +410,9 @@ export interface Order {
   // exclusivamente dentro de rpc_create_order_from_quote, nunca desde la
   // app directamente.
   source_quote_id: string | null;
-  business_unit: BusinessUnit;
+  // THÖREN Fase 8B (0056) — legacy, deprecated desde 0022, ya nullable. La
+  // relación real es business_unit_id.
+  business_unit: BusinessUnit | null;
   folio: string;
   sequence_number: number;
   salesperson_id: string;

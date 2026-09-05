@@ -134,7 +134,8 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
   // Nombre a mostrar cuando no hay logo: el real de business_units si el
   // pedido ya tiene business_unit_id asignado (Fase 6F); si no, la
   // etiqueta del enum legacy `business_unit` — nunca se inventa un nombre.
-  const businessUnitDisplayName = businessUnit?.name ?? BUSINESS_UNIT_LABELS[order.business_unit];
+  const businessUnitDisplayName =
+    businessUnit?.name ?? (order.business_unit ? BUSINESS_UNIT_LABELS[order.business_unit] : "");
   const sourceQuoteFolio = sourceQuote?.folio ?? null;
 
   const productTypeName = order.product_type_name_snapshot ?? order.product_type;

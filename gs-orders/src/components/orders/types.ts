@@ -113,6 +113,15 @@ export interface ProductItemDraft {
   surfaceMaterial: SurfaceMaterial | "";
   surfaceNotes: string;
   surfaceNotesEn: string;
+
+  /**
+   * THÖREN 8B — valores de custom_field_definitions (entity_type =
+   * "order_item") propios de esta línea, por `key`. Nunca incluye las
+   * claves nativas de arriba (power/color/lens_type/…): esas siguen
+   * viviendo en sus propias columnas de order_items, ver
+   * RESERVED_ORDER_ITEM_CUSTOM_FIELD_KEYS en productos-section.tsx.
+   */
+  customFieldValues: Record<string, string>;
 }
 
 export interface OrderFormState {
@@ -182,6 +191,7 @@ export function emptyProductItem(): ProductItemDraft {
     surfaceMaterial: "",
     surfaceNotes: "",
     surfaceNotesEn: "",
+    customFieldValues: {},
   };
 }
 

@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessToday } from "@/lib/business-date";
-import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
+import { getCurrentOrganizationId, getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { mapDbError } from "@/lib/db-errors";
 import {
   orderPayloadSchema,
@@ -12,9 +13,42 @@ import {
   getMissingProjectorFieldsFromRow,
   type OrderPayload,
 } from "@/lib/validations/order";
+import { deleteCustomFieldValuesForEntities, getCustomFieldDefinitions } from "@/lib/custom-fields/data";
+import { validateCustomFields } from "@/lib/custom-fields/validation";
+import type { Database } from "@/types/database.types";
 import type { OrderOperationalStatus } from "@/types/domain";
 
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
+
+/**
+ * THÖREN 8B (Gap 2) — valida los custom fields (entity_type="order_item")
+ * ANTES de llamar al RPC, solo para dar un error legible al usuario sin
+ * esperar el viaje al servidor. La autoridad REAL (la que no se puede
+ * saltar con un payload manipulado) vive en fn_apply_order_item_custom_fields
+ * (0058), dentro de la misma transacción que crea/actualiza el pedido —
+ * ver rpc_create_order_with_custom_fields/rpc_update_order_with_custom_fields
+ * más abajo. Esta validación en TS es una capa adicional de UX, nunca la
+ * única.
+ */
+async function validateOrderItemCustomFields(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  businessUnitId: string | null,
+  items: OrderPayload["items"]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const definitions = await getCustomFieldDefinitions(supabase, {
+    organizationId,
+    entityType: "order_item",
+    businessUnitId,
+  });
+  if (definitions.length === 0) return { ok: true };
+
+  for (const item of items) {
+    const result = validateCustomFields(definitions, item.custom_field_values ?? {});
+    if (!result.ok) return { ok: false, error: result.error };
+  }
+  return { ok: true };
+}
 
 /**
  * Construye la fila de `orders`. Equipo, proyección, instalación y
@@ -64,19 +98,34 @@ function validatePayload(raw: OrderPayload): OrderActionResult {
 }
 
 /**
- * Crea el pedido completo (datos + productos + imágenes + archivos) en una
- * sola transacción vía rpc_create_order (ver migración 0004). Si cualquier
- * parte falla, Postgres revierte todo — incluido el incremento del
- * consecutivo del vendedor hecho por el trigger de folio, así que un pedido
- * que no llega a guardarse nunca "gasta" un folio.
+ * Crea el pedido completo (datos + productos + imágenes + archivos +
+ * custom fields de cada producto) en una sola transacción vía
+ * rpc_create_order_with_custom_fields (0058) — wrapper additivo sobre
+ * rpc_create_order (0004) que además valida/guarda custom_field_values
+ * DENTRO de la misma transacción: si un campo personalizado requerido
+ * falta o un valor es inválido, el RPC entero se revierte, incluido el
+ * pedido y el consecutivo de folio del vendedor (THÖREN 8B, Gap 2 — antes
+ * el guardado de custom fields era un paso aparte que podía fallar sin
+ * revertir el pedido ya creado).
  */
 export async function createOrder(orderId: string, payload: OrderPayload): Promise<OrderActionResult> {
   const invalid = validatePayload(payload);
   if (invalid) return invalid;
 
   const supabase = createSupabaseServerClient();
+  const organizationId = await getCurrentOrganizationId();
 
-  const { error } = await supabase.rpc("rpc_create_order", {
+  if (organizationId) {
+    const result = await validateOrderItemCustomFields(
+      supabase,
+      organizationId,
+      payload.business_unit_id ?? null,
+      payload.items
+    );
+    if (!result.ok) return { error: result.error };
+  }
+
+  const { error } = await supabase.rpc("rpc_create_order_with_custom_fields", {
     p_order_id: orderId,
     p_order: buildOrderRow(payload),
     p_items: payload.items,
@@ -92,14 +141,33 @@ export async function createOrder(orderId: string, payload: OrderPayload): Promi
   redirect(`/pedidos/${orderId}`);
 }
 
-/** Reemplaza campos + productos + imágenes + archivos en una sola transacción (rpc_update_order). */
+/**
+ * Reemplaza campos + productos + imágenes + archivos + custom fields en
+ * una sola transacción vía rpc_update_order_with_custom_fields (0058).
+ * Ese wrapper ya se encarga de limpiar los custom_field_values huérfanos
+ * (rpc_update_order borra y reinserta todas las filas de order_items, ver
+ * 0034 — sus ids viejos dejan de existir) y de validar/guardar los nuevos,
+ * todo en la misma transacción: si algo falla, ni el pedido ni sus custom
+ * fields cambian (THÖREN 8B, Gap 2).
+ */
 export async function updateOrder(orderId: string, payload: OrderPayload): Promise<OrderActionResult> {
   const invalid = validatePayload(payload);
   if (invalid) return invalid;
 
   const supabase = createSupabaseServerClient();
+  const organizationId = await getCurrentOrganizationId();
 
-  const { error } = await supabase.rpc("rpc_update_order", {
+  if (organizationId) {
+    const result = await validateOrderItemCustomFields(
+      supabase,
+      organizationId,
+      payload.business_unit_id ?? null,
+      payload.items
+    );
+    if (!result.ok) return { error: result.error };
+  }
+
+  const { error } = await supabase.rpc("rpc_update_order_with_custom_fields", {
     p_order_id: orderId,
     p_order: buildOrderRow(payload),
     p_items: payload.items,
@@ -218,11 +286,19 @@ export async function setOrderOperationalStatus(
 export async function deleteOrder(orderId: string): Promise<{ error: string } | void> {
   const supabase = createSupabaseServerClient();
 
+  // THÖREN 8B — los order_items desaparecen con el cascade del RPC; sus
+  // ids hay que leerlos ANTES (entity_id en custom_field_values no es una
+  // FK real, ver 0055, así que nada los borra automáticamente).
+  const { data: items } = await supabase.from("order_items").select("id").eq("order_id", orderId);
+  const itemIds = (items ?? []).map((item) => item.id);
+
   const { data, error } = await supabase.rpc("rpc_delete_order", { p_order_id: orderId }).single();
 
   if (error) {
     return { error: mapDbError(error, "No se pudo eliminar el pedido. Intenta de nuevo.") };
   }
+
+  await deleteCustomFieldValuesForEntities(supabase, "order_item", itemIds);
 
   const mediaPaths = data?.orphaned_media_paths ?? [];
   const filePaths = data?.orphaned_file_paths ?? [];

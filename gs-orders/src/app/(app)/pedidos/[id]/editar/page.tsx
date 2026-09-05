@@ -3,9 +3,15 @@ import { AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { canWriteRecord } from "@/lib/auth/ownership";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
+import {
+  getCustomFieldDefinitions,
+  getCustomFieldValues,
+  groupCustomFieldRawValuesByEntity,
+} from "@/lib/custom-fields/data";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
 import type { CatalogProductOption } from "@/components/orders/types";
@@ -187,6 +193,16 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     };
   });
 
+  // THÖREN 8B — definiciones de order_item de la organización (cualquier
+  // BU) + los valores ya guardados de este pedido, para hidratar cada
+  // ProductItemDraft.customFieldValues por su `key`.
+  const organizationId = await getCurrentOrganizationId();
+  const customFieldDefinitions = organizationId
+    ? await getCustomFieldDefinitions(supabase, { organizationId, entityType: "order_item" })
+    : [];
+  const customFieldValueRows = await getCustomFieldValues(supabase, "order_item", itemIds);
+  const customFieldValuesByItemId = groupCustomFieldRawValuesByEntity(customFieldDefinitions, customFieldValueRows);
+
   const initialState = buildOrderFormState(
     typedOrder,
     typedItems,
@@ -194,7 +210,8 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     typedImages,
     typedFiles,
     mediaUrls,
-    fileUrls
+    fileUrls,
+    customFieldValuesByItemId
   );
 
   return (
@@ -211,6 +228,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
         businessUnits={businessUnits}
         catalogProducts={catalogProducts}
         productTypes={productTypes}
+        customFieldDefinitions={customFieldDefinitions}
         initialState={initialState}
         folio={typedOrder.folio}
         canChooseSalesperson={profile.role === "admin"}

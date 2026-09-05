@@ -5,9 +5,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getBusinessToday } from "@/lib/business-date";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { getCurrentOrganizationTimezone } from "@/lib/auth/organization";
+import { getCurrentOrganizationId, getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
+import { getCustomFieldDefinitions } from "@/lib/custom-fields/data";
 import { OrderForm } from "@/components/orders/order-form";
 import { emptyOrderForm, type CatalogProductOption } from "@/components/orders/types";
 import { createOrder } from "../actions";
@@ -114,6 +115,14 @@ export default async function NuevoPedidoPage() {
   const timezone = await getCurrentOrganizationTimezone();
   const today = getBusinessToday(timezone);
   const initialState = emptyOrderForm(today);
+
+  // THÖREN 8B — todas las definiciones de order_item de la organización
+  // (cualquier BU); ProductosSection filtra por la BU vigente en el
+  // cliente, ver DECISIÓN en ese componente.
+  const organizationId = await getCurrentOrganizationId();
+  const customFieldDefinitions = organizationId
+    ? await getCustomFieldDefinitions(supabase, { organizationId, entityType: "order_item" })
+    : [];
   // El vendedor nunca elige a nombre de quién se crea el pedido — se
   // prellena con su propio salesperson_id, y el RPC (0011) lo vuelve a
   // forzar server-side sin importar lo que llegue en el payload.
@@ -135,6 +144,7 @@ export default async function NuevoPedidoPage() {
         businessUnits={businessUnits}
         catalogProducts={catalogProducts}
         productTypes={productTypes}
+        customFieldDefinitions={customFieldDefinitions}
         initialState={initialState}
         canChooseSalesperson={profile.role === "admin"}
         onSubmit={createOrder}

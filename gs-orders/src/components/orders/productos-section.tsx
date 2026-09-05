@@ -14,6 +14,14 @@ import { CatalogProductPicker } from "./catalog-product-picker";
 import { ORIENTATION_LABELS, SURFACE_MATERIAL_LABELS, SURFACE_TYPE_LABELS, USE_LABELS } from "@/types/domain";
 import { emptyProductItem, type CatalogProductOption, type ProductItemDraft } from "./types";
 import { buildItemPatchFromCatalogProduct, catalogProductsById } from "@/lib/orders/catalog-picker";
+import { CustomFieldsRenderer } from "@/components/custom-fields/custom-fields-renderer";
+import { scopeDefinitionsToBusinessUnit } from "@/lib/custom-fields/scope";
+import {
+  isLegacyOrderItemFieldKey,
+  getLegacyOrderItemFieldRawValue,
+  applyLegacyOrderItemFieldValue,
+} from "@/lib/custom-fields/legacy-order-item-adapter";
+import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 
 export function ProductosSection({
   orderId,
@@ -21,6 +29,7 @@ export function ProductosSection({
   items,
   isProjector,
   catalogProducts,
+  customFieldDefinitions,
   onChange,
 }: {
   orderId: string;
@@ -29,6 +38,14 @@ export function ProductosSection({
   items: ProductItemDraft[];
   isProjector: boolean;
   catalogProducts: CatalogProductOption[];
+  /**
+   * THÖREN 8B — definiciones de custom_field_definitions (entity_type =
+   * "order_item") de TODA la organización (cualquier BU), sin filtrar
+   * todavía — este componente filtra por `businessUnitId` en cada
+   * render, así reacciona de inmediato si el usuario cambia de Business
+   * Unit en "Datos generales" sin necesidad de recargar la página.
+   */
+  customFieldDefinitions: CustomFieldDefinition[];
   onChange: (items: ProductItemDraft[]) => void;
 }) {
   function updateItem(key: string, patch: Partial<ProductItemDraft>) {
@@ -44,6 +61,27 @@ export function ProductosSection({
   }
 
   const productsById = catalogProductsById(catalogProducts);
+
+  // THÖREN 8B (Gap 1) — org-wide + la BU vigente del pedido, nunca la de
+  // otra BU (misma regla que getCustomFieldDefinitions en el servidor,
+  // aplicada aquí en el cliente porque businessUnitId puede cambiar sin
+  // recargar la página). Esta lista maneja TANTO los 8 campos legacy de
+  // Thunder (vía el adapter, siguen leyendo/escribiendo su columna nativa)
+  // COMO cualquier campo genérico nuevo — el componente ya no conoce
+  // "proyector_gobo" ni ningún concepto vertical para decidir qué mostrar.
+  const visibleCustomFieldDefinitions = scopeDefinitionsToBusinessUnit(customFieldDefinitions, businessUnitId);
+
+  function readCustomFieldValue(item: ProductItemDraft, key: string): string {
+    return isLegacyOrderItemFieldKey(key) ? getLegacyOrderItemFieldRawValue(item, key) : item.customFieldValues[key] ?? "";
+  }
+
+  function writeCustomFieldValue(item: ProductItemDraft, key: string, value: string) {
+    if (isLegacyOrderItemFieldKey(key)) {
+      updateItem(item.key, applyLegacyOrderItemFieldValue(key, value));
+    } else {
+      updateItem(item.key, { customFieldValues: { ...item.customFieldValues, [key]: value } });
+    }
+  }
 
   return (
     <Card>
@@ -194,45 +232,6 @@ export function ProductosSection({
                 />
               </div>
 
-              <div>
-                <Label htmlFor={`power-${item.key}`}>Potencia / versión (opcional)</Label>
-                <Input
-                  id={`power-${item.key}`}
-                  value={item.power}
-                  onChange={(e) => updateItem(item.key, { power: e.target.value })}
-                />
-              </div>
-
-              {!isProjector ? (
-                <div>
-                  <Label htmlFor={`color-${item.key}`}>Color (opcional)</Label>
-                  <Input
-                    id={`color-${item.key}`}
-                    value={item.color}
-                    onChange={(e) => updateItem(item.key, { color: e.target.value })}
-                  />
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor={`lens-${item.key}`}>Tipo de lente (opcional)</Label>
-                  <Input
-                    id={`lens-${item.key}`}
-                    value={item.lensType}
-                    disabled={item.lensPendingFactory}
-                    onChange={(e) => updateItem(item.key, { lensType: e.target.value })}
-                  />
-                  <label className="mt-1.5 flex items-center gap-2 text-xs text-ink-faint">
-                    <input
-                      type="checkbox"
-                      checked={item.lensPendingFactory}
-                      onChange={(e) => updateItem(item.key, { lensPendingFactory: e.target.checked, lensType: "" })}
-                      className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent/30"
-                    />
-                    Por definir con fábrica
-                  </label>
-                </div>
-              )}
-
               <div className="sm:col-span-2">
                 <Label htmlFor={`notes-${item.key}`}>Observaciones</Label>
                 <Textarea
@@ -250,29 +249,6 @@ export function ProductosSection({
                 <div className="mt-4 border-t border-border pt-4">
                   <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">Imagen a proyectar</p>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor={`proj-desc-${item.key}`}>¿Qué quiere proyectar el cliente?</Label>
-                      <Textarea
-                        id={`proj-desc-${item.key}`}
-                        rows={2}
-                        value={item.projectionDescription}
-                        onChange={(e) => updateItem(item.key, { projectionDescription: e.target.value })}
-                        placeholder="Ej. STOP, Cruce peatonal, Logo TENARIS, Zona restringida…"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`proj-desc-en-${item.key}`}>Texto para proveedor (inglés)</Label>
-                      <Textarea
-                        id={`proj-desc-en-${item.key}`}
-                        rows={2}
-                        value={item.projectionDescriptionEn}
-                        onChange={(e) => updateItem(item.key, { projectionDescriptionEn: e.target.value })}
-                        placeholder="Ej. STOP, Pedestrian crossing, TENARIS logo…"
-                      />
-                      <p className="mt-1 text-xs text-ink-faint">
-                        Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.
-                      </p>
-                    </div>
                     <div>
                       <Label>Imagen(es) a proyectar</Label>
                       <MultiFileField
@@ -462,30 +438,27 @@ export function ProductosSection({
                         ))}
                       </Select>
                     </div>
-                    <div className="sm:col-span-2">
-                      <Label htmlFor={`surf-notes-${item.key}`}>Observaciones de superficie</Label>
-                      <Textarea
-                        id={`surf-notes-${item.key}`}
-                        rows={2}
-                        value={item.surfaceNotes}
-                        onChange={(e) => updateItem(item.key, { surfaceNotes: e.target.value })}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <Label htmlFor={`surf-notes-en-${item.key}`}>Texto para proveedor (inglés)</Label>
-                      <Textarea
-                        id={`surf-notes-en-${item.key}`}
-                        rows={2}
-                        value={item.surfaceNotesEn}
-                        onChange={(e) => updateItem(item.key, { surfaceNotesEn: e.target.value })}
-                      />
-                      <p className="mt-1 text-xs text-ink-faint">
-                        Opcional. Se usa en el PDF para fábrica; si se deja vacío, se usa el texto en español.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </>
+            )}
+
+            {visibleCustomFieldDefinitions.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                  Campos personalizados
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <CustomFieldsRenderer
+                    definitions={visibleCustomFieldDefinitions}
+                    values={Object.fromEntries(
+                      visibleCustomFieldDefinitions.map((def) => [def.key, readCustomFieldValue(item, def.key)])
+                    )}
+                    idPrefix={`custom-${item.key}`}
+                    onChange={(fieldKey, value) => writeCustomFieldValue(item, fieldKey, value)}
+                  />
+                </div>
+              </div>
             )}
           </div>
           );

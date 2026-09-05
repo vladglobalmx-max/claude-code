@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
 import { computeFolioPreview } from "@/lib/folio-preview";
 import { catalogProductsById, findIncompatibleItems } from "@/lib/orders/catalog-picker";
+import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
 import { DatosGeneralesSection } from "./datos-generales-section";
@@ -51,15 +52,25 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       notes: item.notes || undefined,
       image_path: item.image?.path ?? null,
       reference_images: item.referenceImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
+      // Fase 8B (Gap 1) — catalog_product_id/projection_images/dimensiones/
+      // instalación/surface_type/surface_material NO están en la lista de 8
+      // campos legacy que se desacoplaron de "proyector_gobo" (fuera de
+      // alcance explícito del Gap) y siguen atados a isProjector. Los otros
+      // 8 (power ya iba así; color/lens_type/lens_pending_factory/
+      // projection_description(_en)/surface_notes(_en)) ahora se envían
+      // SIEMPRE — su VISIBILIDAD en el formulario ya no depende de
+      // isProjector sino de custom_field_definitions (ver
+      // ProductosSection); enviarlos siempre es seguro porque un campo que
+      // el usuario nunca vio queda con su valor de borrador vacío.
       catalog_product_id: !isProjector ? item.catalogProductId : null,
-      color: !isProjector ? item.color || undefined : undefined,
+      color: item.color || undefined,
       unit: item.unit || undefined,
       customer_requirements: item.customerRequirements || undefined,
       power: item.power || undefined,
-      lens_type: isProjector ? item.lensType || undefined : undefined,
-      lens_pending_factory: isProjector ? item.lensPendingFactory : undefined,
-      projection_description: isProjector ? item.projectionDescription || undefined : undefined,
-      projection_description_en: isProjector ? item.projectionDescriptionEn || undefined : undefined,
+      lens_type: item.lensType || undefined,
+      lens_pending_factory: item.lensPendingFactory,
+      projection_description: item.projectionDescription || undefined,
+      projection_description_en: item.projectionDescriptionEn || undefined,
       projection_images: isProjector
         ? item.projectionImages.map((img) => ({ path: img.path, name: img.name, type: img.type }))
         : [],
@@ -73,8 +84,9 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       installation_use: isProjector ? item.use || undefined : undefined,
       surface_type: isProjector ? item.surfaceType || undefined : undefined,
       surface_material: isProjector ? item.surfaceMaterial || undefined : undefined,
-      surface_notes: isProjector ? item.surfaceNotes || undefined : undefined,
-      surface_notes_en: isProjector ? item.surfaceNotesEn || undefined : undefined,
+      surface_notes: item.surfaceNotes || undefined,
+      surface_notes_en: item.surfaceNotesEn || undefined,
+      custom_field_values: item.customFieldValues,
     })),
     images: state.images.map((img) => ({ storage_path: img.path, caption: img.caption || undefined })),
     files: state.files.map((f) => ({
@@ -92,6 +104,7 @@ export function OrderForm({
   businessUnits,
   catalogProducts,
   productTypes,
+  customFieldDefinitions = [],
   initialState,
   folio,
   canChooseSalesperson = true,
@@ -104,6 +117,8 @@ export function OrderForm({
   businessUnits: { id: string; name: string }[];
   catalogProducts: CatalogProductOption[];
   productTypes: ProductTypeItem[];
+  /** THÖREN 8B — definiciones de custom_field_definitions (entity_type="order_item") de toda la organización, sin filtrar por BU (ver ProductosSection). */
+  customFieldDefinitions?: CustomFieldDefinition[];
   initialState: OrderFormState;
   folio?: string;
   /** false para VENDEDOR: nunca puede elegir a nombre de quién se crea el pedido. */
@@ -237,6 +252,7 @@ export function OrderForm({
             items={state.items}
             isProjector={state.productType === "proyector_gobo"}
             catalogProducts={catalogProducts}
+            customFieldDefinitions={customFieldDefinitions}
             onChange={(items) => patch({ items })}
           />
         </TabsContent>

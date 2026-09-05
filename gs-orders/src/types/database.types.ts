@@ -12,10 +12,15 @@ export interface Database {
           // THÖREN Fase 7A (0051) — NOT NULL, DEFAULT current_user_organization_id().
           // Nunca la envía el cliente (vendedores/actions.ts no la incluye en su
           // insert): se resuelve server-side desde la sesión de quien crea el
-          // vendedor. Único por (organization_id, business_unit, upper(prefix)) —
-          // ver salespeople_prefix_unique_per_org_unit.
+          // vendedor. Único por (organization_id, upper(prefix)) — ver
+          // salespeople_prefix_unique_per_org (renombrado en 0056: antes incluía
+          // business_unit en la clave, ver DECISIÓN ahí).
           organization_id: string;
-          business_unit: string;
+          // THÖREN Fase 8B (0056) — legacy, deprecated desde 0022. Ya NO tiene
+          // DEFAULT ni CHECK — nullable, nunca se escribe desde la app (la
+          // relación real con Business Units es organization_id + la propia
+          // asignación de folio/BU en orders/quotes, nunca este enum).
+          business_unit: string | null;
           name: string;
           prefix: string;
           sequence_current: number;
@@ -74,7 +79,9 @@ export interface Database {
           // único parcial (orders_source_quote_id_unique). Solo lo asigna
           // rpc_create_order_from_quote.
           source_quote_id: string | null;
-          business_unit: string;
+          // THÖREN Fase 8B (0056) — legacy, deprecated desde 0022. Ya NO tiene
+          // DEFAULT ni CHECK — nullable. La relación real es business_unit_id.
+          business_unit: string | null;
           folio: string;
           sequence_number: number;
           salesperson_id: string;
@@ -584,6 +591,103 @@ export interface Database {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 8B (0055) — motor mínimo de campos personalizados por
+      // Organization/Business Unit. Ver DECISIÓN en
+      // 0055_custom_fields_core.sql: business_unit_id NULL = campo
+      // organization-wide; un uuid real = exclusivo de esa BU.
+      custom_field_definitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          business_unit_id: string | null;
+          entity_type: "product" | "quote_item" | "order_item";
+          key: string;
+          label: string;
+          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date";
+          required: boolean;
+          active: boolean;
+          sort_order: number;
+          placeholder: string | null;
+          help_text: string | null;
+          options: string[] | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          business_unit_id?: string | null;
+          entity_type: "product" | "quote_item" | "order_item";
+          key: string;
+          label: string;
+          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date";
+          required?: boolean;
+          active?: boolean;
+          sort_order?: number;
+          placeholder?: string | null;
+          help_text?: string | null;
+          options?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["custom_field_definitions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_definitions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "custom_field_definitions_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      custom_field_values: {
+        Row: {
+          id: string;
+          organization_id: string;
+          definition_id: string;
+          entity_type: "product" | "quote_item" | "order_item";
+          entity_id: string;
+          value_text: string | null;
+          value_number: number | null;
+          value_boolean: boolean | null;
+          value_date: string | null;
+          value_json: unknown | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          definition_id: string;
+          entity_type: "product" | "quote_item" | "order_item";
+          entity_id: string;
+          value_text?: string | null;
+          value_number?: number | null;
+          value_boolean?: boolean | null;
+          value_date?: string | null;
+          value_json?: unknown | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["custom_field_values"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_values_definition_id_fkey";
+            columns: ["definition_id"];
+            isOneToOne: false;
+            referencedRelation: "custom_field_definitions";
             referencedColumns: ["id"];
           },
         ];
@@ -2004,6 +2108,29 @@ export interface Database {
         Returns: Database["public"]["Tables"]["orders"]["Row"];
       };
       rpc_update_order: {
+        Args: {
+          p_order_id: string;
+          p_order: Json;
+          p_items: Json;
+          p_images: Json;
+          p_files: Json;
+        };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      // THÖREN 8B (Gap 2, 0058) — wrappers additivos de rpc_create_order/
+      // rpc_update_order que además validan/guardan custom_field_values de
+      // cada order_item en la misma transacción.
+      rpc_create_order_with_custom_fields: {
+        Args: {
+          p_order_id: string;
+          p_order: Json;
+          p_items: Json;
+          p_images: Json;
+          p_files: Json;
+        };
+        Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      rpc_update_order_with_custom_fields: {
         Args: {
           p_order_id: string;
           p_order: Json;

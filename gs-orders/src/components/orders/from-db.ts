@@ -25,7 +25,9 @@ export function buildOrderFormState(
   images: OrderImage[],
   files: OrderFile[],
   mediaUrls: Record<string, string>,
-  fileUrls: Record<string, string>
+  fileUrls: Record<string, string>,
+  /** THÖREN 8B — valores de custom_field_definitions (order_item) por item.id → { key: valor crudo }. Ausente = {} para cada item (p. ej. Nuevo Pedido). */
+  customFieldValuesByItemId: Record<string, Record<string, string>> = {}
 ): OrderFormState {
   return {
     orderDate: order.order_date,
@@ -85,6 +87,7 @@ export function buildOrderFormState(
           surfaceMaterial: item.surface_material ?? "",
           surfaceNotes: item.surface_notes ?? "",
           surfaceNotesEn: item.surface_notes_en ?? "",
+          customFieldValues: customFieldValuesByItemId[item.id] ?? {},
         };
       }),
     images: images

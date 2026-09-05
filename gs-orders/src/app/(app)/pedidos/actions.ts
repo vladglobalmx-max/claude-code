@@ -2,20 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessToday } from "@/lib/business-date";
 import { getCurrentOrganizationId, getCurrentOrganizationTimezone } from "@/lib/auth/organization";
 import { mapDbError } from "@/lib/db-errors";
-import {
-  orderPayloadSchema,
-  getMissingProjectorFields,
-  getMissingProjectorFieldsFromRow,
-  type OrderPayload,
-} from "@/lib/validations/order";
+import { orderPayloadSchema, type OrderPayload } from "@/lib/validations/order";
 import { deleteCustomFieldValuesForEntities, getCustomFieldDefinitions } from "@/lib/custom-fields/data";
 import { validateCustomFields } from "@/lib/custom-fields/validation";
-import type { Database } from "@/types/database.types";
+import { getMissingRequiredCustomFieldsFromPayload } from "@/lib/custom-fields/completeness";
+import { getRequireSupplierBeforeOrder } from "@/lib/orders/process-settings";
+import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 import type { OrderOperationalStatus } from "@/types/domain";
 
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
@@ -30,17 +26,10 @@ export type OrderActionResult = { error: string; missingFields?: string[] } | vo
  * más abajo. Esta validación en TS es una capa adicional de UX, nunca la
  * única.
  */
-async function validateOrderItemCustomFields(
-  supabase: SupabaseClient<Database>,
-  organizationId: string,
-  businessUnitId: string | null,
+function validateOrderItemCustomFields(
+  definitions: CustomFieldDefinition[],
   items: OrderPayload["items"]
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const definitions = await getCustomFieldDefinitions(supabase, {
-    organizationId,
-    entityType: "order_item",
-    businessUnitId,
-  });
+): { ok: true } | { ok: false; error: string } {
   if (definitions.length === 0) return { ok: true };
 
   for (const item of items) {
@@ -48,6 +37,37 @@ async function validateOrderItemCustomFields(
     if (!result.ok) return { ok: false, error: result.error };
   }
   return { ok: true };
+}
+
+/**
+ * THÖREN 8D — pre-flight (capa 2 de 3) de "obligatorio antes de Pedido":
+ * getMissingRequiredCustomFieldsFromPayload es completamente genérica (cero
+ * conocimiento de Thunder/GOBO/product_type) — ver
+ * src/lib/custom-fields/completeness.ts. `requiresSupplier` cubre el único
+ * requisito CORE configurable (0062, Proveedor — no un custom field, ver
+ * DECISIÓN en esa migración) y se combina en la MISMA lista de faltantes.
+ * La autoridad REAL (capa 3, la que un payload manipulado no puede
+ * saltarse) vive en fn_get_missing_required_before_order_fields (0061/0062),
+ * invocada DENTRO de rpc_create_order_with_custom_fields/
+ * rpc_update_order_with_custom_fields.
+ */
+function checkMissingBeforeOrder(
+  definitions: CustomFieldDefinition[],
+  businessUnitId: string | null,
+  status: OrderPayload["status"],
+  items: OrderPayload["items"],
+  requiresSupplier: boolean,
+  supplierName: string | undefined
+): { ok: true } | { ok: false; error: string; missingFields: string[] } {
+  if (status !== "pedido") return { ok: true };
+  const customMissing = getMissingRequiredCustomFieldsFromPayload(definitions, businessUnitId, items);
+  const missing = requiresSupplier && !supplierName?.trim() ? ["Proveedor", ...customMissing] : customMissing;
+  if (missing.length === 0) return { ok: true };
+  return {
+    ok: false,
+    error: `No puedes continuar. Completa los campos requeridos: ${missing.join(", ")}`,
+    missingFields: missing,
+  };
 }
 
 /**
@@ -88,13 +108,6 @@ function validatePayload(raw: OrderPayload): OrderActionResult {
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
-  const missing = getMissingProjectorFields(parsed.data);
-  if (missing.length > 0) {
-    return {
-      error: "Falta información para enviar este pedido a fábrica",
-      missingFields: missing,
-    };
-  }
 }
 
 /**
@@ -116,13 +129,26 @@ export async function createOrder(orderId: string, payload: OrderPayload): Promi
   const organizationId = await getCurrentOrganizationId();
 
   if (organizationId) {
-    const result = await validateOrderItemCustomFields(
-      supabase,
+    const definitions = await getCustomFieldDefinitions(supabase, {
       organizationId,
-      payload.business_unit_id ?? null,
-      payload.items
-    );
+      entityType: "order_item",
+      businessUnitId: payload.business_unit_id ?? null,
+    });
+
+    const result = validateOrderItemCustomFields(definitions, payload.items);
     if (!result.ok) return { error: result.error };
+
+    const requiresSupplier =
+      payload.status === "pedido" ? await getRequireSupplierBeforeOrder(supabase, payload.business_unit_id ?? null) : false;
+    const missingCheck = checkMissingBeforeOrder(
+      definitions,
+      payload.business_unit_id ?? null,
+      payload.status,
+      payload.items,
+      requiresSupplier,
+      payload.supplier_name
+    );
+    if (!missingCheck.ok) return { error: missingCheck.error, missingFields: missingCheck.missingFields };
   }
 
   const { error } = await supabase.rpc("rpc_create_order_with_custom_fields", {
@@ -158,13 +184,26 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
   const organizationId = await getCurrentOrganizationId();
 
   if (organizationId) {
-    const result = await validateOrderItemCustomFields(
-      supabase,
+    const definitions = await getCustomFieldDefinitions(supabase, {
       organizationId,
-      payload.business_unit_id ?? null,
-      payload.items
-    );
+      entityType: "order_item",
+      businessUnitId: payload.business_unit_id ?? null,
+    });
+
+    const result = validateOrderItemCustomFields(definitions, payload.items);
     if (!result.ok) return { error: result.error };
+
+    const requiresSupplier =
+      payload.status === "pedido" ? await getRequireSupplierBeforeOrder(supabase, payload.business_unit_id ?? null) : false;
+    const missingCheck = checkMissingBeforeOrder(
+      definitions,
+      payload.business_unit_id ?? null,
+      payload.status,
+      payload.items,
+      requiresSupplier,
+      payload.supplier_name
+    );
+    if (!missingCheck.ok) return { error: missingCheck.error, missingFields: missingCheck.missingFields };
   }
 
   const { error } = await supabase.rpc("rpc_update_order_with_custom_fields", {
@@ -212,29 +251,22 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
   const supabase = createSupabaseServerClient();
 
   if (status === "pedido") {
-    const [{ data: order }, { data: items }] = await Promise.all([
-      supabase.from("orders").select("*").eq("id", orderId).single(),
-      supabase.from("order_items").select("*").eq("order_id", orderId),
-    ]);
-    if (order && order.product_type === "proyector_gobo") {
-      const itemIds = (items ?? []).map((item) => item.id);
-      const { data: projectionImages } =
-        itemIds.length > 0
-          ? await supabase
-              .from("order_item_images")
-              .select("order_item_id")
-              .eq("kind", "projection")
-              .in("order_item_id", itemIds)
-          : { data: [] as { order_item_id: string }[] };
-      const itemsWithProjection = new Set((projectionImages ?? []).map((row) => row.order_item_id));
-
-      const missing = getMissingProjectorFieldsFromRow(
-        order,
-        (items ?? []).map((item) => ({ ...item, hasProjectionImage: itemsWithProjection.has(item.id) }))
-      );
-      if (missing.length > 0) {
-        return { error: "Falta información para enviar este pedido a fábrica", missingFields: missing };
-      }
+    // THÖREN 8D — misma autoridad real que rpc_create_order_with_custom_fields/
+    // rpc_update_order_with_custom_fields (0061): genérica, sin conocer
+    // ningún product_type. "El cliente no es autoridad" también aplica
+    // aquí — esta llamada, no el frontend, decide si el pedido puede pasar
+    // a "Pedido".
+    const { data: missing, error: missingError } = await supabase.rpc("fn_get_missing_required_before_order_fields", {
+      p_order_id: orderId,
+    });
+    if (missingError) {
+      return { error: mapDbError(missingError, "No se pudo validar el pedido.") };
+    }
+    if (missing && missing.length > 0) {
+      return {
+        error: `No puedes continuar. Completa los campos requeridos: ${missing.join(", ")}`,
+        missingFields: missing,
+      };
     }
   }
 

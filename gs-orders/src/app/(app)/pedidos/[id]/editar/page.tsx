@@ -14,6 +14,7 @@ import {
   groupCustomFieldFilesByEntity,
   groupCustomFieldRawValuesByEntity,
 } from "@/lib/custom-fields/data";
+import { getRequireSupplierBeforeOrderByBusinessUnit } from "@/lib/orders/process-settings";
 import { OrderForm } from "@/components/orders/order-form";
 import { buildOrderFormState } from "@/components/orders/from-db";
 import type { CatalogProductOption } from "@/components/orders/types";
@@ -167,6 +168,11 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     : [];
   const customFieldValueRows = await getCustomFieldValues(supabase, "order_item", itemIds);
   const customFieldFilePaths = extractCustomFieldFilePaths(customFieldDefinitions, customFieldValueRows);
+  // THÖREN 8D (gap final) — requisito CORE de Proveedor, configurable por
+  // Business Unit (0062), nunca hardcodeado por código de BU.
+  const requireSupplierBeforeOrderByBusinessUnit = organizationId
+    ? await getRequireSupplierBeforeOrderByBusinessUnit(supabase, organizationId)
+    : {};
 
   const mediaPaths = [
     ...typedItems.map((i) => i.image_path).filter((p): p is string => !!p),
@@ -239,6 +245,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
         catalogProducts={catalogProducts}
         productTypes={productTypes}
         customFieldDefinitions={customFieldDefinitions}
+        requireSupplierBeforeOrderByBusinessUnit={requireSupplierBeforeOrderByBusinessUnit}
         initialState={initialState}
         folio={typedOrder.folio}
         canChooseSalesperson={profile.role === "admin"}

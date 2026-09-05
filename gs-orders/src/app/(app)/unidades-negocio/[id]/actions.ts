@@ -41,6 +41,46 @@ export async function updateBusinessUnitDetails(
 }
 
 /**
+ * THÖREN 8D (gap final) — requisitos CORE de esta Business Unit antes de
+ * "Pedido" (0062_business_unit_process_settings.sql). Upsert por
+ * business_unit_id (unique): la fila puede no existir todavía si nadie la
+ * configuró — nunca se asume que ya existe. RLS
+ * (business_unit_process_settings_admin_write) es la protección real; un
+ * vendedor que llame esto directo recibe el rechazo de la policy, no una
+ * excepción de aplicación.
+ */
+export async function updateBusinessUnitProcessSettings(
+  businessUnitId: string,
+  input: { requireSupplierBeforeOrder: boolean }
+): Promise<BusinessUnitActionResult> {
+  const supabase = createSupabaseServerClient();
+
+  const { data: businessUnit, error: fetchError } = await supabase
+    .from("business_units")
+    .select("organization_id")
+    .eq("id", businessUnitId)
+    .single();
+  if (fetchError || !businessUnit) {
+    return { error: mapDbError(fetchError, "No se encontró la Business Unit.") };
+  }
+
+  const { error } = await supabase.from("business_unit_process_settings").upsert(
+    {
+      organization_id: businessUnit.organization_id,
+      business_unit_id: businessUnitId,
+      require_supplier_before_order: input.requireSupplierBeforeOrder,
+    },
+    { onConflict: "business_unit_id" }
+  );
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar los requisitos de operación.") };
+  }
+
+  revalidatePath(`/unidades-negocio/${businessUnitId}`);
+}
+
+/**
  * Sube o reemplaza el logo. Path determinístico
  * {organization_id}/{business_unit_id}/logo.{ext} (bucket
  * business-unit-assets, privado). Si la extensión nueva coincide con la

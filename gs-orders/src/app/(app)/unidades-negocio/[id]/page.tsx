@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils/cn";
 import type { BusinessUnitRow } from "@/types/domain";
 import { BusinessUnitDetailForm } from "./business-unit-detail-form";
 import { BusinessUnitLogoField } from "./business-unit-logo-field";
+import { BusinessUnitProcessSettingsForm } from "./business-unit-process-settings-form";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,16 @@ export default async function BusinessUnitDetailPage({
   const signedLogoUrl = businessUnit.logo_path ? await getSignedUrl("business-unit-assets", businessUnit.logo_path) : null;
 
   const isAdmin = profile?.role === "admin";
+
+  // THÖREN 8D (gap final) — requisitos CORE de esta Business Unit antes de
+  // "Pedido" (0062). Puede no existir fila todavía (nadie la configuró) —
+  // en ese caso el default es "no requerido", igual que cualquier otra BU
+  // sin configurar.
+  const { data: processSettings } = await supabase
+    .from("business_unit_process_settings")
+    .select("require_supplier_before_order")
+    .eq("business_unit_id", businessUnit.id)
+    .maybeSingle();
 
   let showFolioNotice = false;
   if (isAdmin && searchParams.created === "1") {
@@ -118,6 +129,15 @@ export default async function BusinessUnitDetailPage({
               businessUnitId={businessUnit.id}
               initialLogoPath={businessUnit.logo_path}
               initialSignedUrl={signedLogoUrl}
+              canEdit={isAdmin}
+            />
+          </div>
+
+          <div className="border-t border-border pt-6">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">Requisitos de operación</p>
+            <BusinessUnitProcessSettingsForm
+              businessUnitId={businessUnit.id}
+              initialRequireSupplierBeforeOrder={processSettings?.require_supplier_before_order ?? false}
               canEdit={isAdmin}
             />
           </div>

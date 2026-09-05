@@ -120,75 +120,9 @@ export const orderPayloadSchema = z.object({
 export type OrderPayload = z.infer<typeof orderPayloadSchema>;
 export type OrderItemPayload = OrderPayload["items"][number];
 
-const ORDER_LEVEL_REQUIRED_FOR_PEDIDO: { label: string; check: (p: OrderPayload) => boolean }[] = [
-  { label: "Vendedor", check: (p) => !!p.salesperson_id },
-  { label: "Cliente", check: (p) => !!p.client_name },
-  { label: "Proveedor", check: (p) => !!p.supplier_name },
-];
-
-const ITEM_PROJECTOR_REQUIRED_FOR_PEDIDO: { label: string; check: (item: OrderItemPayload) => boolean }[] = [
-  { label: "Descripción de qué se proyectará", check: (item) => !!item.projection_description },
-  { label: "Imagen o archivo a proyectar", check: (item) => item.projection_images.length > 0 },
-  { label: "Ancho de proyección", check: (item) => item.projection_width != null },
-  { label: "Alto de proyección", check: (item) => item.projection_height != null },
-  { label: "Altura de instalación", check: (item) => item.installation_height != null },
-];
-
-function itemLabel(item: OrderItemPayload, index: number) {
-  return item.model ? `Producto ${index + 1} (${item.model})` : `Producto ${index + 1}`;
-}
-
-/**
- * Regla del §20: antes de marcar un pedido de Proyector/GOBO como "Pedido"
- * deben existir estos campos. No aplica para Borrador — eso siempre se puede
- * guardar incompleto. Cada producto se valida por separado: cada uno tiene
- * su propia proyección, instalación y superficie.
- */
-export function getMissingProjectorFields(payload: OrderPayload): string[] {
-  if (payload.product_type !== "proyector_gobo" || payload.status !== "pedido") return [];
-
-  const missing = ORDER_LEVEL_REQUIRED_FOR_PEDIDO.filter((rule) => !rule.check(payload)).map((rule) => rule.label);
-
-  payload.items.forEach((item, index) => {
-    ITEM_PROJECTOR_REQUIRED_FOR_PEDIDO.forEach((rule) => {
-      if (!rule.check(item)) missing.push(`${itemLabel(item, index)}: ${rule.label}`);
-    });
-  });
-
-  return missing;
-}
-
-/** Misma regla del §20 pero evaluada directamente sobre filas ya guardadas en BD (orders + order_items + order_item_images). */
-export function getMissingProjectorFieldsFromRow(
-  order: {
-    product_type: string;
-    supplier_name: string | null;
-    client_name: string;
-    salesperson_id: string;
-  },
-  items: {
-    model: string;
-    projection_description: string | null;
-    projection_width: number | null;
-    projection_height: number | null;
-    installation_height: number | null;
-    hasProjectionImage: boolean;
-  }[]
-): string[] {
-  if (order.product_type !== "proyector_gobo") return [];
-  const missing: string[] = [];
-  if (!order.salesperson_id) missing.push("Vendedor");
-  if (!order.client_name) missing.push("Cliente");
-  if (!order.supplier_name) missing.push("Proveedor");
-
-  items.forEach((item, index) => {
-    const label = item.model ? `Producto ${index + 1} (${item.model})` : `Producto ${index + 1}`;
-    if (!item.projection_description) missing.push(`${label}: Descripción de qué se proyectará`);
-    if (!item.hasProjectionImage) missing.push(`${label}: Imagen o archivo a proyectar`);
-    if (item.projection_width == null) missing.push(`${label}: Ancho de proyección`);
-    if (item.projection_height == null) missing.push(`${label}: Alto de proyección`);
-    if (item.installation_height == null) missing.push(`${label}: Altura de instalación`);
-  });
-
-  return missing;
-}
+// THÖREN 8D — la regla "qué es obligatorio antes de marcar un pedido como
+// Pedido" ya NO vive aquí ni conoce ningún product_type. Ver
+// src/lib/custom-fields/completeness.ts (getMissingRequiredCustomFields /
+// getMissingRequiredCustomFieldsFromPayload) y
+// fn_get_missing_required_before_order_fields (0061) para la autoridad
+// real, server-side.

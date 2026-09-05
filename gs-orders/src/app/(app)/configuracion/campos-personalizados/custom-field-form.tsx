@@ -163,7 +163,7 @@ export function CustomFieldForm({
         <Textarea id="helpText" name="helpText" rows={2} defaultValue={definition?.helpText ?? ""} />
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-wrap gap-6">
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <input
             type="checkbox"
@@ -171,7 +171,25 @@ export function CustomFieldForm({
             defaultChecked={definition?.required ?? false}
             className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
           />
-          Obligatorio
+          Obligatorio al capturar
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            name="requiredBeforeOrder"
+            defaultChecked={definition?.requiredBeforeOrder ?? false}
+            className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+          />
+          Obligatorio antes de Pedido
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            name="requiredBeforeFulfillment"
+            defaultChecked={definition?.requiredBeforeFulfillment ?? false}
+            className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+          />
+          Obligatorio antes de Fulfillment
         </label>
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <input
@@ -183,6 +201,9 @@ export function CustomFieldForm({
           Activo (visible al capturar)
         </label>
       </div>
+      <p className="-mt-3 text-xs text-ink-faint">
+        &ldquo;Antes de Fulfillment&rdquo; se guarda pero todavía no bloquea nada — se reserva para una fase futura.
+      </p>
 
       {state?.error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{state.error}</p>}
 

@@ -21,6 +21,8 @@ function mapDefinition(row: DefinitionRow): CustomFieldDefinition {
     placeholder: row.placeholder,
     helpText: row.help_text,
     options: (row.options as string[] | null) ?? null,
+    requiredBeforeOrder: row.required_before_order,
+    requiredBeforeFulfillment: row.required_before_fulfillment,
   };
 }
 

@@ -9,6 +9,7 @@ import { getCurrentOrganizationId, getCurrentOrganizationTimezone } from "@/lib/
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { getCustomFieldDefinitions } from "@/lib/custom-fields/data";
+import { getRequireSupplierBeforeOrderByBusinessUnit } from "@/lib/orders/process-settings";
 import { OrderForm } from "@/components/orders/order-form";
 import { emptyOrderForm, type CatalogProductOption } from "@/components/orders/types";
 import { createOrder } from "../actions";
@@ -123,6 +124,11 @@ export default async function NuevoPedidoPage() {
   const customFieldDefinitions = organizationId
     ? await getCustomFieldDefinitions(supabase, { organizationId, entityType: "order_item" })
     : [];
+  // THÖREN 8D (gap final) — requisito CORE de Proveedor, configurable por
+  // Business Unit (0062), nunca hardcodeado por código de BU.
+  const requireSupplierBeforeOrderByBusinessUnit = organizationId
+    ? await getRequireSupplierBeforeOrderByBusinessUnit(supabase, organizationId)
+    : {};
   // El vendedor nunca elige a nombre de quién se crea el pedido — se
   // prellena con su propio salesperson_id, y el RPC (0011) lo vuelve a
   // forzar server-side sin importar lo que llegue en el payload.
@@ -145,6 +151,7 @@ export default async function NuevoPedidoPage() {
         catalogProducts={catalogProducts}
         productTypes={productTypes}
         customFieldDefinitions={customFieldDefinitions}
+        requireSupplierBeforeOrderByBusinessUnit={requireSupplierBeforeOrderByBusinessUnit}
         initialState={initialState}
         canChooseSalesperson={profile.role === "admin"}
         onSubmit={createOrder}

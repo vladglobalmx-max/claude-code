@@ -17,6 +17,8 @@ function makeDef(overrides: Partial<CustomFieldDefinition> = {}): CustomFieldDef
     placeholder: null,
     helpText: null,
     options: null,
+    requiredBeforeOrder: false,
+    requiredBeforeFulfillment: false,
     ...overrides,
   };
 }

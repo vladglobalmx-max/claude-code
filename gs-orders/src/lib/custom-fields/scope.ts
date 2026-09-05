@@ -9,7 +9,7 @@ import type { CustomFieldDefinition } from "./types";
  */
 export function scopeDefinitionsToBusinessUnit(
   definitions: CustomFieldDefinition[],
-  businessUnitId: string
+  businessUnitId: string | null
 ): CustomFieldDefinition[] {
   return definitions.filter((def) => def.businessUnitId === null || def.businessUnitId === businessUnitId);
 }

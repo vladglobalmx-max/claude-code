@@ -67,9 +67,7 @@ export function RevisarSection({
         <div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
           <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
           <div>
-            <p className="text-sm font-medium text-ink">
-              Falta información para enviar este pedido a fábrica
-            </p>
+            <p className="text-sm font-medium text-ink">No puedes continuar. Completa los campos requeridos:</p>
             <ul className="mt-1 list-inside list-disc text-sm text-ink-soft">
               {missingFields.map((field) => (
                 <li key={field}>{field}</li>

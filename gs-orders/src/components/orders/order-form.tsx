@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getMissingProjectorFields, type OrderPayload } from "@/lib/validations/order";
+import type { OrderPayload } from "@/lib/validations/order";
 import { computeFolioPreview } from "@/lib/folio-preview";
 import { catalogProductsById, findIncompatibleItems } from "@/lib/orders/catalog-picker";
+import { getMissingRequiredCustomFields } from "@/lib/custom-fields/completeness";
 import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
 import type { OrderActionResult } from "@/app/(app)/pedidos/actions";
@@ -112,6 +113,7 @@ export function OrderForm({
   catalogProducts,
   productTypes,
   customFieldDefinitions = [],
+  requireSupplierBeforeOrderByBusinessUnit = {},
   initialState,
   folio,
   canChooseSalesperson = true,
@@ -126,6 +128,8 @@ export function OrderForm({
   productTypes: ProductTypeItem[];
   /** THÖREN 8B — definiciones de custom_field_definitions (entity_type="order_item") de toda la organización, sin filtrar por BU (ver ProductosSection). */
   customFieldDefinitions?: CustomFieldDefinition[];
+  /** THÖREN 8D (gap final) — por business_unit_id, si esa BU exige Proveedor antes de "Pedido" (0062, requisito CORE, no un custom field). */
+  requireSupplierBeforeOrderByBusinessUnit?: Record<string, boolean>;
   initialState: OrderFormState;
   folio?: string;
   /** false para VENDEDOR: nunca puede elegir a nombre de quién se crea el pedido. */
@@ -178,9 +182,18 @@ export function OrderForm({
   );
 
   const missingFields = useMemo(() => {
-    const payload = buildPayload(state, "pedido");
-    return getMissingProjectorFields(payload);
-  }, [state]);
+    const customMissing = getMissingRequiredCustomFields(customFieldDefinitions, state.businessUnitId, state.items);
+    // THÖREN 8D (gap final) — requisito CORE (Proveedor), no un custom
+    // field: se combina en la misma lista de faltantes, nunca en un
+    // mensaje aparte. La autoridad real de este chequeo vive en el
+    // servidor (fn_get_missing_required_before_order_fields, 0062); esto
+    // es solo la capa de UX.
+    const requiresSupplier = !!requireSupplierBeforeOrderByBusinessUnit[state.businessUnitId];
+    if (requiresSupplier && !state.supplierName.trim()) {
+      return ["Proveedor", ...customMissing];
+    }
+    return customMissing;
+  }, [customFieldDefinitions, state.businessUnitId, state.items, state.supplierName, requireSupplierBeforeOrderByBusinessUnit]);
 
   function handleSubmit(status: OrderStatus) {
     if (!state.salespersonId) {
@@ -201,13 +214,10 @@ export function OrderForm({
 
     const payload = buildPayload(state, status);
 
-    if (status === "pedido") {
-      const missing = getMissingProjectorFields(payload);
-      if (missing.length > 0) {
-        toast.error("Falta información para enviar este pedido a fábrica");
-        setTab("revisar");
-        return;
-      }
+    if (status === "pedido" && missingFields.length > 0) {
+      toast.error(`No puedes continuar. Completa los campos requeridos: ${missingFields.join(", ")}`);
+      setTab("revisar");
+      return;
     }
 
     setPendingStatus(status);

@@ -614,6 +614,10 @@ export interface Database {
           placeholder: string | null;
           help_text: string | null;
           options: string[] | null;
+          // THÖREN 8D (0061) — ver DECISIÓN en la migración: tiers
+          // independientes de `required` (obligatorio al capturar).
+          required_before_order: boolean;
+          required_before_fulfillment: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -631,6 +635,8 @@ export interface Database {
           placeholder?: string | null;
           help_text?: string | null;
           options?: string[] | null;
+          required_before_order?: boolean;
+          required_before_fulfillment?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -823,6 +829,45 @@ export interface Database {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 8D (gap final, 0062) — requisitos CORE configurables por
+      // Business Unit antes de "Pedido" (hoy solo Proveedor). Ver DECISIÓN
+      // en 0062_business_unit_process_settings.sql: diseñada para admitir
+      // más flags booleanos CORE después sin migrar arquitectura.
+      business_unit_process_settings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          business_unit_id: string;
+          require_supplier_before_order: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          business_unit_id: string;
+          require_supplier_before_order?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["business_unit_process_settings"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "business_unit_process_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "business_unit_process_settings_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: true;
+            referencedRelation: "business_units";
             referencedColumns: ["id"];
           },
         ];
@@ -2143,6 +2188,14 @@ export interface Database {
       rpc_duplicate_order: {
         Args: { p_source_order_id: string; p_order_date: string };
         Returns: Database["public"]["Tables"]["orders"]["Row"];
+      };
+      // THÖREN 8D (0061) — autoridad real de "obligatorio antes de Pedido",
+      // reutilizada por rpc_create_order_with_custom_fields/
+      // rpc_update_order_with_custom_fields (internamente) y por
+      // setOrderStatus (vía RPC directo).
+      fn_get_missing_required_before_order_fields: {
+        Args: { p_order_id: string };
+        Returns: string[];
       };
       // THÖREN Quote → Order (0023) — SECURITY INVOKER. La app SOLO manda
       // estos 3 valores; organization_id/customer_id/business_unit_id/

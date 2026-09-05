@@ -31,6 +31,10 @@ export const customFieldDefinitionSchema = z.object({
   label: z.string().trim().min(1, "La etiqueta es obligatoria").max(200),
   fieldType: z.enum(CUSTOM_FIELD_TYPES),
   required: z.boolean(),
+  // THÖREN 8D — tiers independientes de `required` (obligatorio al
+  // capturar): ver DECISIÓN en 0061_configurable_completeness_rules.sql.
+  requiredBeforeOrder: z.boolean(),
+  requiredBeforeFulfillment: z.boolean(),
   active: z.boolean(),
   sortOrder: z.coerce.number().int(),
   placeholder: z.string().trim().max(200).optional(),

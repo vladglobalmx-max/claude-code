@@ -36,6 +36,17 @@ export interface CustomFieldDefinition {
   helpText: string | null;
   /** Solo relevante para fieldType === "select" — lista de opciones válidas. */
   options: string[] | null;
+  /**
+   * THÖREN 8D — obligatorio para marcar un pedido como "Pedido" (no para
+   * guardar un Borrador, ver `required` arriba). Enforcement real vive en
+   * fn_get_missing_required_before_order_fields (0061), nunca solo en TS.
+   */
+  requiredBeforeOrder: boolean;
+  /**
+   * THÖREN 8D — se guarda y se administra, pero esta fase NO conecta
+   * ninguna validación real sobre él (deferred a propósito, ver 0061).
+   */
+  requiredBeforeFulfillment: boolean;
 }
 
 /** Valor crudo tal como llega de un <input>/<select> — siempre string u undefined, nunca tipado todavía. */

@@ -211,14 +211,20 @@ select test_set_user(:'admin');
 -- LEGACY (TESTS 19-22)
 -- =========================================================================
 
--- TEST 19: Thunder LED conserva sus 8 campos actuales, funcionando (activos).
+-- TEST 19: Thunder LED conserva sus 8 campos originales (0057), funcionando (activos).
+-- Nota: 0060 (Fase 8C) agregó 11 campos residuales más a Thunder LED
+-- (imagen a proyectar, dimensiones, instalación, superficie) — el conteo
+-- total real hoy es 19, no 8; este TEST verifica específicamente que los
+-- 8 originales de 0057 siguen ahí, no el total.
 do $$
 declare v_count integer;
 begin
   select count(*) into v_count from custom_field_definitions
-    where business_unit_id = (select id from business_units where organization_id = (select org1 from _ids) and code = 'thunder_led') and active;
-  if v_count <> 8 then raise exception 'TEST 19 FALLÓ: Thunder LED debería tener 8 campos activos, tiene %', v_count; end if;
-  raise notice 'TEST 19 OK: Thunder LED conserva sus 8 campos, activos';
+    where business_unit_id = (select id from business_units where organization_id = (select org1 from _ids) and code = 'thunder_led')
+      and active
+      and key in ('power', 'color', 'lens_type', 'lens_pending_factory', 'projection_description', 'projection_description_en', 'surface_notes', 'surface_notes_en');
+  if v_count <> 8 then raise exception 'TEST 19 FALLÓ: Thunder LED debería tener los 8 campos originales de 0057 activos, tiene %', v_count; end if;
+  raise notice 'TEST 19 OK: Thunder LED conserva sus 8 campos originales, activos';
 end $$;
 
 -- TEST 20: los datos históricos (columnas nativas de order_items) siguen siendo escribibles/legibles — rpc_update_order sigue escribiendo power/color como antes de 8B.

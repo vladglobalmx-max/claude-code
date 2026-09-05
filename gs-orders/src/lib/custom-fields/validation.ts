@@ -9,7 +9,19 @@ const EMPTY_VALUE: Omit<CustomFieldParsedValue, "definitionId"> = {
   valueNumber: null,
   valueBoolean: null,
   valueDate: null,
+  valueJson: null,
 };
+
+/** Parsea la forma cruda de un campo "file"/"image": un JSON de rutas de Storage (ver ProductosSection/order-form.tsx). `null`/vacío/JSON inválido → arreglo vacío. */
+function parseFileRawValue(raw: CustomFieldRawValue): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((p): p is string => typeof p === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Valida y tipa un valor crudo de formulario contra su definición —
@@ -32,6 +44,19 @@ export function validateCustomFieldValue(
       return { ok: false, error: `${definition.label} es obligatorio.` };
     }
     return { ok: true, value: { definitionId: definition.id, ...EMPTY_VALUE, valueBoolean: checked } };
+  }
+
+  // "file"/"image" nunca están "vacíos" por trim de string — su forma
+  // cruda es un JSON de rutas, y "vacío" significa arreglo sin elementos.
+  if (definition.fieldType === "file" || definition.fieldType === "image") {
+    const paths = parseFileRawValue(raw);
+    if (definition.required && paths.length === 0) {
+      return { ok: false, error: `${definition.label} es obligatorio.` };
+    }
+    return {
+      ok: true,
+      value: { definitionId: definition.id, ...EMPTY_VALUE, valueJson: paths.length > 0 ? paths : null },
+    };
   }
 
   const trimmed = raw?.trim() ?? "";

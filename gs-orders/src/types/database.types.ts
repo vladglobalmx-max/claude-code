@@ -607,7 +607,7 @@ export interface Database {
           entity_type: "product" | "quote_item" | "order_item";
           key: string;
           label: string;
-          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date";
+          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date" | "file" | "image";
           required: boolean;
           active: boolean;
           sort_order: number;
@@ -624,7 +624,7 @@ export interface Database {
           entity_type: "product" | "quote_item" | "order_item";
           key: string;
           label: string;
-          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date";
+          field_type: "text" | "textarea" | "number" | "select" | "checkbox" | "date" | "file" | "image";
           required?: boolean;
           active?: boolean;
           sort_order?: number;

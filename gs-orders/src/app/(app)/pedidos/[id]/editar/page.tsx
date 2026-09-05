@@ -8,8 +8,10 @@ import { canWriteRecord } from "@/lib/auth/ownership";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import {
+  extractCustomFieldFilePaths,
   getCustomFieldDefinitions,
   getCustomFieldValues,
+  groupCustomFieldFilesByEntity,
   groupCustomFieldRawValuesByEntity,
 } from "@/lib/custom-fields/data";
 import { OrderForm } from "@/components/orders/order-form";
@@ -153,12 +155,26 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
       : { data: [] as OrderItemImage[] };
   const typedItemImages = (itemImages ?? []) as OrderItemImage[];
 
+  // THÖREN 8B/8C — definiciones de order_item de la organización (cualquier
+  // BU) + los valores ya guardados de este pedido, para hidratar cada
+  // ProductItemDraft.customFieldValues/customFieldFiles por su `key`. Se
+  // resuelven ANTES de getSignedUrls: las rutas de un valor fieldType
+  // "file"/"image" necesitan entrar al mismo lote de URLs firmadas que el
+  // resto de las imágenes del pedido.
+  const organizationId = await getCurrentOrganizationId();
+  const customFieldDefinitions = organizationId
+    ? await getCustomFieldDefinitions(supabase, { organizationId, entityType: "order_item" })
+    : [];
+  const customFieldValueRows = await getCustomFieldValues(supabase, "order_item", itemIds);
+  const customFieldFilePaths = extractCustomFieldFilePaths(customFieldDefinitions, customFieldValueRows);
+
   const mediaPaths = [
     ...typedItems.map((i) => i.image_path).filter((p): p is string => !!p),
     ...typedItems.map((i) => i.projection_file_path).filter((p): p is string => !!p),
     ...typedItemImages.map((i) => i.storage_path),
     ...typedImages.map((i) => i.storage_path),
     ...(typedOrder.projection_file_path ? [typedOrder.projection_file_path] : []),
+    ...customFieldFilePaths,
   ];
   const filePaths = typedFiles.map((f) => f.storage_path);
 
@@ -169,6 +185,9 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     getSignedUrls("order-files", filePaths),
     getSignedUrls("order-media", catalogImagePaths),
   ]);
+
+  const customFieldValuesByItemId = groupCustomFieldRawValuesByEntity(customFieldDefinitions, customFieldValueRows);
+  const customFieldFilesByItemId = groupCustomFieldFilesByEntity(customFieldDefinitions, customFieldValueRows, mediaUrls);
 
   const catalogProducts: CatalogProductOption[] = catalogRows.map((p) => {
     const businessUnitIds = businessUnitIdsByProduct.get(p.id) ?? [];
@@ -193,16 +212,6 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     };
   });
 
-  // THÖREN 8B — definiciones de order_item de la organización (cualquier
-  // BU) + los valores ya guardados de este pedido, para hidratar cada
-  // ProductItemDraft.customFieldValues por su `key`.
-  const organizationId = await getCurrentOrganizationId();
-  const customFieldDefinitions = organizationId
-    ? await getCustomFieldDefinitions(supabase, { organizationId, entityType: "order_item" })
-    : [];
-  const customFieldValueRows = await getCustomFieldValues(supabase, "order_item", itemIds);
-  const customFieldValuesByItemId = groupCustomFieldRawValuesByEntity(customFieldDefinitions, customFieldValueRows);
-
   const initialState = buildOrderFormState(
     typedOrder,
     typedItems,
@@ -211,7 +220,8 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
     typedFiles,
     mediaUrls,
     fileUrls,
-    customFieldValuesByItemId
+    customFieldValuesByItemId,
+    customFieldFilesByItemId
   );
 
   return (

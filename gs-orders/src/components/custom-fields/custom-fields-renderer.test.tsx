@@ -75,6 +75,29 @@ describe("CustomFieldsRenderer (THÖREN 8B) — genérico, sin nombres de negoci
     expect(onChange).toHaveBeenCalledWith("urgente", "");
   });
 
+  it("THÖREN 8C — renderiza un campo file/image con MultiFileField y dispara onUploadFile/onRemoveFile con la key de la definición", async () => {
+    const onUploadFile = vi.fn().mockResolvedValue(undefined);
+    const onRemoveFile = vi.fn();
+    render(
+      <CustomFieldsRenderer
+        definitions={[makeDef({ fieldType: "file", key: "projection_images", label: "Imagen(es) a proyectar" })]}
+        values={{}}
+        idPrefix="item-1"
+        onChange={() => {}}
+        fileValues={{
+          projection_images: [
+            { key: "f1", path: "orders/1/a.png", name: "a.png", type: "image/png", size: 10, previewUrl: null },
+          ],
+        }}
+        onUploadFile={onUploadFile}
+        onRemoveFile={onRemoveFile}
+      />
+    );
+    expect(screen.getByText("a.png")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Eliminar archivo"));
+    expect(onRemoveFile).toHaveBeenCalledWith("projection_images", "f1");
+  });
+
   it("no muestra ninguna etiqueta de Business Unit u organización — el componente es puramente genérico", () => {
     const { container } = render(
       <CustomFieldsRenderer

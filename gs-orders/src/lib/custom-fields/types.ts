@@ -6,7 +6,19 @@
 export const CUSTOM_FIELD_ENTITY_TYPES = ["product", "quote_item", "order_item"] as const;
 export type CustomFieldEntityType = (typeof CUSTOM_FIELD_ENTITY_TYPES)[number];
 
-export const CUSTOM_FIELD_TYPES = ["text", "textarea", "number", "select", "checkbox", "date"] as const;
+/**
+ * THÖREN 8C — "file"/"image" se agregaron para poder eliminar el último
+ * hardcode real de Thunder (la imagen a proyectar, hasta 8C forzada por
+ * `isProjector`): un adjunto (1 o varios archivos) scoped exactamente
+ * igual que cualquier otro custom field — organización + definición +
+ * entidad. Reutilizan el Storage/RLS ya existente (uploadMediaFile) — no
+ * es un sistema de documentos nuevo. Se guardan como un arreglo de rutas
+ * en `custom_field_values.value_json` (columna ya reservada desde 0055
+ * exactamente para "un futuro tipo compuesto"). "image" es idéntico a
+ * "file" salvo el `accept` del selector — no hay lógica de servidor
+ * distinta entre los dos.
+ */
+export const CUSTOM_FIELD_TYPES = ["text", "textarea", "number", "select", "checkbox", "date", "file", "image"] as const;
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number];
 
 export interface CustomFieldDefinition {
@@ -36,4 +48,6 @@ export interface CustomFieldParsedValue {
   valueNumber: number | null;
   valueBoolean: boolean | null;
   valueDate: string | null;
+  /** Solo para fieldType "file"/"image" — arreglo de rutas de Storage (ver 0059). */
+  valueJson: string[] | null;
 }

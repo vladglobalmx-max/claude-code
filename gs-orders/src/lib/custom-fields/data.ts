@@ -93,6 +93,8 @@ export interface CustomFieldValueRow {
   valueNumber: number | null;
   valueBoolean: boolean | null;
   valueDate: string | null;
+  /** Solo para fieldType "file"/"image" — arreglo de rutas de Storage (ver 0059). */
+  valueJson: string[] | null;
 }
 
 /** Lee los valores guardados para un conjunto de entidades (p. ej. los order_items de un pedido al editarlo). */
@@ -115,6 +117,7 @@ export async function getCustomFieldValues(
     valueNumber: row.value_number,
     valueBoolean: row.value_boolean,
     valueDate: row.value_date,
+    valueJson: Array.isArray(row.value_json) ? (row.value_json as string[]) : null,
   }));
 }
 
@@ -127,6 +130,9 @@ function rawValueFromParsed(fieldType: CustomFieldDefinition["fieldType"], row: 
       return row.valueNumber === null ? "" : String(row.valueNumber);
     case "date":
       return row.valueDate ?? "";
+    case "file":
+    case "image":
+      return row.valueJson ? JSON.stringify(row.valueJson) : "";
     default:
       return row.valueText ?? "";
   }
@@ -143,6 +149,59 @@ export function groupCustomFieldRawValuesByEntity(
     const def = definitionsById.get(row.definitionId);
     if (!def) continue;
     (result[row.entityId] ??= {})[def.key] = rawValueFromParsed(def.fieldType, row);
+  }
+  return result;
+}
+
+/** Todas las rutas de Storage guardadas en valores fieldType "file"/"image" — para resolver sus URLs firmadas (getSignedUrls) antes de hidratar el formulario (ver ProductosSection). */
+export function extractCustomFieldFilePaths(
+  definitions: CustomFieldDefinition[],
+  valueRows: CustomFieldValueRow[]
+): string[] {
+  const fileDefinitionIds = new Set(
+    definitions.filter((d) => d.fieldType === "file" || d.fieldType === "image").map((d) => d.id)
+  );
+  const paths: string[] = [];
+  for (const row of valueRows) {
+    if (fileDefinitionIds.has(row.definitionId) && row.valueJson) paths.push(...row.valueJson);
+  }
+  return paths;
+}
+
+export interface CustomFieldFileDraft {
+  key: string;
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+  previewUrl: string | null;
+}
+
+/**
+ * Agrupa los valores fieldType "file"/"image" ya guardados por entity_id,
+ * como MediaDraft-compatibles con su URL firmada ya resuelta —
+ * `mediaUrls` debe incluir las rutas devueltas por
+ * extractCustomFieldFilePaths (mismo patrón que el resto de imágenes de
+ * un pedido, ver from-db.ts).
+ */
+export function groupCustomFieldFilesByEntity(
+  definitions: CustomFieldDefinition[],
+  valueRows: CustomFieldValueRow[],
+  mediaUrls: Record<string, string>
+): Record<string, Record<string, CustomFieldFileDraft[]>> {
+  const definitionsById = new Map(definitions.map((d) => [d.id, d]));
+  const result: Record<string, Record<string, CustomFieldFileDraft[]>> = {};
+  for (const row of valueRows) {
+    const def = definitionsById.get(row.definitionId);
+    if (!def || (def.fieldType !== "file" && def.fieldType !== "image") || !row.valueJson) continue;
+    (result[row.entityId] ??= {})[def.key] = row.valueJson.map((path, index) => ({
+      key: `${row.entityId}-${def.key}-${index}`,
+      path,
+      name: path.split("/").pop() ?? "archivo",
+      type: def.fieldType === "image" ? "image/*" : "application/octet-stream",
+      size: 0,
+      previewUrl: mediaUrls[path] ?? null,
+    }));
   }
   return result;
 }
@@ -170,6 +229,7 @@ export async function saveCustomFieldValues(
     value_number: v.valueNumber,
     value_boolean: v.valueBoolean,
     value_date: v.valueDate,
+    value_json: v.valueJson,
   }));
   const { error } = await supabase
     .from("custom_field_values")

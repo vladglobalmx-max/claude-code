@@ -29,7 +29,6 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload {
-  const isProjector = state.productType === "proyector_gobo";
   return {
     order_date: state.orderDate,
     salesperson_id: state.salespersonId,
@@ -52,17 +51,13 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       notes: item.notes || undefined,
       image_path: item.image?.path ?? null,
       reference_images: item.referenceImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
-      // Fase 8B (Gap 1) — catalog_product_id/projection_images/dimensiones/
-      // instalación/surface_type/surface_material NO están en la lista de 8
-      // campos legacy que se desacoplaron de "proyector_gobo" (fuera de
-      // alcance explícito del Gap) y siguen atados a isProjector. Los otros
-      // 8 (power ya iba así; color/lens_type/lens_pending_factory/
-      // projection_description(_en)/surface_notes(_en)) ahora se envían
-      // SIEMPRE — su VISIBILIDAD en el formulario ya no depende de
-      // isProjector sino de custom_field_definitions (ver
-      // ProductosSection); enviarlos siempre es seguro porque un campo que
-      // el usuario nunca vio queda con su valor de borrador vacío.
-      catalog_product_id: !isProjector ? item.catalogProductId : null,
+      // THÖREN 8C — ninguno de estos campos depende ya de isProjector: su
+      // VISIBILIDAD en el formulario sale de custom_field_definitions (ver
+      // ProductosSection), así que se envían siempre — un campo que el
+      // usuario nunca vio queda con su valor de borrador vacío, que el RPC
+      // (0058/0059) simplemente ignora si no hay una definición activa
+      // para esa organización/BU.
+      catalog_product_id: item.catalogProductId,
       color: item.color || undefined,
       unit: item.unit || undefined,
       customer_requirements: item.customerRequirements || undefined,
@@ -71,22 +66,34 @@ function buildPayload(state: OrderFormState, status: OrderStatus): OrderPayload 
       lens_pending_factory: item.lensPendingFactory,
       projection_description: item.projectionDescription || undefined,
       projection_description_en: item.projectionDescriptionEn || undefined,
-      projection_images: isProjector
-        ? item.projectionImages.map((img) => ({ path: img.path, name: img.name, type: img.type }))
-        : [],
-      projection_width: isProjector && item.projectionWidth ? Number(item.projectionWidth) : undefined,
-      projection_height: isProjector && item.projectionHeight ? Number(item.projectionHeight) : undefined,
-      projection_size_unit: isProjector ? item.projectionSizeUnit : undefined,
-      installation_height: isProjector && item.installationHeight ? Number(item.installationHeight) : undefined,
-      installation_height_unit: isProjector ? item.installationHeightUnit : undefined,
-      installation_distance: isProjector && item.installationDistance ? Number(item.installationDistance) : undefined,
-      installation_orientation: isProjector ? item.orientation || undefined : undefined,
-      installation_use: isProjector ? item.use || undefined : undefined,
-      surface_type: isProjector ? item.surfaceType || undefined : undefined,
-      surface_material: isProjector ? item.surfaceMaterial || undefined : undefined,
+      projection_images: item.projectionImages.map((img) => ({ path: img.path, name: img.name, type: img.type })),
+      projection_width: item.projectionWidth ? Number(item.projectionWidth) : undefined,
+      projection_height: item.projectionHeight ? Number(item.projectionHeight) : undefined,
+      projection_size_unit: item.projectionSizeUnit,
+      installation_height: item.installationHeight ? Number(item.installationHeight) : undefined,
+      installation_height_unit: item.installationHeightUnit,
+      installation_distance: item.installationDistance ? Number(item.installationDistance) : undefined,
+      installation_orientation: item.orientation || undefined,
+      installation_use: item.use || undefined,
+      surface_type: item.surfaceType || undefined,
+      surface_material: item.surfaceMaterial || undefined,
       surface_notes: item.surfaceNotes || undefined,
       surface_notes_en: item.surfaceNotesEn || undefined,
-      custom_field_values: item.customFieldValues,
+      // custom_field_values lleva tanto los campos de texto/número/select/
+      // checkbox como, para "file"/"image", un JSON de rutas de Storage
+      // (ver fn_apply_order_item_custom_fields, 0059) — projection_images
+      // (Thunder) se serializa aquí igual que cualquier otro adjunto
+      // genérico, nunca como un caso especial del RPC.
+      custom_field_values: {
+        ...item.customFieldValues,
+        projection_images: JSON.stringify(item.projectionImages.map((img) => img.path)),
+        ...Object.fromEntries(
+          Object.entries(item.customFieldFiles).map(([key, files]) => [
+            key,
+            JSON.stringify(files.map((f) => f.path)),
+          ])
+        ),
+      },
     })),
     images: state.images.map((img) => ({ storage_path: img.path, caption: img.caption || undefined })),
     files: state.files.map((f) => ({
@@ -250,7 +257,6 @@ export function OrderForm({
             orderId={orderId}
             businessUnitId={state.businessUnitId}
             items={state.items}
-            isProjector={state.productType === "proyector_gobo"}
             catalogProducts={catalogProducts}
             customFieldDefinitions={customFieldDefinitions}
             onChange={(items) => patch({ items })}
@@ -281,6 +287,7 @@ export function OrderForm({
             state={state}
             salespeople={salespeople}
             productTypes={productTypes}
+            customFieldDefinitions={customFieldDefinitions}
             missingFields={missingFields}
             editableStatus={isEdit}
             onStatusChange={(status) => patch({ status })}

@@ -39,7 +39,14 @@ describe("validateCustomFieldValue (THÖREN 8B)", () => {
     const result = validateCustomFieldValue(def, "  Azul  ");
     expect(result).toEqual({
       ok: true,
-      value: { definitionId: "def-1", valueText: "Azul", valueNumber: null, valueBoolean: null, valueDate: null },
+      value: {
+        definitionId: "def-1",
+        valueText: "Azul",
+        valueNumber: null,
+        valueBoolean: null,
+        valueDate: null,
+        valueJson: null,
+      },
     });
   });
 
@@ -48,7 +55,14 @@ describe("validateCustomFieldValue (THÖREN 8B)", () => {
     const result = validateCustomFieldValue(def, "42");
     expect(result).toEqual({
       ok: true,
-      value: { definitionId: "def-1", valueText: null, valueNumber: 42, valueBoolean: null, valueDate: null },
+      value: {
+        definitionId: "def-1",
+        valueText: null,
+        valueNumber: 42,
+        valueBoolean: null,
+        valueDate: null,
+        valueJson: null,
+      },
     });
   });
 
@@ -75,12 +89,51 @@ describe("validateCustomFieldValue (THÖREN 8B)", () => {
     const def = makeDef({ fieldType: "checkbox", key: "lens_pending_factory" });
     expect(validateCustomFieldValue(def, "on")).toEqual({
       ok: true,
-      value: { definitionId: "def-1", valueText: null, valueNumber: null, valueBoolean: true, valueDate: null },
+      value: {
+        definitionId: "def-1",
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: true,
+        valueDate: null,
+        valueJson: null,
+      },
     });
     expect(validateCustomFieldValue(def, undefined)).toEqual({
       ok: true,
-      value: { definitionId: "def-1", valueText: null, valueNumber: null, valueBoolean: false, valueDate: null },
+      value: {
+        definitionId: "def-1",
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: false,
+        valueDate: null,
+        valueJson: null,
+      },
     });
+  });
+
+  it("file/image guardan un arreglo de rutas de Storage (JSON) — required exige al menos un archivo", () => {
+    const def = makeDef({ fieldType: "file", key: "projection_images", label: "Imagen(es) a proyectar", required: true });
+    expect(validateCustomFieldValue(def, undefined)).toEqual({ error: "Imagen(es) a proyectar es obligatorio.", ok: false });
+    expect(validateCustomFieldValue(def, "[]")).toEqual({ error: "Imagen(es) a proyectar es obligatorio.", ok: false });
+
+    const withFiles = validateCustomFieldValue(def, JSON.stringify(["orders/1/proyeccion/a.png", "orders/1/proyeccion/b.pdf"]));
+    expect(withFiles).toEqual({
+      ok: true,
+      value: {
+        definitionId: "def-1",
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: null,
+        valueDate: null,
+        valueJson: ["orders/1/proyeccion/a.png", "orders/1/proyeccion/b.pdf"],
+      },
+    });
+  });
+
+  it("image no requerido permite vacío y JSON inválido se trata como sin archivos", () => {
+    const def = makeDef({ fieldType: "image", key: "foto" });
+    expect(validateCustomFieldValue(def, undefined).ok).toBe(true);
+    expect(validateCustomFieldValue(def, "esto no es json").ok).toBe(true);
   });
 
   it("date valida formato YYYY-MM-DD", () => {

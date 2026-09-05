@@ -27,7 +27,9 @@ export function buildOrderFormState(
   mediaUrls: Record<string, string>,
   fileUrls: Record<string, string>,
   /** THÖREN 8B — valores de custom_field_definitions (order_item) por item.id → { key: valor crudo }. Ausente = {} para cada item (p. ej. Nuevo Pedido). */
-  customFieldValuesByItemId: Record<string, Record<string, string>> = {}
+  customFieldValuesByItemId: Record<string, Record<string, string>> = {},
+  /** THÖREN 8C — valores de custom_field_definitions fieldType "file"/"image" que NO son una clave legacy (projection_images sigue viniendo de order_item_images, ver arriba), por item.id → { key: MediaDraft[] }. */
+  customFieldFilesByItemId: Record<string, Record<string, MediaDraft[]>> = {}
 ): OrderFormState {
   return {
     orderDate: order.order_date,
@@ -88,6 +90,7 @@ export function buildOrderFormState(
           surfaceNotes: item.surface_notes ?? "",
           surfaceNotesEn: item.surface_notes_en ?? "",
           customFieldValues: customFieldValuesByItemId[item.id] ?? {},
+          customFieldFiles: customFieldFilesByItemId[item.id] ?? {},
         };
       }),
     images: images

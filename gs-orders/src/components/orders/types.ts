@@ -122,6 +122,16 @@ export interface ProductItemDraft {
    * RESERVED_ORDER_ITEM_CUSTOM_FIELD_KEYS en productos-section.tsx.
    */
   customFieldValues: Record<string, string>;
+
+  /**
+   * THÖREN 8C — valores de custom_field_definitions de tipo "file"/"image"
+   * que NO son una de las claves legacy de order_item (ver
+   * LEGACY_ORDER_ITEM_FILE_FIELD_KEYS) — un adjunto realmente nuevo que un
+   * tenant define para su propia Business Unit, sin equivalente en
+   * order_items. `projection_images` (Thunder) sigue viviendo en su propio
+   * campo `projectionImages` de arriba, nunca aquí.
+   */
+  customFieldFiles: Record<string, MediaDraft[]>;
 }
 
 export interface OrderFormState {
@@ -192,6 +202,7 @@ export function emptyProductItem(): ProductItemDraft {
     surfaceNotes: "",
     surfaceNotesEn: "",
     customFieldValues: {},
+    customFieldFiles: {},
   };
 }
 

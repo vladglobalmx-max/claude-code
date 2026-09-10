@@ -23,6 +23,7 @@ function mapDefinition(row: DefinitionRow): CustomFieldDefinition {
     options: (row.options as string[] | null) ?? null,
     requiredBeforeOrder: row.required_before_order,
     requiredBeforeFulfillment: row.required_before_fulfillment,
+    supplierLabel: row.supplier_label,
   };
 }
 

@@ -23,6 +23,7 @@ function readForm(formData: FormData) {
     placeholder: formData.get("placeholder"),
     helpText: formData.get("helpText"),
     options: formData.get("options"),
+    supplierLabel: formData.get("supplierLabel"),
   };
 }
 
@@ -64,6 +65,7 @@ export async function createCustomFieldDefinition(
     placeholder: data.placeholder || null,
     help_text: data.helpText || null,
     options: data.fieldType === "select" ? data.options : null,
+    supplier_label: data.supplierLabel || null,
   });
 
   if (error) {
@@ -77,7 +79,7 @@ export async function createCustomFieldDefinition(
   redirect("/configuracion/campos-personalizados");
 }
 
-/** Edita label/tipo/requerido/activo/orden/ayuda/opciones. entityType/key/businessUnitId nunca llegan desde este formulario. */
+/** Edita label/supplierLabel/tipo/requerido/activo/orden/ayuda/opciones. entityType/key/businessUnitId nunca llegan desde este formulario. */
 export async function updateCustomFieldDefinition(
   id: string,
   _prevState: CustomFieldFormState,
@@ -111,6 +113,7 @@ export async function updateCustomFieldDefinition(
       placeholder: (formData.get("placeholder") as string | null)?.trim() || null,
       help_text: (formData.get("helpText") as string | null)?.trim() || null,
       options: fieldType === "select" ? options : null,
+      supplier_label: (formData.get("supplierLabel") as string | null)?.trim() || null,
     })
     .eq("id", id);
 

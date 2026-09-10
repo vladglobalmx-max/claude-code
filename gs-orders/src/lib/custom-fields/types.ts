@@ -47,6 +47,13 @@ export interface CustomFieldDefinition {
    * ninguna validación real sobre él (deferred a propósito, ver 0061).
    */
   requiredBeforeFulfillment: boolean;
+  /**
+   * THÖREN — Adenda PDF Pedido (0063): etiqueta alterna para documentos de
+   * proveedor (ej. inglés para un proveedor internacional). NULL = ningún
+   * documento de proveedor debe inventar una traducción — usa `label` tal
+   * cual. Nunca se traduce `label` automáticamente.
+   */
+  supplierLabel: string | null;
 }
 
 /** Valor crudo tal como llega de un <input>/<select> — siempre string u undefined, nunca tipado todavía. */

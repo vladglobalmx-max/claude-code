@@ -48,10 +48,16 @@ export async function updateBusinessUnitDetails(
  * (business_unit_process_settings_admin_write) es la protección real; un
  * vendedor que llame esto directo recibe el rechazo de la policy, no una
  * excepción de aplicación.
+ *
+ * IDIOMA PARA PROVEEDOR (Adenda PDF Pedido, 0063): `providerDocumentLanguage`
+ * agrega `provider_document_language` al mismo upsert — configuración de
+ * datos por Business Unit (nunca un `if businessUnit.code === 'thunder_led'`
+ * en el código), consumida por el PDF de Pedido (ver
+ * getProviderDocumentLanguage en lib/orders/process-settings.ts).
  */
 export async function updateBusinessUnitProcessSettings(
   businessUnitId: string,
-  input: { requireSupplierBeforeOrder: boolean }
+  input: { requireSupplierBeforeOrder: boolean; providerDocumentLanguage: "es" | "en" }
 ): Promise<BusinessUnitActionResult> {
   const supabase = createSupabaseServerClient();
 
@@ -69,6 +75,7 @@ export async function updateBusinessUnitProcessSettings(
       organization_id: businessUnit.organization_id,
       business_unit_id: businessUnitId,
       require_supplier_before_order: input.requireSupplierBeforeOrder,
+      provider_document_language: input.providerDocumentLanguage,
     },
     { onConflict: "business_unit_id" }
   );

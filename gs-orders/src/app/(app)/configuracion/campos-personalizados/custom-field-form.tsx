@@ -115,6 +115,21 @@ export function CustomFieldForm({
         <p className="mt-1 text-xs text-ink-faint">Texto que ve quien captura el formulario.</p>
       </div>
 
+      <div>
+        <Label htmlFor="supplierLabel">Etiqueta para Proveedor (opcional)</Label>
+        <Input
+          id="supplierLabel"
+          name="supplierLabel"
+          defaultValue={definition?.supplierLabel ?? ""}
+          placeholder="Ej. Printing technique"
+        />
+        <p className="mt-1 text-xs text-ink-faint">
+          Solo se usa en el PDF de Pedido cuando la Business Unit lo genera para Proveedor en otro idioma (ej.
+          inglés). Si se deja vacío, ese documento usa la Etiqueta de arriba tal cual — nunca se traduce
+          automáticamente.
+        </p>
+      </div>
+
       {isEdit ? (
         <div>
           <Label>Tipo de campo</Label>

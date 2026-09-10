@@ -2,6 +2,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
+export type ProviderDocumentLanguage = "es" | "en";
+
 /**
  * THÖREN 8D (gap final) — requisitos CORE configurables por Business Unit
  * antes de "Pedido" (0062_business_unit_process_settings.sql). Deliberadamente
@@ -38,4 +40,25 @@ export async function getRequireSupplierBeforeOrder(
     .eq("business_unit_id", businessUnitId)
     .maybeSingle();
   return data?.require_supplier_before_order ?? false;
+}
+
+/**
+ * THÖREN — Adenda PDF Pedido: idioma del documento de Pedido/Orden para
+ * Proveedor (0063). "es" por default — una Business Unit sin fila de
+ * settings (nunca configurada) se resuelve como español, igual que
+ * `getRequireSupplierBeforeOrder` resuelve `false` por ausencia. Nunca
+ * `if businessUnitId === thunderId then "en"` — la fuente de verdad es
+ * siempre la tabla.
+ */
+export async function getProviderDocumentLanguage(
+  supabase: SupabaseClient<Database>,
+  businessUnitId: string | null
+): Promise<ProviderDocumentLanguage> {
+  if (!businessUnitId) return "es";
+  const { data } = await supabase
+    .from("business_unit_process_settings")
+    .select("provider_document_language")
+    .eq("business_unit_id", businessUnitId)
+    .maybeSingle();
+  return data?.provider_document_language ?? "es";
 }

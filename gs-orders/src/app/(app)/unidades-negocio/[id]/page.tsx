@@ -67,7 +67,7 @@ export default async function BusinessUnitDetailPage({
   // sin configurar.
   const { data: processSettings } = await supabase
     .from("business_unit_process_settings")
-    .select("require_supplier_before_order")
+    .select("require_supplier_before_order, provider_document_language")
     .eq("business_unit_id", businessUnit.id)
     .maybeSingle();
 
@@ -138,6 +138,7 @@ export default async function BusinessUnitDetailPage({
             <BusinessUnitProcessSettingsForm
               businessUnitId={businessUnit.id}
               initialRequireSupplierBeforeOrder={processSettings?.require_supplier_before_order ?? false}
+              initialProviderDocumentLanguage={processSettings?.provider_document_language ?? "es"}
               canEdit={isAdmin}
             />
           </div>

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { CustomFieldsRenderer } from "./custom-fields-renderer";
+import { CustomFieldsRenderer, fieldRequirementSuffix } from "./custom-fields-renderer";
 import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 
 function makeDef(overrides: Partial<CustomFieldDefinition> = {}): CustomFieldDefinition {
@@ -21,6 +21,7 @@ function makeDef(overrides: Partial<CustomFieldDefinition> = {}): CustomFieldDef
     options: null,
     requiredBeforeOrder: false,
     requiredBeforeFulfillment: false,
+    supplierLabel: null,
     ...overrides,
   };
 }
@@ -110,5 +111,43 @@ describe("CustomFieldsRenderer (THÖREN 8B) — genérico, sin nombres de negoci
       />
     );
     expect(container.textContent).not.toMatch(/thunder|juno|got fresh breath|global supplier/i);
+  });
+});
+
+describe("fieldRequirementSuffix (bug real: campo 'opcional' que bloqueaba Pedido)", () => {
+  it("un campo required_before_order=true (required=false) NO se etiqueta como opcional — se comunica como requerido antes de Pedido", () => {
+    const def = makeDef({ key: "projection_description", label: "¿Qué quiere proyectar el cliente?", required: false, requiredBeforeOrder: true });
+    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Pedido)");
+    expect(fieldRequirementSuffix(def)).not.toMatch(/opcional/i);
+  });
+
+  it("un campo genuinamente opcional (required=false, requiredBeforeOrder=false) conserva el indicador (opcional)", () => {
+    const def = makeDef({ required: false, requiredBeforeOrder: false });
+    expect(fieldRequirementSuffix(def)).toBe(" (opcional)");
+  });
+
+  it("un campo required=true (obligatorio al capturar) no lleva sufijo, sin importar requiredBeforeOrder", () => {
+    expect(fieldRequirementSuffix(makeDef({ required: true, requiredBeforeOrder: false }))).toBe("");
+    expect(fieldRequirementSuffix(makeDef({ required: true, requiredBeforeOrder: true }))).toBe("");
+  });
+
+  it("genérico: funciona para cualquier key/label, no solo projection_description — sin hardcode vertical", () => {
+    const def = makeDef({ key: "prioridad", label: "Prioridad", required: false, requiredBeforeOrder: true });
+    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Pedido)");
+  });
+
+  it("en el DOM: un campo required_before_order muestra el label correcto, nunca '(opcional)'", () => {
+    const { container } = render(
+      <CustomFieldsRenderer
+        definitions={[
+          makeDef({ key: "projection_description", label: "¿Qué quiere proyectar el cliente?", required: false, requiredBeforeOrder: true }),
+        ]}
+        values={{}}
+        idPrefix="item-1"
+        onChange={() => {}}
+      />
+    );
+    expect(screen.getByLabelText("¿Qué quiere proyectar el cliente? (requerido antes de Pedido)")).toBeTruthy();
+    expect(container.textContent).not.toMatch(/opcional/i);
   });
 });

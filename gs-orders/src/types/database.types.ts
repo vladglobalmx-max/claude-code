@@ -618,6 +618,10 @@ export interface Database {
           // independientes de `required` (obligatorio al capturar).
           required_before_order: boolean;
           required_before_fulfillment: boolean;
+          // THÖREN — Adenda PDF Pedido (0063): etiqueta alterna para
+          // documentos de proveedor (ej. inglés) — NULL = usar `label` tal
+          // cual, nunca una traducción automática.
+          supplier_label: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -637,6 +641,7 @@ export interface Database {
           options?: string[] | null;
           required_before_order?: boolean;
           required_before_fulfillment?: boolean;
+          supplier_label?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -843,6 +848,9 @@ export interface Database {
           organization_id: string;
           business_unit_id: string;
           require_supplier_before_order: boolean;
+          // THÖREN — Adenda PDF Pedido (0063): idioma del documento de
+          // Pedido/Orden para Proveedor, configurable por Business Unit.
+          provider_document_language: "es" | "en";
           created_at: string;
           updated_at: string;
         };
@@ -851,6 +859,7 @@ export interface Database {
           organization_id: string;
           business_unit_id: string;
           require_supplier_before_order?: boolean;
+          provider_document_language?: "es" | "en";
           created_at?: string;
           updated_at?: string;
         };

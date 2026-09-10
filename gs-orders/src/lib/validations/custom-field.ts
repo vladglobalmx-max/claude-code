@@ -39,6 +39,12 @@ export const customFieldDefinitionSchema = z.object({
   sortOrder: z.coerce.number().int(),
   placeholder: z.string().trim().max(200).optional(),
   helpText: z.string().trim().max(500).optional(),
+  // THÖREN — Adenda PDF Pedido / Idioma para Proveedor (0063): etiqueta
+  // opcional usada SOLO en documentos de Proveedor en inglés (ver
+  // getProviderFieldLabel en lib/custom-fields/provider-label.ts). Nunca
+  // reemplaza `label`, que sigue siendo lo que ve quien captura el
+  // formulario (siempre en español).
+  supplierLabel: z.string().trim().max(200).optional(),
   // Solo tiene sentido para field_type = "select"; se ignora para el resto (ver actions.ts).
   options: z.preprocess(optionsFromTextarea, z.array(z.string().min(1)).optional()),
 });

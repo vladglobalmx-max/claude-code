@@ -9,6 +9,25 @@ import type { MediaDraft } from "@/components/orders/types";
 import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 
 /**
+ * THÖREN — etiqueta genérica de "qué tan obligatorio" es un campo, para
+ * cualquier custom field de cualquier organización/BU — nunca conoce
+ * `projection_description` ni ningún campo por nombre. Antes este
+ * renderer solo distinguía `required` (obligatorio al capturar) vs.
+ * "(opcional)", así que un campo con `required=false` pero
+ * `requiredBeforeOrder=true` (ver 0061) se mostraba como "(opcional)"
+ * aunque en la práctica bloqueaba "Generar pedido" — UX incorrecta y
+ * confusa. Ahora distingue las 3 combinaciones reales:
+ *   - required=true            → sin sufijo (ya se comunica como obligatorio).
+ *   - required=false, requiredBeforeOrder=true → "(requerido antes de Pedido)".
+ *   - ninguno de los dos       → "(opcional)".
+ */
+export function fieldRequirementSuffix(definition: CustomFieldDefinition): string {
+  if (definition.required) return "";
+  if (definition.requiredBeforeOrder) return " (requerido antes de Pedido)";
+  return " (opcional)";
+}
+
+/**
  * Renderer universal de campos personalizados (THÖREN 8B/8C). Solo conoce
  * `entityType`/`definitions`/`values`/`fileValues` — nunca el nombre de
  * una organización o Business Unit, ni "proyector_gobo" ni ningún
@@ -71,7 +90,7 @@ export function CustomFieldsRenderer({
             <div key={def.id} className="sm:col-span-2">
               <Label>
                 {def.label}
-                {!def.required && " (opcional)"}
+                {fieldRequirementSuffix(def)}
               </Label>
               <MultiFileField
                 items={files}
@@ -89,7 +108,7 @@ export function CustomFieldsRenderer({
           <div key={def.id} className={def.fieldType === "textarea" ? "sm:col-span-2" : undefined}>
             <Label htmlFor={domId}>
               {def.label}
-              {!def.required && " (opcional)"}
+              {fieldRequirementSuffix(def)}
             </Label>
             {def.fieldType === "textarea" ? (
               <Textarea

@@ -30,6 +30,7 @@ function makeDef(overrides: Partial<CustomFieldDefinition>): CustomFieldDefiniti
     options: null,
     requiredBeforeOrder: true,
     requiredBeforeFulfillment: false,
+    supplierLabel: null,
     ...overrides,
   };
 }

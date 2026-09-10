@@ -219,7 +219,7 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
 
       <PrintDocumentScaler>
         <div className="mx-auto w-[768px] max-w-none rounded-xl border border-border bg-surface p-8 shadow-card print:w-auto print:max-w-3xl print:rounded-none print:border-0 print:shadow-none print:p-0">
-          <header className="mb-6 flex items-start justify-between gap-6 border-b-2 border-border pb-6 break-inside-avoid">
+          <header className="mb-6 flex items-start justify-between gap-6 border-b-2 border-border pb-6 break-inside-avoid print:mb-3 print:pb-3">
             <div className="min-w-0">
               {signedLogoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -254,13 +254,13 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
           </div>
 
           {sourceQuoteFolio && (
-            <p className="mb-6 text-xs text-ink-faint break-inside-avoid print:mb-4">{providerLabel("sourceQuote", documentLanguage)} {sourceQuoteFolio}</p>
+            <p className="mb-6 text-xs text-ink-faint break-inside-avoid print:mb-2">{providerLabel("sourceQuote", documentLanguage)} {sourceQuoteFolio}</p>
           )}
 
           {items.length > 0 && (
-            <section className="break-inside-avoid">
+            <section>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{providerLabel("products", documentLanguage)}</p>
-              <div className="space-y-2.5">
+              <div className="space-y-2.5 print:space-y-1.5">
                 {items.map((item, index) => {
                   const imageUrl = item.image_path ? mediaUrls[item.image_path] : null;
                   const ownImages = itemImages.filter((img) => img.order_item_id === item.id);
@@ -281,7 +281,7 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
                   ].filter(Boolean);
 
                   return (
-                    <div key={item.id} className="break-inside-avoid rounded-lg border border-border p-2.5">
+                    <div key={item.id} className="break-inside-avoid rounded-lg border border-border p-2.5 print:p-2">
                       <div className="flex gap-2.5">
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
                           {imageUrl ? (
@@ -395,7 +395,7 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
           )}
 
           {images.length > 0 && (
-            <section className="mt-6 break-inside-avoid print:mt-3">
+            <section className="mt-6 print:mt-2">
               <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{providerLabel("photos", documentLanguage)}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {images.map((img) => {
@@ -425,18 +425,42 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
             </section>
           )}
 
-          <footer className="mt-10 border-t border-border pt-4 text-xs text-ink-faint break-inside-avoid print:mt-3 print:pt-2">
-            <div className="flex items-center justify-between">
-              <span>
-                {businessUnitDisplayName}
-                {organizationName ? ` · ${organizationName}` : ""}
-              </span>
-              <span>{providerLabel("orderNumber", documentLanguage)}: {order.folio}</span>
+          <footer className="mt-10 border-t border-border pt-4 text-xs text-ink-faint print:mt-2 print:pt-1.5">
+            {/* Vista en pantalla: dos filas legibles, sin restricción de layout. */}
+            <div className="print:hidden">
+              <div className="flex items-center justify-between">
+                <span>
+                  {businessUnitDisplayName}
+                  {organizationName ? ` · ${organizationName}` : ""}
+                </span>
+                <span>{providerLabel("orderNumber", documentLanguage)}: {order.folio}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>{providerLabel("generatedOn", documentLanguage)} {generatedOn}</span>
+                <span>{providerLabel("generatedByThoren", documentLanguage)}</span>
+              </div>
             </div>
-            <div className="mt-1 flex items-center justify-between">
-              <span>{providerLabel("generatedOn", documentLanguage)} {generatedOn}</span>
-              <span>{providerLabel("generatedByThoren", documentLanguage)}</span>
-            </div>
+            {/*
+              Impresión: una sola línea compacta, sin break-inside-avoid.
+              El footer con dos filas + break-inside-avoid era exactamente
+              lo que empujaba una 3ra página casi vacía (BUG REAL POST-
+              DEPLOY, KST-20261009-010): si el contenido de arriba llegaba
+              casi al final de la página 2, el footer completo no cabía y
+              el navegador lo movía entero a una página 3 nueva. Una línea
+              siempre cabe en el espacio que sobra, y sin break-inside-avoid
+              el navegador puede acomodarla donde corresponda en vez de
+              forzar un salto de página completo.
+            */}
+            <p className="hidden print:block">
+              {businessUnitDisplayName}
+              {organizationName ? ` · ${organizationName}` : ""}
+              {" · "}
+              {providerLabel("orderNumber", documentLanguage)}: {order.folio}
+              {" · "}
+              {providerLabel("generatedOn", documentLanguage)} {generatedOn}
+              {" · "}
+              {providerLabel("generatedByThoren", documentLanguage)}
+            </p>
           </footer>
         </div>
       </PrintDocumentScaler>

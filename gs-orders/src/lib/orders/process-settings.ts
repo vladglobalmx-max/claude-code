@@ -62,3 +62,30 @@ export async function getProviderDocumentLanguage(
     .maybeSingle();
   return data?.provider_document_language ?? "es";
 }
+
+/**
+ * THÖREN Fase 9 / Block 1, Parte H (0064) — idioma de un documento de
+ * Purchase Order para UN proveedor específico. Prioridad de resolución:
+ * `suppliers.preferred_document_language` → `business_unit_process_settings.
+ * provider_document_language` (0063) → 'es'. Nunca
+ * `if businessUnit.code === 'thunder_led'` ni `if supplier.name === '...'`
+ * — ambos niveles son datos, nunca código. No usada todavía por ningún
+ * documento (el PDF de Pedido para Proveedor, 0063, no tiene supplier_id
+ * — orders.supplier_name es texto libre, sin FK a `suppliers`); queda
+ * lista para cuando exista un documento de Purchase Order real.
+ */
+export async function getPurchaseOrderDocumentLanguage(
+  supabase: SupabaseClient<Database>,
+  supplierId: string | null,
+  businessUnitId: string | null
+): Promise<ProviderDocumentLanguage> {
+  if (supplierId) {
+    const { data } = await supabase
+      .from("suppliers")
+      .select("preferred_document_language")
+      .eq("id", supplierId)
+      .maybeSingle();
+    if (data?.preferred_document_language) return data.preferred_document_language;
+  }
+  return getProviderDocumentLanguage(supabase, businessUnitId);
+}

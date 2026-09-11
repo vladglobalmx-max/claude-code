@@ -111,6 +111,60 @@ function validatePayload(raw: OrderPayload): OrderActionResult {
 }
 
 /**
+ * THÖREN Fase 9 / Block 1 (0064, aclaración GAP 2) — se invoca DESPUÉS de
+ * que el Pedido ya quedó guardado (create/update/setOrderStatus, los 3
+ * call sites que pueden cambiar `status`). `rpc_sync_order_procurement`
+ * es el ÚNICO punto de entrada — idempotente, decide internamente qué
+ * hacer según el status ACTUAL del Pedido (pedido → disponibilidad/
+ * reserva/requirement; cancelado → libera reservas + cancela requirements;
+ * cualquier otro → no-op).
+ *
+ * NUNCA silencioso (Opción B — recuperable y visible, ver aclaración): el
+ * Pedido ya se guardó con éxito antes de llegar aquí, así que un fallo
+ * aquí NUNCA revierte esa parte ni bloquea al usuario — pero SIEMPRE deja
+ * un rastro visible en `orders.procurement_sync_status`/`procurement_sync_error`,
+ * nunca solo un console.error. Si la propia RPC tuvo éxito, ella misma ya
+ * dejó procurement_sync_status='ok' como su último paso (atómico con todo
+ * lo demás que hizo); si falló, esta función hace el UPDATE de
+ * 'failed' + mensaje en una llamada aparte (no puede ocurrir dentro de la
+ * transacción que acaba de revertirse). `recalculateOrderProcurement`
+ * (mismo archivo) reintenta llamando exactamente a esta misma función —
+ * reintentar es siempre seguro (idempotente).
+ */
+async function runProcurementSideEffect(supabase: ReturnType<typeof createSupabaseServerClient>, orderId: string) {
+  const { error } = await supabase.rpc("rpc_sync_order_procurement", { p_order_id: orderId });
+  if (error) {
+    console.error("rpc_sync_order_procurement falló — marcado como visible, no silencioso", { orderId, message: error.message });
+    await supabase
+      .from("orders")
+      .update({ procurement_sync_status: "failed", procurement_sync_error: error.message })
+      .eq("id", orderId);
+  }
+}
+
+/**
+ * THÖREN Fase 9 / Block 1 (0064, aclaración GAP 2) — reintento manual,
+ * idempotente, de la sincronización de procurement de un Pedido. Mismo
+ * mecanismo exacto que el paso automático post-confirmación/edición/
+ * cancelación (runProcurementSideEffect) — expuesto como Server Action
+ * para un botón "Recalcular abastecimiento" cuando
+ * `procurement_sync_status = 'failed'`.
+ */
+export async function recalculateOrderProcurement(orderId: string): Promise<OrderActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_sync_order_procurement", { p_order_id: orderId });
+  if (error) {
+    await supabase
+      .from("orders")
+      .update({ procurement_sync_status: "failed", procurement_sync_error: error.message })
+      .eq("id", orderId);
+    return { error: mapDbError(error, "No se pudo recalcular el abastecimiento. Intenta de nuevo.") };
+  }
+  revalidatePath("/pedidos");
+  revalidatePath(`/pedidos/${orderId}`);
+}
+
+/**
  * Crea el pedido completo (datos + productos + imágenes + archivos +
  * custom fields de cada producto) en una sola transacción vía
  * rpc_create_order_with_custom_fields (0058) — wrapper additivo sobre
@@ -162,6 +216,8 @@ export async function createOrder(orderId: string, payload: OrderPayload): Promi
   if (error) {
     return { error: mapDbError(error, "No se pudo guardar el pedido. Intenta de nuevo.") };
   }
+
+  await runProcurementSideEffect(supabase, orderId);
 
   revalidatePath("/pedidos");
   redirect(`/pedidos/${orderId}`);
@@ -218,6 +274,8 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
     return { error: mapDbError(error, "No se pudieron guardar los cambios. Intenta de nuevo.") };
   }
 
+  await runProcurementSideEffect(supabase, orderId);
+
   revalidatePath("/pedidos");
   revalidatePath(`/pedidos/${orderId}`);
   redirect(`/pedidos/${orderId}`);
@@ -272,6 +330,8 @@ export async function setOrderStatus(orderId: string, status: "borrador" | "pedi
 
   const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
   if (error) return { error: mapDbError(error, "No se pudo actualizar el estado del pedido.") };
+
+  await runProcurementSideEffect(supabase, orderId);
 
   revalidatePath("/pedidos");
   revalidatePath(`/pedidos/${orderId}`);

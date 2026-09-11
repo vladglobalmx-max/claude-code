@@ -19,6 +19,7 @@ import { ORDER_OPERATIONAL_STATUS_BADGE, ORDER_OPERATIONAL_STATUS_LABELS } from 
 import type { OrderOperationalStatusHistoryEntry } from "@/types/domain";
 import { DuplicateButton } from "../duplicate-button";
 import { OrderStatusQuickActions } from "./status-quick-actions";
+import { ProcurementSyncBanner } from "./procurement-sync-banner";
 import { OrderOperationalStatusActions } from "./operational-status-actions";
 import { OrderOperationalStatusHistory } from "./operational-status-history";
 import { PurchaseOrdersSection } from "./purchase-orders-section";
@@ -111,6 +112,12 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
           </Link>
         </div>
       </div>
+
+      <ProcurementSyncBanner
+        orderId={detail.order.id}
+        status={detail.order.procurement_sync_status}
+        error={detail.order.procurement_sync_error}
+      />
 
       {detail.order.source_quote_id && (
         <p className="no-print mb-4 text-sm text-ink-faint">

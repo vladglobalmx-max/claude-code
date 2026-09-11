@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
@@ -76,7 +78,15 @@ export default async function ComprasPage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Compras" description="Purchase Orders generadas desde los Pedidos, por proveedor." />
+      <PageHeader
+        title="Compras"
+        description="Purchase Orders generadas desde los Pedidos, por proveedor."
+        actions={
+          <Link href="/compras/necesidades" className={cn(buttonVariants({ variant: "outline" }))}>
+            Necesidades de compra
+          </Link>
+        }
+      />
 
       <PurchaseOrderFilters suppliers={suppliers} businessUnits={businessUnits} />
 

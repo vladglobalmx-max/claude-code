@@ -142,6 +142,13 @@ export interface Database {
           surface_material: string | null;
           surface_notes: string | null;
           surface_notes_en: string | null;
+          // THÖREN Fase 9 / Block 1 (0064, aclaración GAP 2) — visibilidad
+          // de si la última sincronización de procurement (reserva +
+          // purchase_requirements) de este Pedido terminó bien o falló.
+          // Solo importa de verdad mientras status='pedido'; 'ok' es el
+          // default para el resto de los casos.
+          procurement_sync_status: "ok" | "failed";
+          procurement_sync_error: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -206,6 +213,8 @@ export interface Database {
           surface_material?: string | null;
           surface_notes?: string | null;
           surface_notes_en?: string | null;
+          procurement_sync_status?: "ok" | "failed";
+          procurement_sync_error?: string | null;
         };
         Update: Partial<Omit<Database["public"]["Tables"]["orders"]["Insert"], "id">>;
         Relationships: [
@@ -975,6 +984,12 @@ export interface Database {
           preferred_currency: string | null;
           notes: string | null;
           active: boolean;
+          // THÖREN Fase 9 (0064) — idioma preferido de ESTE proveedor para
+          // documentos (Purchase Order). Prioridad: supplier →
+          // business_unit_process_settings.provider_document_language
+          // (0063) → 'es'. Nullable: sin preferencia explícita, cae al
+          // siguiente nivel.
+          preferred_document_language: "es" | "en" | null;
           created_at: string;
           updated_at: string;
         };
@@ -989,6 +1004,7 @@ export interface Database {
           preferred_currency?: string | null;
           notes?: string | null;
           active?: boolean;
+          preferred_document_language?: "es" | "en" | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1150,6 +1166,136 @@ export interface Database {
             columns: ["catalog_product_id"];
             isOneToOne: false;
             referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 9 / Block 1 (0064_purchase_requirements.sql) — una
+      // fila por (order_id, catalog_product_id) con demanda pendiente de
+      // cubrir vía compra. Sin policy de insert/update/delete — solo
+      // rpc_sync_order_procurement/rpc_allocate_purchase_requirement
+      // (SECURITY DEFINER) escriben aquí.
+      purchase_requirements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          business_unit_id: string | null;
+          order_id: string;
+          catalog_product_id: string;
+          supplier_id: string | null;
+          required_qty: number;
+          allocated_qty: number;
+          status: "open" | "partially_allocated" | "allocated" | "cancelled";
+          required_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          business_unit_id?: string | null;
+          order_id: string;
+          catalog_product_id: string;
+          supplier_id?: string | null;
+          required_qty: number;
+          allocated_qty?: number;
+          status?: "open" | "partially_allocated" | "allocated" | "cancelled";
+          required_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requirements"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requirements_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requirements_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requirements_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 9 / Block 1 (0064) — trazabilidad PURAMENTE
+      // informativa hacia las partidas de origen de un purchase_requirement
+      // agregado (ver DECISIÓN de granularidad en la migración) — nunca
+      // participa en el cálculo de disponibilidad/shortage.
+      purchase_requirement_source_items: {
+        Row: {
+          id: string;
+          purchase_requirement_id: string;
+          order_item_id: string;
+          requested_qty: number;
+        };
+        Insert: {
+          id?: string;
+          purchase_requirement_id: string;
+          order_item_id: string;
+          requested_qty: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requirement_source_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requirement_source_items_purchase_requirement_id_fkey";
+            columns: ["purchase_requirement_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_requirements";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requirement_source_items_order_item_id_fkey";
+            columns: ["order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "order_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Fase 9 / Block 1 (0064) — vínculo real Order Item ↔ PO Item
+      // (Parte B), vía el requirement como intermediaria. N:N genuino sin
+      // tocar purchase_orders/purchase_order_items.
+      purchase_requirement_allocations: {
+        Row: {
+          id: string;
+          purchase_requirement_id: string;
+          purchase_order_item_id: string;
+          allocated_qty: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          purchase_requirement_id: string;
+          purchase_order_item_id: string;
+          allocated_qty: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requirement_allocations"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requirement_allocations_purchase_requirement_id_fkey";
+            columns: ["purchase_requirement_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_requirements";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requirement_allocations_purchase_order_item_id_fkey";
+            columns: ["purchase_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_order_items";
             referencedColumns: ["id"];
           },
         ];
@@ -2113,6 +2259,53 @@ export interface Database {
           p_product_id?: string | null;
         };
         Returns: { product_id: string; warehouse_id: string; committed: number }[];
+      };
+      // THÖREN Fase 9 / Block 1 (0064) — solo lectura, disponibilidad/
+      // shortage agregada por (order_id, catalog_product_id). Omite
+      // order_items sin catalog_product_id (ver DECISIÓN en la migración).
+      fn_order_product_shortage: {
+        Args: { p_order_id: string };
+        Returns: {
+          catalog_product_id: string;
+          requested_qty: number;
+          on_hand_qty: number;
+          reserved_other_orders_qty: number;
+          reserved_this_order_qty: number;
+          available_qty: number;
+          incoming_qty: number;
+          shortage_qty: number;
+        }[];
+      };
+      // THÖREN Fase 9 / Block 1 (0064, aclaración GAP 1/GAP 2) — SECURITY
+      // DEFINER, ÚNICO punto de entrada para sincronizar procurement de un
+      // Pedido. Lee el status ACTUAL y decide: 'pedido' → disponibilidad/
+      // reserva (repartida entre TODOS los almacenes activos con stock
+      // libre, GAP 1) + purchase_requirement; 'cancelado' → libera TODAS
+      // las reservas activas + cancela requirements; cualquier otro
+      // status → no-op. Idempotente en los 3 casos — mismo punto de
+      // entrada para confirmar, editar cantidades, cancelar, o
+      // reintentar manualmente (recalculateOrderProcurement).
+      rpc_sync_order_procurement: {
+        Args: { p_order_id: string };
+        Returns: {
+          catalog_product_id: string;
+          requested_qty: number;
+          available_qty: number;
+          reserved_qty: number;
+          shortage_qty: number;
+          requirement_id: string | null;
+        }[];
+      };
+      // THÖREN Fase 9 / Block 1 (0064) — SECURITY DEFINER, ADMIN o
+      // can_prepare_purchase_orders. Registra que una partida de PO ya
+      // creada cubre (total o parcialmente) un purchase_requirement.
+      rpc_allocate_purchase_requirement: {
+        Args: {
+          p_requirement_id: string;
+          p_purchase_order_item_id: string;
+          p_allocated_qty: number;
+        };
+        Returns: Database["public"]["Tables"]["purchase_requirements"]["Row"];
       };
       // THÖREN Quotes Q3 (0020) — SECURITY INVOKER, transacción única:
       // resuelve snapshots, pide folio a fn_next_quote_folio() y calcula

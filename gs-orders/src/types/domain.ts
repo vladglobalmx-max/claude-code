@@ -439,6 +439,13 @@ export interface Order {
   vendor_notes: string | null;
   vendor_notes_en: string | null;
 
+  // THÖREN Fase 9 / Block 1 (0064, aclaración GAP 2) — visibilidad de si
+  // la última sincronización de procurement (reserva + purchase_
+  // requirements) de este Pedido terminó bien o falló. Ver
+  // recalculateOrderProcurement en pedidos/actions.ts.
+  procurement_sync_status: "ok" | "failed";
+  procurement_sync_error: string | null;
+
   // THÖREN Fase 6K (0034_order_commitment_dates.sql) — fechas compromiso
   // de cumplimiento logístico, capturadas manualmente (nunca inferidas).
   // Cuál es "la relevante" para el estado de vencimiento depende de

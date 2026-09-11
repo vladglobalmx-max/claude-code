@@ -842,6 +842,41 @@ export interface PurchaseOrderItem {
   quantity_received: number;
   created_at: string;
   updated_at: string;
+  /**
+   * THÖREN — Supplier Product References (0066): copia CONGELADA de la
+   * referencia del proveedor tomada al crear/reemplazar esta partida
+   * (rpc_create_purchase_order/rpc_replace_purchase_order_items) — nunca
+   * se recalcula si el maestro (supplier_product_references) cambia
+   * después. NULL = no existía ninguna referencia activa de ese
+   * proveedor para este producto en ese momento; nunca cae al modelo
+   * interno (`model`, arriba) como sustituto.
+   */
+  supplier_sku_snapshot: string | null;
+  supplier_model_snapshot: string | null;
+  supplier_description_snapshot: string | null;
+  supplier_uom_snapshot: string | null;
+}
+
+/**
+ * THÖREN — Supplier Product References (0066): el MAESTRO vivo de qué
+ * código usa CADA proveedor para UN producto de catálogo — nunca se lee
+ * directamente para mostrar una Purchase Order ya creada (eso usa el
+ * snapshot de PurchaseOrderItem, arriba); esta es la fuente que
+ * Configuración → Catálogo administra y que las RPCs de creación/
+ * reemplazo de partidas consultan en el momento de construirlas.
+ */
+export interface SupplierProductReference {
+  id: string;
+  catalog_product_id: string;
+  supplier_id: string;
+  supplier_sku: string | null;
+  supplier_model: string | null;
+  supplier_description: string | null;
+  supplier_uom: string | null;
+  preferred: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PurchaseOrderWithRelations extends PurchaseOrder {

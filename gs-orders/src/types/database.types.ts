@@ -1033,6 +1033,59 @@ export interface Database {
           },
         ];
       };
+      // THÖREN — Supplier Product References (0066): MAESTRO vivo de la
+      // referencia de cada proveedor para un producto de catálogo — 1
+      // producto puede tener N proveedores, cada uno con su propio código.
+      // Sin organization_id propio (junction pura, mismo patrón que
+      // product_business_units, 0019) — tenancy resuelto vía join a
+      // product_catalog.organization_id en RLS + trigger cross-org.
+      supplier_product_references: {
+        Row: {
+          id: string;
+          catalog_product_id: string;
+          supplier_id: string;
+          supplier_sku: string | null;
+          supplier_model: string | null;
+          supplier_description: string | null;
+          // Informativo únicamente — ningún cálculo de inventario/shortage/
+          // recepción lo lee ni lo convierte (ver DECISIÓN, 0066).
+          supplier_uom: string | null;
+          preferred: boolean;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          catalog_product_id: string;
+          supplier_id: string;
+          supplier_sku?: string | null;
+          supplier_model?: string | null;
+          supplier_description?: string | null;
+          supplier_uom?: string | null;
+          preferred?: boolean;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["supplier_product_references"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "supplier_product_references_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "supplier_product_references_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6L (0035_purchases_suppliers.sql) — motor de folio de
       // Purchase Orders, una fila por organización. Solo la escribe
       // fn_next_purchase_order_folio() (SECURITY DEFINER) — sin uso directo
@@ -1149,6 +1202,13 @@ export interface Database {
           quantity_received: number;
           created_at: string;
           updated_at: string;
+          // THÖREN — Supplier Product References (0066): snapshot congelado
+          // de la referencia del proveedor, tomado al crear/reemplazar esta
+          // partida — nunca se recalcula si el maestro cambia después.
+          supplier_sku_snapshot: string | null;
+          supplier_model_snapshot: string | null;
+          supplier_description_snapshot: string | null;
+          supplier_uom_snapshot: string | null;
         };
         Insert: {
           id?: string;
@@ -1165,6 +1225,10 @@ export interface Database {
           quantity_received?: number;
           created_at?: string;
           updated_at?: string;
+          supplier_sku_snapshot?: string | null;
+          supplier_model_snapshot?: string | null;
+          supplier_description_snapshot?: string | null;
+          supplier_uom_snapshot?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["purchase_order_items"]["Insert"]>;
         Relationships: [
@@ -2148,6 +2212,21 @@ export interface Database {
           p_items: Json;
         };
         Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"][];
+      };
+      // THÖREN — Supplier Product References (0066) — SECURITY INVOKER,
+      // ADMIN-only (verificado dentro del RPC). Reemplaza atómicamente el
+      // conjunto completo de referencias de proveedor de un producto —
+      // DELETE + INSERT en UNA sola transacción implícita: si cualquier
+      // validación o el INSERT falla, TODO se revierte (el producto
+      // conserva su set anterior). p_references es un array de
+      // {supplier_id, supplier_sku, supplier_model, supplier_description,
+      // supplier_uom, preferred, active}.
+      rpc_replace_supplier_product_references: {
+        Args: {
+          p_catalog_product_id: string;
+          p_references: Json;
+        };
+        Returns: Database["public"]["Tables"]["supplier_product_references"]["Row"][];
       };
       // THÖREN Fase 6L (0035), firma actualizada en Fase 6M (0036) —
       // registra la cantidad recibida ACUMULADA (valor absoluto, no delta)

@@ -3,23 +3,32 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/storage";
 import { CatalogForm } from "../../catalog-form";
 import { updateCatalogProduct } from "../../actions";
-import type { ProductCatalogItem } from "@/types/domain";
+import { SupplierReferencesSection } from "../../supplier-references-section";
+import type { ProductCatalogItem, SupplierProductReference } from "@/types/domain";
 
 export default async function EditarCatalogoPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
 
-  const [{ data: product }, { data: buData }, { data: ptData }, { data: productBuRows }] = await Promise.all([
-    supabase.from("product_catalog").select("*").eq("id", params.id).single(),
-    supabase.from("business_units").select("id, name").eq("active", true).order("name"),
-    supabase.from("product_types").select("id, name").eq("active", true).order("name"),
-    supabase.from("product_business_units").select("business_unit_id").eq("product_id", params.id),
-  ]);
+  const [{ data: product }, { data: buData }, { data: ptData }, { data: productBuRows }, { data: supplierData }, { data: referencesData }] =
+    await Promise.all([
+      supabase.from("product_catalog").select("*").eq("id", params.id).single(),
+      supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+      supabase.from("product_types").select("id, name").eq("active", true).order("name"),
+      supabase.from("product_business_units").select("business_unit_id").eq("product_id", params.id),
+      // THÖREN — Supplier Product References (0066): proveedores ACTIVOS
+      // de la organización (RLS ya los aísla) para el selector de la
+      // sección "Proveedores / Referencias".
+      supabase.from("suppliers").select("id, name").eq("active", true).order("name"),
+      supabase.from("supplier_product_references").select("*").eq("catalog_product_id", params.id),
+    ]);
 
   if (!product) notFound();
   const typedProduct = product as ProductCatalogItem;
   const businessUnits = (buData ?? []) as { id: string; name: string }[];
   const productTypes = (ptData ?? []) as { id: string; name: string }[];
   const businessUnitIds = ((productBuRows ?? []) as { business_unit_id: string }[]).map((r) => r.business_unit_id);
+  const suppliers = (supplierData ?? []) as { id: string; name: string }[];
+  const supplierReferences = (referencesData ?? []) as SupplierProductReference[];
 
   const imageUrl = typedProduct.image_path ? await getSignedUrl("order-media", typedProduct.image_path) : null;
 
@@ -73,6 +82,21 @@ export default async function EditarCatalogoPage({ params }: { params: { id: str
         submitLabel="Guardar cambios"
         onSubmit={updateCatalogProduct}
       />
+      <div className="mx-auto max-w-2xl px-6 pb-6">
+        <SupplierReferencesSection
+          catalogProductId={typedProduct.id}
+          suppliers={suppliers}
+          initialReferences={supplierReferences.map((r) => ({
+            supplierId: r.supplier_id,
+            supplierSku: r.supplier_sku ?? "",
+            supplierModel: r.supplier_model ?? "",
+            supplierDescription: r.supplier_description ?? "",
+            supplierUom: r.supplier_uom ?? "",
+            preferred: r.preferred,
+            active: r.active,
+          }))}
+        />
+      </div>
     </div>
   );
 }

@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { resolveSupplierReferenceSnapshot, isMissingSupplierReference } from "@/lib/purchasing/supplier-reference-display";
 import type { OrderItem, PurchaseOrderItem } from "@/types/domain";
 import { replacePurchaseOrderItems } from "../actions";
 
@@ -86,7 +88,16 @@ export function ReplaceItemsForm({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        {orderItems.map((item) => (
+        {orderItems.map((item) => {
+          // THÖREN — Supplier Product References (0066): solo se conoce el
+          // snapshot de una partida que YA es parte de esta PO (currentItems,
+          // resuelto al crear/reemplazar) — una partida recién marcada aquí
+          // todavía no tiene snapshot calculado (se resuelve al guardar),
+          // así que nunca se inventa una vista previa para ella.
+          const existing = currentByOrderItem.get(item.id);
+          const supplierRef = existing ? resolveSupplierReferenceSnapshot(existing) : null;
+          const missingRef = existing ? isMissingSupplierReference(existing) : false;
+          return (
           <div key={item.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
             <input
               type="checkbox"
@@ -101,6 +112,13 @@ export function ReplaceItemsForm({
                 Cantidad en el Pedido: {item.quantity}
                 {item.unit ? ` ${item.unit}` : ""}
               </p>
+              {supplierRef && <p className="text-xs text-ink-faint">Referencia proveedor: {supplierRef}</p>}
+              {missingRef && (
+                <p className="flex items-center gap-1 text-xs text-warning">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  Falta referencia del proveedor para este producto.
+                </p>
+              )}
             </div>
             <div className="w-24 shrink-0">
               <Label htmlFor={`replace-qty-${item.id}`} className="text-xs">
@@ -116,7 +134,8 @@ export function ReplaceItemsForm({
               />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Button type="button" size="sm" loading={isPending} disabled={isPending} onClick={handleSubmit}>

@@ -6,6 +6,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCurrentOrganizationId } from "@/lib/user-access";
 import { catalogProductSchema, type CatalogProductPayload } from "@/lib/validations/catalog";
+import {
+  supplierProductReferencesPayloadSchema,
+  type SupplierProductReferenceRow,
+} from "@/lib/validations/supplier-product-reference";
 import { mapDbError } from "@/lib/db-errors";
 import type { Database } from "@/types/database.types";
 
@@ -208,4 +212,57 @@ export async function updateCatalogProduct(id: string, payload: CatalogProductPa
 
   revalidatePath("/configuracion/catalogo");
   redirect("/configuracion/catalogo");
+}
+
+export type SupplierReferencesActionResult = { error: string | null };
+
+/**
+ * THÖREN — Supplier Product References (0066). Reemplaza el conjunto
+ * COMPLETO de referencias de proveedor de un producto vía
+ * rpc_replace_supplier_product_references — UNA sola invocación de
+ * función, UNA sola transacción implícita (mismo criterio que
+ * rpc_replace_purchase_order_items, 0045): el DELETE del set anterior y
+ * el INSERT del nuevo ocurren dentro de la MISMA transacción, así que si
+ * cualquier validación o el propio INSERT falla, TODO se revierte — el
+ * producto conserva su set anterior intacto, nunca queda vacío ni a
+ * medias. Dos llamadas PostgREST separadas (.delete() + .insert()) NUNCA
+ * habrían sido atómicas — cada una es su propia transacción — por eso
+ * esta operación vive en una RPC, no en el cliente Supabase directo.
+ *
+ * Nunca crea/edita el producto en sí (SKU/modelo interno) — sección
+ * completamente separada, ver DECISIÓN "no mezclar visualmente" del
+ * ticket. La validación zod de aquí es capa 2 (mensaje legible sin viaje
+ * redondo); la RPC repite las mismas validaciones como capa 3 real —
+ * nunca confía en que el cliente ya validó.
+ */
+export async function updateSupplierProductReferences(
+  catalogProductId: string,
+  rows: SupplierProductReferenceRow[]
+): Promise<SupplierReferencesActionResult> {
+  const parsed = supplierProductReferencesPayloadSchema.safeParse(rows);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+
+  const { error } = await supabase.rpc("rpc_replace_supplier_product_references", {
+    p_catalog_product_id: catalogProductId,
+    p_references: parsed.data.map((row) => ({
+      supplier_id: row.supplierId,
+      supplier_sku: row.supplierSku || null,
+      supplier_model: row.supplierModel || null,
+      supplier_description: row.supplierDescription || null,
+      supplier_uom: row.supplierUom || null,
+      preferred: row.preferred,
+      active: row.active,
+    })),
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar las referencias de proveedor. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/configuracion/catalogo/${catalogProductId}/editar`);
+  return { error: null };
 }

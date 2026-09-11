@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
+import { resolveSupplierReferenceSnapshot, isMissingSupplierReference } from "@/lib/purchasing/supplier-reference-display";
 import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
 import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier, Warehouse } from "@/types/domain";
 import { PurchaseOrderStatusActions } from "./status-actions";
@@ -109,6 +110,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
       .map((m) => [m.purchase_order_item_id as string, m.warehouse_id])
   );
   const orderItems = (orderItemsData ?? []) as OrderItem[];
+  const missingReferenceCount = items.filter(isMissingSupplierReference).length;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -206,48 +208,95 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
           {canEditItems ? (
             <ReplaceItemsForm purchaseOrderId={po.id} orderItems={orderItems} currentItems={items} />
           ) : (
-            <Table>
-              <Thead>
-                <Tr>
-                  <Th>Modelo</Th>
-                  <Th>Ordenado</Th>
-                  <Th>Recibido</Th>
-                  <Th>Pendiente</Th>
-                  {canReceive && <Th />}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {items.map((item) => (
-                  <Tr key={item.id}>
-                    <Td>
-                      <p className="font-medium text-ink">{item.model}</p>
-                      {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
-                      {item.customer_requirements && <p className="text-xs text-ink-faint">Requisitos: {item.customer_requirements}</p>}
-                    </Td>
-                    <Td className="tabular-nums text-ink-soft">
-                      {item.quantity_ordered}
-                      {item.unit ? ` ${item.unit}` : ""}
-                    </Td>
-                    <Td className="tabular-nums text-ink-soft">{item.quantity_received}</Td>
-                    <Td className="tabular-nums text-ink-soft">{item.quantity_ordered - item.quantity_received}</Td>
-                    {canReceive && (
-                      <Td>
-                        <ReceiveItemForm
-                          purchaseOrderId={po.id}
-                          purchaseOrderItemId={item.id}
-                          quantityOrdered={item.quantity_ordered}
-                          quantityReceived={item.quantity_received}
-                          status={po.status}
-                          hasCatalogProduct={item.catalog_product_id !== null}
-                          warehouses={warehouses}
-                          lockedWarehouseId={lockedWarehouseByItem.get(item.id) ?? null}
-                        />
-                      </Td>
-                    )}
+            <>
+              {/* THÖREN — Supplier Product References (0066): mientras la PO
+                  sigue en borrador, la falta de referencia es corregible
+                  (Catálogo → Editar producto + "Reemplazar partidas" para
+                  refrescar el snapshot) — aviso visible, sin bloquear el
+                  borrador. Fuera de borrador ya no aplica (o bien se
+                  resolvió al aprobar, o es una PO histórica anterior a esta
+                  migración — nunca se revalida retroactivamente). */}
+              {po.status === "borrador" && missingReferenceCount > 0 && (
+                <div className="flex items-start gap-2 border-b border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    Falta referencia del proveedor para {missingReferenceCount}{" "}
+                    {missingReferenceCount === 1 ? "producto" : "productos"} — agrégala en Catálogo → Editar producto
+                    y usa &ldquo;Reemplazar partidas&rdquo; para actualizarla aquí. Sin ella, no podrás autorizar esta
+                    Purchase Order.
+                  </p>
+                </div>
+              )}
+              <Table>
+                <Thead>
+                  <Tr>
+                    <Th>Modelo</Th>
+                    <Th>Ordenado</Th>
+                    <Th>Recibido</Th>
+                    <Th>Pendiente</Th>
+                    {canReceive && <Th />}
                   </Tr>
-                ))}
-              </Tbody>
-            </Table>
+                </Thead>
+                <Tbody>
+                  {items.map((item) => {
+                    const supplierRef = resolveSupplierReferenceSnapshot(item);
+                    const missingRef = isMissingSupplierReference(item);
+                    return (
+                      <Tr key={item.id}>
+                        <Td>
+                          {supplierRef ? (
+                            <>
+                              {/* Referencia del proveedor — lo que se le
+                                  envió a ÉL, nunca el modelo interno. */}
+                              <p className="font-medium text-ink">{supplierRef}</p>
+                              <p className="text-xs text-ink-faint">→ {item.model} (interno)</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-medium text-ink">{item.model}</p>
+                              {missingRef && (
+                                <p
+                                  className={
+                                    po.status === "borrador"
+                                      ? "flex items-center gap-1 text-xs text-warning"
+                                      : "text-xs text-ink-faint"
+                                  }
+                                >
+                                  {po.status === "borrador" && <AlertTriangle className="h-3 w-3 shrink-0" />}
+                                  Falta referencia del proveedor para este producto.
+                                </p>
+                              )}
+                            </>
+                          )}
+                          {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+                          {item.customer_requirements && <p className="text-xs text-ink-faint">Requisitos: {item.customer_requirements}</p>}
+                        </Td>
+                        <Td className="tabular-nums text-ink-soft">
+                          {item.quantity_ordered}
+                          {item.unit ? ` ${item.unit}` : ""}
+                        </Td>
+                        <Td className="tabular-nums text-ink-soft">{item.quantity_received}</Td>
+                        <Td className="tabular-nums text-ink-soft">{item.quantity_ordered - item.quantity_received}</Td>
+                        {canReceive && (
+                          <Td>
+                            <ReceiveItemForm
+                              purchaseOrderId={po.id}
+                              purchaseOrderItemId={item.id}
+                              quantityOrdered={item.quantity_ordered}
+                              quantityReceived={item.quantity_received}
+                              status={po.status}
+                              hasCatalogProduct={item.catalog_product_id !== null}
+                              warehouses={warehouses}
+                              lockedWarehouseId={lockedWarehouseByItem.get(item.id) ?? null}
+                            />
+                          </Td>
+                        )}
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </>
           )}
         </CardContent>
       </Card>

@@ -631,6 +631,12 @@ export interface Database {
           // documentos de proveedor (ej. inglés) — NULL = usar `label` tal
           // cual, nunca una traducción automática.
           supplier_label: string | null;
+          // THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+          // incorrecto (0065): NULL = aplica a todos los Tipos de Producto
+          // dentro del scope de Business Unit ya existente; con valor,
+          // aplica ÚNICAMENTE a ese Tipo de Producto (AND, no OR, con
+          // business_unit_id).
+          product_type_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -651,6 +657,7 @@ export interface Database {
           required_before_order?: boolean;
           required_before_fulfillment?: boolean;
           supplier_label?: string | null;
+          product_type_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -668,6 +675,13 @@ export interface Database {
             columns: ["business_unit_id"];
             isOneToOne: false;
             referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "custom_field_definitions_product_type_id_fkey";
+            columns: ["product_type_id"];
+            isOneToOne: false;
+            referencedRelation: "product_types";
             referencedColumns: ["id"];
           },
         ];

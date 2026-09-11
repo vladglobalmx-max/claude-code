@@ -10,6 +10,7 @@ import { orderPayloadSchema, type OrderPayload } from "@/lib/validations/order";
 import { deleteCustomFieldValuesForEntities, getCustomFieldDefinitions } from "@/lib/custom-fields/data";
 import { validateCustomFields } from "@/lib/custom-fields/validation";
 import { getMissingRequiredCustomFieldsFromPayload } from "@/lib/custom-fields/completeness";
+import { scopeDefinitionsToItem } from "@/lib/custom-fields/scope";
 import { getRequireSupplierBeforeOrder } from "@/lib/orders/process-settings";
 import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 import type { OrderOperationalStatus } from "@/types/domain";
@@ -17,23 +18,68 @@ import type { OrderOperationalStatus } from "@/types/domain";
 export type OrderActionResult = { error: string; missingFields?: string[] } | void;
 
 /**
+ * THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+ * incorrecto (0065). Una sola consulta a product_catalog para resolver el
+ * Tipo de Producto REAL de cada catalog_product_id presente en el
+ * payload — la relación real Product Type -> Product -> Order Item es
+ * product_catalog.product_type_id (0030), nunca orders.product_type
+ * (snapshot legacy del Pedido completo, no de la partida). RLS ya limita
+ * la consulta a la organización vigente; un id que no exista/no
+ * pertenezca a esta organización simplemente no aparece en el mapa
+ * resultante (se resuelve como null = solo aplican definitions org/BU-wide,
+ * igual que un producto sin Tipo de Producto asignado).
+ */
+async function getProductTypeIdByCatalogProductId(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  items: OrderPayload["items"]
+): Promise<Map<string, string | null>> {
+  const catalogProductIds = Array.from(
+    new Set(items.map((item) => item.catalog_product_id).filter((id): id is string => !!id))
+  );
+  const map = new Map<string, string | null>();
+  if (catalogProductIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from("product_catalog")
+    .select("id, product_type_id")
+    .in("id", catalogProductIds);
+  for (const row of data ?? []) {
+    map.set(row.id, row.product_type_id);
+  }
+  return map;
+}
+
+/**
  * THÖREN 8B (Gap 2) — valida los custom fields (entity_type="order_item")
  * ANTES de llamar al RPC, solo para dar un error legible al usuario sin
  * esperar el viaje al servidor. La autoridad REAL (la que no se puede
  * saltar con un payload manipulado) vive en fn_apply_order_item_custom_fields
- * (0058), dentro de la misma transacción que crea/actualiza el pedido —
- * ver rpc_create_order_with_custom_fields/rpc_update_order_with_custom_fields
- * más abajo. Esta validación en TS es una capa adicional de UX, nunca la
- * única.
+ * (0058/0065), dentro de la misma transacción que crea/actualiza el
+ * pedido — ver rpc_create_order_with_custom_fields/
+ * rpc_update_order_with_custom_fields más abajo. Esta validación en TS es
+ * una capa adicional de UX, nunca la única.
+ *
+ * THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+ * incorrecto (0065) — cada partida se valida SOLO contra las definitions
+ * que realmente le aplican (org/BU-wide + su propio Tipo de Producto vía
+ * `productTypeIdByCatalogProductId`), nunca contra la lista completa de
+ * la Business Unit: un campo de otro Tipo de Producto ya no puede
+ * rechazar un valor que ese item ni siquiera debería ver.
  */
 function validateOrderItemCustomFields(
   definitions: CustomFieldDefinition[],
-  items: OrderPayload["items"]
+  businessUnitId: string | null,
+  items: OrderPayload["items"],
+  productTypeIdByCatalogProductId: Map<string, string | null>
 ): { ok: true } | { ok: false; error: string } {
   if (definitions.length === 0) return { ok: true };
 
   for (const item of items) {
-    const result = validateCustomFields(definitions, item.custom_field_values ?? {});
+    const productTypeId = item.catalog_product_id
+      ? productTypeIdByCatalogProductId.get(item.catalog_product_id) ?? null
+      : null;
+    const applicable = scopeDefinitionsToItem(definitions, businessUnitId, productTypeId);
+    const result = validateCustomFields(applicable, item.custom_field_values ?? {});
     if (!result.ok) return { ok: false, error: result.error };
   }
   return { ok: true };
@@ -57,10 +103,16 @@ function checkMissingBeforeOrder(
   status: OrderPayload["status"],
   items: OrderPayload["items"],
   requiresSupplier: boolean,
-  supplierName: string | undefined
+  supplierName: string | undefined,
+  productTypeIdByCatalogProductId: Map<string, string | null>
 ): { ok: true } | { ok: false; error: string; missingFields: string[] } {
   if (status !== "pedido") return { ok: true };
-  const customMissing = getMissingRequiredCustomFieldsFromPayload(definitions, businessUnitId, items);
+  const customMissing = getMissingRequiredCustomFieldsFromPayload(
+    definitions,
+    businessUnitId,
+    items,
+    productTypeIdByCatalogProductId
+  );
   const missing = requiresSupplier && !supplierName?.trim() ? ["Proveedor", ...customMissing] : customMissing;
   if (missing.length === 0) return { ok: true };
   return {
@@ -189,7 +241,14 @@ export async function createOrder(orderId: string, payload: OrderPayload): Promi
       businessUnitId: payload.business_unit_id ?? null,
     });
 
-    const result = validateOrderItemCustomFields(definitions, payload.items);
+    const productTypeIdByCatalogProductId = await getProductTypeIdByCatalogProductId(supabase, payload.items);
+
+    const result = validateOrderItemCustomFields(
+      definitions,
+      payload.business_unit_id ?? null,
+      payload.items,
+      productTypeIdByCatalogProductId
+    );
     if (!result.ok) return { error: result.error };
 
     const requiresSupplier =
@@ -200,7 +259,8 @@ export async function createOrder(orderId: string, payload: OrderPayload): Promi
       payload.status,
       payload.items,
       requiresSupplier,
-      payload.supplier_name
+      payload.supplier_name,
+      productTypeIdByCatalogProductId
     );
     if (!missingCheck.ok) return { error: missingCheck.error, missingFields: missingCheck.missingFields };
   }
@@ -246,7 +306,14 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
       businessUnitId: payload.business_unit_id ?? null,
     });
 
-    const result = validateOrderItemCustomFields(definitions, payload.items);
+    const productTypeIdByCatalogProductId = await getProductTypeIdByCatalogProductId(supabase, payload.items);
+
+    const result = validateOrderItemCustomFields(
+      definitions,
+      payload.business_unit_id ?? null,
+      payload.items,
+      productTypeIdByCatalogProductId
+    );
     if (!result.ok) return { error: result.error };
 
     const requiresSupplier =
@@ -257,7 +324,8 @@ export async function updateOrder(orderId: string, payload: OrderPayload): Promi
       payload.status,
       payload.items,
       requiresSupplier,
-      payload.supplier_name
+      payload.supplier_name,
+      productTypeIdByCatalogProductId
     );
     if (!missingCheck.ok) return { error: missingCheck.error, missingFields: missingCheck.missingFields };
   }

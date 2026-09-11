@@ -182,7 +182,12 @@ export function OrderForm({
   );
 
   const missingFields = useMemo(() => {
-    const customMissing = getMissingRequiredCustomFields(customFieldDefinitions, state.businessUnitId, state.items);
+    const customMissing = getMissingRequiredCustomFields(
+      customFieldDefinitions,
+      state.businessUnitId,
+      state.items,
+      productsById
+    );
     // THÖREN 8D (gap final) — requisito CORE (Proveedor), no un custom
     // field: se combina en la misma lista de faltantes, nunca en un
     // mensaje aparte. La autoridad real de este chequeo vive en el
@@ -193,7 +198,14 @@ export function OrderForm({
       return ["Proveedor", ...customMissing];
     }
     return customMissing;
-  }, [customFieldDefinitions, state.businessUnitId, state.items, state.supplierName, requireSupplierBeforeOrderByBusinessUnit]);
+  }, [
+    customFieldDefinitions,
+    state.businessUnitId,
+    state.items,
+    state.supplierName,
+    requireSupplierBeforeOrderByBusinessUnit,
+    productsById,
+  ]);
 
   function handleSubmit(status: OrderStatus) {
     if (!state.salespersonId) {
@@ -297,6 +309,7 @@ export function OrderForm({
             state={state}
             salespeople={salespeople}
             productTypes={productTypes}
+            catalogProducts={catalogProducts}
             customFieldDefinitions={customFieldDefinitions}
             missingFields={missingFields}
             editableStatus={isEdit}

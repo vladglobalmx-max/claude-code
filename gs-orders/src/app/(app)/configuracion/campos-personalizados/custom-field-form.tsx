@@ -39,11 +39,14 @@ export function CustomFieldForm({
   action,
   definition,
   businessUnits,
+  productTypes,
   submitLabel,
 }: {
   action: (state: CustomFieldFormState, formData: FormData) => Promise<CustomFieldFormState>;
   definition?: CustomFieldDefinition;
   businessUnits: { id: string; name: string }[];
+  /** THÖREN — Bug real: custom fields aplicados al Tipo de Producto incorrecto (0065) — Tipos de Producto de la organización vigente (RLS ya aísla por tenant). */
+  productTypes: { id: string; name: string }[];
   submitLabel: string;
 }) {
   const [state, formAction] = useFormState(action, undefined);
@@ -106,6 +109,31 @@ export function CustomFieldForm({
         )}
         <p className="mt-1 text-xs text-ink-faint">
           &ldquo;Toda la organización&rdquo; aparece en cualquier Business Unit. Elegir una la limita solo a esa.
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="productTypeId">Tipo de Producto</Label>
+        {isEdit ? (
+          <p className="flex h-9 items-center rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink-soft">
+            {definition.productTypeId
+              ? productTypes.find((pt) => pt.id === definition.productTypeId)?.name ?? "—"
+              : "Todos los tipos de producto"}
+          </p>
+        ) : (
+          <Select id="productTypeId" name="productTypeId" defaultValue="">
+            <option value="">Todos los tipos de producto</option>
+            {productTypes.map((pt) => (
+              <option key={pt.id} value={pt.id}>
+                {pt.name}
+              </option>
+            ))}
+          </Select>
+        )}
+        <p className="mt-1 text-xs text-ink-faint">
+          &ldquo;Todos los tipos de producto&rdquo; aparece para cualquier producto dentro del Alcance de arriba.
+          Elegir uno lo limita SOLO a los productos de ese Tipo de Producto (ej. no mostrar campos de
+          Proyector/GOBO en un producto de otro Tipo).
         </p>
       </div>
 

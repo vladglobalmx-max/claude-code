@@ -7,14 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ORDER_STATUS_LABELS } from "@/types/domain";
 import type { OrderStatus, ProductTypeItem, Salesperson } from "@/types/domain";
-import type { OrderFormState } from "./types";
-import { scopeDefinitionsToBusinessUnit } from "@/lib/custom-fields/scope";
+import type { CatalogProductOption, OrderFormState } from "./types";
+import { catalogProductsById } from "@/lib/orders/catalog-picker";
+import { scopeDefinitionsToItem } from "@/lib/custom-fields/scope";
 import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
 
 export function RevisarSection({
   state,
   salespeople,
   productTypes,
+  catalogProducts,
   customFieldDefinitions,
   missingFields,
   editableStatus = false,
@@ -23,6 +25,7 @@ export function RevisarSection({
   state: OrderFormState;
   salespeople: Salesperson[];
   productTypes: ProductTypeItem[];
+  catalogProducts: CatalogProductOption[];
   /** THÖREN 8C — para decidir si mostrar "Proyección por producto" según definiciones, no product_type. */
   customFieldDefinitions: CustomFieldDefinition[];
   missingFields: string[];
@@ -31,13 +34,21 @@ export function RevisarSection({
 }) {
   const salesperson = salespeople.find((sp) => sp.id === state.salespersonId);
   const productTypeName = productTypes.find((t) => t.code === state.productType)?.name ?? state.productType;
+  const productsById = catalogProductsById(catalogProducts);
   // THÖREN 8C — "¿esta Business Unit tiene algún campo de adjunto
   // configurado?" reemplaza "¿es proyector_gobo?": si Thunder desactiva su
   // definición de projection_images, esta tarjeta deja de aparecer sin
   // tocar código; otra BU que configure su propio adjunto la vería igual.
-  const hasFileFieldDefinition = scopeDefinitionsToBusinessUnit(customFieldDefinitions, state.businessUnitId).some(
-    (def) => def.fieldType === "file" || def.fieldType === "image"
-  );
+  // THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+  // incorrecto (0065) — evaluado POR PARTIDA (nunca por el header): si
+  // AL MENOS una partida tiene un campo de adjunto realmente aplicable
+  // (org/BU-wide o de su propio Tipo de Producto), la tarjeta aparece.
+  const hasFileFieldDefinition = state.items.some((item) => {
+    const productTypeId = item.catalogProductId ? productsById.get(item.catalogProductId)?.productTypeId ?? null : null;
+    return scopeDefinitionsToItem(customFieldDefinitions, state.businessUnitId, productTypeId).some(
+      (def) => def.fieldType === "file" || def.fieldType === "image"
+    );
+  });
 
   return (
     <div className="space-y-5">

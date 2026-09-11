@@ -29,12 +29,14 @@ export default async function CamposPersonalizadosPage() {
   const supabase = createSupabaseServerClient();
   const organizationId = await getCurrentOrganizationId();
 
-  const [definitions, { data: businessUnitsData }] = await Promise.all([
+  const [definitions, { data: businessUnitsData }, { data: productTypesData }] = await Promise.all([
     organizationId ? getAllCustomFieldDefinitions(supabase, organizationId) : Promise.resolve([]),
     supabase.from("business_units").select("id, name").order("name", { ascending: true }),
+    supabase.from("product_types").select("id, name").order("name", { ascending: true }),
   ]);
 
   const businessUnitNamesById = new Map((businessUnitsData ?? []).map((bu) => [bu.id, bu.name]));
+  const productTypeNamesById = new Map((productTypesData ?? []).map((pt) => [pt.id, pt.name]));
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -77,6 +79,7 @@ export default async function CamposPersonalizadosPage() {
                 <Th>Etiqueta</Th>
                 <Th>Aplica a</Th>
                 <Th>Alcance</Th>
+                <Th>Tipo de Producto</Th>
                 <Th>Tipo</Th>
                 <Th>Estado</Th>
                 <Th />
@@ -92,6 +95,9 @@ export default async function CamposPersonalizadosPage() {
                   <Td>{ENTITY_TYPE_LABELS[def.entityType] ?? def.entityType}</Td>
                   <Td>
                     {def.businessUnitId ? businessUnitNamesById.get(def.businessUnitId) ?? "—" : "Toda la organización"}
+                  </Td>
+                  <Td>
+                    {def.productTypeId ? productTypeNamesById.get(def.productTypeId) ?? "—" : "Todos"}
                   </Td>
                   <Td>{FIELD_TYPE_LABELS[def.fieldType] ?? def.fieldType}</Td>
                   <Td>

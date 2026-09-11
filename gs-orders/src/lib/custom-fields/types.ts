@@ -54,6 +54,18 @@ export interface CustomFieldDefinition {
    * cual. Nunca se traduce `label` automáticamente.
    */
   supplierLabel: string | null;
+  /**
+   * THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+   * incorrecto (0065): NULL = aplica a todos los Tipos de Producto dentro
+   * del scope de Business Unit de arriba (comportamiento histórico, sin
+   * cambios). Con valor, aplica ÚNICAMENTE a ese Tipo de Producto — se
+   * combina con businessUnitId (AND, no OR): una definición debe cumplir
+   * AMBOS scopes para aplicar a un order_item dado. Resuelto siempre vía
+   * product_catalog.product_type_id del producto de esa línea — nunca vía
+   * orders.product_type (snapshot legacy del Pedido completo, no de la
+   * partida), ver scopeDefinitionsToItem en scope.ts.
+   */
+  productTypeId: string | null;
 }
 
 /** Valor crudo tal como llega de un <input>/<select> — siempre string u undefined, nunca tipado todavía. */

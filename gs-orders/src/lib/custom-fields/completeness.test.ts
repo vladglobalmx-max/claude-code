@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getMissingRequiredCustomFields, getMissingRequiredCustomFieldsFromPayload } from "./completeness";
 import { emptyProductItem } from "@/components/orders/types";
-import type { ProductItemDraft } from "@/components/orders/types";
+import type { CatalogProductOption, ProductItemDraft } from "@/components/orders/types";
 import type { OrderItemPayload } from "@/lib/validations/order";
 import type { CustomFieldDefinition } from "./types";
 
@@ -12,6 +12,14 @@ import type { CustomFieldDefinition } from "./types";
  * migración 0061 (proyección/instalación), nunca vía `product_type`.
  */
 const BU_THUNDER = "bu-thunder-led";
+
+// THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+// incorrecto (0065) — ninguno de estos tests ejercita resolución de
+// Tipo de Producto por partida (cubierta en scope.test.ts); todas las
+// definitions de este archivo tienen productTypeId=null (org/BU-wide),
+// así que un mapa vacío no cambia ningún resultado.
+const NO_CATALOG_PRODUCTS = new Map<string, CatalogProductOption>();
+const NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID = new Map<string, string | null>();
 
 function makeDef(overrides: Partial<CustomFieldDefinition>): CustomFieldDefinition {
   return {
@@ -31,6 +39,7 @@ function makeDef(overrides: Partial<CustomFieldDefinition>): CustomFieldDefiniti
     requiredBeforeOrder: true,
     requiredBeforeFulfillment: false,
     supplierLabel: null,
+    productTypeId: null,
     ...overrides,
   };
 }
@@ -59,11 +68,11 @@ function completeDraftItem(overrides: Partial<ProductItemDraft> = {}): ProductIt
 describe("getMissingRequiredCustomFields (draft, THÖREN 8D)", () => {
   it("no exige nada si ninguna definición scoped a esta BU es requiredBeforeOrder", () => {
     const defs = THUNDER_DEFINITIONS.map((d) => ({ ...d, businessUnitId: "otra-bu" }));
-    expect(getMissingRequiredCustomFields(defs, BU_THUNDER, [completeDraftItem()])).toEqual([]);
+    expect(getMissingRequiredCustomFields(defs, BU_THUNDER, [completeDraftItem()], NO_CATALOG_PRODUCTS)).toEqual([]);
   });
 
   it("CASO A: un producto completo no exige nada", () => {
-    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, [completeDraftItem()])).toEqual([]);
+    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, [completeDraftItem()], NO_CATALOG_PRODUCTS)).toEqual([]);
   });
 
   it("CASO B: 2 productos, cada uno completo con su propia instalación, no exige nada", () => {
@@ -71,7 +80,7 @@ describe("getMissingRequiredCustomFields (draft, THÖREN 8D)", () => {
       completeDraftItem({ model: "TLL200", installationHeight: "3" }),
       completeDraftItem({ model: "TLL300", installationHeight: "5" }),
     ];
-    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items)).toEqual([]);
+    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items, NO_CATALOG_PRODUCTS)).toEqual([]);
   });
 
   it("CASO D: un producto incompleto reporta cada campo faltante, el completo no aparece", () => {
@@ -86,7 +95,7 @@ describe("getMissingRequiredCustomFields (draft, THÖREN 8D)", () => {
         installationHeight: "",
       }),
     ];
-    const missing = getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items);
+    const missing = getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items, NO_CATALOG_PRODUCTS);
 
     expect(missing).toContain("Producto 2 (TLL300): Descripción de qué se proyectará");
     expect(missing).toContain("Producto 2 (TLL300): Imagen o archivo a proyectar");
@@ -98,7 +107,7 @@ describe("getMissingRequiredCustomFields (draft, THÖREN 8D)", () => {
 
   it("un archivo elegido pero no subido (transitorio) no cuenta como completo", () => {
     const items = [completeDraftItem({ projectionImages: [] })];
-    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items)).toContain(
+    expect(getMissingRequiredCustomFields(THUNDER_DEFINITIONS, BU_THUNDER, items, NO_CATALOG_PRODUCTS)).toContain(
       "Producto 1 (TLL200): Imagen o archivo a proyectar"
     );
   });
@@ -120,7 +129,7 @@ function completePayloadItem(overrides: Partial<OrderItemPayload> = {}): OrderIt
 
 describe("getMissingRequiredCustomFieldsFromPayload (server pre-flight, THÖREN 8D)", () => {
   it("CASO A: un payload completo no exige nada", () => {
-    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, BU_THUNDER, [completePayloadItem()])).toEqual([]);
+    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, BU_THUNDER, [completePayloadItem()], NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID)).toEqual([]);
   });
 
   it("un payload manipulado con campos vacíos/ausentes sigue siendo detectado", () => {
@@ -134,7 +143,7 @@ describe("getMissingRequiredCustomFieldsFromPayload (server pre-flight, THÖREN 
         installation_height: undefined,
       }),
     ];
-    const missing = getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, BU_THUNDER, items);
+    const missing = getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, BU_THUNDER, items, NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID);
     expect(missing).toContain("Producto 1 (TLL300): Descripción de qué se proyectará");
     expect(missing).toContain("Producto 1 (TLL300): Imagen o archivo a proyectar");
     expect(missing).toContain("Producto 1 (TLL300): Ancho de proyección");
@@ -144,12 +153,12 @@ describe("getMissingRequiredCustomFieldsFromPayload (server pre-flight, THÖREN 
 
   it("Juno/GFB (business_unit_id distinto) no heredan las definiciones de Thunder", () => {
     const items = [completePayloadItem({ projection_description: undefined, projection_images: [] })];
-    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, "bu-juno", items)).toEqual([]);
+    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, "bu-juno", items, NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID)).toEqual([]);
   });
 
   it("un pedido sin Business Unit (null) solo respeta definiciones org-wide, ninguna de Thunder", () => {
     const items = [completePayloadItem({ projection_description: undefined, projection_images: [] })];
-    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, null, items)).toEqual([]);
+    expect(getMissingRequiredCustomFieldsFromPayload(THUNDER_DEFINITIONS, null, items, NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID)).toEqual([]);
   });
 
   it("un campo genuinamente nuevo (no legacy) requiredBeforeOrder se lee de custom_field_values", () => {
@@ -162,12 +171,12 @@ describe("getMissingRequiredCustomFieldsFromPayload (server pre-flight, THÖREN 
     const items: OrderItemPayload[] = [
       { ...completePayloadItem(), custom_field_values: {} },
     ];
-    expect(getMissingRequiredCustomFieldsFromPayload([prioridad], "bu-tenant-b", items)).toEqual([
+    expect(getMissingRequiredCustomFieldsFromPayload([prioridad], "bu-tenant-b", items, NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID)).toEqual([
       "Producto 1 (TLL200): Prioridad",
     ]);
     const withValue: OrderItemPayload[] = [
       { ...completePayloadItem(), custom_field_values: { prioridad: "Alta" } },
     ];
-    expect(getMissingRequiredCustomFieldsFromPayload([prioridad], "bu-tenant-b", withValue)).toEqual([]);
+    expect(getMissingRequiredCustomFieldsFromPayload([prioridad], "bu-tenant-b", withValue, NO_PRODUCT_TYPE_BY_CATALOG_PRODUCT_ID)).toEqual([]);
   });
 });

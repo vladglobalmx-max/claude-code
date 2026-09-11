@@ -23,6 +23,7 @@ function product(overrides: Partial<CatalogProductOption> = {}): CatalogProductO
     brand: "Thunder LED Lights",
     unit: "pza",
     productTypeName: "Proyector / GOBO",
+    productTypeId: "pt-proyector-gobo",
     power: "400W",
     color: "Blanco",
     technicalNotes: "Nota técnica",

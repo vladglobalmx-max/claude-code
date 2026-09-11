@@ -13,7 +13,7 @@ import { CatalogProductPicker } from "./catalog-product-picker";
 import { emptyProductItem, type CatalogProductOption, type MediaDraft, type ProductItemDraft } from "./types";
 import { buildItemPatchFromCatalogProduct, catalogProductsById } from "@/lib/orders/catalog-picker";
 import { CustomFieldsRenderer } from "@/components/custom-fields/custom-fields-renderer";
-import { scopeDefinitionsToBusinessUnit } from "@/lib/custom-fields/scope";
+import { scopeDefinitionsToItem } from "@/lib/custom-fields/scope";
 import {
   isLegacyOrderItemFieldKey,
   isLegacyOrderItemFileFieldKey,
@@ -71,15 +71,6 @@ export function ProductosSection({
 
   const productsById = catalogProductsById(catalogProducts);
 
-  // THÖREN 8B/8C — org-wide + la BU vigente del pedido, nunca la de otra
-  // BU (misma regla que getCustomFieldDefinitions en el servidor,
-  // aplicada aquí en el cliente porque businessUnitId puede cambiar sin
-  // recargar la página). Esta lista maneja TANTO los campos legacy de
-  // Thunder (vía el adapter, siguen leyendo/escribiendo su columna/tabla
-  // nativa) COMO cualquier campo genérico nuevo de cualquier tenant — el
-  // componente nunca sabe cuáles son "de Thunder".
-  const visibleCustomFieldDefinitions = scopeDefinitionsToBusinessUnit(customFieldDefinitions, businessUnitId);
-
   function readCustomFieldValue(item: ProductItemDraft, key: string): string {
     return isLegacyOrderItemFieldKey(key) ? getLegacyOrderItemFieldRawValue(item, key) : item.customFieldValues[key] ?? "";
   }
@@ -112,6 +103,24 @@ export function ProductosSection({
       <CardContent className="space-y-5">
         {items.map((item, index) => {
           const linkedProduct = item.catalogProductId ? productsById.get(item.catalogProductId) : undefined;
+          // THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+          // incorrecto (0065) — resuelto POR PARTIDA (nunca por la primera
+          // partida ni por orders.product_type del header): org-wide + la
+          // BU vigente + el Tipo de Producto real de ESTA línea (o
+          // solamente org/BU-wide si no hay producto de catálogo elegido o
+          // ese producto no tiene Tipo de Producto asignado). Misma regla
+          // que el servidor (fn_apply_order_item_custom_fields /
+          // fn_get_missing_required_before_order_fields, 0065) — nunca
+          // debe divergir de ese filtro. Esta lista maneja TANTO los
+          // campos legacy de Thunder (vía el adapter, siguen leyendo/
+          // escribiendo su columna/tabla nativa) COMO cualquier campo
+          // genérico nuevo de cualquier tenant — el componente nunca sabe
+          // cuáles son "de Thunder".
+          const visibleCustomFieldDefinitions = scopeDefinitionsToItem(
+            customFieldDefinitions,
+            businessUnitId,
+            linkedProduct?.productTypeId ?? null
+          );
           const itemFileValues = Object.fromEntries(
             visibleCustomFieldDefinitions
               .filter((def) => def.fieldType === "file" || def.fieldType === "image")

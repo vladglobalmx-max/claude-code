@@ -50,6 +50,14 @@ export interface CatalogProductOption {
   brand: string | null;
   unit: string | null;
   productTypeName: string | null;
+  /**
+   * THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+   * incorrecto (0065): product_catalog.product_type_id real (0030) — la
+   * relación REAL usada para resolver qué custom fields (entity_type =
+   * "order_item") aplican a una línea de este producto, ver
+   * scopeDefinitionsToItem. `productTypeName` (arriba) es solo display.
+   */
+  productTypeId: string | null;
   power: string | null;
   color: string | null;
   technicalNotes: string | null;

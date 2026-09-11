@@ -7,9 +7,10 @@ import { updateCustomFieldDefinition } from "../../actions";
 
 export default async function EditarCampoPersonalizadoPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
-  const [definition, { data: businessUnitsData }] = await Promise.all([
+  const [definition, { data: businessUnitsData }, { data: productTypesData }] = await Promise.all([
     getCustomFieldDefinitionById(supabase, params.id),
     supabase.from("business_units").select("id, name").order("name", { ascending: true }),
+    supabase.from("product_types").select("id, name").order("name", { ascending: true }),
   ]);
 
   if (!definition) notFound();
@@ -28,6 +29,7 @@ export default async function EditarCampoPersonalizadoPage({ params }: { params:
             action={action}
             definition={definition}
             businessUnits={businessUnitsData ?? []}
+            productTypes={productTypesData ?? []}
             submitLabel="Guardar cambios"
           />
         </CardContent>

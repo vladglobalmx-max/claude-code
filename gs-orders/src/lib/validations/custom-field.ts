@@ -27,6 +27,11 @@ const optionsFromTextarea = (value: unknown) =>
 export const customFieldDefinitionSchema = z.object({
   entityType: z.enum(CUSTOM_FIELD_ENTITY_TYPES),
   businessUnitId: z.string().uuid().nullable(),
+  // THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+  // incorrecto (0065): NULL = aplica a todos los Tipos de Producto (ver
+  // DECISIÓN en la migración). Mismo criterio de inmutabilidad-tras-crear
+  // que entityType/key/businessUnitId (ver actions.ts).
+  productTypeId: z.string().uuid().nullable(),
   key: customFieldKeySchema,
   label: z.string().trim().min(1, "La etiqueta es obligatoria").max(200),
   fieldType: z.enum(CUSTOM_FIELD_TYPES),

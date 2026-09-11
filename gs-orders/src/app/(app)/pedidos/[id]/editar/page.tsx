@@ -207,6 +207,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
       brand: p.brand,
       unit: p.unit,
       productTypeName: p.product_types?.name ?? null,
+      productTypeId: p.product_type_id,
       power: p.power,
       color: p.color,
       technicalNotes: p.technical_notes,

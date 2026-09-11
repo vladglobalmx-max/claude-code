@@ -12,6 +12,7 @@ function readForm(formData: FormData) {
   return {
     entityType: formData.get("entityType"),
     businessUnitId: (formData.get("businessUnitId") as string | null) || null,
+    productTypeId: (formData.get("productTypeId") as string | null) || null,
     key: formData.get("key"),
     label: formData.get("label"),
     fieldType: formData.get("fieldType"),
@@ -54,6 +55,7 @@ export async function createCustomFieldDefinition(
   const { error } = await supabase.from("custom_field_definitions").insert({
     entity_type: data.entityType,
     business_unit_id: data.businessUnitId,
+    product_type_id: data.productTypeId,
     key: data.key,
     label: data.label,
     field_type: data.fieldType,

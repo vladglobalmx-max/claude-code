@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scopeDefinitionsToBusinessUnit } from "./scope";
+import { scopeDefinitionsToBusinessUnit, scopeDefinitionsToItem } from "./scope";
 import { LEGACY_ORDER_ITEM_FIELD_KEYS } from "./legacy-order-item-adapter";
 import type { CustomFieldDefinition } from "./types";
 
@@ -21,6 +21,7 @@ function makeDef(overrides: Partial<CustomFieldDefinition> = {}): CustomFieldDef
     requiredBeforeOrder: false,
     requiredBeforeFulfillment: false,
     supplierLabel: null,
+    productTypeId: null,
     ...overrides,
   };
 }
@@ -70,5 +71,62 @@ describe("scopeDefinitionsToBusinessUnit (THÖREN 8B Gap 1)", () => {
     const tenantBOwnDefinitions = [makeDef({ key: "prioridad", businessUnitId: "bu-tenant-b" })];
     const visible = scopeDefinitionsToBusinessUnit(tenantBOwnDefinitions, "bu-tenant-b");
     expect(visible.map((d) => d.key)).toEqual(["prioridad"]);
+  });
+});
+
+/**
+ * THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+ * incorrecto (0065). Mismo caso real reportado: Thunder LED, producto
+ * TLLTPB140R (Tipo de Producto "Luces Grúa Viajera") no debe ver ni ser
+ * bloqueado por los campos de proyección, que son exclusivos de
+ * "Proyector / GOBO" — ambos Tipos de Producto dentro de la MISMA
+ * Business Unit (Thunder LED).
+ */
+describe("scopeDefinitionsToItem (THÖREN — bug real product_type_id, 0065)", () => {
+  const PT_PROYECTOR = "pt-proyector-gobo";
+  const PT_LUZ_GRUA = "pt-luz-grua-viajera";
+
+  const buWideField = makeDef({ key: "referencia_interna", businessUnitId: BU_THUNDER, productTypeId: null });
+  const proyectorField = makeDef({
+    key: "projection_description",
+    businessUnitId: BU_THUNDER,
+    productTypeId: PT_PROYECTOR,
+    requiredBeforeOrder: true,
+  });
+  const luzGruaField = makeDef({ key: "luz_grua_solo", businessUnitId: BU_THUNDER, productTypeId: PT_LUZ_GRUA });
+  const defs = [buWideField, proyectorField, luzGruaField];
+
+  it("TEST 1: un item Proyector / GOBO ve su propio campo y el BU-wide, nunca el de Luz Grua", () => {
+    const visible = scopeDefinitionsToItem(defs, BU_THUNDER, PT_PROYECTOR);
+    const keys = visible.map((d) => d.key);
+    expect(keys).toContain("projection_description");
+    expect(keys).toContain("referencia_interna");
+    expect(keys).not.toContain("luz_grua_solo");
+  });
+
+  it("TEST 2: un item Luces Grua Viajera (caso real TLLTPB140R) NUNCA ve los campos de proyeccion, aunque sean requiredBeforeOrder", () => {
+    const visible = scopeDefinitionsToItem(defs, BU_THUNDER, PT_LUZ_GRUA);
+    const keys = visible.map((d) => d.key);
+    expect(keys).not.toContain("projection_description");
+    expect(keys).toContain("luz_grua_solo");
+    expect(keys).toContain("referencia_interna");
+  });
+
+  it("TEST 3: un item sin Tipo de Producto resoluble (catalogProductId null o producto sin tipo) solo ve lo org/BU-wide", () => {
+    const visible = scopeDefinitionsToItem(defs, BU_THUNDER, null);
+    expect(visible.map((d) => d.key)).toEqual(["referencia_interna"]);
+  });
+
+  it("TEST 4: una definition BU-wide (product_type_id NULL) aparece para CUALQUIER Tipo de Producto de esa BU", () => {
+    expect(scopeDefinitionsToItem(defs, BU_THUNDER, PT_PROYECTOR).map((d) => d.key)).toContain("referencia_interna");
+    expect(scopeDefinitionsToItem(defs, BU_THUNDER, PT_LUZ_GRUA).map((d) => d.key)).toContain("referencia_interna");
+    expect(scopeDefinitionsToItem(defs, BU_THUNDER, "otro-tipo-cualquiera").map((d) => d.key)).toContain(
+      "referencia_interna"
+    );
+  });
+
+  it("TEST 5: BU-scope sigue aplicando primero — otra BU nunca ve un campo de Thunder aunque el product_type_id coincida por casualidad", () => {
+    const visible = scopeDefinitionsToItem(defs, "otra-bu", PT_PROYECTOR);
+    expect(visible).toEqual([]);
   });
 });

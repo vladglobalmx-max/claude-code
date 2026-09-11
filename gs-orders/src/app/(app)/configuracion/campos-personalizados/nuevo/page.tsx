@@ -5,10 +5,14 @@ import { createCustomFieldDefinition } from "../actions";
 
 export default async function NuevoCampoPersonalizadoPage() {
   const supabase = createSupabaseServerClient();
-  const { data: businessUnitsData } = await supabase
-    .from("business_units")
-    .select("id, name")
-    .order("name", { ascending: true });
+  const [{ data: businessUnitsData }, { data: productTypesData }] = await Promise.all([
+    supabase.from("business_units").select("id, name").order("name", { ascending: true }),
+    // THÖREN — Bug real: custom fields aplicados al Tipo de Producto
+    // incorrecto (0065). RLS (product_types_select) ya aísla por
+    // organization_id — un admin de otro tenant nunca ve estos Tipos de
+    // Producto, sin necesidad de un filtro explícito aquí.
+    supabase.from("product_types").select("id, name").eq("active", true).order("name", { ascending: true }),
+  ]);
 
   return (
     <div className="mx-auto max-w-xl px-6 py-8">
@@ -21,6 +25,7 @@ export default async function NuevoCampoPersonalizadoPage() {
           <CustomFieldForm
             action={createCustomFieldDefinition}
             businessUnits={businessUnitsData ?? []}
+            productTypes={productTypesData ?? []}
             submitLabel="Crear campo"
           />
         </CardContent>

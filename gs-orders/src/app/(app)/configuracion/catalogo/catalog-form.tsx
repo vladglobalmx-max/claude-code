@@ -109,7 +109,10 @@ export function CatalogForm({
       name: name.trim(),
       description: description || undefined,
       image_path: image?.path ?? null,
-      product_type_id: productTypeId || null,
+      // Garantizado no-vacío por el guard de arriba (`if (!productTypeId)`)
+      // antes de llegar aquí — el schema del servidor (catalogProductSchema)
+      // ya no acepta null, ver DECISIÓN THÖREN Catálogo UX.
+      product_type_id: productTypeId,
       brand: brand || undefined,
       model: model || undefined,
       unit: unit || undefined,

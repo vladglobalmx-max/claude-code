@@ -182,9 +182,28 @@ export interface ImportRowError {
   message: string;
 }
 
+/**
+ * THÖREN — Catálogo UX (Organization → BU → Product Type → Products),
+ * "Importación por contexto": Business Unit/Tipo de producto elegidos UNA
+ * VEZ en el wizard (import-wizard.tsx) antes de subir el archivo — el
+ * Excel puede entonces dejar esas columnas vacías por fila. Un valor
+ * propio de la fila SIEMPRE gana sobre el default (nunca al revés): el
+ * contexto solo rellena lo que la fila no dijo, la opción avanzada
+ * (Excel con Business Unit/Tipo distintos por fila) sigue funcionando sin
+ * cambios. `businessUnitCellDefault` usa el MISMO formato de texto que
+ * una celda real ("TODAS" o nombres separados por " | ") para poder
+ * reutilizar parseBusinessUnitCell tal cual, sin una segunda ruta de
+ * parseo.
+ */
+export interface ProductImportRowContext {
+  businessUnitCellDefault?: string;
+  productTypeNameDefault?: string;
+}
+
 export function parseProductImportRow(
   rowNumber: number,
-  cells: unknown[]
+  cells: unknown[],
+  context: ProductImportRowContext = {}
 ): { row: ParsedProductRow | null; error: ImportRowError | null } {
   const [skuRaw, nameRaw, descRaw, buRaw, typeRaw, brandRaw, modelRaw, unitRaw, currencyRaw, priceRaw, activeRaw] =
     cells;
@@ -199,14 +218,14 @@ export function parseProductImportRow(
     return { row: null, error: { rowNumber, message: `Fila ${rowNumber}: "Nombre" es obligatorio.` } };
   }
 
-  const businessUnitRaw = toTrimmedOrNull(buRaw);
+  const businessUnitRaw = toTrimmedOrNull(buRaw) ?? context.businessUnitCellDefault ?? null;
   if (!businessUnitRaw) {
     return { row: null, error: { rowNumber, message: `Fila ${rowNumber}: "Business Unit" es obligatoria.` } };
   }
   const businessUnitResult = parseBusinessUnitCell(businessUnitRaw, rowNumber);
   if (businessUnitResult.error) return { row: null, error: { rowNumber, message: businessUnitResult.error } };
 
-  const productTypeName = toTrimmedOrNull(typeRaw);
+  const productTypeName = toTrimmedOrNull(typeRaw) ?? context.productTypeNameDefault ?? null;
   if (!productTypeName) {
     return { row: null, error: { rowNumber, message: `Fila ${rowNumber}: "Tipo de producto" es obligatorio.` } };
   }

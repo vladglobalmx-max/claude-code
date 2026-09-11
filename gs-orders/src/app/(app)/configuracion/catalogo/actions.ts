@@ -102,6 +102,74 @@ export async function createCatalogProduct(id: string, payload: CatalogProductPa
   redirect("/configuracion/catalogo");
 }
 
+export type BulkAssignProductTypeResult = { error: string | null; updatedCount: number };
+
+/**
+ * THÖREN — Catálogo UX (Organization → BU → Product Type → Products),
+ * "Productos sin clasificar". Asigna un Tipo de Producto a varios
+ * productos históricos con product_type_id NULL de una sola vez —
+ * ACTUALIZA las filas existentes, nunca las recrea (mismo id, mismo SKU,
+ * mismo modelo/nombre — solo cambia product_type_id, ver DECISIÓN "no
+ * clasificación automática por SKU/nombre").
+ *
+ * Cross-org: `product_catalog_admin_write` (0011) solo exige
+ * `current_user_is_admin()`, sin acotar por organization_id de la fila —
+ * un ADMIN de otra organización nunca debería llegar aquí (RLS de
+ * SELECT/UI ya lo evita), pero esta acción NUNCA confía únicamente en esa
+ * policy para una operación masiva: valida explícitamente que el Tipo de
+ * Producto elegido y CADA producto de `productIds` pertenezcan a la
+ * organización del usuario actual (`.eq("organization_id", ...)` en el
+ * UPDATE) — defensa en profundidad, no un parche a la policy existente
+ * (fuera de alcance de este ticket).
+ *
+ * `.is("product_type_id", null)` en el WHERE: nunca pisa una
+ * clasificación que alguien más ya hizo en paralelo — un producto que
+ * dejó de estar sin clasificar entre que se listó y que se envió el
+ * bulk-assign simplemente no se toca (se refleja en `updatedCount` <
+ * `productIds.length`).
+ */
+export async function bulkAssignProductType(
+  productIds: string[],
+  productTypeId: string
+): Promise<BulkAssignProductTypeResult> {
+  if (productIds.length === 0) {
+    return { error: "Selecciona al menos un producto.", updatedCount: 0 };
+  }
+  if (!productTypeId) {
+    return { error: "Selecciona un Tipo de Producto.", updatedCount: 0 };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const orgResult = await resolveCurrentOrganizationId(supabase);
+  if ("error" in orgResult) return { error: orgResult.error, updatedCount: 0 };
+
+  const { data: type } = await supabase
+    .from("product_types")
+    .select("id")
+    .eq("id", productTypeId)
+    .eq("organization_id", orgResult.organizationId)
+    .maybeSingle();
+  if (!type) {
+    return { error: "El Tipo de Producto no existe en tu organización.", updatedCount: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("product_catalog")
+    .update({ product_type_id: productTypeId })
+    .in("id", productIds)
+    .eq("organization_id", orgResult.organizationId)
+    .is("product_type_id", null)
+    .select("id");
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo asignar el Tipo de Producto. Intenta de nuevo."), updatedCount: 0 };
+  }
+
+  revalidatePath("/configuracion/catalogo");
+  revalidatePath("/configuracion/catalogo/sin-clasificar");
+  return { error: null, updatedCount: (data ?? []).length };
+}
+
 /** Edita un producto del catálogo, incluida su activación/desactivación. No borra el producto (sin borrado físico en esta fase). */
 export async function updateCatalogProduct(id: string, payload: CatalogProductPayload): Promise<CatalogActionResult> {
   const parsed = catalogProductSchema.safeParse(payload);

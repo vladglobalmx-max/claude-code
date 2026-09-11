@@ -25,7 +25,14 @@ export const catalogProductSchema = z.object({
   color: z.string().trim().optional(),
   lens_type: z.string().trim().optional(),
   technical_notes: z.string().trim().optional(),
-  product_type_id: z.string().uuid("Selecciona un tipo de producto válido").nullable(),
+  // THÖREN — Catálogo UX (Organization → BU → Product Type → Products):
+  // obligatorio en el servidor, no solo en catalog-form.tsx — un producto
+  // NUEVO nunca debe poder guardarse sin Tipo de Producto real (capa 1 en
+  // el cliente nunca es suficiente, ver DECISIÓN de 0065). El legado
+  // histórico con product_type_id NULL no pasa por este schema para
+  // corregirse — usa la herramienta "Productos sin clasificar" (bulk
+  // assign), que escribe directo sin este validador.
+  product_type_id: z.string().uuid("Selecciona un tipo de producto válido"),
   brand: z.string().trim().optional(),
   model: z.string().trim().optional(),
   unit: z.string().trim().optional(),

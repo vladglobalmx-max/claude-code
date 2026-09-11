@@ -7,14 +7,18 @@ import { Upload, FileWarning, ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { formatNumber } from "@/lib/utils/format";
 import {
   parseProductImportRow,
   classifyProductRows,
   formatBusinessUnitCell,
+  ALL_BUSINESS_UNITS_KEYWORD,
   type ImportRowError,
   type ParsedProductRow,
   type ClassifiedProductRow,
+  type ProductImportRowContext,
 } from "@/lib/products/import-parsing";
 import {
   runBatchedImport,
@@ -44,7 +48,18 @@ const PREVIEW_LIST_LIMIT = 100;
  * filas exactas y NO detiene los lotes siguientes — nunca vuelve a pasar
  * "clic Importar → silencio" (antes, handleConfirm no tenía `catch`).
  */
-export function ImportWizard() {
+export function ImportWizard({
+  businessUnits = [],
+  productTypes = [],
+  defaultBusinessUnitId = "",
+  defaultProductTypeId = "",
+}: {
+  businessUnits?: { id: string; name: string }[];
+  productTypes?: { id: string; name: string }[];
+  /** "" = sin default, "__ALL__" = TODAS las Business Units — ver render del Select abajo. */
+  defaultBusinessUnitId?: string;
+  defaultProductTypeId?: string;
+}) {
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "done">("upload");
   const [isLoading, setIsLoading] = useState(false);
   const [rowErrors, setRowErrors] = useState<ImportRowError[]>([]);
@@ -53,6 +68,12 @@ export function ImportWizard() {
   const [importProgress, setImportProgress] = useState<BatchImportProgress | null>(null);
   const [importSummary, setImportSummary] = useState<BatchImportSummary | null>(null);
   const [importFatalError, setImportFatalError] = useState<string | null>(null);
+  // THÖREN — Catálogo UX: Business Unit/Tipo de producto por defecto,
+  // aplicados solo a filas cuya propia celda venga vacía (ver
+  // parseProductImportRow/ProductImportRowContext) — nunca sobrescriben un
+  // valor que la fila sí trae.
+  const [contextBusinessUnitId, setContextBusinessUnitId] = useState(defaultBusinessUnitId);
+  const [contextProductTypeId, setContextProductTypeId] = useState(defaultProductTypeId);
 
   async function handleFile(file: File) {
     setIsLoading(true);
@@ -61,12 +82,20 @@ export function ImportWizard() {
       const rows = await readSheet(file);
       const [, ...dataRows] = rows; // primera fila = encabezado, se descarta
 
+      const rowContext: ProductImportRowContext = {
+        businessUnitCellDefault:
+          contextBusinessUnitId === "__ALL__"
+            ? ALL_BUSINESS_UNITS_KEYWORD
+            : businessUnits.find((bu) => bu.id === contextBusinessUnitId)?.name,
+        productTypeNameDefault: productTypes.find((t) => t.id === contextProductTypeId)?.name,
+      };
+
       const parsedErrors: ImportRowError[] = [];
       const parsedRows: ParsedProductRow[] = [];
       dataRows.forEach((cells, index) => {
         const isBlankRow = cells.every((c) => c === null || c === undefined || String(c).trim() === "");
         if (isBlankRow) return;
-        const { row, error } = parseProductImportRow(index + 1, cells);
+        const { row, error } = parseProductImportRow(index + 1, cells, rowContext);
         if (error) parsedErrors.push(error);
         if (row) parsedRows.push(row);
       });
@@ -181,14 +210,54 @@ export function ImportWizard() {
 
   if (step === "upload") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>1. Sube el archivo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-ink-soft">
-            Usa la plantilla descargada arriba, sin cambiar el orden ni los nombres de las columnas.
-          </p>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>0. Contexto (opcional)</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="context-bu">Business Unit por defecto</Label>
+              <Select
+                id="context-bu"
+                value={contextBusinessUnitId}
+                onChange={(e) => setContextBusinessUnitId(e.target.value)}
+              >
+                <option value="">Sin valor por defecto (cada fila debe indicarlo)</option>
+                <option value="__ALL__">Todas las Business Units</option>
+                {businessUnits.map((bu) => (
+                  <option key={bu.id} value={bu.id}>
+                    {bu.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="context-tipo">Tipo de producto por defecto</Label>
+              <Select
+                id="context-tipo"
+                value={contextProductTypeId}
+                onChange={(e) => setContextProductTypeId(e.target.value)}
+              >
+                <option value="">Sin valor por defecto (cada fila debe indicarlo)</option>
+                {productTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>1. Sube el archivo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-ink-soft">
+              Usa la plantilla descargada arriba, sin cambiar el orden ni los nombres de las columnas.
+            </p>
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-10 text-center hover:border-accent">
             <Upload className="h-6 w-6 text-ink-faint" />
             <span className="text-sm font-medium text-ink">
@@ -206,8 +275,9 @@ export function ImportWizard() {
               }}
             />
           </label>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

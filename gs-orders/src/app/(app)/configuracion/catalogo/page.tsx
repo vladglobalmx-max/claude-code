@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Download, Package, Plus, Upload } from "lucide-react";
+import { AlertTriangle, Download, ListChecks, Package, Plus, Upload } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatMoneyMxn, formatMoneyUsd } from "@/lib/utils/format";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { filterCatalogRows } from "@/lib/products/catalog-search";
+import { countUnclassified } from "@/lib/products/unclassified";
 import { CatalogFilters } from "./catalog-filters";
 
 export const dynamic = "force-dynamic";
@@ -107,9 +108,19 @@ export default async function CatalogoPage({
   const productTypes = (ptData ?? []) as { id: string; name: string }[];
 
   const products = filterCatalogRows(allProducts, searchParams);
+  const unclassifiedCount = countUnclassified(allProducts.filter((p) => p.active));
 
   const imagePaths = products.map((p) => p.image_path).filter((p): p is string => !!p);
   const imageUrls = await getSignedUrls("order-media", imagePaths);
+
+  // THÖREN — Catálogo UX (Organization → BU → Product Type → Products):
+  // el contexto de filtros vigente (BU/Tipo) viaja a "Nuevo producto" e
+  // "Importar Excel" — entrar desde un filtro ya aplicado preselecciona
+  // ese contexto en vez de obligar a elegirlo de nuevo (ver nuevo/page.tsx).
+  const contextParams = new URLSearchParams();
+  if (searchParams.bu) contextParams.set("bu", searchParams.bu);
+  if (searchParams.tipo) contextParams.set("tipo", searchParams.tipo);
+  const contextQuery = contextParams.toString() ? `?${contextParams.toString()}` : "";
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -118,13 +129,20 @@ export default async function CatalogoPage({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <CatalogFilters businessUnits={businessUnits} productTypes={productTypes} />
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/configuracion/catalogo/nuevo">
+          <Link href="/configuracion/catalogo/sin-clasificar">
+            <Button variant="outline">
+              <ListChecks className="h-4 w-4" />
+              Sin clasificar
+              {unclassifiedCount > 0 && <Badge variant="warning">{unclassifiedCount}</Badge>}
+            </Button>
+          </Link>
+          <Link href={`/configuracion/catalogo/nuevo${contextQuery}`}>
             <Button>
               <Plus className="h-4 w-4" />
               Producto
             </Button>
           </Link>
-          <Link href="/configuracion/catalogo/importar">
+          <Link href={`/configuracion/catalogo/importar${contextQuery}`}>
             <Button variant="outline">
               <Upload className="h-4 w-4" />
               Importar Excel

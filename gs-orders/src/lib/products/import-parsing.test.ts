@@ -214,6 +214,49 @@ describe("parseProductImportRow", () => {
     expect(error).toBeNull();
     expect(parsed?.businessUnitNames).toEqual(["Thunder LED Lights", "Juno Promotional"]);
   });
+
+  describe("con contexto de importación (THÖREN — Catálogo UX, BU/Tipo por defecto)", () => {
+    it("celda Business Unit vacía usa el default del contexto (BU específica)", () => {
+      const { row: parsed, error } = parseProductImportRow(24, row({ businessUnit: "" }), {
+        businessUnitCellDefault: "Thunder LED Lights",
+      });
+      expect(error).toBeNull();
+      expect(parsed?.businessUnitNames).toEqual(["Thunder LED Lights"]);
+    });
+
+    it("celda Business Unit vacía usa el default del contexto (TODAS)", () => {
+      const { row: parsed, error } = parseProductImportRow(25, row({ businessUnit: "" }), {
+        businessUnitCellDefault: "TODAS",
+      });
+      expect(error).toBeNull();
+      expect(parsed?.businessUnitNames).toBeNull();
+    });
+
+    it("celda Tipo de producto vacía usa el default del contexto", () => {
+      const { row: parsed, error } = parseProductImportRow(26, row({ productType: "" }), {
+        productTypeNameDefault: "Proyector / GOBO",
+      });
+      expect(error).toBeNull();
+      expect(parsed?.productTypeName).toBe("Proyector / GOBO");
+    });
+
+    it("un valor propio de la fila SIEMPRE gana sobre el default del contexto (opción avanzada sigue funcionando)", () => {
+      const { row: parsed, error } = parseProductImportRow(27, row({ businessUnit: "Juno Promotional", productType: "Otro" }), {
+        businessUnitCellDefault: "Thunder LED Lights",
+        productTypeNameDefault: "Proyector / GOBO",
+      });
+      expect(error).toBeNull();
+      expect(parsed?.businessUnitNames).toEqual(["Juno Promotional"]);
+      expect(parsed?.productTypeName).toBe("Otro");
+    });
+
+    it("sin contexto y con la celda vacía, sigue siendo error (comportamiento sin cambios cuando no se usa contexto)", () => {
+      const { error: buError } = parseProductImportRow(28, row({ businessUnit: "" }));
+      expect(buError?.message).toContain("Business Unit");
+      const { error: typeError } = parseProductImportRow(29, row({ productType: "" }));
+      expect(typeError?.message).toContain("Tipo de producto");
+    });
+  });
 });
 
 describe("normalizeSku", () => {

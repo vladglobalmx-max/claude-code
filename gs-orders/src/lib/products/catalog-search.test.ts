@@ -134,3 +134,54 @@ describe("Catálogo >1,000 productos — fetchAllPages + filterCatalogRows", () 
     expect("rows" in result).toBe(false); // ninguna lista parcial para filtrar/renderizar
   });
 });
+
+/**
+ * THÖREN — Catálogo UX (Organization → BU → Product Type → Products):
+ * filtro por Tipo de Producto (`tipo`) — mismo predicado que `bu`/`estado`,
+ * sin necesidad de fixtures a escala de paginación.
+ */
+describe("filterCatalogRows — filtro por Tipo de Producto (tipo)", () => {
+  const PT_PROYECTOR = "pt-proyector-gobo";
+  const PT_LUZ_GRUA = "pt-luz-grua-viajera";
+
+  function row(overrides: Partial<Row> = {}): Row {
+    return {
+      id: overrides.id ?? "p1",
+      sku: overrides.sku ?? "SKU-1",
+      name: overrides.name ?? "Producto",
+      model: overrides.model ?? null,
+      product_type_id: overrides.product_type_id ?? null,
+      active: overrides.active ?? true,
+      product_business_units: overrides.product_business_units ?? [],
+    };
+  }
+
+  it("sin filtro `tipo`, todos los productos son visibles sin importar su Tipo de Producto", () => {
+    const rows = [row({ id: "p1", product_type_id: PT_PROYECTOR }), row({ id: "p2", product_type_id: PT_LUZ_GRUA })];
+    expect(filterCatalogRows(rows, {})).toHaveLength(2);
+  });
+
+  it("filtra a únicamente el Tipo de Producto solicitado", () => {
+    const rows = [
+      row({ id: "p1", product_type_id: PT_PROYECTOR }),
+      row({ id: "p2", product_type_id: PT_LUZ_GRUA }),
+      row({ id: "p3", product_type_id: PT_PROYECTOR }),
+    ];
+    expect(filterCatalogRows(rows, { tipo: PT_PROYECTOR }).map((r) => r.id)).toEqual(["p1", "p3"]);
+  });
+
+  it("un producto sin Tipo de Producto asignado (product_type_id null) nunca coincide con ningún filtro `tipo`", () => {
+    const rows = [row({ id: "p1", product_type_id: null }), row({ id: "p2", product_type_id: PT_PROYECTOR })];
+    expect(filterCatalogRows(rows, { tipo: PT_PROYECTOR }).map((r) => r.id)).toEqual(["p2"]);
+  });
+
+  it("`tipo` y `bu` se combinan (AND) — solo coincide un producto que cumple ambos", () => {
+    const BU_THUNDER = "bu-thunder";
+    const rows = [
+      row({ id: "p1", product_type_id: PT_PROYECTOR, product_business_units: [{ business_unit_id: BU_THUNDER }] }),
+      row({ id: "p2", product_type_id: PT_PROYECTOR, product_business_units: [{ business_unit_id: "bu-otra" }] }),
+      row({ id: "p3", product_type_id: PT_LUZ_GRUA, product_business_units: [{ business_unit_id: BU_THUNDER }] }),
+    ];
+    expect(filterCatalogRows(rows, { tipo: PT_PROYECTOR, bu: BU_THUNDER }).map((r) => r.id)).toEqual(["p1"]);
+  });
+});

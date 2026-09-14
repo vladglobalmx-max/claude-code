@@ -704,6 +704,110 @@ export interface QuoteItem {
 }
 
 /**
+ * THÖREN Sales Orders MVP (0067_sales_orders_mvp.sql). Concepto comercial
+ * nuevo, independiente de Order (Pedido de fabricación/instalación, ver
+ * OrderItem arriba) y de PurchaseOrder (Compras a proveedor) — no hay FK
+ * entre ellos. Estados en inglés (spec del ticket 0067): draft nunca
+ * regresa como destino una vez asignado (solo lo asigna
+ * rpc_create_sales_order); confirmed/in_progress/fulfilled/closed/
+ * cancelled son las únicas transiciones manuales, impuestas por
+ * trg_sales_order_status_transition — congela TODO el contenido comercial
+ * (excepto `internal_notes`) en cuanto status deja de ser "draft".
+ * `confirmed_at` lo asigna EXCLUSIVAMENTE ese trigger, nunca la app.
+ */
+export type SalesOrderStatus = "draft" | "confirmed" | "in_progress" | "fulfilled" | "closed" | "cancelled";
+export type SalesOrderCurrency = "MXN" | "USD";
+
+export const SALES_ORDER_STATUS_LABELS: Record<SalesOrderStatus, string> = {
+  draft: "Borrador",
+  confirmed: "Confirmada",
+  in_progress: "En proceso",
+  fulfilled: "Surtida",
+  closed: "Cerrada",
+  cancelled: "Cancelada",
+};
+
+export const SALES_ORDER_STATUS_BADGE: Record<SalesOrderStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  draft: "neutral",
+  confirmed: "accent",
+  in_progress: "accent",
+  fulfilled: "success",
+  closed: "success",
+  cancelled: "warning",
+};
+
+export interface SalesOrder {
+  id: string;
+  organization_id: string;
+  customer_id: string;
+  salesperson_id: string;
+
+  order_number: string;
+  sequence_number: number;
+
+  status: SalesOrderStatus;
+
+  currency: SalesOrderCurrency;
+  exchange_rate: number | null;
+  payment_terms: string | null;
+  requested_delivery_date: string | null;
+
+  billing_address_snapshot: string | null;
+  shipping_address_snapshot: string | null;
+  /** Contacto principal ACTIVO del Customer, resuelto server-side al crear/editar — nunca capturado desde la UI. */
+  customer_contact_snapshot: string | null;
+
+  commercial_notes: string | null;
+  /** Anotación interna del equipo — la única columna comercial que NO se congela fuera de "draft". */
+  internal_notes: string | null;
+
+  subtotal: number;
+  tax_total: number;
+  total: number;
+
+  created_by: string;
+  confirmed_at: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de una Sales Order (0067). catalog_product_id nullable = línea
+ * libre. sku_snapshot es el identificador obligatorio de la línea
+ * (equivalente de `model` en OrderItem/QuoteItem); description_snapshot/
+ * uom_snapshot son opcionales. `discount`/`tax` son PORCENTAJES por línea
+ * (0-100), no montos fijos. estimated_unit_cost/estimated_margin existen
+ * para una fase de costos/márgenes futura — siempre NULL en este MVP salvo
+ * que se provean explícitamente, nunca calculados aquí.
+ */
+export interface SalesOrderItem {
+  id: string;
+  sales_order_id: string;
+  position: number;
+
+  catalog_product_id: string | null;
+
+  sku_snapshot: string;
+  description_snapshot: string | null;
+  uom_snapshot: string | null;
+
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  tax: number;
+
+  line_subtotal: number;
+  line_total: number;
+
+  estimated_unit_cost: number | null;
+  estimated_margin: number | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * Motor de folios de Quotes, propio e independiente de
  * salespeople.prefix/sequence_current (ver 0020_core_quotes.sql). Clave
  * Salesperson × Business Unit — un mismo vendedor puede tener un prefijo

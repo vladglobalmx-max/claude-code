@@ -2,6 +2,7 @@ import {
   Boxes,
   Briefcase,
   Building2,
+  ClipboardList,
   Contact,
   FileSpreadsheet,
   FileText,
@@ -61,6 +62,11 @@ export interface NavGroup {
  *   pero vive como Card dentro de /configuracion (ya admin-only), no como
  *   entrada propia de este árbol — mismo patrón que Catálogo/Tipos de
  *   producto/Usuarios.
+ * - Órdenes de Venta (THÖREN Sales Orders MVP, 0067_sales_orders_mvp.sql):
+ *   mismo criterio exacto que Cotizaciones —
+ *   `sales_orders_select_own_or_admin`/`sales_orders_insert_own_or_admin`
+ *   permiten a cualquier miembro activo ver (las propias, o todas si es
+ *   admin/can_view_all_sales) y crear, así que tampoco es adminOnly.
  * - Compras (THÖREN Fase 6L, 0035_purchases_suppliers.sql):
  *   `purchase_orders_select` permite a VENDEDOR ver las Purchase Orders de
  *   Pedidos que le pertenecen (visibilidad heredada, nunca un acceso
@@ -111,6 +117,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false },
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
+      { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
     ],

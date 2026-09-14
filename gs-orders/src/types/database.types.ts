@@ -1935,6 +1935,182 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Sales Orders MVP (0067_sales_orders_mvp.sql) — motor de
+      // order_number, un row por organización. Sin policy de insert/update
+      // para `authenticated`: solo fn_next_sales_order_number (SECURITY
+      // DEFINER) escribe aquí.
+      sales_order_sequences: {
+        Row: {
+          organization_id: string;
+          prefix: string;
+          sequence_current: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          prefix?: string;
+          sequence_current?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_order_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Sales Orders MVP (0067_sales_orders_mvp.sql) — encabezado.
+      // subtotal/tax_total/total/customer_contact_snapshot los calcula
+      // exclusivamente rpc_create_sales_order/rpc_update_sales_order; nunca
+      // se escriben directo desde la app. Congelados fuera de status
+      // "draft" (trg_sales_order_status_transition), excepto
+      // internal_notes.
+      sales_orders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          salesperson_id: string;
+          order_number: string;
+          sequence_number: number;
+          status: string;
+          currency: string;
+          exchange_rate: number | null;
+          payment_terms: string | null;
+          requested_delivery_date: string | null;
+          billing_address_snapshot: string | null;
+          shipping_address_snapshot: string | null;
+          customer_contact_snapshot: string | null;
+          commercial_notes: string | null;
+          internal_notes: string | null;
+          subtotal: number;
+          tax_total: number;
+          total: number;
+          created_by: string;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          salesperson_id: string;
+          // order_number/sequence_number los asigna fn_next_sales_order_number() dentro de rpc_create_sales_order; nunca se envían.
+          order_number?: string;
+          sequence_number?: number;
+          status?: string;
+          currency: string;
+          exchange_rate?: number | null;
+          payment_terms?: string | null;
+          requested_delivery_date?: string | null;
+          billing_address_snapshot?: string | null;
+          shipping_address_snapshot?: string | null;
+          customer_contact_snapshot?: string | null;
+          commercial_notes?: string | null;
+          internal_notes?: string | null;
+          subtotal?: number;
+          tax_total?: number;
+          total?: number;
+          created_by?: string;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_orders"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_orders_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_orders_salesperson_id_fkey";
+            columns: ["salesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Sales Orders MVP (0067_sales_orders_mvp.sql) — líneas.
+      // Snapshot completo (sku_snapshot/description_snapshot/uom_snapshot)
+      // resuelto en cada escritura de draft — nunca se vuelve a leer
+      // product_catalog una vez la SO deja de ser draft. line_subtotal/
+      // line_total los calcula exclusivamente el RPC.
+      sales_order_items: {
+        Row: {
+          id: string;
+          sales_order_id: string;
+          position: number;
+          catalog_product_id: string | null;
+          sku_snapshot: string;
+          description_snapshot: string | null;
+          uom_snapshot: string | null;
+          quantity: number;
+          unit_price: number;
+          discount: number;
+          tax: number;
+          line_subtotal: number;
+          line_total: number;
+          estimated_unit_cost: number | null;
+          estimated_margin: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          sales_order_id: string;
+          position?: number;
+          catalog_product_id?: string | null;
+          sku_snapshot: string;
+          description_snapshot?: string | null;
+          uom_snapshot?: string | null;
+          quantity: number;
+          unit_price: number;
+          discount?: number;
+          tax?: number;
+          // Los calcula rpc_create_sales_order/rpc_update_sales_order; nunca se envían desde la app.
+          line_subtotal?: number;
+          line_total?: number;
+          estimated_unit_cost?: number | null;
+          estimated_margin?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_order_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_items_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_order_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -2423,6 +2599,44 @@ export interface Database {
           p_items: Json;
         };
         Returns: Database["public"]["Tables"]["quotes"]["Row"];
+      };
+      // THÖREN Sales Orders MVP (0067) — SECURITY INVOKER, transacción
+      // única: pide order_number a fn_next_sales_order_number(), resuelve
+      // customer_contact_snapshot y calcula totales server-side. p_items es
+      // un array de objetos con catalog_product_id?/sku_snapshot?/
+      // description_snapshot?/uom_snapshot?/quantity/unit_price/discount?/
+      // tax?/estimated_unit_cost?/estimated_margin?.
+      rpc_create_sales_order: {
+        Args: {
+          p_sales_order_id: string;
+          p_sales_order: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Sales Orders MVP (0067) — SECURITY INVOKER. Solo permite
+      // escribir si la Sales Order sigue en status "draft" (verificado
+      // dentro del RPC, además de RLS/trigger). Reemplaza todo el set de
+      // sales_order_items en la MISMA transacción (nunca delete+insert por
+      // separado desde la app).
+      rpc_update_sales_order: {
+        Args: {
+          p_sales_order_id: string;
+          p_sales_order: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Sales Orders MVP (0067) — SECURITY INVOKER. Confirma/
+      // cancela/avanza el estado (confirmed/in_progress/fulfilled/closed/
+      // cancelled) — "draft" nunca es un destino aceptado. La máquina de
+      // estados real la impone trg_sales_order_status_transition.
+      rpc_update_sales_order_status: {
+        Args: {
+          p_sales_order_id: string;
+          p_status: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

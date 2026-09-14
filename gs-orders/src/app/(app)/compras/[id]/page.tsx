@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, PackageCheck } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
@@ -9,14 +9,15 @@ import { canPreparePurchaseOrders, canApprovePurchaseOrders } from "@/lib/auth/p
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import { resolveSupplierReferenceSnapshot, isMissingSupplierReference } from "@/lib/purchasing/supplier-reference-display";
-import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
-import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier, Warehouse } from "@/types/domain";
+import { PURCHASE_ORDER_RECEIVABLE_STATUSES, PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
+import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier } from "@/types/domain";
 import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
 import { ReplaceItemsForm } from "./replace-items-form";
-import { ReceiveItemForm } from "./receive-item-form";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +39,14 @@ function one<T>(value: OneOrMany<T> | null | undefined): T | null {
  *   - canApprove  -> can_approve_purchase_orders (o admin): sacar de
  *     borrador y administrar el ciclo posterior, incluida cancelar
  *     post-borrador.
- *   - canReceive  -> can_receive_inventory (o admin, 0044): columna de
- *     recepción — sin cambios desde 6R.1B-2B.
+ *   - canReceive  -> can_receive_inventory (o admin, 0044): botón "Recibir
+ *     mercancía" -> /recepciones/nueva. THÖREN 0070 retira la columna de
+ *     recepción en línea por partida (ReceiveItemForm) — la recepción
+ *     ahora es un documento (goods_receipts) con folio propio y ciclo
+ *     draft/posted, UN solo punto de entrada en vez de dos (ver DECISIÓN
+ *     de UI en la migración 0070). rpc_receive_purchase_order_item en sí
+ *     NO se retira — sigue siendo la pieza real que mueve inventario,
+ *     ahora invocada solo desde rpc_post_goods_receipt.
  * El proveedor es inmutable después de creación para TODOS (trigger de
  * 0035) — nunca se ofrece un selector para cambiarlo, ni siquiera a admin.
  */
@@ -88,35 +95,16 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
     .order("position");
   const items = (itemsData ?? []) as PurchaseOrderItem[];
 
-  // THÖREN Fase 6M — almacenes activos (para el selector de recepción) y
-  // el almacén ya usado por cada partida (si empezó a recibirse) — se
-  // deriva de inventory_movements, nunca se duplica en purchase_order_items.
-  const [{ data: warehousesData }, { data: movementsData }, { data: orderItemsData }] = await Promise.all([
-    supabase.from("warehouses").select("*").eq("active", true).order("name"),
-    items.length > 0
-      ? supabase
-          .from("inventory_movements")
-          .select("purchase_order_item_id, warehouse_id")
-          .in(
-            "purchase_order_item_id",
-            items.map((i) => i.id)
-          )
-      : Promise.resolve({ data: [] as { purchase_order_item_id: string | null; warehouse_id: string }[] }),
-    // Universo de partidas seleccionables para reemplazar (mismo criterio
-    // que al crear la PO) — solo se necesita si de verdad se va a mostrar
-    // el formulario de edición.
+  // Universo de partidas seleccionables para reemplazar (mismo criterio
+  // que al crear la PO) — solo se necesita si de verdad se va a mostrar
+  // el formulario de edición.
+  const { data: orderItemsData } =
     canEditItems && order
-      ? supabase.from("order_items").select("*").eq("order_id", order.id).order("position")
-      : Promise.resolve({ data: [] as OrderItem[] }),
-  ]);
-  const warehouses = (warehousesData ?? []) as Warehouse[];
-  const lockedWarehouseByItem = new Map(
-    ((movementsData ?? []) as { purchase_order_item_id: string | null; warehouse_id: string }[])
-      .filter((m) => m.purchase_order_item_id)
-      .map((m) => [m.purchase_order_item_id as string, m.warehouse_id])
-  );
+      ? await supabase.from("order_items").select("*").eq("order_id", order.id).order("position")
+      : { data: [] as OrderItem[] };
   const orderItems = (orderItemsData ?? []) as OrderItem[];
   const missingReferenceCount = items.filter(isMissingSupplierReference).length;
+  const canCreateReceipt = canReceive && PURCHASE_ORDER_RECEIVABLE_STATUSES.includes(po.status);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -125,6 +113,12 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
           <ArrowLeft className="h-4 w-4" />
           Compras
         </Link>
+        {canCreateReceipt && (
+          <Link href={`/recepciones/nueva?purchase_order_id=${po.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            <PackageCheck className="h-3.5 w-3.5" />
+            Recibir mercancía
+          </Link>
+        )}
       </div>
 
       <Card className="mb-6">
@@ -240,7 +234,6 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                     <Th>Ordenado</Th>
                     <Th>Recibido</Th>
                     <Th>Pendiente</Th>
-                    {canReceive && <Th />}
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -283,20 +276,6 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                         </Td>
                         <Td className="tabular-nums text-ink-soft">{item.quantity_received}</Td>
                         <Td className="tabular-nums text-ink-soft">{item.quantity_ordered - item.quantity_received}</Td>
-                        {canReceive && (
-                          <Td>
-                            <ReceiveItemForm
-                              purchaseOrderId={po.id}
-                              purchaseOrderItemId={item.id}
-                              quantityOrdered={item.quantity_ordered}
-                              quantityReceived={item.quantity_received}
-                              status={po.status}
-                              hasCatalogProduct={item.catalog_product_id !== null}
-                              warehouses={warehouses}
-                              lockedWarehouseId={lockedWarehouseByItem.get(item.id) ?? null}
-                            />
-                          </Td>
-                        )}
                       </Tr>
                     );
                   })}

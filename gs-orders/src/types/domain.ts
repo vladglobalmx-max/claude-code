@@ -1487,3 +1487,82 @@ export interface OrderDeliveryProgress {
   delivered: number;
   pending_to_deliver: number;
 }
+
+/**
+ * THÖREN 0070 — Receiving + Inventory MVP. Documento de recepción de
+ * mercancía contra UNA Purchase Order — ciclo draft (editable) -> posted
+ * (inmutable, mueve inventario) -> cancelled (solo desde draft, ver
+ * DECISIÓN en 0070_receiving_inventory_mvp.sql: cancelar una recepción ya
+ * posted queda fuera de alcance del MVP). El trabajo real de inventario
+ * (ledger + derivación del status de recepción de la PO) lo sigue
+ * haciendo rpc_receive_purchase_order_item (0035/0036/0044), invocado
+ * internamente por rpc_post_goods_receipt — este documento es la capa de
+ * folio/sesión que faltaba, no un ledger paralelo.
+ */
+export type GoodsReceiptStatus = "draft" | "posted" | "cancelled";
+
+export const GOODS_RECEIPT_STATUS_LABELS: Record<GoodsReceiptStatus, string> = {
+  draft: "Borrador",
+  posted: "Posteada",
+  cancelled: "Cancelada",
+};
+
+export const GOODS_RECEIPT_STATUS_BADGE: Record<GoodsReceiptStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  draft: "neutral",
+  posted: "success",
+  cancelled: "warning",
+};
+
+export interface GoodsReceipt {
+  id: string;
+  organization_id: string;
+  receipt_number: string;
+  sequence_number: number;
+  purchase_order_id: string;
+  warehouse_id: string;
+  status: GoodsReceiptStatus;
+  received_at: string;
+  received_by: string;
+  supplier_document_number: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de una recepción de mercancía. purchase_order_item_id SIEMPRE
+ * apunta a una partida real de la MISMA Purchase Order de la recepción
+ * (validado en DB). catalog_product_id/description_snapshot/uom_snapshot
+ * se copian de esa partida al crear — snapshot INDEPENDIENTE, nunca se
+ * vuelve a leer purchase_order_items después. Una línea con
+ * catalog_product_id NULL (partida libre de la PO) actualiza
+ * quantity_received igual, pero JAMÁS genera un inventory_movement (regla
+ * 12 del ticket) — nunca se inventa un producto para ella.
+ */
+export interface GoodsReceiptItem {
+  id: string;
+  goods_receipt_id: string;
+  purchase_order_item_id: string;
+  catalog_product_id: string | null;
+  description_snapshot: string;
+  uom_snapshot: string | null;
+  quantity_received: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Historial mínimo, inmutable (solo INSERT) de una recepción de mercancía
+ * — mismo criterio que purchase_requisition_events (0069): complementa
+ * (no reemplaza) el ledger real de inventory_movements.
+ */
+export type GoodsReceiptEventType = "created" | "posted" | "cancelled";
+
+export interface GoodsReceiptEvent {
+  id: string;
+  goods_receipt_id: string;
+  event_type: GoodsReceiptEventType;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}

@@ -2379,6 +2379,177 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Receiving + Inventory MVP (0070_receiving_inventory_mvp.sql)
+      // — motor de receipt_number, un row por organización. Sin policy de
+      // insert/update para `authenticated`: solo fn_next_goods_receipt_number
+      // (SECURITY DEFINER) escribe aquí.
+      goods_receipt_sequences: {
+        Row: {
+          organization_id: string;
+          prefix: string;
+          sequence_current: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          prefix?: string;
+          sequence_current?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["goods_receipt_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0070 — encabezado de recepción de mercancía. Ciclo
+      // draft -> posted -> cancelled (solo desde draft). rpc_post_goods_receipt
+      // es la única vía que mueve inventario (delega en
+      // rpc_receive_purchase_order_item, 0035/0036/0044, ya existente).
+      goods_receipts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          receipt_number: string;
+          sequence_number: number;
+          purchase_order_id: string;
+          warehouse_id: string;
+          status: string;
+          received_at: string;
+          received_by: string;
+          supplier_document_number: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          // receipt_number/sequence_number los asigna fn_next_goods_receipt_number() dentro de rpc_create_goods_receipt; nunca se envían.
+          receipt_number?: string;
+          sequence_number?: number;
+          purchase_order_id: string;
+          warehouse_id: string;
+          status?: string;
+          received_at?: string;
+          received_by?: string;
+          supplier_document_number?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["goods_receipts"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goods_receipts_purchase_order_id_fkey";
+            columns: ["purchase_order_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goods_receipts_warehouse_id_fkey";
+            columns: ["warehouse_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0070 — líneas. purchase_order_item_id SIEMPRE apunta a una
+      // partida real de la MISMA Purchase Order de la recepción (validado
+      // en DB). Congelada por completo fuera de status draft.
+      goods_receipt_items: {
+        Row: {
+          id: string;
+          goods_receipt_id: string;
+          purchase_order_item_id: string;
+          catalog_product_id: string | null;
+          description_snapshot: string;
+          uom_snapshot: string | null;
+          quantity_received: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          goods_receipt_id: string;
+          purchase_order_item_id: string;
+          catalog_product_id?: string | null;
+          description_snapshot: string;
+          uom_snapshot?: string | null;
+          quantity_received: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["goods_receipt_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_items_goods_receipt_id_fkey";
+            columns: ["goods_receipt_id"];
+            isOneToOne: false;
+            referencedRelation: "goods_receipts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goods_receipt_items_purchase_order_item_id_fkey";
+            columns: ["purchase_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_order_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goods_receipt_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0070 — historial mínimo, inmutable (solo INSERT).
+      goods_receipt_events: {
+        Row: {
+          id: string;
+          goods_receipt_id: string;
+          event_type: string;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          goods_receipt_id: string;
+          event_type: string;
+          notes?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["goods_receipt_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_events_goods_receipt_id_fkey";
+            columns: ["goods_receipt_id"];
+            isOneToOne: false;
+            referencedRelation: "goods_receipts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -3006,6 +3177,52 @@ export interface Database {
           p_purchase_order?: Json;
         };
         Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
+      };
+      // THÖREN Receiving + Inventory MVP (0070) — SECURITY INVOKER,
+      // requiere can_receive_inventory (o admin). Crea encabezado + líneas
+      // de una recepción de mercancía (draft) en una transacción. p_items
+      // es un array de objetos con purchase_order_item_id/quantity_received.
+      rpc_create_goods_receipt: {
+        Args: {
+          p_goods_receipt_id: string;
+          p_goods_receipt: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["goods_receipts"]["Row"];
+      };
+      // THÖREN 0070 — SECURITY INVOKER. Solo permite escribir si la
+      // recepción sigue en status "draft" (verificado dentro del RPC,
+      // además de RLS/trigger). Reemplaza almacén/fecha/documento del
+      // proveedor/notas + todo el set de goods_receipt_items en la MISMA
+      // transacción.
+      rpc_update_goods_receipt: {
+        Args: {
+          p_goods_receipt_id: string;
+          p_goods_receipt: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["goods_receipts"]["Row"];
+      };
+      // THÖREN 0070 — SECURITY INVOKER, requiere can_receive_inventory (o
+      // admin). SOLO 'draft' -> 'cancelled' — una recepción ya posted es
+      // inmutable y no puede cancelarse por esta vía (decisión MVP).
+      rpc_cancel_goods_receipt: {
+        Args: {
+          p_goods_receipt_id: string;
+        };
+        Returns: Database["public"]["Tables"]["goods_receipts"]["Row"];
+      };
+      // THÖREN 0070 — SECURITY INVOKER, requiere can_receive_inventory (o
+      // admin). Postea TODAS las líneas de la recepción en UNA
+      // transacción, delegando línea por línea en
+      // rpc_receive_purchase_order_item (0035/0036/0044) ya existente —
+      // nunca duplica esa lógica. Idempotente respecto a doble POST: una
+      // recepción que ya no está en 'draft' se rechaza explícitamente.
+      rpc_post_goods_receipt: {
+        Args: {
+          p_goods_receipt_id: string;
+        };
+        Returns: Database["public"]["Tables"]["goods_receipts"]["Row"];
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

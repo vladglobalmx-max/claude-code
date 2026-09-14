@@ -78,6 +78,12 @@ export interface NavGroup {
  *   y can_view_all_sales (dueño de la Sales Order de origen incluido) — no
  *   es adminOnly, aunque crear/editar/convertir a PO sigue gateado a
  *   can_prepare_purchase_orders dentro de las propias páginas.
+ * - Recepciones de Mercancía (THÖREN Receiving + Inventory MVP, 0070):
+ *   `goods_receipts_select` es visible a CUALQUIER miembro activo de la
+ *   organización — mismo criterio exacto que Inventario (documento
+ *   hermano del ledger de inventory_movements) — no es adminOnly, aunque
+ *   crear/editar/postear/cancelar sigue gateado a can_receive_inventory
+ *   dentro de las propias páginas.
  * - Proveedores: mismo criterio que Clientes —
  *   `suppliers_select_member`/`suppliers_insert_member` permiten a
  *   cualquier miembro activo ver y crear; solo editar es admin-only
@@ -133,6 +139,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/compras", label: "Compras", icon: Package, adminOnly: false },
       { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false },
+      { href: "/recepciones", label: "Recepciones de Mercancía", icon: PackageCheck, adminOnly: false },
       { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false },
     ],
   },

@@ -127,31 +127,3 @@ export async function replacePurchaseOrderItems(
 
   revalidatePath(`/compras/${purchaseOrderId}`);
 }
-
-/**
- * quantityReceived es el valor ACUMULADO (no un delta) — ver
- * rpc_receive_purchase_order_item. THÖREN Fase 6M — warehouseId es
- * obligatorio para partidas ligadas a Product Catalog (genera un
- * movimiento de inventario) y queda fijo tras el primer movimiento de esa
- * partida.
- */
-export async function receivePurchaseOrderItem(
-  purchaseOrderItemId: string,
-  purchaseOrderId: string,
-  quantityReceived: number,
-  warehouseId: string | null
-): Promise<PurchaseOrderActionResult> {
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.rpc("rpc_receive_purchase_order_item", {
-    p_purchase_order_item_id: purchaseOrderItemId,
-    p_quantity_received: quantityReceived,
-    p_warehouse_id: warehouseId,
-  });
-
-  if (error) {
-    return { error: mapDbError(error, "No se pudo registrar la recepción.") };
-  }
-
-  revalidatePath("/compras");
-  revalidatePath(`/compras/${purchaseOrderId}`);
-}

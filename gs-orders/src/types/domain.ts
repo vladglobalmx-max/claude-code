@@ -886,6 +886,98 @@ export interface SalesOrderFinancialEvent {
 }
 
 /**
+ * THÖREN Sales Order → Procurement (0069_sales_order_procurement.sql).
+ * Encabezado de una requisición de compra, originada SIEMPRE en una Sales
+ * Order liberada (status <> draft y fulfillment_release_status released/
+ * partially_released — impuesto en DB por trg_purchase_requisitions_eligible,
+ * solo al crear, nunca revalidado retroactivamente). Estados: draft
+ * (editable libremente) → submitted (locked) → partially_ordered/ordered
+ * (calculados exclusivamente por rpc_convert_requisition_to_purchase_order,
+ * nunca asignables a mano) → o cancelled (explícito, desde cualquier
+ * estado no terminal).
+ */
+export type PurchaseRequisitionStatus = "draft" | "submitted" | "partially_ordered" | "ordered" | "cancelled";
+
+export const PURCHASE_REQUISITION_STATUS_LABELS: Record<PurchaseRequisitionStatus, string> = {
+  draft: "Borrador",
+  submitted: "Enviada",
+  partially_ordered: "Ordenada parcialmente",
+  ordered: "Ordenada",
+  cancelled: "Cancelada",
+};
+
+export const PURCHASE_REQUISITION_STATUS_BADGE: Record<PurchaseRequisitionStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  draft: "neutral",
+  submitted: "accent",
+  partially_ordered: "accent",
+  ordered: "success",
+  cancelled: "warning",
+};
+
+export interface PurchaseRequisition {
+  id: string;
+  organization_id: string;
+  requisition_number: string;
+  sequence_number: number;
+  sales_order_id: string;
+  status: PurchaseRequisitionStatus;
+  requested_by: string;
+  requested_at: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de una requisición de compra. sales_order_item_id SIEMPRE apunta
+ * a una línea real de la Sales Order de origen (validado en DB, nunca
+ * solo en UI). catalog_product_id/description_snapshot/uom_snapshot se
+ * copian de esa línea en cada escritura de draft — snapshot
+ * INDEPENDIENTE, nunca se vuelve a leer sales_order_items después.
+ * quantity_ordered lo mantiene EXCLUSIVAMENTE
+ * rpc_convert_requisition_to_purchase_order (nunca editable a mano,
+ * incluso fuera de draft — ver trg_purchase_requisition_item_freeze).
+ * preferred_supplier_id/supplier_product_reference_id son una SUGERENCIA
+ * (nunca obligatoria) — auto-resueltos desde una supplier_product_reference
+ * activa + preferred si existe, pero el usuario puede elegir otra o
+ * ninguna; una referencia inactiva NUNCA se usa, ni automática ni
+ * explícitamente (CHECK en trigger).
+ */
+export interface PurchaseRequisitionItem {
+  id: string;
+  purchase_requisition_id: string;
+  sales_order_item_id: string;
+  catalog_product_id: string | null;
+  description_snapshot: string;
+  uom_snapshot: string | null;
+  quantity_required: number;
+  quantity_ordered: number;
+  preferred_supplier_id: string | null;
+  supplier_product_reference_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Historial mínimo, inmutable (solo INSERT) de una requisición de compra
+ * — mismo criterio que sales_order_financial_events (0068): sin
+ * infraestructura de audit log genérica reutilizable, historial por
+ * dominio.
+ */
+export type PurchaseRequisitionEventType = "created" | "submitted" | "cancelled" | "converted_to_po";
+
+export interface PurchaseRequisitionEvent {
+  id: string;
+  purchase_requisition_id: string;
+  event_type: PurchaseRequisitionEventType;
+  purchase_order_id: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+/**
  * Línea de una Sales Order (0067). catalog_product_id nullable = línea
  * libre. sku_snapshot es el identificador obligatorio de la línea
  * (equivalente de `model` en OrderItem/QuoteItem); description_snapshot/
@@ -1009,7 +1101,17 @@ export const PURCHASE_ORDER_MANUAL_STATUSES: PurchaseOrderStatus[] = [
 export interface PurchaseOrder {
   id: string;
   organization_id: string;
-  order_id: string;
+  /**
+   * THÖREN Sales Order → Procurement (0069_sales_order_procurement.sql):
+   * pasa a NULLABLE — una PO originada en una Purchase Requisition
+   * (rpc_convert_requisition_to_purchase_order) no tiene ningún Pedido de
+   * origen (Sales Orders y Orders/Pedidos son conceptos independientes,
+   * sin FK entre ambos). Toda PO originada en un Pedido (flujo existente,
+   * rpc_create_purchase_order) sigue teniendo order_id poblado como
+   * siempre — para distinguir el origen real de una PO, ver
+   * purchase_order_items[].purchase_requisition_item_id.
+   */
+  order_id: string | null;
   supplier_id: string;
   folio: string;
   sequence_number: number;
@@ -1072,6 +1174,13 @@ export interface PurchaseOrderItem {
   supplier_model_snapshot: string | null;
   supplier_description_snapshot: string | null;
   supplier_uom_snapshot: string | null;
+  /**
+   * THÖREN Sales Order → Procurement (0069) — vínculo mínimo hacia la
+   * partida de Purchase Requisition de origen. NULL para toda PO
+   * originada en un Pedido (flujo existente, sin cambios); poblado
+   * exclusivamente por rpc_convert_requisition_to_purchase_order.
+   */
+  purchase_requisition_item_id: string | null;
 }
 
 /**

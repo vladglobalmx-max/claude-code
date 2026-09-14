@@ -1124,7 +1124,9 @@ export interface Database {
         Row: {
           id: string;
           organization_id: string;
-          order_id: string;
+          // THÖREN Sales Order → Procurement (0069) — nullable: NULL para
+          // una PO originada en una Purchase Requisition.
+          order_id: string | null;
           supplier_id: string;
           folio: string;
           sequence_number: number;
@@ -1141,7 +1143,7 @@ export interface Database {
         Insert: {
           id?: string;
           organization_id: string;
-          order_id: string;
+          order_id?: string | null;
           supplier_id: string;
           folio: string;
           sequence_number: number;
@@ -1209,6 +1211,10 @@ export interface Database {
           supplier_model_snapshot: string | null;
           supplier_description_snapshot: string | null;
           supplier_uom_snapshot: string | null;
+          // THÖREN Sales Order → Procurement (0069) — NULL para toda PO
+          // originada en un Pedido; poblado exclusivamente por
+          // rpc_convert_requisition_to_purchase_order.
+          purchase_requisition_item_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1229,6 +1235,7 @@ export interface Database {
           supplier_model_snapshot?: string | null;
           supplier_description_snapshot?: string | null;
           supplier_uom_snapshot?: string | null;
+          purchase_requisition_item_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["purchase_order_items"]["Insert"]>;
         Relationships: [
@@ -1244,6 +1251,13 @@ export interface Database {
             columns: ["catalog_product_id"];
             isOneToOne: false;
             referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_requisition_item_id_fkey";
+            columns: ["purchase_requisition_item_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_requisition_items";
             referencedColumns: ["id"];
           },
         ];
@@ -2173,6 +2187,198 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Sales Order → Procurement (0069_sales_order_procurement.sql)
+      // — motor de requisition_number, un row por organización. Sin
+      // policy de insert/update para `authenticated`: solo
+      // fn_next_purchase_requisition_number (SECURITY DEFINER) escribe aquí.
+      purchase_requisition_sequences: {
+        Row: {
+          organization_id: string;
+          prefix: string;
+          sequence_current: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          prefix?: string;
+          sequence_current?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requisition_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisition_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Sales Order → Procurement (0069) — encabezado. Solo se
+      // puede crear desde una Sales Order liberada (trg_purchase_requisitions_eligible).
+      purchase_requisitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          requisition_number: string;
+          sequence_number: number;
+          sales_order_id: string;
+          status: string;
+          requested_by: string;
+          requested_at: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          // requisition_number/sequence_number los asigna fn_next_purchase_requisition_number() dentro de rpc_create_purchase_requisition; nunca se envían.
+          requisition_number?: string;
+          sequence_number?: number;
+          sales_order_id: string;
+          status?: string;
+          requested_by?: string;
+          requested_at?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requisitions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisitions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisitions_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Sales Order → Procurement (0069) — líneas. sales_order_item_id
+      // SIEMPRE apunta a una línea real de la Sales Order de origen
+      // (validado en DB). quantity_ordered lo mantiene exclusivamente
+      // rpc_convert_requisition_to_purchase_order.
+      purchase_requisition_items: {
+        Row: {
+          id: string;
+          purchase_requisition_id: string;
+          sales_order_item_id: string;
+          catalog_product_id: string | null;
+          description_snapshot: string;
+          uom_snapshot: string | null;
+          quantity_required: number;
+          quantity_ordered: number;
+          preferred_supplier_id: string | null;
+          supplier_product_reference_id: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          purchase_requisition_id: string;
+          sales_order_item_id: string;
+          catalog_product_id?: string | null;
+          description_snapshot: string;
+          uom_snapshot?: string | null;
+          quantity_required: number;
+          // Lo mantiene exclusivamente rpc_convert_requisition_to_purchase_order; nunca se envía desde la app.
+          quantity_ordered?: number;
+          preferred_supplier_id?: string | null;
+          supplier_product_reference_id?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requisition_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisition_items_purchase_requisition_id_fkey";
+            columns: ["purchase_requisition_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_requisitions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisition_items_sales_order_item_id_fkey";
+            columns: ["sales_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_order_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisition_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisition_items_preferred_supplier_id_fkey";
+            columns: ["preferred_supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisition_items_supplier_product_reference_id_fkey";
+            columns: ["supplier_product_reference_id"];
+            isOneToOne: false;
+            referencedRelation: "supplier_product_references";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Sales Order → Procurement (0069) — historial mínimo,
+      // inmutable (solo INSERT).
+      purchase_requisition_events: {
+        Row: {
+          id: string;
+          purchase_requisition_id: string;
+          event_type: string;
+          purchase_order_id: string | null;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          purchase_requisition_id: string;
+          event_type: string;
+          purchase_order_id?: string | null;
+          notes?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["purchase_requisition_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisition_events_purchase_requisition_id_fkey";
+            columns: ["purchase_requisition_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_requisitions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_requisition_events_purchase_order_id_fkey";
+            columns: ["purchase_order_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -2740,6 +2946,66 @@ export interface Database {
           p_sales_order_id: string;
         };
         Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
+      // requiere can_prepare_purchase_orders (o admin). Crea encabezado +
+      // líneas de una Purchase Requisition en una transacción. p_items es
+      // un array de objetos con sales_order_item_id/quantity_required/
+      // preferred_supplier_id?/supplier_product_reference_id?/notes?.
+      rpc_create_purchase_requisition: {
+        Args: {
+          p_requisition_id: string;
+          p_requisition: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_requisitions"]["Row"];
+      };
+      // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER. Solo
+      // permite escribir si la requisición sigue en status "draft"
+      // (verificado dentro del RPC, además de RLS/trigger). Reemplaza
+      // todo el set de purchase_requisition_items en la MISMA transacción.
+      rpc_update_purchase_requisition: {
+        Args: {
+          p_requisition_id: string;
+          p_requisition: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_requisitions"]["Row"];
+      };
+      // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
+      // requiere can_prepare_purchase_orders (o admin). draft -> submitted;
+      // exige al menos 1 línea.
+      rpc_submit_purchase_requisition: {
+        Args: {
+          p_requisition_id: string;
+        };
+        Returns: Database["public"]["Tables"]["purchase_requisitions"]["Row"];
+      };
+      // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
+      // requiere can_prepare_purchase_orders (o admin). Cancelación
+      // explícita desde cualquier status no terminal.
+      rpc_cancel_purchase_requisition: {
+        Args: {
+          p_requisition_id: string;
+        };
+        Returns: Database["public"]["Tables"]["purchase_requisitions"]["Row"];
+      };
+      // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
+      // requiere can_prepare_purchase_orders (o admin). Crea UNA Purchase
+      // Order (reutilizando purchase_orders/purchase_order_items, order_id
+      // NULL) a partir de un subconjunto de líneas de la requisición, todas
+      // hacia el MISMO proveedor — actualiza quantity_ordered y recalcula
+      // el status de la requisición en la MISMA transacción (atómico: si
+      // falla, la requisición queda exactamente como estaba).
+      rpc_convert_requisition_to_purchase_order: {
+        Args: {
+          p_purchase_order_id: string;
+          p_requisition_id: string;
+          p_supplier_id: string;
+          p_requisition_item_ids: string[];
+          p_purchase_order?: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

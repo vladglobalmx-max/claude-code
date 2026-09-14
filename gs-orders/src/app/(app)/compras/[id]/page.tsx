@@ -73,7 +73,13 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
   const canEditDetails = isAdmin ? po.status !== "cancelada" : canPrepare && po.status === "borrador";
   // Partidas: SIEMPRE borrador, para admin y preparador por igual (0045 —
   // editar partidas nunca aplica fuera de preparación, sin excepción de rol).
-  const canEditItems = (isAdmin || canPrepare) && po.status === "borrador";
+  // THÖREN 0069 — además exige `order` (Pedido de origen): una Purchase
+  // Order originada en una Requisición de Compra tiene order_id NULL y sus
+  // partidas provienen de purchase_requisition_items, no de order_items —
+  // "Reemplazar partidas" nunca aplica ahí (rpc_replace_purchase_order_items
+  // lo rechaza explícitamente en DB, ver 0069 sección 19). Se gestionan
+  // exclusivamente desde la propia Requisición.
+  const canEditItems = (isAdmin || canPrepare) && po.status === "borrador" && order !== null;
 
   const { data: itemsData } = await supabase
     .from("purchase_order_items")

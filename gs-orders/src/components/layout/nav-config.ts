@@ -2,6 +2,7 @@ import {
   Boxes,
   Briefcase,
   Building2,
+  ClipboardCheck,
   ClipboardList,
   Contact,
   FileSpreadsheet,
@@ -72,6 +73,11 @@ export interface NavGroup {
  *   Pedidos que le pertenecen (visibilidad heredada, nunca un acceso
  *   nuevo) — por eso NO es adminOnly, aunque solo ADMIN puede crear/
  *   gestionar (gateado dentro de las propias páginas, no a nivel de nav).
+ * - Requisiciones de Compra (THÖREN Sales Order → Procurement, 0069):
+ *   `purchase_requisitions_select` permite ver a admin, can_prepare_purchase_orders
+ *   y can_view_all_sales (dueño de la Sales Order de origen incluido) — no
+ *   es adminOnly, aunque crear/editar/convertir a PO sigue gateado a
+ *   can_prepare_purchase_orders dentro de las propias páginas.
  * - Proveedores: mismo criterio que Clientes —
  *   `suppliers_select_member`/`suppliers_insert_member` permiten a
  *   cualquier miembro activo ver y crear; solo editar es admin-only
@@ -126,6 +132,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Compras",
     items: [
       { href: "/compras", label: "Compras", icon: Package, adminOnly: false },
+      { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false },
       { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false },
     ],
   },

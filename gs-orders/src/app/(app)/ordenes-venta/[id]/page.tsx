@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, ShoppingCart } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
 import { canManageSalesOrderFinance } from "@/lib/auth/logistics";
+import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,13 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // separada de canWrite: una persona de Finanzas normalmente NO es dueña
   // comercial de la Sales Order (ver sales_orders_update_finance, 0068).
   const canManageFinance = canManageSalesOrderFinance(profile, capabilities);
+  // THÖREN 0069 — Sales Order → Procurement: crear una requisición de
+  // compra solo tiene sentido para una Sales Order ya liberada (financiera
+  // o parcialmente) para surtido — la elegibilidad REAL la impone
+  // trg_check_purchase_requisition_eligible en DB; esto solo evita
+  // ofrecer un botón que llevaría a un formulario que la rechazaría.
+  const canPrepare = canPreparePurchaseOrders(profile, capabilities);
+  const canCreateRequisition = canPrepare && ["released", "partially_released"].includes(salesOrder.fulfillment_release_status);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -57,6 +65,15 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           {canWrite && <SalesOrderStatusActions salesOrder={salesOrder} />}
+          {canCreateRequisition && (
+            <Link
+              href={`/requisiciones/nueva?sales_order_id=${salesOrder.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Crear requisición de compra
+            </Link>
+          )}
           {salesOrder.status === "draft" && canWrite && (
             <Link
               href={`/ordenes-venta/${salesOrder.id}/editar`}

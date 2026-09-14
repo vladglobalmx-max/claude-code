@@ -1994,6 +1994,16 @@ export interface Database {
           total: number;
           created_by: string;
           confirmed_at: string | null;
+          // THÖREN Financial Release (0068_sales_order_financial_release.sql)
+          // — nunca escritos directo desde la app, ver trg_sales_order_financial_guard.
+          payment_terms_type: string;
+          financial_status: string;
+          fulfillment_release_status: string;
+          financial_released_at: string | null;
+          financial_released_by: string | null;
+          financial_hold_reason: string | null;
+          amount_paid: number;
+          payment_required_amount: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -2020,6 +2030,16 @@ export interface Database {
           total?: number;
           created_by?: string;
           confirmed_at?: string | null;
+          // Los resuelve rpc_create_sales_order/rpc_update_sales_order (payment_terms_type) o
+          // exclusivamente las RPCs financieras (0068) — nunca se envían desde un .insert()/.update() directo.
+          payment_terms_type?: string;
+          financial_status?: string;
+          fulfillment_release_status?: string;
+          financial_released_at?: string | null;
+          financial_released_by?: string | null;
+          financial_hold_reason?: string | null;
+          amount_paid?: number;
+          payment_required_amount?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -2107,6 +2127,48 @@ export interface Database {
             columns: ["catalog_product_id"];
             isOneToOne: false;
             referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN Financial Release (0068_sales_order_financial_release.sql) —
+      // historial mínimo, inmutable (solo INSERT — sin policy de
+      // update/delete para `authenticated`). Escrito exclusivamente por
+      // las 4 RPCs financieras.
+      sales_order_financial_events: {
+        Row: {
+          id: string;
+          sales_order_id: string;
+          event_type: string;
+          amount: number | null;
+          previous_financial_status: string | null;
+          new_financial_status: string | null;
+          previous_release_status: string | null;
+          new_release_status: string | null;
+          reason: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sales_order_id: string;
+          event_type: string;
+          amount?: number | null;
+          previous_financial_status?: string | null;
+          new_financial_status?: string | null;
+          previous_release_status?: string | null;
+          new_release_status?: string | null;
+          reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_order_financial_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_financial_events_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
             referencedColumns: ["id"];
           },
         ];
@@ -2635,6 +2697,47 @@ export interface Database {
         Args: {
           p_sales_order_id: string;
           p_status: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Financial Release (0068) — SECURITY INVOKER, requiere
+      // can_manage_sales_order_finance (o admin). Registra un pago,
+      // recalcula amount_paid/financial_status y libera automáticamente
+      // cuando corresponde (nunca para crédito).
+      rpc_register_sales_order_payment: {
+        Args: {
+          p_sales_order_id: string;
+          p_amount: number;
+          p_note?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Financial Release (0068) — SECURITY INVOKER, requiere
+      // can_manage_sales_order_finance (o admin). Solo para SO con
+      // payment_terms_type = 'credit'.
+      rpc_approve_sales_order_credit: {
+        Args: {
+          p_sales_order_id: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Financial Release (0068) — SECURITY INVOKER, requiere
+      // can_manage_sales_order_finance (o admin). p_reason obligatorio
+      // (no blanco) — validado dentro del RPC.
+      rpc_set_sales_order_financial_hold: {
+        Args: {
+          p_sales_order_id: string;
+          p_reason: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Financial Release (0068) — SECURITY INVOKER, requiere
+      // can_manage_sales_order_finance (o admin). Re-evalúa y libera
+      // ÚNICAMENTE si la condición financiera ya se cumple — contrapunto
+      // de rpc_set_sales_order_financial_hold.
+      rpc_release_sales_order: {
+        Args: {
+          p_sales_order_id: string;
         };
         Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
       };

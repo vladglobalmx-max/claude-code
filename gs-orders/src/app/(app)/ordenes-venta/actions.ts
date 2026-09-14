@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { salesOrderPayloadSchema } from "@/lib/validations/sales-order";
+import { salesOrderFinancialHoldSchema, salesOrderPaymentSchema, salesOrderPayloadSchema } from "@/lib/validations/sales-order";
 import { mapDbError } from "@/lib/db-errors";
-import type { SalesOrderCurrency, SalesOrderStatus } from "@/types/domain";
+import type { SalesOrder, SalesOrderCurrency, SalesOrderPaymentTermsType, SalesOrderStatus } from "@/types/domain";
 
 export type SalesOrderActionResult = { error: string } | void;
 
@@ -36,6 +36,10 @@ export interface SalesOrderWritePayload {
   currency: SalesOrderCurrency;
   exchange_rate?: number;
   payment_terms?: string;
+  /** THÖREN Financial Release (0068) — obligatorio; gatea qué camino de liberación aplica. */
+  payment_terms_type: SalesOrderPaymentTermsType;
+  /** Solo tiene efecto real para 'advance'/'custom' — el servidor lo fuerza para 'cash' (= total) y 'credit' (= NULL). */
+  payment_required_amount?: number;
   requested_delivery_date?: string;
   billing_address_snapshot?: string;
   shipping_address_snapshot?: string;
@@ -96,6 +100,8 @@ export async function createSalesOrder(salesOrderId: string, payload: SalesOrder
       currency: parsed.data.currency,
       exchange_rate: parsed.data.exchange_rate ?? null,
       payment_terms: parsed.data.payment_terms ?? null,
+      payment_terms_type: parsed.data.payment_terms_type,
+      payment_required_amount: parsed.data.payment_required_amount ?? null,
       requested_delivery_date: parsed.data.requested_delivery_date ?? null,
       billing_address_snapshot: parsed.data.billing_address_snapshot ?? null,
       shipping_address_snapshot: parsed.data.shipping_address_snapshot ?? null,
@@ -137,6 +143,8 @@ export async function updateSalesOrder(salesOrderId: string, payload: SalesOrder
       currency: parsed.data.currency,
       exchange_rate: parsed.data.exchange_rate ?? null,
       payment_terms: parsed.data.payment_terms ?? null,
+      payment_terms_type: parsed.data.payment_terms_type,
+      payment_required_amount: parsed.data.payment_required_amount ?? null,
       requested_delivery_date: parsed.data.requested_delivery_date ?? null,
       billing_address_snapshot: parsed.data.billing_address_snapshot ?? null,
       shipping_address_snapshot: parsed.data.shipping_address_snapshot ?? null,
@@ -219,4 +227,106 @@ export async function updateSalesOrderInternalNotes(salesOrderId: string, intern
 
   revalidatePath("/ordenes-venta");
   revalidatePath(`/ordenes-venta/${salesOrderId}`);
+}
+
+export type SalesOrderFinancialActionResult = { error: string | null; salesOrder?: SalesOrder };
+
+/**
+ * THÖREN Financial Release (0068). Registra un pago vía
+ * rpc_register_sales_order_payment — el RPC recalcula amount_paid/
+ * financial_status y libera automáticamente cuando corresponde (nunca
+ * para crédito). Autoridad real (can_manage_sales_order_finance o admin)
+ * la exige el propio RPC + trg_sales_order_financial_guard; este action no
+ * reimplementa esa regla, solo traduce el error.
+ */
+export async function registerSalesOrderPayment(
+  salesOrderId: string,
+  payload: { amount: number; note?: string }
+): Promise<SalesOrderFinancialActionResult> {
+  const parsed = salesOrderPaymentSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_register_sales_order_payment", {
+    p_sales_order_id: salesOrderId,
+    p_amount: parsed.data.amount,
+    p_note: parsed.data.note || null,
+  });
+
+  if (error || !data) {
+    return { error: mapDbError(error, "No se pudo registrar el pago. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/ordenes-venta/${salesOrderId}`);
+  return { error: null, salesOrder: data as SalesOrder };
+}
+
+/**
+ * THÖREN Financial Release (0068). Aprueba crédito vía
+ * rpc_approve_sales_order_credit — el RPC rechaza si la Sales Order no
+ * está configurada como crédito o si el crédito ya fue aprobado.
+ */
+export async function approveSalesOrderCredit(salesOrderId: string): Promise<SalesOrderFinancialActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_approve_sales_order_credit", {
+    p_sales_order_id: salesOrderId,
+  });
+
+  if (error || !data) {
+    return { error: mapDbError(error, "No se pudo aprobar el crédito. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/ordenes-venta/${salesOrderId}`);
+  return { error: null, salesOrder: data as SalesOrder };
+}
+
+/**
+ * THÖREN Financial Release (0068). Bloqueo financiero explícito vía
+ * rpc_set_sales_order_financial_hold — motivo obligatorio (validado en
+ * capa 2 aquí y en capa 3 real dentro del RPC).
+ */
+export async function setSalesOrderFinancialHold(
+  salesOrderId: string,
+  payload: { reason: string }
+): Promise<SalesOrderFinancialActionResult> {
+  const parsed = salesOrderFinancialHoldSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_set_sales_order_financial_hold", {
+    p_sales_order_id: salesOrderId,
+    p_reason: parsed.data.reason,
+  });
+
+  if (error || !data) {
+    return { error: mapDbError(error, "No se pudo bloquear financieramente la Sales Order. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/ordenes-venta/${salesOrderId}`);
+  return { error: null, salesOrder: data as SalesOrder };
+}
+
+/**
+ * THÖREN Financial Release (0068). Re-evalúa y libera vía
+ * rpc_release_sales_order — ÚNICAMENTE si la condición financiera ya se
+ * cumple (crédito aprobado, o pago suficiente); es el contrapunto de
+ * "Bloquear" para cuando un hold se aplicó sobre una Sales Order que ya
+ * cumplía la condición.
+ */
+export async function releaseSalesOrder(salesOrderId: string): Promise<SalesOrderFinancialActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_release_sales_order", {
+    p_sales_order_id: salesOrderId,
+  });
+
+  if (error || !data) {
+    return { error: mapDbError(error, "No se pudo liberar la Sales Order. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/ordenes-venta/${salesOrderId}`);
+  return { error: null, salesOrder: data as SalesOrder };
 }

@@ -4,6 +4,8 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
+import { canManageSalesOrderFinance } from "@/lib/auth/logistics";
+import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -14,15 +16,17 @@ import { SALES_ORDER_STATUS_BADGE, SALES_ORDER_STATUS_LABELS } from "@/types/dom
 import type { SalesOrder, SalesOrderItem } from "@/types/domain";
 import { SalesOrderStatusActions } from "./sales-order-status-actions";
 import { SalesOrderInternalNotesEditor } from "./sales-order-internal-notes-editor";
+import { SalesOrderFinancialPanel } from "./sales-order-financial-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function VerOrdenVentaPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
-  const [{ data: soData }, { data: itemsData }] = await Promise.all([
+  const [{ data: soData }, { data: itemsData }, capabilities] = await Promise.all([
     supabase.from("sales_orders").select("*").eq("id", params.id).single(),
     supabase.from("sales_order_items").select("*").eq("sales_order_id", params.id).order("position"),
+    getCurrentCapabilities(profile?.userId),
   ]);
 
   if (!soData) notFound();
@@ -39,6 +43,10 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // conoce esa capacidad. RLS sigue siendo la autoridad final; esto solo
   // evita ofrecer en la UI un control que el backend rechazaría en silencio.
   const canWrite = canWriteRecord(profile, salesOrder.salesperson_id);
+  // Autoridad financiera (THÖREN Financial Release, 0068) — completamente
+  // separada de canWrite: una persona de Finanzas normalmente NO es dueña
+  // comercial de la Sales Order (ver sales_orders_update_finance, 0068).
+  const canManageFinance = canManageSalesOrderFinance(profile, capabilities);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -210,6 +218,10 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
           </div>
         </CardContent>
       </Card>
+
+      <div className="mt-5">
+        <SalesOrderFinancialPanel salesOrder={salesOrder} canManageFinance={canManageFinance} />
+      </div>
     </div>
   );
 }

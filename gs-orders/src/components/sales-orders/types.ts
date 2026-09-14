@@ -1,4 +1,4 @@
-import type { SalesOrderCurrency } from "@/types/domain";
+import type { SalesOrderCurrency, SalesOrderPaymentTermsType } from "@/types/domain";
 
 /**
  * Producto del catálogo administrable, versión mínima para el selector de
@@ -48,6 +48,16 @@ export interface SalesOrderFormState {
   currency: SalesOrderCurrency;
   exchangeRate: string;
   paymentTerms: string;
+  /** THÖREN Financial Release (0068) — obligatorio, gatea la liberación financiera. */
+  paymentTermsType: SalesOrderPaymentTermsType;
+  /**
+   * Solo editable/relevante para 'advance'/'custom' — para 'cash' el
+   * servidor SIEMPRE lo fuerza al total (rpc_create_sales_order/
+   * rpc_update_sales_order, 0068), para 'credit' siempre lo fuerza a NULL.
+   * El formulario deshabilita este campo en ambos casos (ver
+   * SalesOrderForm) para no sugerir un control que el servidor ignora.
+   */
+  paymentRequiredAmount: string;
   requestedDeliveryDate: string;
   commercialNotes: string;
   internalNotes: string;
@@ -61,6 +71,8 @@ export function emptySalesOrderForm({ salespersonId }: { salespersonId: string }
     currency: "MXN",
     exchangeRate: "",
     paymentTerms: "",
+    paymentTermsType: "cash",
+    paymentRequiredAmount: "",
     requestedDeliveryDate: "",
     commercialNotes: "",
     internalNotes: "",

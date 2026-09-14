@@ -41,6 +41,15 @@ export const salesOrderPayloadSchema = z.object({
   currency: z.enum(["MXN", "USD"], { errorMap: () => ({ message: "Selecciona una moneda" }) }),
   exchange_rate: z.coerce.number().positive().optional(),
   payment_terms: z.string().trim().optional(),
+  // THÖREN Financial Release (0068) — clasificación estructurada de la
+  // condición de pago, obligatoria (gatea qué camino de liberación
+  // financiera aplica). payment_required_amount solo tiene efecto real
+  // para 'advance'/'custom': el servidor lo fuerza al total para 'cash' y
+  // a NULL para 'credit' (ver rpc_create_sales_order/rpc_update_sales_order).
+  payment_terms_type: z.enum(["cash", "credit", "advance", "custom"], {
+    errorMap: () => ({ message: "Selecciona un tipo de condición de pago" }),
+  }),
+  payment_required_amount: z.coerce.number().min(0, "El monto requerido no puede ser negativo").optional(),
   requested_delivery_date: z.string().trim().optional(),
   billing_address_snapshot: z.string().trim().optional(),
   shipping_address_snapshot: z.string().trim().optional(),
@@ -49,5 +58,24 @@ export const salesOrderPayloadSchema = z.object({
   items: z.array(salesOrderItemSchema).default([]),
 });
 
+/**
+ * Payload de rpc_register_sales_order_payment (0068). El monto debe ser
+ * mayor a cero — el RPC repite esta validación como capa 3 real.
+ */
+export const salesOrderPaymentSchema = z.object({
+  amount: z.coerce.number().positive("El monto del pago debe ser mayor a cero"),
+  note: z.string().trim().optional(),
+});
+
+/**
+ * Payload de rpc_set_sales_order_financial_hold (0068). El motivo es
+ * obligatorio — el RPC repite esta validación como capa 3 real.
+ */
+export const salesOrderFinancialHoldSchema = z.object({
+  reason: z.string().trim().min(1, "Debes indicar un motivo para bloquear financieramente esta Sales Order"),
+});
+
 export type SalesOrderItemPayload = z.infer<typeof salesOrderItemSchema>;
 export type SalesOrderPayload = z.infer<typeof salesOrderPayloadSchema>;
+export type SalesOrderPaymentPayload = z.infer<typeof salesOrderPaymentSchema>;
+export type SalesOrderFinancialHoldPayload = z.infer<typeof salesOrderFinancialHoldSchema>;

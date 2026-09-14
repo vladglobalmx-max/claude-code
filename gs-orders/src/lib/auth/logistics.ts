@@ -60,3 +60,18 @@ export function canReceiveInventory(profile: CapabilityProfile | null, capabilit
   if (profile.role === "admin") return true;
   return capabilities.has("can_receive_inventory");
 }
+
+/**
+ * Registrar pagos, aprobar crédito, bloquear/liberar el estado financiero
+ * de una Sales Order — mismo guard que las 4 RPCs financieras de 0068
+ * (rpc_register_sales_order_payment/rpc_approve_sales_order_credit/
+ * rpc_set_sales_order_financial_hold/rpc_release_sales_order): admin O la
+ * capability, SIN rama de ownership — una persona de Finanzas típicamente
+ * NO es el salesperson dueño de la Sales Order que está cobrando. Mismo
+ * criterio que canReceiveInventory arriba.
+ */
+export function canManageSalesOrderFinance(profile: CapabilityProfile | null, capabilities: ReadonlySet<string>): boolean {
+  if (!profile || !profile.active) return false;
+  if (profile.role === "admin") return true;
+  return capabilities.has("can_manage_sales_order_finance");
+}

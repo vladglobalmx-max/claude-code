@@ -736,6 +736,74 @@ export const SALES_ORDER_STATUS_BADGE: Record<SalesOrderStatus, "neutral" | "acc
   cancelled: "warning",
 };
 
+/**
+ * THÖREN Sales Orders / Financial Release (0068_sales_order_financial_release.sql).
+ * payment_terms_type es la clasificación ESTRUCTURADA de la condición de
+ * pago (payment_terms sigue siendo el texto libre/leyenda) — determina qué
+ * camino de liberación aplica: 'cash' y 'advance'/'custom' requieren pago
+ * suficiente (amount_paid >= payment_required_amount); 'credit' requiere
+ * aprobación de crédito. Para 'cash', payment_required_amount SIEMPRE lo
+ * deriva el servidor (= total) — nunca es un valor capturado por el
+ * usuario; para 'credit' siempre es NULL.
+ */
+export type SalesOrderPaymentTermsType = "cash" | "credit" | "advance" | "custom";
+
+export const SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS: Record<SalesOrderPaymentTermsType, string> = {
+  cash: "Contado",
+  credit: "Crédito",
+  advance: "Anticipo",
+  custom: "Personalizado",
+};
+
+/**
+ * financial_status: NUNCA se escribe directo desde la app — solo las RPCs
+ * rpc_register_sales_order_payment/rpc_approve_sales_order_credit
+ * (0068) lo cambian, y trg_sales_order_financial_guard exige
+ * can_manage_sales_order_finance (o admin) para cualquier escritura. Este
+ * MVP nunca asigna 'overdue' (reservado para Accounts Receivable, fuera de
+ * alcance — ver 0068).
+ */
+export type SalesOrderFinancialStatus = "pending" | "partially_paid" | "paid" | "credit_approved" | "overdue";
+
+export const SALES_ORDER_FINANCIAL_STATUS_LABELS: Record<SalesOrderFinancialStatus, string> = {
+  pending: "Pendiente",
+  partially_paid: "Pago parcial",
+  paid: "Pagado",
+  credit_approved: "Crédito aprobado",
+  overdue: "Vencido",
+};
+
+export const SALES_ORDER_FINANCIAL_STATUS_BADGE: Record<SalesOrderFinancialStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  pending: "neutral",
+  partially_paid: "accent",
+  paid: "success",
+  credit_approved: "success",
+  overdue: "danger",
+};
+
+/**
+ * fulfillment_release_status: una Sales Order en 'draft' SIEMPRE está en
+ * 'blocked' (CHECK constraint sales_orders_release_requires_non_draft,
+ * 0068) — nunca puede avanzar a surtido/compra mientras esté ahí. Este
+ * MVP nunca asigna 'partially_released'/'fulfilled' (reservados para
+ * Inventory/Procurement, fuera de alcance).
+ */
+export type SalesOrderFulfillmentReleaseStatus = "blocked" | "released" | "partially_released" | "fulfilled";
+
+export const SALES_ORDER_FULFILLMENT_RELEASE_STATUS_LABELS: Record<SalesOrderFulfillmentReleaseStatus, string> = {
+  blocked: "Bloqueada",
+  released: "Liberada",
+  partially_released: "Liberada parcialmente",
+  fulfilled: "Surtida",
+};
+
+export const SALES_ORDER_FULFILLMENT_RELEASE_STATUS_BADGE: Record<SalesOrderFulfillmentReleaseStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  blocked: "warning",
+  released: "success",
+  partially_released: "accent",
+  fulfilled: "success",
+};
+
 export interface SalesOrder {
   id: string;
   organization_id: string;
@@ -768,8 +836,53 @@ export interface SalesOrder {
   created_by: string;
   confirmed_at: string | null;
 
+  /**
+   * THÖREN Financial Release (0068). Las 8 columnas siguientes NUNCA se
+   * escriben directo desde la app — exclusivamente vía
+   * rpc_register_sales_order_payment/rpc_approve_sales_order_credit/
+   * rpc_set_sales_order_financial_hold/rpc_release_sales_order,
+   * protegidas en DB por trg_sales_order_financial_guard
+   * (can_manage_sales_order_finance o admin). payment_terms_type/
+   * payment_required_amount sí se capturan en el formulario (solo en
+   * draft, como el resto del contenido comercial) — ver DECISIÓN
+   * "payment_required_amount" en 0068 para el caso 'cash' (siempre
+   * derivado del total) y 'credit' (siempre NULL).
+   */
+  payment_terms_type: SalesOrderPaymentTermsType;
+  financial_status: SalesOrderFinancialStatus;
+  fulfillment_release_status: SalesOrderFulfillmentReleaseStatus;
+  financial_released_at: string | null;
+  financial_released_by: string | null;
+  financial_hold_reason: string | null;
+  amount_paid: number;
+  payment_required_amount: number | null;
+
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Historial financiero mínimo (0068_sales_order_financial_release.sql) —
+ * inmutable (solo INSERT), un evento por cambio financiero relevante
+ * (payment_registered/credit_approved/released/financial_hold). Ninguna
+ * infraestructura de audit log genérica existe en el proyecto — mismo
+ * criterio que order_operational_status_history/delivery_status_history
+ * (historial por dominio, no global).
+ */
+export type SalesOrderFinancialEventType = "payment_registered" | "credit_approved" | "released" | "financial_hold";
+
+export interface SalesOrderFinancialEvent {
+  id: string;
+  sales_order_id: string;
+  event_type: SalesOrderFinancialEventType;
+  amount: number | null;
+  previous_financial_status: SalesOrderFinancialStatus | null;
+  new_financial_status: SalesOrderFinancialStatus | null;
+  previous_release_status: SalesOrderFulfillmentReleaseStatus | null;
+  new_release_status: SalesOrderFulfillmentReleaseStatus | null;
+  reason: string | null;
+  created_by: string;
+  created_at: string;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canFulfillInventory, canManageDeliveries, canReceiveInventory, canReserveInventory } from "./logistics";
+import { canFulfillInventory, canManageDeliveries, canManageSalesOrderFinance, canReceiveInventory, canReserveInventory } from "./logistics";
 import { canWriteRecord } from "./ownership";
 import type { CurrentProfile } from "./profile";
 
@@ -198,5 +198,32 @@ describe("[11]-[20] cobertura funcional/UI por pantalla", () => {
     const canReceive = canReceiveInventory(admin, NONE);
     expect(canReceive).toBe(true);
     expect(isAdmin).toBe(true);
+  });
+
+  describe("canManageSalesOrderFinance (THÖREN Financial Release, 0068)", () => {
+    it("admin activo → true sin ninguna capability", () => {
+      const admin = profile({ role: "admin", salespersonId: null });
+      expect(canManageSalesOrderFinance(admin, NONE)).toBe(true);
+    });
+
+    it("dueño (salesperson) de la Sales Order SIN can_manage_sales_order_finance → false — nunca tuvo autoridad de ownership sobre lo financiero", () => {
+      const owner = profile({ role: "vendedor", salespersonId: OWNER_SP });
+      expect(canManageSalesOrderFinance(owner, NONE)).toBe(false);
+    });
+
+    it("no-admin, no dueño, CON can_manage_sales_order_finance → true (caso típico: rol de Finanzas)", () => {
+      const finance = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canManageSalesOrderFinance(finance, new Set(["can_manage_sales_order_finance"]))).toBe(true);
+    });
+
+    it("usuario inactivo → false incluso con la capability activa", () => {
+      const inactive = profile({ active: false });
+      expect(canManageSalesOrderFinance(inactive, new Set(["can_manage_sales_order_finance"]))).toBe(false);
+    });
+
+    it("sin capability y sin ser admin → false", () => {
+      const vendedor = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canManageSalesOrderFinance(vendedor, new Set(["can_view_all_sales"]))).toBe(false);
+    });
   });
 });

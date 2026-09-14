@@ -72,6 +72,8 @@ export default async function EditarOrdenVentaPage({ params }: { params: { id: s
     currency: salesOrder.currency,
     exchangeRate: salesOrder.exchange_rate != null ? String(salesOrder.exchange_rate) : "",
     paymentTerms: salesOrder.payment_terms ?? "",
+    paymentTermsType: salesOrder.payment_terms_type,
+    paymentRequiredAmount: salesOrder.payment_required_amount != null ? String(salesOrder.payment_required_amount) : "",
     requestedDeliveryDate: salesOrder.requested_delivery_date ?? "",
     commercialNotes: salesOrder.commercial_notes ?? "",
     internalNotes: salesOrder.internal_notes ?? "",

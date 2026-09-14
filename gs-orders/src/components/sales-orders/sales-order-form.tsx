@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SalesOrderItemsSection } from "./sales-order-items-section";
 import { computeSalesOrderTotals } from "@/lib/sales-order-totals";
 import { formatMoneyByCurrency } from "@/lib/utils/format";
-import type { Customer, SalesOrderCurrency } from "@/types/domain";
+import { SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS } from "@/types/domain";
+import type { Customer, SalesOrderCurrency, SalesOrderPaymentTermsType } from "@/types/domain";
 import type { SalesOrderActionResult, SalesOrderWritePayload } from "@/app/(app)/ordenes-venta/actions";
 import type { SalesOrderCatalogProductOption, SalesOrderFormState } from "./types";
 
@@ -23,6 +24,12 @@ function buildPayload(state: SalesOrderFormState): SalesOrderWritePayload {
     currency: state.currency,
     exchange_rate: state.exchangeRate ? Number(state.exchangeRate) || undefined : undefined,
     payment_terms: state.paymentTerms || undefined,
+    payment_terms_type: state.paymentTermsType,
+    // Solo relevante para 'advance'/'custom' — el servidor ignora este
+    // valor y lo fuerza para 'cash'/'credit' (ver rpc_create_sales_order/
+    // rpc_update_sales_order, 0068), pero mandarlo siempre igual es
+    // inocuo y evita una rama especial aquí.
+    payment_required_amount: state.paymentRequiredAmount ? Number(state.paymentRequiredAmount) || undefined : undefined,
     requested_delivery_date: state.requestedDeliveryDate || undefined,
     commercial_notes: state.commercialNotes || undefined,
     internal_notes: state.internalNotes || undefined,
@@ -202,8 +209,58 @@ export function SalesOrderForm({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="payment-terms-type">Tipo de condición de pago</Label>
+              <Select
+                id="payment-terms-type"
+                value={state.paymentTermsType}
+                onChange={(e) => patch({ paymentTermsType: e.target.value as SalesOrderPaymentTermsType })}
+              >
+                {(Object.keys(SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS) as SalesOrderPaymentTermsType[]).map((type) => (
+                  <option key={type} value={type}>
+                    {SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-ink-faint">
+                Determina si esta Sales Order necesita pago previo (contado/anticipo) o aprobación de crédito antes de
+                poder liberarse.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="payment-required-amount">Monto requerido antes de liberar</Label>
+              {state.paymentTermsType === "cash" ? (
+                <>
+                  <Input id="payment-required-amount" value={formatMoneyByCurrency(totals.total, state.currency)} disabled />
+                  <p className="mt-1 text-xs text-ink-faint">Contado siempre exige el total — el servidor lo calcula automáticamente.</p>
+                </>
+              ) : state.paymentTermsType === "credit" ? (
+                <>
+                  <Input id="payment-required-amount" value="No aplica (requiere aprobación de crédito)" disabled />
+                  <p className="mt-1 text-xs text-ink-faint">Crédito se libera al aprobar el crédito, no por monto pagado.</p>
+                </>
+              ) : (
+                <>
+                  <Input
+                    id="payment-required-amount"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={state.paymentRequiredAmount}
+                    onChange={(e) => patch({ paymentRequiredAmount: e.target.value })}
+                    placeholder="0.00"
+                  />
+                  <p className="mt-1 text-xs text-ink-faint">
+                    Sin este monto, esta Sales Order nunca podrá liberarse automáticamente por pago.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="payment-terms">Condición de pago (opcional)</Label>
+            <Label htmlFor="payment-terms">Leyenda de condición de pago (opcional)</Label>
             <Input
               id="payment-terms"
               value={state.paymentTerms}

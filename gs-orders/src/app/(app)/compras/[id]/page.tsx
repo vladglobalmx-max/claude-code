@@ -18,6 +18,7 @@ import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier } from "@/ty
 import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
 import { ReplaceItemsForm } from "./replace-items-form";
+import { RefreshSupplierReferencesButton } from "./refresh-supplier-references-button";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,13 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
   // lo rechaza explícitamente en DB, ver 0069 sección 19). Se gestionan
   // exclusivamente desde la propia Requisición.
   const canEditItems = (isAdmin || canPrepare) && po.status === "borrador" && order !== null;
+  // THÖREN 0074 — fix puntual: para una PO de Requisición (order === null),
+  // "Reemplazar partidas" nunca es la vía (ver comentario arriba) — el
+  // único camino real para corregir un snapshot vacío es refrescar SOLO
+  // los 4 campos de snapshot (rpc_refresh_purchase_order_supplier_references),
+  // sin tocar cantidades/líneas/estructura. Mismas dos autoridades y mismo
+  // requisito de status que canEditItems, sin el requisito de `order`.
+  const canRefreshSupplierReferences = (isAdmin || canPrepare) && po.status === "borrador" && order === null;
 
   const { data: itemsData } = await supabase
     .from("purchase_order_items")
@@ -215,16 +223,28 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                   refrescar el snapshot) — aviso visible, sin bloquear el
                   borrador. Fuera de borrador ya no aplica (o bien se
                   resolvió al aprobar, o es una PO histórica anterior a esta
-                  migración — nunca se revalida retroactivamente). */}
+                  migración — nunca se revalida retroactivamente).
+                  THÖREN 0074 — fix puntual: una PO de Requisición nunca
+                  tiene "Reemplazar partidas" (order === null), así que esa
+                  instrucción era un callejón sin salida real (bug
+                  OC-20261409-009) — aquí se ofrece en su lugar el botón
+                  "Actualizar referencias de proveedor", que SOLO refresca
+                  el snapshot sin tocar líneas/cantidades/estructura. */}
               {po.status === "borrador" && missingReferenceCount > 0 && (
                 <div className="flex items-start gap-2 border-b border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>
-                    Falta referencia del proveedor para {missingReferenceCount}{" "}
-                    {missingReferenceCount === 1 ? "producto" : "productos"} — agrégala en Catálogo → Editar producto
-                    y usa &ldquo;Reemplazar partidas&rdquo; para actualizarla aquí. Sin ella, no podrás autorizar esta
-                    Purchase Order.
-                  </p>
+                  <div className="space-y-2">
+                    <p>
+                      Falta referencia del proveedor para {missingReferenceCount}{" "}
+                      {missingReferenceCount === 1 ? "producto" : "productos"} — agrégala en Catálogo → Editar
+                      producto{" "}
+                      {canRefreshSupplierReferences
+                        ? "y usa el botón de abajo para actualizarla aquí."
+                        : 'y usa "Reemplazar partidas" para actualizarla aquí.'}{" "}
+                      Sin ella, no podrás autorizar esta Purchase Order.
+                    </p>
+                    {canRefreshSupplierReferences && <RefreshSupplierReferencesButton purchaseOrderId={po.id} />}
+                  </div>
                 </div>
               )}
               <Table>

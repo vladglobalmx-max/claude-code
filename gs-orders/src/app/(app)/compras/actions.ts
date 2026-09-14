@@ -127,3 +127,27 @@ export async function replacePurchaseOrderItems(
 
   revalidatePath(`/compras/${purchaseOrderId}`);
 }
+
+/**
+ * THÖREN 0074 — fix puntual: refresca ÚNICAMENTE los snapshots de
+ * proveedor (supplier_sku/model/description/uom) de las líneas
+ * catalogadas de una Purchase Order EN BORRADOR, vía
+ * rpc_refresh_purchase_order_supplier_references. A diferencia de
+ * replacePurchaseOrderItems ("Reemplazar partidas"), esta acción NUNCA
+ * toca cantidades/vínculos/estructura de las líneas y SÍ funciona para
+ * una Purchase Order originada en Requisición (rpc_replace_purchase_order_items
+ * la rechaza explícitamente, ver 0069 sección 19) — es la única vía real
+ * para corregir un snapshot vacío en ese caso (bug OC-20261409-009).
+ */
+export async function refreshPurchaseOrderSupplierReferences(purchaseOrderId: string): Promise<PurchaseOrderActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_refresh_purchase_order_supplier_references", {
+    p_purchase_order_id: purchaseOrderId,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron actualizar las referencias de proveedor. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/compras/${purchaseOrderId}`);
+}

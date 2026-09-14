@@ -3332,6 +3332,20 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"][];
       };
+      // THÖREN 0074 — fix puntual, SECURITY DEFINER (purchase_order_items_update_admin,
+      // 0035, es admin-only; la autorización real es admin O
+      // can_prepare_purchase_orders, verificada dentro del RPC). Solo
+      // aplica a POs en 'borrador' — recalcula ÚNICAMENTE los 4 campos de
+      // snapshot de proveedor por línea catalogada (referencia INACTIVA
+      // nunca se usa), sin tocar cantidades/vínculos/estructura. A
+      // diferencia de rpc_replace_purchase_order_items, SÍ funciona para
+      // una PO originada en Requisición (bug OC-20261409-009).
+      rpc_refresh_purchase_order_supplier_references: {
+        Args: {
+          p_purchase_order_id: string;
+        };
+        Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"][];
+      };
       // THÖREN — Supplier Product References (0066) — SECURITY INVOKER,
       // ADMIN-only (verificado dentro del RPC). Reemplaza atómicamente el
       // conjunto completo de referencias de proveedor de un producto —

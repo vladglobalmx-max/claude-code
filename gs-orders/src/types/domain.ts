@@ -1663,3 +1663,115 @@ export interface SalesFulfillmentEvent {
   created_by: string;
   created_at: string;
 }
+
+/**
+ * THÖREN 0072 — Facturación + Cobranza básica MVP. Documento de factura de
+ * UNA Sales Order (a lo sumo una activa por Sales Order — cancelar libera
+ * el cupo, ver 0072_invoicing_collections_mvp.sql). Snapshot congelado de
+ * montos/líneas desde la Sales Order al crear — nunca se editan
+ * silenciosamente. status se deriva de amount_paid/total (pending ->
+ * partially_paid -> paid) o de la fecha de vencimiento (-> overdue, vía
+ * rpc_refresh_overdue_invoices — sin cron en este entorno, se invoca bajo
+ * demanda) o de una cancelación explícita (motivo obligatorio).
+ * amount_paid/status SOLO cambian a través de rpc_register_invoice_payment/
+ * rpc_cancel_invoice, que delegan en rpc_register_sales_order_payment
+ * (0068) para mantener la Sales Order sincronizada — nunca reimplementan
+ * esa lógica.
+ */
+export type InvoiceStatus = "pending" | "partially_paid" | "paid" | "overdue" | "cancelled";
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  pending: "Pendiente",
+  partially_paid: "Pago parcial",
+  paid: "Pagada",
+  overdue: "Vencida",
+  cancelled: "Cancelada",
+};
+
+export const INVOICE_STATUS_BADGE: Record<InvoiceStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  pending: "neutral",
+  partially_paid: "accent",
+  paid: "success",
+  overdue: "danger",
+  cancelled: "warning",
+};
+
+export interface Invoice {
+  id: string;
+  organization_id: string;
+  invoice_number: string;
+  sequence_number: number;
+  sales_order_id: string;
+  status: InvoiceStatus;
+  payment_terms_type: SalesOrderPaymentTermsType;
+  issue_date: string;
+  due_date: string;
+  subtotal: number;
+  tax_total: number;
+  total: number;
+  amount_paid: number;
+  notes: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancellation_reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de factura — snapshot congelado de una línea de sales_order_items
+ * al momento de crear la factura (MVP: una factura = la Sales Order
+ * completa, sin selección parcial de líneas). 100% inmutable después de
+ * creada (trg_invoice_items_freeze) — ninguna RPC de 0072 la modifica ni
+ * la borra jamás.
+ */
+export interface InvoiceItem {
+  id: string;
+  invoice_id: string;
+  sales_order_item_id: string;
+  catalog_product_id: string | null;
+  description_snapshot: string;
+  uom_snapshot: string | null;
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  tax: number;
+  line_subtotal: number;
+  line_total: number;
+  created_at: string;
+}
+
+/**
+ * Ledger append-only de cobros de una factura ("pago registrado debe ser
+ * auditable") — sin policy de UPDATE/DELETE para `authenticated`, mismo
+ * criterio que sales_order_financial_events/goods_receipt_events.
+ */
+export interface InvoicePayment {
+  id: string;
+  invoice_id: string;
+  organization_id: string;
+  amount: number;
+  payment_date: string;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+/**
+ * Historial mínimo, inmutable (solo INSERT) de una factura — mismo
+ * criterio que sales_order_financial_events (0068).
+ */
+export type InvoiceEventType = "created" | "payment_registered" | "paid" | "overdue_detected" | "cancelled";
+
+export interface InvoiceEvent {
+  id: string;
+  invoice_id: string;
+  event_type: InvoiceEventType;
+  amount: number | null;
+  previous_status: string | null;
+  new_status: string | null;
+  reason: string | null;
+  created_by: string;
+  created_at: string;
+}

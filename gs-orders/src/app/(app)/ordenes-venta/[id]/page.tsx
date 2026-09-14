@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil, PackageCheck, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Pencil, PackageCheck, ShoppingCart, Receipt } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
@@ -34,6 +34,16 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   const salesOrder = soData as SalesOrder;
   const items = (itemsData ?? []) as SalesOrderItem[];
 
+  // THÖREN 0072 — Facturación: a lo sumo una factura activa por Sales
+  // Order (índice único parcial en DB) — si ya existe, el botón lleva a
+  // VERLA en vez de ofrecer un formulario que el RPC rechazaría.
+  const { data: existingInvoice } = await supabase
+    .from("invoices")
+    .select("id, invoice_number")
+    .eq("sales_order_id", salesOrder.id)
+    .neq("status", "cancelled")
+    .maybeSingle();
+
   const [{ data: customerData }, { data: salespersonData }] = await Promise.all([
     supabase.from("customers").select("name").eq("id", salesOrder.customer_id).maybeSingle(),
     supabase.from("salespeople").select("name").eq("id", salesOrder.salesperson_id).maybeSingle(),
@@ -63,6 +73,11 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // ya 'fulfilled' no ofrece el botón (nada pendiente por surtir).
   const canManageFulfillment = canManageSalesFulfillment(profile, capabilities);
   const canCreateFulfillment = canManageFulfillment && ["released", "partially_released"].includes(salesOrder.fulfillment_release_status);
+  // THÖREN 0072 — Facturación: crear una factura solo tiene sentido para
+  // una Sales Order confirmada (no draft ni cancelada) — la elegibilidad
+  // REAL la impone trg_check_invoice_eligible en DB; esto solo evita
+  // ofrecer un botón que llevaría a un formulario que la rechazaría.
+  const canCreateInvoice = canManageFinance && salesOrder.status !== "draft" && salesOrder.status !== "cancelled";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -91,6 +106,18 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
               Crear surtido
             </Link>
           )}
+          {canCreateInvoice &&
+            (existingInvoice ? (
+              <Link href={`/facturas/${existingInvoice.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                <Receipt className="h-3.5 w-3.5" />
+                Ver factura {existingInvoice.invoice_number}
+              </Link>
+            ) : (
+              <Link href={`/facturas/nueva?sales_order_id=${salesOrder.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                <Receipt className="h-3.5 w-3.5" />
+                Crear factura
+              </Link>
+            ))}
           {salesOrder.status === "draft" && canWrite && (
             <Link
               href={`/ordenes-venta/${salesOrder.id}/editar`}

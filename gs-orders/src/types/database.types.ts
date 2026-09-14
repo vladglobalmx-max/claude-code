@@ -2754,6 +2754,201 @@ export interface Database {
           },
         ];
       };
+      // THÖREN 0072 — Facturación + Cobranza básica MVP. Encabezado de
+      // factura, snapshot congelado desde la Sales Order al crear. A lo
+      // sumo una factura activa (status <> cancelled) por sales_order_id
+      // — ver índice único parcial en la migración.
+      invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          invoice_number: string;
+          sequence_number: number;
+          sales_order_id: string;
+          status: string;
+          payment_terms_type: string;
+          issue_date: string;
+          due_date: string;
+          subtotal: number;
+          tax_total: number;
+          total: number;
+          amount_paid: number;
+          notes: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          cancellation_reason: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          // invoice_number/sequence_number los asigna fn_next_invoice_number() dentro de rpc_create_invoice; nunca se envían.
+          invoice_number?: string;
+          sequence_number?: number;
+          sales_order_id: string;
+          status?: string;
+          payment_terms_type: string;
+          issue_date?: string;
+          due_date: string;
+          subtotal: number;
+          tax_total: number;
+          total: number;
+          amount_paid?: number;
+          notes?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          cancellation_reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoices"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "invoices_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoices_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0072 — línea de factura, snapshot congelado de una línea de
+      // sales_order_items al crear. 100% inmutable después (trg_invoice_items_freeze).
+      invoice_items: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          sales_order_item_id: string;
+          catalog_product_id: string | null;
+          description_snapshot: string;
+          uom_snapshot: string | null;
+          quantity: number;
+          unit_price: number;
+          discount: number;
+          tax: number;
+          line_subtotal: number;
+          line_total: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          sales_order_item_id: string;
+          catalog_product_id?: string | null;
+          description_snapshot: string;
+          uom_snapshot?: string | null;
+          quantity: number;
+          unit_price: number;
+          discount?: number;
+          tax?: number;
+          line_subtotal: number;
+          line_total: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoice_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoice_items_sales_order_item_id_fkey";
+            columns: ["sales_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_order_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoice_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0072 — ledger append-only de cobros ("pago registrado debe
+      // ser auditable"). Sin policy de UPDATE/DELETE para `authenticated`.
+      invoice_payments: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          organization_id: string;
+          amount: number;
+          payment_date: string;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          organization_id: string;
+          amount: number;
+          payment_date?: string;
+          notes?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoice_payments"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0072 — historial mínimo, inmutable (solo INSERT).
+      invoice_events: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          event_type: string;
+          amount: number | null;
+          previous_status: string | null;
+          new_status: string | null;
+          reason: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          event_type: string;
+          amount?: number | null;
+          previous_status?: string | null;
+          new_status?: string | null;
+          reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoice_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "invoice_events_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -3499,6 +3694,51 @@ export interface Database {
           p_delivery_notes: string;
         };
         Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0072 — SECURITY INVOKER, requiere can_manage_sales_order_finance
+      // (o admin). Snapshotea encabezado + todas las líneas de la Sales
+      // Order en una transacción. p_due_date es obligatorio.
+      rpc_create_invoice: {
+        Args: {
+          p_invoice_id: string;
+          p_sales_order_id: string;
+          p_due_date: string;
+          p_notes?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["invoices"]["Row"];
+      };
+      // THÖREN 0072 — SECURITY INVOKER, requiere can_manage_sales_order_finance
+      // (o admin). Enforce "no sobrepago" y DELEGA a
+      // rpc_register_sales_order_payment (0068) en la misma transacción —
+      // nunca reimplementa esa lógica.
+      rpc_register_invoice_payment: {
+        Args: {
+          p_invoice_id: string;
+          p_amount: number;
+          p_payment_date?: string;
+          p_notes?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["invoices"]["Row"];
+      };
+      // THÖREN 0072 — SECURITY INVOKER, requiere can_manage_sales_order_finance
+      // (o admin). p_reason obligatorio. Nunca permitido desde status 'paid'.
+      rpc_cancel_invoice: {
+        Args: {
+          p_invoice_id: string;
+          p_reason: string;
+        };
+        Returns: Database["public"]["Tables"]["invoices"]["Row"];
+      };
+      // THÖREN 0072 — SECURITY INVOKER, requiere can_manage_sales_order_finance
+      // (o admin). UPDATE de conjunto (sin cron en este entorno): pasa a
+      // 'overdue' toda factura pending/partially_paid con due_date pasada
+      // y saldo pendiente. p_organization_id por defecto = la propia.
+      // Devuelve el número de facturas actualizadas.
+      rpc_refresh_overdue_invoices: {
+        Args: {
+          p_organization_id?: string | null;
+        };
+        Returns: number;
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

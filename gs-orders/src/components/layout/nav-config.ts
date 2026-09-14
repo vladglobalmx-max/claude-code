@@ -7,6 +7,7 @@ import {
   Contact,
   FileSpreadsheet,
   FileText,
+  Receipt,
   Package,
   PackageCheck,
   Truck,
@@ -84,6 +85,13 @@ export interface NavGroup {
  *   y can_view_all_sales (dueño de la Sales Order de origen incluido) — no
  *   es adminOnly, aunque crear/editar/convertir a PO sigue gateado a
  *   can_prepare_purchase_orders dentro de las propias páginas.
+ * - Facturas (THÖREN Facturación + Cobranza básica MVP, 0072):
+ *   `invoices_select` sigue el mismo criterio exacto que
+ *   sales_order_financial_events (0068): admin, dueño-vendedor de la
+ *   Sales Order de origen, can_view_all_sales o
+ *   can_manage_sales_order_finance — no es adminOnly, aunque crear/
+ *   cobrar/cancelar sigue gateado a can_manage_sales_order_finance dentro
+ *   de las propias páginas.
  * - Recepciones de Mercancía (THÖREN Receiving + Inventory MVP, 0070):
  *   `goods_receipts_select` es visible a CUALQUIER miembro activo de la
  *   organización — mismo criterio exacto que Inventario (documento
@@ -137,6 +145,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
       { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false },
       { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false },
+      { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
     ],

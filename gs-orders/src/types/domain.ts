@@ -1244,7 +1244,8 @@ export type InventoryMovementType =
   | "ajuste_positivo"
   | "ajuste_negativo"
   | "correccion_recepcion"
-  | "surtido_pedido";
+  | "surtido_pedido"
+  | "surtido_venta";
 
 export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, string> = {
   recepcion_compra: "Recepción de compra",
@@ -1254,6 +1255,7 @@ export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, strin
   ajuste_negativo: "Ajuste negativo",
   correccion_recepcion: "Corrección de recepción",
   surtido_pedido: "Surtido de Pedido",
+  surtido_venta: "Surtido de Sales Order",
 };
 
 /** Tipos que ADMIN puede registrar manualmente desde /inventario — 'recepcion_compra'/'correccion_recepcion'/'surtido_pedido' los genera el sistema (recepción de PO / surtido de reserva), nunca un formulario manual. */
@@ -1275,6 +1277,9 @@ export interface InventoryMovement {
   purchase_order_item_id: string | null;
   order_id: string | null;
   inventory_reservation_id: string | null;
+  /** THÖREN 0071 — trazabilidad hacia el surtido/línea de Sales Order de origen (NULL salvo movement_type = 'surtido_venta'). */
+  sales_fulfillment_id: string | null;
+  sales_fulfillment_item_id: string | null;
   reference: string | null;
   notes: string | null;
   created_by_user_id: string;
@@ -1563,6 +1568,98 @@ export interface GoodsReceiptEvent {
   goods_receipt_id: string;
   event_type: GoodsReceiptEventType;
   notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+/**
+ * THÖREN 0071 — Fulfillment / Picking / Delivery MVP. Documento de surtido
+ * de UNA Sales Order — ciclo draft (editable) -> ready (picking/packing
+ * confirmado, sin efecto en inventario) -> shipped (rpc_dispatch_sales_fulfillment
+ * movió inventario, inmutable salvo notas) -> delivered (confirmación de
+ * entrega al cliente). Cancelar solo aplica desde draft (ver DECISIÓN en
+ * 0071_sales_fulfillment_mvp.sql). El trabajo real de inventario (ledger +
+ * derivación de fulfillment_release_status de la Sales Order) vive
+ * exclusivamente en rpc_dispatch_sales_fulfillment.
+ */
+export type SalesFulfillmentStatus = "draft" | "ready" | "shipped" | "delivered" | "cancelled";
+
+export const SALES_FULFILLMENT_STATUS_LABELS: Record<SalesFulfillmentStatus, string> = {
+  draft: "Borrador",
+  ready: "Lista para despachar",
+  shipped: "Despachada",
+  delivered: "Entregada",
+  cancelled: "Cancelada",
+};
+
+export const SALES_FULFILLMENT_STATUS_BADGE: Record<SalesFulfillmentStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  draft: "neutral",
+  ready: "accent",
+  shipped: "accent",
+  delivered: "success",
+  cancelled: "warning",
+};
+
+export interface SalesFulfillment {
+  id: string;
+  organization_id: string;
+  fulfillment_number: string;
+  sequence_number: number;
+  sales_order_id: string;
+  warehouse_id: string;
+  status: SalesFulfillmentStatus;
+  prepared_by: string | null;
+  prepared_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  delivered_by: string | null;
+  delivery_contact: string | null;
+  delivery_notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Línea de un surtido. sales_order_item_id SIEMPRE apunta a una línea real
+ * de la Sales Order de este surtido (validado en DB). catalog_product_id/
+ * description_snapshot/uom_snapshot se copian de esa línea al crear —
+ * snapshot INDEPENDIENTE, nunca se vuelve a leer sales_order_items
+ * después. quantity_fulfilled lo mantiene EXCLUSIVAMENTE
+ * rpc_dispatch_sales_fulfillment (nunca editable a mano, incluso fuera de
+ * draft — ver trg_sales_fulfillment_item_freeze) — pasa de 0 a
+ * quantity_requested completo al despachar (MVP: sin pick parcial dentro
+ * de un mismo surtido). Una línea con catalog_product_id NULL (línea
+ * libre) actualiza quantity_fulfilled igual, pero JAMÁS genera un
+ * inventory_movement.
+ */
+export interface SalesFulfillmentItem {
+  id: string;
+  sales_fulfillment_id: string;
+  sales_order_item_id: string;
+  catalog_product_id: string | null;
+  description_snapshot: string;
+  uom_snapshot: string | null;
+  quantity_requested: number;
+  quantity_fulfilled: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Historial mínimo, inmutable (solo INSERT) de un surtido — mismo
+ * criterio que goods_receipt_events (0070), con previous_status/new_status
+ * explícitos.
+ */
+export type SalesFulfillmentEventType = "created" | "ready" | "shipped" | "delivered" | "cancelled" | "notes_updated";
+
+export interface SalesFulfillmentEvent {
+  id: string;
+  sales_fulfillment_id: string;
+  event_type: SalesFulfillmentEventType;
+  previous_status: string | null;
+  new_status: string | null;
+  reason: string | null;
   created_by: string;
   created_at: string;
 }

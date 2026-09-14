@@ -75,3 +75,22 @@ export function canManageSalesOrderFinance(profile: CapabilityProfile | null, ca
   if (profile.role === "admin") return true;
   return capabilities.has("can_manage_sales_order_finance");
 }
+
+/**
+ * Crear/preparar/despachar/marcar como entregado un surtido (fulfillment)
+ * de Sales Order — mismo guard que las RPCs de 0071
+ * (rpc_create_sales_fulfillment/rpc_mark_sales_fulfillment_ready/
+ * rpc_dispatch_sales_fulfillment/rpc_mark_sales_fulfillment_delivered/
+ * rpc_cancel_sales_fulfillment/rpc_update_sales_fulfillment_delivery_notes):
+ * admin O la capability, SIN rama de ownership — mismo criterio que
+ * canManageSalesOrderFinance/canReceiveInventory (logística típicamente NO
+ * es el salesperson dueño de la Sales Order). Deliberadamente NO reutiliza
+ * can_fulfill_inventory (0040/0044): esa capability es explícitamente de
+ * Pedidos ("surtir reservas de inventario para pedidos"), no de Sales
+ * Orders — ver DECISIÓN en 0071_sales_fulfillment_mvp.sql.
+ */
+export function canManageSalesFulfillment(profile: CapabilityProfile | null, capabilities: ReadonlySet<string>): boolean {
+  if (!profile || !profile.active) return false;
+  if (profile.role === "admin") return true;
+  return capabilities.has("can_manage_sales_fulfillment");
+}

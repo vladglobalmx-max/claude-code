@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Pencil, PackageCheck, ShoppingCart } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
-import { canManageSalesOrderFinance } from "@/lib/auth/logistics";
+import { canManageSalesOrderFinance, canManageSalesFulfillment } from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
@@ -55,6 +55,14 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // ofrecer un botón que llevaría a un formulario que la rechazaría.
   const canPrepare = canPreparePurchaseOrders(profile, capabilities);
   const canCreateRequisition = canPrepare && ["released", "partially_released"].includes(salesOrder.fulfillment_release_status);
+  // THÖREN 0071 — Fulfillment/Picking/Delivery: crear un surtido solo tiene
+  // sentido para una Sales Order liberada financieramente (released o
+  // partially_released) — la elegibilidad REAL la impone
+  // trg_check_sales_fulfillment_eligible en DB; esto solo evita ofrecer un
+  // botón que llevaría a un formulario que la rechazaría. Una Sales Order
+  // ya 'fulfilled' no ofrece el botón (nada pendiente por surtir).
+  const canManageFulfillment = canManageSalesFulfillment(profile, capabilities);
+  const canCreateFulfillment = canManageFulfillment && ["released", "partially_released"].includes(salesOrder.fulfillment_release_status);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -72,6 +80,15 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
             >
               <ShoppingCart className="h-3.5 w-3.5" />
               Crear requisición de compra
+            </Link>
+          )}
+          {canCreateFulfillment && (
+            <Link
+              href={`/surtidos/nuevo?sales_order_id=${salesOrder.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <PackageCheck className="h-3.5 w-3.5" />
+              Crear surtido
             </Link>
           )}
           {salesOrder.status === "draft" && canWrite && (

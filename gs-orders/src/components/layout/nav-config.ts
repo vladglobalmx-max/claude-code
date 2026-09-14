@@ -73,6 +73,12 @@ export interface NavGroup {
  *   Pedidos que le pertenecen (visibilidad heredada, nunca un acceso
  *   nuevo) — por eso NO es adminOnly, aunque solo ADMIN puede crear/
  *   gestionar (gateado dentro de las propias páginas, no a nivel de nav).
+ * - Surtidos (THÖREN Fulfillment/Picking/Delivery MVP, 0071):
+ *   `sales_fulfillments_select` es visible a admin, can_manage_sales_fulfillment
+ *   y can_view_all_sales — mismo criterio exacto que Requisiciones de
+ *   Compra (0069): no es adminOnly, aunque crear/preparar/despachar/
+ *   entregar/cancelar sigue gateado a can_manage_sales_fulfillment dentro
+ *   de las propias páginas.
  * - Requisiciones de Compra (THÖREN Sales Order → Procurement, 0069):
  *   `purchase_requisitions_select` permite ver a admin, can_prepare_purchase_orders
  *   y can_view_all_sales (dueño de la Sales Order de origen incluido) — no
@@ -130,6 +136,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false },
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
       { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false },
+      { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
     ],

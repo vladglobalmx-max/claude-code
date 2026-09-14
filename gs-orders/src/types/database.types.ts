@@ -1447,6 +1447,8 @@ export interface Database {
           purchase_order_item_id: string | null;
           order_id: string | null;
           inventory_reservation_id: string | null;
+          sales_fulfillment_id: string | null;
+          sales_fulfillment_item_id: string | null;
           reference: string | null;
           notes: string | null;
           created_by_user_id: string;
@@ -1464,6 +1466,8 @@ export interface Database {
           purchase_order_item_id?: string | null;
           order_id?: string | null;
           inventory_reservation_id?: string | null;
+          sales_fulfillment_id?: string | null;
+          sales_fulfillment_item_id?: string | null;
           reference?: string | null;
           notes?: string | null;
           created_by_user_id: string;
@@ -1519,6 +1523,20 @@ export interface Database {
             columns: ["inventory_reservation_id"];
             isOneToOne: false;
             referencedRelation: "inventory_reservations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_sales_fulfillment_id_fkey";
+            columns: ["sales_fulfillment_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_fulfillments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_sales_fulfillment_item_id_fkey";
+            columns: ["sales_fulfillment_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_fulfillment_items";
             referencedColumns: ["id"];
           },
         ];
@@ -2550,6 +2568,192 @@ export interface Database {
           },
         ];
       };
+      // THÖREN Fulfillment / Picking / Delivery MVP (0071_sales_fulfillment_mvp.sql)
+      // — motor de fulfillment_number, un row por organización. Sin policy
+      // de insert/update para `authenticated`: solo
+      // fn_next_sales_fulfillment_number (SECURITY DEFINER) escribe aquí.
+      sales_fulfillment_sequences: {
+        Row: {
+          organization_id: string;
+          prefix: string;
+          sequence_current: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          prefix?: string;
+          sequence_current?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_fulfillment_sequences"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_fulfillment_sequences_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0071 — encabezado de surtido de Sales Order. Ciclo
+      // draft -> ready -> shipped -> delivered (cancelar solo desde draft).
+      // rpc_dispatch_sales_fulfillment es la única vía que mueve inventario.
+      sales_fulfillments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          fulfillment_number: string;
+          sequence_number: number;
+          sales_order_id: string;
+          warehouse_id: string;
+          status: string;
+          prepared_by: string | null;
+          prepared_at: string | null;
+          shipped_at: string | null;
+          delivered_at: string | null;
+          delivered_by: string | null;
+          delivery_contact: string | null;
+          delivery_notes: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          // fulfillment_number/sequence_number los asigna fn_next_sales_fulfillment_number() dentro de rpc_create_sales_fulfillment; nunca se envían.
+          fulfillment_number?: string;
+          sequence_number?: number;
+          sales_order_id: string;
+          warehouse_id: string;
+          status?: string;
+          prepared_by?: string | null;
+          prepared_at?: string | null;
+          shipped_at?: string | null;
+          delivered_at?: string | null;
+          delivered_by?: string | null;
+          delivery_contact?: string | null;
+          delivery_notes?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_fulfillments"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_fulfillments_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_fulfillments_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_fulfillments_warehouse_id_fkey";
+            columns: ["warehouse_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0071 — líneas. sales_order_item_id SIEMPRE apunta a una
+      // línea real de la Sales Order de este surtido (validado en DB).
+      // quantity_fulfilled lo mantiene exclusivamente
+      // rpc_dispatch_sales_fulfillment.
+      sales_fulfillment_items: {
+        Row: {
+          id: string;
+          sales_fulfillment_id: string;
+          sales_order_item_id: string;
+          catalog_product_id: string | null;
+          description_snapshot: string;
+          uom_snapshot: string | null;
+          quantity_requested: number;
+          quantity_fulfilled: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          sales_fulfillment_id: string;
+          sales_order_item_id: string;
+          catalog_product_id?: string | null;
+          description_snapshot: string;
+          uom_snapshot?: string | null;
+          quantity_requested: number;
+          // Lo mantiene exclusivamente rpc_dispatch_sales_fulfillment; nunca se envía desde la app.
+          quantity_fulfilled?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_fulfillment_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_fulfillment_items_sales_fulfillment_id_fkey";
+            columns: ["sales_fulfillment_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_fulfillments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_fulfillment_items_sales_order_item_id_fkey";
+            columns: ["sales_order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_order_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_fulfillment_items_catalog_product_id_fkey";
+            columns: ["catalog_product_id"];
+            isOneToOne: false;
+            referencedRelation: "product_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0071 — historial mínimo, inmutable (solo INSERT).
+      sales_fulfillment_events: {
+        Row: {
+          id: string;
+          sales_fulfillment_id: string;
+          event_type: string;
+          previous_status: string | null;
+          new_status: string | null;
+          reason: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sales_fulfillment_id: string;
+          event_type: string;
+          previous_status?: string | null;
+          new_status?: string | null;
+          reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sales_fulfillment_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "sales_fulfillment_events_sales_fulfillment_id_fkey";
+            columns: ["sales_fulfillment_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_fulfillments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -3223,6 +3427,78 @@ export interface Database {
           p_goods_receipt_id: string;
         };
         Returns: Database["public"]["Tables"]["goods_receipts"]["Row"];
+      };
+      // THÖREN Fulfillment / Picking / Delivery MVP (0071) — SECURITY
+      // INVOKER, requiere can_manage_sales_fulfillment (o admin). Crea
+      // encabezado + líneas de un surtido (draft) en una transacción.
+      // p_items es un array de objetos con sales_order_item_id/quantity_requested.
+      rpc_create_sales_fulfillment: {
+        Args: {
+          p_fulfillment_id: string;
+          p_fulfillment: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY INVOKER. Solo permite escribir si el
+      // surtido sigue en status "draft". Reemplaza almacén/contacto/notas +
+      // todo el set de sales_fulfillment_items en la MISMA transacción.
+      rpc_update_sales_fulfillment: {
+        Args: {
+          p_fulfillment_id: string;
+          p_fulfillment: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY INVOKER, requiere can_manage_sales_fulfillment
+      // (o admin). SOLO 'draft' -> 'cancelled'.
+      rpc_cancel_sales_fulfillment: {
+        Args: {
+          p_fulfillment_id: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY INVOKER, requiere can_manage_sales_fulfillment
+      // (o admin). draft -> ready (picking/packing confirmado); NO afecta
+      // inventario.
+      rpc_mark_sales_fulfillment_ready: {
+        Args: {
+          p_fulfillment_id: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY DEFINER (escribe en inventory_movements y en
+      // sales_orders.fulfillment_release_status, ninguna con policy para
+      // can_manage_sales_fulfillment — mismo criterio que
+      // rpc_receive_purchase_order_item/rpc_fulfill_inventory_reservation).
+      // ready -> shipped: valida stock, crea movimientos OUT
+      // ('surtido_venta'), actualiza quantity_fulfilled y recalcula
+      // fulfillment_release_status de la Sales Order, todo en UNA
+      // transacción atómica. Idempotente respecto a doble despacho.
+      rpc_dispatch_sales_fulfillment: {
+        Args: {
+          p_fulfillment_id: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY INVOKER, requiere can_manage_sales_fulfillment
+      // (o admin). shipped -> delivered; registra delivered_at/delivered_by/notas.
+      rpc_mark_sales_fulfillment_delivered: {
+        Args: {
+          p_fulfillment_id: string;
+          p_delivery_notes?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
+      };
+      // THÖREN 0071 — SECURITY INVOKER. Único campo editable fuera de draft
+      // y aun con status 'delivered' (regla 12) — no aplica a 'cancelled'.
+      rpc_update_sales_fulfillment_delivery_notes: {
+        Args: {
+          p_fulfillment_id: string;
+          p_delivery_notes: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_fulfillments"]["Row"];
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

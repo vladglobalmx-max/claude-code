@@ -17,6 +17,7 @@ const COLLAPSED_STORAGE_KEY = "thoren.sidebar.collapsed";
 export function AppShell({
   role,
   canManageUsers,
+  canManageCommissions,
   name,
   email,
   organizationName,
@@ -24,6 +25,7 @@ export function AppShell({
 }: {
   role: UserRole;
   canManageUsers: boolean;
+  canManageCommissions: boolean;
   name: string;
   email: string | null;
   organizationName: string;
@@ -50,6 +52,7 @@ export function AppShell({
       <Sidebar
         role={role}
         canManageUsers={canManageUsers}
+        canManageCommissions={canManageCommissions}
         organizationName={organizationName}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}

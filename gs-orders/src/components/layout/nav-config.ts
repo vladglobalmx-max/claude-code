@@ -7,6 +7,7 @@ import {
   Contact,
   FileSpreadsheet,
   FileText,
+  Percent,
   Receipt,
   Package,
   PackageCheck,
@@ -30,6 +31,17 @@ export interface NavItem {
    * `adminOnly: true` con Configuración.
    */
   visibleForUserManager?: boolean;
+  /**
+   * THÖREN 0073 (ajuste post-review) — a diferencia de
+   * `visibleForUserManager` (excepción a `adminOnly`, admin SIEMPRE ve la
+   * entrada además de la excepción), `commissionsOnly` REEMPLAZA por
+   * completo la lógica de `adminOnly`/rol para este ítem: se muestra SI Y
+   * SOLO SI el usuario tiene can_manage_commissions — un admin sin esa
+   * capability NO la ve, tal como exige la autoridad exclusiva de
+   * Comisiones (0073). `adminOnly` se ignora cuando `commissionsOnly` es
+   * true.
+   */
+  commissionsOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -85,6 +97,23 @@ export interface NavGroup {
  *   y can_view_all_sales (dueño de la Sales Order de origen incluido) — no
  *   es adminOnly, aunque crear/editar/convertir a PO sigue gateado a
  *   can_prepare_purchase_orders dentro de las propias páginas.
+ * - Comisiones (THÖREN Comisiones privadas de Dirección MVP, 0073): la
+ *   ÚNICA entrada de este árbol con `commissionsOnly: true` — visible SI
+ *   Y SOLO SI el usuario tiene can_manage_commissions, IGNORANDO por
+ *   completo `adminOnly`/rol (ajuste post-review: a diferencia de
+ *   `visibleForUserManager`, que es una excepción ADICIONAL a "admin
+ *   siempre ve adminOnly", aquí un admin SIN la capability NO ve la
+ *   entrada — la autoridad es exclusiva de la capability, ni siquiera
+ *   admin la tiene por defecto). Tampoco hay ninguna rama de "dueño": ni
+ *   siquiera el vendedor titular de la Sales Order puede ver esta
+ *   entrada, por diseño (`commission_records_select`, 0073, no tiene
+ *   rama de ownership ni de admin — información privada de Dirección
+ *   General). El propio middleware.ts también bloquea /comisiones a
+ *   nivel de ruta con el mismo chequeo exclusivo (evaluado para TODO
+ *   usuario, admin incluido, SIN el atajo de ADMIN_ONLY_PREFIXES), ANTES
+ *   de que la página renderice — defensa en profundidad explícitamente
+ *   pedida por el ticket ("proteger con RLS/capability, no solo ocultar
+ *   UI").
  * - Facturas (THÖREN Facturación + Cobranza básica MVP, 0072):
  *   `invoices_select` sigue el mismo criterio exacto que
  *   sales_order_financial_events (0068): admin, dueño-vendedor de la
@@ -146,6 +175,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false },
       { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false },
       { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false },
+      {
+        href: "/comisiones",
+        label: "Comisiones",
+        icon: Percent,
+        adminOnly: false,
+        commissionsOnly: true,
+      },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
     ],

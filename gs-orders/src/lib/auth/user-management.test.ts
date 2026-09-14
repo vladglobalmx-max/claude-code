@@ -276,9 +276,9 @@ describe("[22] sidebar/nav-config — Usuarios visible para can_manage_users, si
   });
 
   it("sidebar.tsx solo muestra un ítem adminOnly a un no-admin cuando visibleForUserManager Y canManageUsers son ambos verdaderos", () => {
-    expect(sidebarSource).toContain(
-      "!item.adminOnly || role === \"admin\" || (item.visibleForUserManager && canManageUsers)"
-    );
+    expect(sidebarSource).toContain("!item.adminOnly");
+    expect(sidebarSource).toContain('role === "admin"');
+    expect(sidebarSource).toContain("item.visibleForUserManager && canManageUsers");
     // Reproducción directa: Personas/Vendedores (adminOnly=true, sin la bandera) siguen ocultos para un user manager.
     const role = "vendedor";
     const canManage = true;
@@ -288,6 +288,20 @@ describe("[22] sidebar/nav-config — Usuarios visible para can_manage_users, si
       !item.adminOnly || (role as string) === "admin" || (item.visibleForUserManager === true && canManage);
     expect(visible(personas)).toBe(false);
     expect(visible(configuracion)).toBe(true);
+  });
+
+  it("sidebar.tsx: `commissionsOnly` (THÖREN 0073, ajuste post-review) IGNORA adminOnly/rol — un admin SIN can_manage_commissions no ve Comisiones", () => {
+    expect(sidebarSource).toContain("item.commissionsOnly) return canManageCommissions");
+    // Reproducción directa de la rama especial: a diferencia de visibleForUserManager
+    // (excepción ADICIONAL a "admin siempre ve adminOnly"), commissionsOnly
+    // REEMPLAZA esa lógica — ni el rol admin ni adminOnly=false importan.
+    const visibleCommissionsOnly = (item: { commissionsOnly?: boolean; adminOnly: boolean }, role: string, canManageCommissions: boolean) => {
+      if (item.commissionsOnly) return canManageCommissions;
+      return !item.adminOnly || role === "admin";
+    };
+    const comisiones = { commissionsOnly: true, adminOnly: false };
+    expect(visibleCommissionsOnly(comisiones, "admin", false)).toBe(false);
+    expect(visibleCommissionsOnly(comisiones, "vendedor", true)).toBe(true);
   });
 });
 

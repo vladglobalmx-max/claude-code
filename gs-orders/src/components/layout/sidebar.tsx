@@ -22,6 +22,7 @@ function isActive(pathname: string, href: string) {
 export function Sidebar({
   role,
   canManageUsers,
+  canManageCommissions,
   organizationName,
   collapsed,
   onToggleCollapsed,
@@ -30,6 +31,7 @@ export function Sidebar({
 }: {
   role: UserRole;
   canManageUsers: boolean;
+  canManageCommissions: boolean;
   /** THÖREN 7B — nombre real de la organización activa (ver src/lib/auth/organization.ts), nunca hardcodeado. */
   organizationName: string;
   collapsed: boolean;
@@ -90,9 +92,16 @@ export function Sidebar({
 
           <nav className="mt-5 flex-1 space-y-4 overflow-y-auto px-3">
             {NAV_GROUPS.map((group, groupIndex) => {
-              const items = group.items.filter(
-                (item) => !item.adminOnly || role === "admin" || (item.visibleForUserManager && canManageUsers)
-              );
+              // THÖREN 0073 (ajuste post-review) — `commissionsOnly` ignora
+              // por completo `adminOnly`/rol: se resuelve ANTES y en vez
+              // de la lógica normal, para que un admin sin
+              // can_manage_commissions NO vea la entrada (a diferencia de
+              // `visibleForUserManager`, que es una excepción ADICIONAL a
+              // "admin siempre ve adminOnly", no un reemplazo).
+              const items = group.items.filter((item) => {
+                if (item.commissionsOnly) return canManageCommissions;
+                return !item.adminOnly || role === "admin" || (item.visibleForUserManager && canManageUsers);
+              });
               if (items.length === 0) return null;
 
               return (

@@ -1775,3 +1775,75 @@ export interface InvoiceEvent {
   created_by: string;
   created_at: string;
 }
+
+/**
+ * THÖREN 0073 — Comisiones privadas de Dirección MVP. Nace desde una
+ * Sales Order (regla: "comisión nace desde la Sales Order"), snapshot
+ * congelado de commission_rule_snapshot/commission_base/commission_rate/
+ * commission_amount al crear — inmutable para siempre
+ * (trg_prevent_commission_record_field_change). eligible_amount se
+ * deriva de sales_orders.amount_paid (cobro real, proporcional) vía
+ * rpc_refresh_commission_eligibility/rpc_register_commission_payment —
+ * "liberación ligada a cobro real". PRIVACIDAD: `commission_records_select`
+ * (RLS) NO tiene rama de dueño-vendedor — a diferencia de TODOS los demás
+ * dominios de este proyecto, ni siquiera el vendedor titular de la Sales
+ * Order puede leer su propia comisión; solo admin/can_manage_commissions
+ * (Dirección General).
+ */
+export type CommissionRecordStatus = "pending" | "eligible" | "partially_paid" | "paid" | "cancelled";
+
+export const COMMISSION_RECORD_STATUS_LABELS: Record<CommissionRecordStatus, string> = {
+  pending: "Pendiente",
+  eligible: "Elegible",
+  partially_paid: "Pago parcial",
+  paid: "Pagada",
+  cancelled: "Cancelada",
+};
+
+export const COMMISSION_RECORD_STATUS_BADGE: Record<CommissionRecordStatus, "neutral" | "accent" | "success" | "warning" | "danger"> = {
+  pending: "neutral",
+  eligible: "accent",
+  partially_paid: "accent",
+  paid: "success",
+  cancelled: "warning",
+};
+
+export interface CommissionRecord {
+  id: string;
+  organization_id: string;
+  sales_order_id: string;
+  salesperson_id: string;
+  commission_rule_snapshot: Record<string, unknown>;
+  commission_base: number;
+  commission_rate: number;
+  commission_amount: number;
+  eligible_amount: number;
+  paid_amount: number;
+  status: CommissionRecordStatus;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancellation_reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Historial mínimo, inmutable (solo INSERT) de una comisión — el campo
+ * `amount` también sirve como el registro auditable de cada pago (mismo
+ * criterio que invoice_events, 0072; no existe una tabla separada de
+ * "pagos de comisión" — el ticket pide exactamente 2 tablas).
+ */
+export type CommissionEventType = "created" | "eligibility_updated" | "payment_registered" | "paid" | "cancelled";
+
+export interface CommissionEvent {
+  id: string;
+  commission_record_id: string;
+  event_type: CommissionEventType;
+  amount: number | null;
+  previous_status: string | null;
+  new_status: string | null;
+  reason: string | null;
+  created_by: string;
+  created_at: string;
+}

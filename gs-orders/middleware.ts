@@ -22,6 +22,20 @@ function isUserManagerAllowedConfigPath(pathname: string): boolean {
 }
 
 /**
+ * THÖREN 0073 — Comisiones privadas de Dirección: /comisiones NO usa
+ * ADMIN_ONLY_PREFIXES (ajuste explícito post-review) — ese mecanismo deja
+ * pasar a CUALQUIER admin automáticamente (`profile.role !== "admin"`),
+ * y aquí la autoridad debe ser EXCLUSIVAMENTE can_manage_commissions:
+ * Dirección General la recibe como capability, otros admins NO tienen
+ * acceso por defecto. Por eso /comisiones se protege con un chequeo
+ * INDEPENDIENTE (ver más abajo) que se evalúa para TODO usuario, admin
+ * incluido, sin ningún atajo de rol. Esto es defensa en profundidad EXTRA
+ * sobre RLS (el ticket pide explícitamente "proteger con RLS/capability,
+ * no solo ocultar UI") — bloquea el render de la página completa antes de
+ * que RLS siquiera entre en juego.
+ */
+
+/**
  * Protege toda la app: sin sesión válida, redirige a /login. Con sesión
  * válida pero sin perfil (user_profiles) o con el perfil desactivado,
  * cierra la sesión y redirige a /login — un token válido no basta para
@@ -89,6 +103,23 @@ export async function middleware(request: NextRequest) {
         allowed = !!capability;
       }
       if (!allowed) {
+        return NextResponse.redirect(new URL("/pedidos", request.url));
+      }
+    }
+
+    // THÖREN 0073 — chequeo INDEPENDIENTE de ADMIN_ONLY_PREFIXES, evaluado
+    // para TODO usuario sin excepción de rol (ver DECISIÓN arriba): un
+    // admin sin can_manage_commissions se redirige exactamente igual que
+    // un vendedor.
+    if (request.nextUrl.pathname.startsWith("/comisiones")) {
+      const { data: capability } = await supabase
+        .from("user_capabilities")
+        .select("capability")
+        .eq("user_id", user.id)
+        .eq("capability", "can_manage_commissions")
+        .eq("active", true)
+        .maybeSingle();
+      if (!capability) {
         return NextResponse.redirect(new URL("/pedidos", request.url));
       }
     }

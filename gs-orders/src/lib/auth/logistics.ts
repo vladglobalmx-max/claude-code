@@ -94,3 +94,22 @@ export function canManageSalesFulfillment(profile: CapabilityProfile | null, cap
   if (profile.role === "admin") return true;
   return capabilities.has("can_manage_sales_fulfillment");
 }
+
+/**
+ * Ver/crear/liberar/pagar/cancelar comisiones de venta — mismo guard que
+ * las RPCs de 0073 (rpc_create_commission_record/
+ * rpc_refresh_commission_eligibility/rpc_register_commission_payment/
+ * rpc_cancel_commission_record). A diferencia de TODAS las demás
+ * capabilities de este archivo, esto es DELIBERADO en DOS sentidos más
+ * estrictos: (1) ni siquiera el vendedor dueño de la Sales Order tiene
+ * autoridad aquí, y (2) ni siquiera `role === "admin"` la otorga
+ * automáticamente — la autoridad es EXCLUSIVAMENTE la capability
+ * can_manage_commissions (ajuste explícito post-review: Dirección General
+ * la recibe como capability; otros admins NO la tienen por defecto). Esto
+ * espeja current_user_has_commission_authority() (0073), el helper de DB
+ * dedicado que tampoco usa el atajo de admin de current_user_has_capability().
+ */
+export function canManageCommissions(profile: CapabilityProfile | null, capabilities: ReadonlySet<string>): boolean {
+  if (!profile || !profile.active) return false;
+  return capabilities.has("can_manage_commissions");
+}

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil, PackageCheck, ShoppingCart, Receipt } from "lucide-react";
+import { ArrowLeft, Pencil, PackageCheck, ShoppingCart, Receipt, Percent } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
-import { canManageSalesOrderFinance, canManageSalesFulfillment } from "@/lib/auth/logistics";
+import { canManageSalesOrderFinance, canManageSalesFulfillment, canManageCommissions } from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
@@ -78,6 +78,13 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // REAL la impone trg_check_invoice_eligible en DB; esto solo evita
   // ofrecer un botón que llevaría a un formulario que la rechazaría.
   const canCreateInvoice = canManageFinance && salesOrder.status !== "draft" && salesOrder.status !== "cancelled";
+  // THÖREN 0073 — Comisiones privadas de Dirección: SOLO
+  // can_manage_commissions/admin ve este botón — ni siquiera el dueño
+  // comercial de la Sales Order (canWrite) lo desbloquea, a propósito
+  // (información privada de Dirección General). Mismo criterio de
+  // elegibilidad que Facturación: SO confirmada, no draft ni cancelada.
+  const canManageCommission = canManageCommissions(profile, capabilities);
+  const canCreateCommission = canManageCommission && salesOrder.status !== "draft" && salesOrder.status !== "cancelled";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -118,6 +125,12 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
                 Crear factura
               </Link>
             ))}
+          {canCreateCommission && (
+            <Link href={`/comisiones/nueva?sales_order_id=${salesOrder.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Percent className="h-3.5 w-3.5" />
+              Comisiones
+            </Link>
+          )}
           {salesOrder.status === "draft" && canWrite && (
             <Link
               href={`/ordenes-venta/${salesOrder.id}/editar`}

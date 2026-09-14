@@ -2949,6 +2949,111 @@ export interface Database {
           },
         ];
       };
+      // THÖREN 0073 — Comisiones privadas de Dirección. RLS
+      // (commission_records_select) SIN rama de dueño-vendedor —
+      // únicamente admin/can_manage_commissions. Snapshot congelado de
+      // regla/base/tasa/monto al crear (100% inmutable).
+      commission_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          sales_order_id: string;
+          salesperson_id: string;
+          commission_rule_snapshot: Json;
+          commission_base: number;
+          commission_rate: number;
+          commission_amount: number;
+          eligible_amount: number;
+          paid_amount: number;
+          status: string;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          cancellation_reason: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          sales_order_id: string;
+          salesperson_id: string;
+          commission_rule_snapshot: Json;
+          commission_base: number;
+          commission_rate: number;
+          commission_amount: number;
+          eligible_amount?: number;
+          paid_amount?: number;
+          status?: string;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          cancellation_reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["commission_records"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "commission_records_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_records_sales_order_id_fkey";
+            columns: ["sales_order_id"];
+            isOneToOne: false;
+            referencedRelation: "sales_orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_records_salesperson_id_fkey";
+            columns: ["salesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "salespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0073 — historial mínimo, inmutable (solo INSERT). `amount`
+      // también sirve como registro auditable de cada pago (sin tabla
+      // separada de "pagos de comisión").
+      commission_events: {
+        Row: {
+          id: string;
+          commission_record_id: string;
+          event_type: string;
+          amount: number | null;
+          previous_status: string | null;
+          new_status: string | null;
+          reason: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          commission_record_id: string;
+          event_type: string;
+          amount?: number | null;
+          previous_status?: string | null;
+          new_status?: string | null;
+          reason?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["commission_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "commission_events_commission_record_id_fkey";
+            columns: ["commission_record_id"];
+            isOneToOne: false;
+            referencedRelation: "commission_records";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // THÖREN Fase 6P (0039_deliveries.sql) — Entrega ligada a un Pedido.
       // Sin policy de insert/update/delete para `authenticated`: solo las
       // RPCs rpc_create_delivery/rpc_update_delivery_status/
@@ -3739,6 +3844,49 @@ export interface Database {
           p_organization_id?: string | null;
         };
         Returns: number;
+      };
+      // THÖREN 0073 — SECURITY INVOKER, requiere can_manage_commissions (o
+      // admin). Nace desde la Sales Order; snapshotea regla/base/tasa;
+      // calcula eligible_amount inicial contra el cobro ya existente.
+      rpc_create_commission_record: {
+        Args: {
+          p_commission_id: string;
+          p_sales_order_id: string;
+          p_salesperson_id: string;
+          p_commission_rate: number;
+          p_commission_base?: number | null;
+          p_rule_snapshot?: Json | null;
+        };
+        Returns: Database["public"]["Tables"]["commission_records"]["Row"];
+      };
+      // THÖREN 0073 — SECURITY INVOKER, requiere can_manage_commissions (o
+      // admin). UPDATE de conjunto (sin cron en este entorno): recalcula
+      // eligible_amount/status contra sales_orders.amount_paid.
+      rpc_refresh_commission_eligibility: {
+        Args: {
+          p_organization_id?: string | null;
+        };
+        Returns: number;
+      };
+      // THÖREN 0073 — SECURITY INVOKER, requiere can_manage_commissions (o
+      // admin). Recalcula eligible_amount EN VIVO antes de validar — "no
+      // pagar más de lo liberado por cobro real".
+      rpc_register_commission_payment: {
+        Args: {
+          p_commission_record_id: string;
+          p_amount: number;
+          p_notes?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["commission_records"]["Row"];
+      };
+      // THÖREN 0073 — SECURITY INVOKER, requiere can_manage_commissions (o
+      // admin). p_reason obligatorio. Nunca permitido desde status 'paid'.
+      rpc_cancel_commission_record: {
+        Args: {
+          p_commission_record_id: string;
+          p_reason: string;
+        };
+        Returns: Database["public"]["Tables"]["commission_records"]["Row"];
       };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier

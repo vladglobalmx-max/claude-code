@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canFulfillInventory, canManageDeliveries, canManageSalesOrderFinance, canReceiveInventory, canReserveInventory } from "./logistics";
+import {
+  canFulfillInventory,
+  canManageCommissions,
+  canManageDeliveries,
+  canManageSalesOrderFinance,
+  canReceiveInventory,
+  canReserveInventory,
+} from "./logistics";
 import { canWriteRecord } from "./ownership";
 import type { CurrentProfile } from "./profile";
 
@@ -224,6 +231,38 @@ describe("[11]-[20] cobertura funcional/UI por pantalla", () => {
     it("sin capability y sin ser admin → false", () => {
       const vendedor = profile({ role: "vendedor", salespersonId: OTHER_SP });
       expect(canManageSalesOrderFinance(vendedor, new Set(["can_view_all_sales"]))).toBe(false);
+    });
+  });
+
+  describe("canManageCommissions (THÖREN Comisiones privadas de Dirección, 0073 — ajuste post-review: EXCLUSIVAMENTE la capability, ni admin la otorga por defecto)", () => {
+    it("admin activo SIN can_manage_commissions → false — a diferencia de TODAS las demás capabilities de este archivo, admin NO tiene atajo aquí", () => {
+      const admin = profile({ role: "admin", salespersonId: null });
+      expect(canManageCommissions(admin, NONE)).toBe(false);
+    });
+
+    it("admin activo CON can_manage_commissions → true (Dirección General puede ser un admin, pero es la capability la que autoriza, no el rol)", () => {
+      const admin = profile({ role: "admin", salespersonId: null });
+      expect(canManageCommissions(admin, new Set(["can_manage_commissions"]))).toBe(true);
+    });
+
+    it("dueño (salesperson) de la Sales Order SIN can_manage_commissions → false — el propio vendedor NUNCA tiene autoridad aquí, ni siquiera sobre su propia comisión", () => {
+      const owner = profile({ role: "vendedor", salespersonId: OWNER_SP });
+      expect(canManageCommissions(owner, NONE)).toBe(false);
+    });
+
+    it("no-admin, no dueño, CON can_manage_commissions → true (caso típico: Dirección General)", () => {
+      const director = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canManageCommissions(director, new Set(["can_manage_commissions"]))).toBe(true);
+    });
+
+    it("usuario inactivo → false incluso con la capability activa", () => {
+      const inactive = profile({ active: false });
+      expect(canManageCommissions(inactive, new Set(["can_manage_commissions"]))).toBe(false);
+    });
+
+    it("sin capability y sin ser admin → false, incluso con can_manage_sales_order_finance (comisiones es estrictamente independiente de Finanzas)", () => {
+      const finance = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canManageCommissions(finance, new Set(["can_manage_sales_order_finance", "can_view_all_sales"]))).toBe(false);
     });
   });
 });

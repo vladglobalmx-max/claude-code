@@ -77,6 +77,7 @@ export default async function EditarOrdenVentaPage({ params }: { params: { id: s
     requestedDeliveryDate: salesOrder.requested_delivery_date ?? "",
     commercialNotes: salesOrder.commercial_notes ?? "",
     internalNotes: salesOrder.internal_notes ?? "",
+    isTest: salesOrder.is_test,
     items:
       items.length > 0
         ? items.map((item) => ({

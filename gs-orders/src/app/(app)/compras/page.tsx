@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
@@ -27,6 +29,7 @@ interface PurchaseOrderRow {
   status: PurchaseOrderStatus;
   supplier_commitment_date: string | null;
   estimated_reception_date: string | null;
+  is_test: boolean;
   supplier: OneOrMany<{ name: string }> | null;
   order: OneOrMany<{ id: string; folio: string; business_unit_id: string | null; business_units: OneOrMany<{ name: string }> | null }> | null;
 }
@@ -40,9 +43,10 @@ interface PurchaseOrderRow {
 export default async function ComprasPage({
   searchParams,
 }: {
-  searchParams: { q?: string; estado?: string; proveedor?: string; bu?: string };
+  searchParams: { q?: string; estado?: string; proveedor?: string; bu?: string; incluir_pruebas?: string };
 }) {
   const supabase = createSupabaseServerClient();
+  const includeTest = searchParams.incluir_pruebas === "1";
 
   const [{ data: suppliersData }, { data: businessUnitsData }] = await Promise.all([
     supabase.from("suppliers").select("*").order("name"),
@@ -55,14 +59,15 @@ export default async function ComprasPage({
     .from("purchase_orders")
     .select(
       searchParams.bu
-        ? "id, folio, status, supplier_commitment_date, estimated_reception_date, supplier:suppliers(name), order:orders!inner(id, folio, business_unit_id, business_units(name))"
-        : "id, folio, status, supplier_commitment_date, estimated_reception_date, supplier:suppliers(name), order:orders(id, folio, business_unit_id, business_units(name))"
+        ? "id, folio, status, supplier_commitment_date, estimated_reception_date, is_test, supplier:suppliers(name), order:orders!inner(id, folio, business_unit_id, business_units(name))"
+        : "id, folio, status, supplier_commitment_date, estimated_reception_date, is_test, supplier:suppliers(name), order:orders(id, folio, business_unit_id, business_units(name))"
     )
     .order("created_at", { ascending: false });
 
   if (searchParams.estado) query = query.eq("status", searchParams.estado);
   if (searchParams.proveedor) query = query.eq("supplier_id", searchParams.proveedor);
   if (searchParams.bu) query = query.eq("order.business_unit_id", searchParams.bu);
+  if (!includeTest) query = query.eq("is_test", false);
 
   const { data } = await query.limit(200);
   let purchaseOrders = (data ?? []) as unknown as PurchaseOrderRow[];
@@ -82,9 +87,12 @@ export default async function ComprasPage({
         title="Compras"
         description="Purchase Orders generadas desde los Pedidos, por proveedor."
         actions={
-          <Link href="/compras/necesidades" className={cn(buttonVariants({ variant: "outline" }))}>
-            Necesidades de compra
-          </Link>
+          <div className="flex items-center gap-3">
+            <IncludeTestDataToggle />
+            <Link href="/compras/necesidades" className={cn(buttonVariants({ variant: "outline" }))}>
+              Necesidades de compra
+            </Link>
+          </div>
         }
       />
 
@@ -111,7 +119,10 @@ export default async function ComprasPage({
                       <p className="truncate font-mono text-sm font-medium text-accent">{po.folio}</p>
                       <p className="mt-0.5 truncate text-sm font-medium text-ink">{supplier?.name ?? "—"}</p>
                     </Link>
-                    <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} />
+                    <div className="flex items-center gap-2">
+                      <TestOperationBadge isTest={po.is_test} />
+                      <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} />
+                    </div>
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
                     Pedido {order ? <Link href={`/pedidos/${order.id}`} className="font-mono text-accent hover:underline">{order.folio}</Link> : "—"}
@@ -163,7 +174,10 @@ export default async function ComprasPage({
                       </Td>
                       <Td className="text-ink-soft">{one(order?.business_units)?.name ?? "—"}</Td>
                       <Td>
-                        <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} />
+                        <div className="flex items-center gap-2">
+                          <TestOperationBadge isTest={po.is_test} />
+                          <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} />
+                        </div>
                       </Td>
                       <Td className="text-ink-soft">
                         {po.supplier_commitment_date ? formatDateShort(po.supplier_commitment_date) : "—"}

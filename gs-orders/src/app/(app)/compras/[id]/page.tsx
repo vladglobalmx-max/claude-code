@@ -8,6 +8,7 @@ import { canCreatePurchaseOrderReceipt } from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders, canApprovePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -137,7 +138,10 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Folio</p>
             <p className="font-mono text-2xl font-bold text-ink">{po.folio}</p>
           </div>
-          <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} className="text-sm" />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={po.is_test} />
+            <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} className="text-sm" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

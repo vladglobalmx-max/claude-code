@@ -45,6 +45,8 @@ export interface SalesOrderWritePayload {
   shipping_address_snapshot?: string;
   commercial_notes?: string;
   internal_notes?: string;
+  /** THÖREN 0077 — solo createSalesOrder lo envía; updateSalesOrder lo omite siempre (inmutable una vez creada). */
+  is_test?: boolean;
   items: SalesOrderWriteItemPayload[];
 }
 
@@ -107,6 +109,7 @@ export async function createSalesOrder(salesOrderId: string, payload: SalesOrder
       shipping_address_snapshot: parsed.data.shipping_address_snapshot ?? null,
       commercial_notes: parsed.data.commercial_notes ?? null,
       internal_notes: parsed.data.internal_notes ?? null,
+      is_test: parsed.data.is_test ?? false,
     },
     p_items: parsed.data.items,
   });
@@ -329,4 +332,30 @@ export async function releaseSalesOrder(salesOrderId: string): Promise<SalesOrde
 
   revalidatePath(`/ordenes-venta/${salesOrderId}`);
   return { error: null, salesOrder: data as SalesOrder };
+}
+
+export type PurgeTestSalesOrderResult = { error: string | null; orderNumber?: string };
+
+/**
+ * THÖREN 0077 — Test Data / Purga de operaciones de prueba. Elimina
+ * PERMANENTEMENTE una Sales Order is_test=true y TODA su cadena derivada
+ * (requisición, Purchase Order, recepción, inventario, surtido, factura,
+ * pagos, comisión) vía rpc_purge_test_sales_order — el propio RPC valida
+ * organización/autoridad/is_test=true antes de escribir nada, esta acción
+ * solo llama y traduce el error. No hay "deshacer": el confirm dialog de la
+ * UI (PurgeTestSalesOrderButton) es la única red de seguridad del lado
+ * cliente.
+ */
+export async function purgeTestSalesOrder(salesOrderId: string): Promise<PurgeTestSalesOrderResult> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_purge_test_sales_order", {
+    p_sales_order_id: salesOrderId,
+  });
+
+  if (error || !data) {
+    return { error: mapDbError(error, "No se pudo eliminar la operación de prueba. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/ordenes-venta");
+  return { error: null, orderNumber: data as string };
 }

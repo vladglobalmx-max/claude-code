@@ -7,6 +7,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canReceiveInventory } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime } from "@/lib/utils/format";
 import { GOODS_RECEIPT_STATUS_BADGE, GOODS_RECEIPT_STATUS_LABELS, INVENTORY_MOVEMENT_TYPE_LABELS } from "@/types/domain";
@@ -38,13 +39,13 @@ export default async function RecepcionDetailPage({ params }: { params: { id: st
   const goodsReceipt = data as GoodsReceipt;
 
   const [{ data: poData }, { data: warehouseData }, { data: itemsData }] = await Promise.all([
-    supabase.from("purchase_orders").select("id, folio, supplier_id, suppliers(name)").eq("id", goodsReceipt.purchase_order_id).maybeSingle(),
+    supabase.from("purchase_orders").select("id, folio, supplier_id, is_test, suppliers(name)").eq("id", goodsReceipt.purchase_order_id).maybeSingle(),
     supabase.from("warehouses").select("name").eq("id", goodsReceipt.warehouse_id).maybeSingle(),
     supabase.from("goods_receipt_items").select("*").eq("goods_receipt_id", goodsReceipt.id).order("created_at"),
   ]);
   const items = (itemsData ?? []) as GoodsReceiptItem[];
 
-  const po = poData as unknown as { id: string; folio: string; suppliers: OneOrMany<{ name: string }> | null } | null;
+  const po = poData as unknown as { id: string; folio: string; is_test: boolean; suppliers: OneOrMany<{ name: string }> | null } | null;
   const supplierName = one(po?.suppliers)?.name ?? null;
 
   let movements: InventoryMovement[] = [];
@@ -75,12 +76,15 @@ export default async function RecepcionDetailPage({ params }: { params: { id: st
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Recepción</p>
             <p className="font-mono text-2xl font-bold text-ink">{goodsReceipt.receipt_number}</p>
           </div>
-          <StatusBadge
-            status={goodsReceipt.status}
-            labels={GOODS_RECEIPT_STATUS_LABELS}
-            variants={GOODS_RECEIPT_STATUS_BADGE}
-            className="text-sm"
-          />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={po?.is_test ?? false} />
+            <StatusBadge
+              status={goodsReceipt.status}
+              labels={GOODS_RECEIPT_STATUS_LABELS}
+              variants={GOODS_RECEIPT_STATUS_BADGE}
+              className="text-sm"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

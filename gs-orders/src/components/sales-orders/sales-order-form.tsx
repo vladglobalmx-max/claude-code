@@ -33,6 +33,7 @@ function buildPayload(state: SalesOrderFormState): SalesOrderWritePayload {
     requested_delivery_date: state.requestedDeliveryDate || undefined,
     commercial_notes: state.commercialNotes || undefined,
     internal_notes: state.internalNotes || undefined,
+    is_test: state.isTest,
     items: state.items
       .filter((item) => item.catalogProductId || item.skuSnapshot.trim())
       .map((item) => ({
@@ -291,6 +292,26 @@ export function SalesOrderForm({
               Visible solo para tu equipo — sigue editable aunque la Sales Order ya no esté en borrador.
             </p>
           </div>
+
+          {mode === "create" ? (
+            <div className="flex items-start gap-3 rounded-lg border border-dashed border-border p-3">
+              <input
+                id="is-test"
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+                checked={state.isTest}
+                onChange={(e) => patch({ isTest: e.target.checked })}
+              />
+              <div>
+                <Label htmlFor="is-test">Operación de prueba</Label>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Marca esta Sales Order y toda su cadena derivada (requisición, Purchase Order, recepción, surtido,
+                  factura, comisión) como prueba — quedan ocultas de los listados por defecto y pueden eliminarse por
+                  completo más adelante. No se puede cambiar después de crear la Sales Order.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

@@ -61,6 +61,13 @@ export interface SalesOrderFormState {
   requestedDeliveryDate: string;
   commercialNotes: string;
   internalNotes: string;
+  /**
+   * THÖREN 0077 — solo se define al crear (rpc_create_sales_order);
+   * inmutable después (trg_prevent_sales_order_identity_change). El
+   * formulario en modo "edit" ignora este campo por completo — ver
+   * SalesOrderForm (el checkbox solo se renderiza en modo "create").
+   */
+  isTest: boolean;
   items: SalesOrderItemDraft[];
 }
 
@@ -76,6 +83,7 @@ export function emptySalesOrderForm({ salespersonId }: { salespersonId: string }
     requestedDeliveryDate: "",
     commercialNotes: "",
     internalNotes: "",
+    isTest: false,
     items: [emptySalesOrderItem()],
   };
 }

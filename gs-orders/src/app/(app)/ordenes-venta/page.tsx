@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
@@ -23,11 +25,14 @@ export const dynamic = "force-dynamic";
  * (sales_orders_select_own_or_admin) — ADMIN ve todas las de su
  * organización, VENDEDOR solo las suyas (o todas con can_view_all_sales).
  */
-export default async function OrdenesVentaPage() {
+export default async function OrdenesVentaPage({ searchParams }: { searchParams: { incluir_pruebas?: string } }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
+  const includeTest = searchParams.incluir_pruebas === "1";
 
-  const { data } = await supabase.from("sales_orders").select("*").order("created_at", { ascending: false }).limit(200);
+  let soQuery = supabase.from("sales_orders").select("*").order("created_at", { ascending: false }).limit(200);
+  if (!includeTest) soQuery = soQuery.eq("is_test", false);
+  const { data } = await soQuery;
   const salesOrders = (data ?? []) as SalesOrder[];
 
   const customerIds = Array.from(new Set(salesOrders.map((so) => so.customer_id)));
@@ -49,12 +54,15 @@ export default async function OrdenesVentaPage() {
         title="Órdenes de Venta"
         description="Sales Orders de Comercial."
         actions={
-          <Link href="/ordenes-venta/nueva">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nueva Sales Order
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <IncludeTestDataToggle />
+            <Link href="/ordenes-venta/nueva">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nueva Sales Order
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -84,7 +92,10 @@ export default async function OrdenesVentaPage() {
                     <p className="truncate font-mono text-sm font-medium text-accent">{so.order_number}</p>
                     <p className="mt-0.5 truncate text-sm font-medium text-ink">{customerNameById.get(so.customer_id) ?? "—"}</p>
                   </Link>
-                  <StatusBadge status={so.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+                  <div className="flex items-center gap-2">
+                    <TestOperationBadge isTest={so.is_test} />
+                    <StatusBadge status={so.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+                  </div>
                 </div>
                 <p className="mt-2 text-xs text-ink-faint">
                   {salespersonNameById.get(so.salesperson_id) ?? "—"} · {formatDateShort(so.created_at)}
@@ -133,7 +144,10 @@ export default async function OrdenesVentaPage() {
                     <Td>{customerNameById.get(so.customer_id) ?? "—"}</Td>
                     <Td className="text-ink-soft">{formatMoneyByCurrency(so.total, so.currency)}</Td>
                     <Td>
-                      <StatusBadge status={so.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+                      <div className="flex items-center gap-2">
+                        <TestOperationBadge isTest={so.is_test} />
+                        <StatusBadge status={so.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+                      </div>
                     </Td>
                     <Td>
                       <div className="flex items-center justify-end gap-3 text-sm">

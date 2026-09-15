@@ -7,6 +7,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canManageSalesFulfillment } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime } from "@/lib/utils/format";
 import { SALES_FULFILLMENT_STATUS_BADGE, SALES_FULFILLMENT_STATUS_LABELS } from "@/types/domain";
@@ -33,7 +34,7 @@ export default async function SurtidoDetailPage({ params }: { params: { id: stri
   const [{ data: soData }, { data: warehouseData }, { data: itemsData }, { data: eventsData }] = await Promise.all([
     supabase
       .from("sales_orders")
-      .select("id, order_number, customer_id, shipping_address_snapshot, customer_contact_snapshot")
+      .select("id, order_number, customer_id, shipping_address_snapshot, customer_contact_snapshot, is_test")
       .eq("id", fulfillment.sales_order_id)
       .maybeSingle(),
     supabase.from("warehouses").select("name").eq("id", fulfillment.warehouse_id).maybeSingle(),
@@ -76,12 +77,15 @@ export default async function SurtidoDetailPage({ params }: { params: { id: stri
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Surtido</p>
             <p className="font-mono text-2xl font-bold text-ink">{fulfillment.fulfillment_number}</p>
           </div>
-          <StatusBadge
-            status={fulfillment.status}
-            labels={SALES_FULFILLMENT_STATUS_LABELS}
-            variants={SALES_FULFILLMENT_STATUS_BADGE}
-            className="text-sm"
-          />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={soData?.is_test ?? false} />
+            <StatusBadge
+              status={fulfillment.status}
+              labels={SALES_FULFILLMENT_STATUS_LABELS}
+              variants={SALES_FULFILLMENT_STATUS_BADGE}
+              className="text-sm"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

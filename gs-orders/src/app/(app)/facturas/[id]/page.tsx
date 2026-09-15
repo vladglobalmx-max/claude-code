@@ -7,6 +7,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canManageSalesOrderFinance } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime, formatMoneyByCurrency } from "@/lib/utils/format";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABELS, SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS } from "@/types/domain";
@@ -38,7 +39,7 @@ export default async function FacturaDetailPage({ params }: { params: { id: stri
   const invoice = data as Invoice;
 
   const [{ data: soData }, { data: itemsData }, { data: paymentsData }, { data: eventsData }] = await Promise.all([
-    supabase.from("sales_orders").select("id, order_number, customer_id, currency").eq("id", invoice.sales_order_id).maybeSingle(),
+    supabase.from("sales_orders").select("id, order_number, customer_id, currency, is_test").eq("id", invoice.sales_order_id).maybeSingle(),
     supabase.from("invoice_items").select("*").eq("invoice_id", invoice.id).order("created_at"),
     supabase.from("invoice_payments").select("*").eq("invoice_id", invoice.id).order("created_at"),
     supabase.from("invoice_events").select("*").eq("invoice_id", invoice.id).order("created_at"),
@@ -69,7 +70,10 @@ export default async function FacturaDetailPage({ params }: { params: { id: stri
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Factura</p>
             <p className="font-mono text-2xl font-bold text-ink">{invoice.invoice_number}</p>
           </div>
-          <StatusBadge status={invoice.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} className="text-sm" />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={soData?.is_test ?? false} />
+            <StatusBadge status={invoice.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} className="text-sm" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

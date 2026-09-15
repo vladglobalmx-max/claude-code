@@ -1137,6 +1137,8 @@ export interface Database {
           notes: string | null;
           status: string;
           pre_receiving_status: string;
+          // THÖREN 0077 — snapshot de la Sales Order de origen (vía requisición). Inmutable después.
+          is_test: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -1154,6 +1156,7 @@ export interface Database {
           notes?: string | null;
           status?: string;
           pre_receiving_status?: string;
+          is_test?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -1454,6 +1457,8 @@ export interface Database {
           created_by_user_id: string;
           created_by_name: string;
           created_at: string;
+          // THÖREN 0077 — snapshot heredado de la PO/Sales Order al insertar. Tabla append-only, nunca se actualiza.
+          is_test: boolean;
         };
         Insert: {
           id?: string;
@@ -1473,6 +1478,7 @@ export interface Database {
           created_by_user_id: string;
           created_by_name: string;
           created_at?: string;
+          is_test?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["inventory_movements"]["Insert"]>;
         Relationships: [
@@ -2036,6 +2042,8 @@ export interface Database {
           financial_hold_reason: string | null;
           amount_paid: number;
           payment_required_amount: number | null;
+          // THÖREN 0077 — Test Data / Purga. Solo se define al crear; inmutable después.
+          is_test: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -2072,6 +2080,8 @@ export interface Database {
           financial_hold_reason?: string | null;
           amount_paid?: number;
           payment_required_amount?: number | null;
+          // Solo rpc_create_sales_order lo escribe (inmutable después); nunca se envía en un .update() directo.
+          is_test?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -3635,6 +3645,16 @@ export interface Database {
           p_sales_order_id: string;
         };
         Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN 0077 (Test Data / Purga) — SECURITY DEFINER, requiere admin o
+      // can_purge_test_operations. Exige is_test=true; elimina
+      // transaccionalmente la Sales Order y toda su cadena derivada.
+      // Devuelve el order_number de la Sales Order eliminada.
+      rpc_purge_test_sales_order: {
+        Args: {
+          p_sales_order_id: string;
+        };
+        Returns: string;
       };
       // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
       // requiere can_prepare_purchase_orders (o admin). Crea encabezado +

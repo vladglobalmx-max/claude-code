@@ -857,6 +857,17 @@ export interface SalesOrder {
   amount_paid: number;
   payment_required_amount: number | null;
 
+  /**
+   * THÖREN 0077 — Test Data / Purga de operaciones de prueba. Fuente de
+   * verdad de si esta Sales Order (y toda su cadena derivada: requisición,
+   * Purchase Order, recepción, inventario, surtido, factura, comisión) es
+   * una operación de prueba. Solo se define al crear
+   * (rpc_create_sales_order) — inmutable después
+   * (trg_prevent_sales_order_identity_change). rpc_purge_test_sales_order
+   * exige is_test=true; nunca puede purgar una operación oficial.
+   */
+  is_test: boolean;
+
   created_at: string;
   updated_at: string;
 }
@@ -1137,6 +1148,14 @@ export interface PurchaseOrder {
    * la UI edite directamente.
    */
   pre_receiving_status: PurchaseOrderStatus;
+  /**
+   * THÖREN 0077 — snapshot tomado de la Sales Order de origen (vía la
+   * requisición) al convertir con rpc_convert_requisition_to_purchase_order.
+   * Siempre false para una PO originada en un Pedido (order_id no nulo,
+   * flujo rpc_create_purchase_order, fuera de alcance de este feature).
+   * Inmutable después de creada.
+   */
+  is_test: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1292,6 +1311,8 @@ export interface InventoryMovement {
   created_by_user_id: string;
   created_by_name: string;
   created_at: string;
+  /** THÖREN 0077 — snapshot heredado de la PO (recepcion_compra/correccion_recepcion) o de la Sales Order del surtido (surtido_venta) al insertar. Siempre false para movimientos manuales. */
+  is_test: boolean;
 }
 
 /** Resultado de rpc_inventory_stock_levels — ON HAND agregado por producto × almacén (nunca almacenado, siempre derivado de inventory_movements). */

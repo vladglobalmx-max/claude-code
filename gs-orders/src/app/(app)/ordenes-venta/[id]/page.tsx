@@ -4,18 +4,20 @@ import { ArrowLeft, Pencil, PackageCheck, ShoppingCart, Receipt, Percent } from 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
-import { canManageSalesOrderFinance, canManageSalesFulfillment, canManageCommissions } from "@/lib/auth/logistics";
+import { canManageSalesOrderFinance, canManageSalesFulfillment, canManageCommissions, canPurgeTestOperations } from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { SALES_ORDER_STATUS_BADGE, SALES_ORDER_STATUS_LABELS } from "@/types/domain";
 import type { SalesOrder, SalesOrderItem } from "@/types/domain";
 import { SalesOrderStatusActions } from "./sales-order-status-actions";
+import { PurgeTestSalesOrderButton } from "./purge-test-sales-order-button";
 import { SalesOrderInternalNotesEditor } from "./sales-order-internal-notes-editor";
 import { SalesOrderFinancialPanel } from "./sales-order-financial-panel";
 
@@ -85,6 +87,10 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // elegibilidad que Facturación: SO confirmada, no draft ni cancelada.
   const canManageCommission = canManageCommissions(profile, capabilities);
   const canCreateCommission = canManageCommission && salesOrder.status !== "draft" && salesOrder.status !== "cancelled";
+  // THÖREN 0077 — Test Data / Purga: solo se ofrece el botón cuando AMBAS
+  // condiciones se cumplen (is_test=true Y autoridad) — rpc_purge_test_sales_order
+  // repite ambas validaciones en DB de todos modos.
+  const canPurge = salesOrder.is_test && canPurgeTestOperations(profile, capabilities);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -140,6 +146,7 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
               Editar
             </Link>
           )}
+          {canPurge && <PurgeTestSalesOrderButton salesOrderId={salesOrder.id} orderNumber={salesOrder.order_number} />}
         </div>
       </div>
 
@@ -149,7 +156,10 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
             <CardTitle className="font-mono text-base">{salesOrder.order_number}</CardTitle>
             <p className="mt-1 text-sm text-ink-faint">{customerData?.name ?? "—"}</p>
           </div>
-          <StatusBadge status={salesOrder.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={salesOrder.is_test} />
+            <StatusBadge status={salesOrder.status} labels={SALES_ORDER_STATUS_LABELS} variants={SALES_ORDER_STATUS_BADGE} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">

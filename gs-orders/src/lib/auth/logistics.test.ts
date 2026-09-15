@@ -5,6 +5,7 @@ import {
   canManageCommissions,
   canManageDeliveries,
   canManageSalesOrderFinance,
+  canPurgeTestOperations,
   canReceiveInventory,
   canReserveInventory,
 } from "./logistics";
@@ -264,6 +265,38 @@ describe("[11]-[20] cobertura funcional/UI por pantalla", () => {
     it("sin capability y sin ser admin → false, incluso con can_manage_sales_order_finance (comisiones es estrictamente independiente de Finanzas)", () => {
       const finance = profile({ role: "vendedor", salespersonId: OTHER_SP });
       expect(canManageCommissions(finance, new Set(["can_manage_sales_order_finance", "can_view_all_sales"]))).toBe(false);
+    });
+  });
+
+  describe("canPurgeTestOperations (THÖREN Test Data / Purga de operaciones de prueba, 0077 — mismo guard que rpc_purge_test_sales_order: admin O la capability, SIN rama de ownership)", () => {
+    it("admin activo SIN can_purge_test_operations → true — a diferencia de canManageCommissions, admin SÍ tiene atajo aquí (\"Dirección/admin autorizado\")", () => {
+      const admin = profile({ role: "admin", salespersonId: null });
+      expect(canPurgeTestOperations(admin, NONE)).toBe(true);
+    });
+
+    it("no-admin, dueño de la Sales Order de prueba, SIN la capability → false — el ownership nunca otorga autoridad de purga, ni siquiera sobre la propia Sales Order", () => {
+      const owner = profile({ role: "vendedor", salespersonId: OWNER_SP });
+      expect(canPurgeTestOperations(owner, NONE)).toBe(false);
+    });
+
+    it("no-admin, CON can_purge_test_operations → true (caso típico: Dirección General recibida explícitamente)", () => {
+      const director = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canPurgeTestOperations(director, new Set(["can_purge_test_operations"]))).toBe(true);
+    });
+
+    it("usuario inactivo → false incluso siendo admin", () => {
+      const inactive = profile({ role: "admin", salespersonId: null, active: false });
+      expect(canPurgeTestOperations(inactive, NONE)).toBe(false);
+    });
+
+    it("sin capability y sin ser admin → false, incluso con otras capabilities operativas (Vendedores/Compras/Logística/Finanzas no pueden purgar)", () => {
+      const other = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(
+        canPurgeTestOperations(
+          other,
+          new Set(["can_manage_sales_order_finance", "can_prepare_purchase_orders", "can_manage_sales_fulfillment", "can_receive_inventory"])
+        )
+      ).toBe(false);
     });
   });
 

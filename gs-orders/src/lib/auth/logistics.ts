@@ -131,3 +131,18 @@ export function canManageCommissions(profile: CapabilityProfile | null, capabili
   if (!profile || !profile.active) return false;
   return capabilities.has("can_manage_commissions");
 }
+
+/**
+ * Eliminar permanentemente una operación de prueba (Test Data / Purga,
+ * 0077) — mismo guard que rpc_purge_test_sales_order: admin O
+ * can_purge_test_operations, SIN rama de ownership (Dirección General
+ * típicamente no es el salesperson dueño de la Sales Order de prueba que
+ * está purgando). A diferencia de canManageCommissions, admin SÍ tiene
+ * atajo aquí — el ticket pide "Dirección/admin autorizado", no exclusividad
+ * de la capability.
+ */
+export function canPurgeTestOperations(profile: CapabilityProfile | null, capabilities: ReadonlySet<string>): boolean {
+  if (!profile || !profile.active) return false;
+  if (profile.role === "admin") return true;
+  return capabilities.has("can_purge_test_operations");
+}

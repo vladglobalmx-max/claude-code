@@ -7,6 +7,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { PURCHASE_REQUISITION_STATUS_BADGE, PURCHASE_REQUISITION_STATUS_LABELS } from "@/types/domain";
@@ -34,7 +35,7 @@ export default async function RequisicionDetailPage({ params }: { params: { id: 
   const requisition = data as PurchaseRequisition;
 
   const [{ data: soData }, { data: itemsData }] = await Promise.all([
-    supabase.from("sales_orders").select("id, order_number, customer_id").eq("id", requisition.sales_order_id).maybeSingle(),
+    supabase.from("sales_orders").select("id, order_number, customer_id, is_test").eq("id", requisition.sales_order_id).maybeSingle(),
     supabase.from("purchase_requisition_items").select("*").eq("purchase_requisition_id", requisition.id).order("created_at"),
   ]);
   const items = (itemsData ?? []) as PurchaseRequisitionItem[];
@@ -81,12 +82,15 @@ export default async function RequisicionDetailPage({ params }: { params: { id: 
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Requisición</p>
             <p className="font-mono text-2xl font-bold text-ink">{requisition.requisition_number}</p>
           </div>
-          <StatusBadge
-            status={requisition.status}
-            labels={PURCHASE_REQUISITION_STATUS_LABELS}
-            variants={PURCHASE_REQUISITION_STATUS_BADGE}
-            className="text-sm"
-          />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={soData?.is_test ?? false} />
+            <StatusBadge
+              status={requisition.status}
+              labels={PURCHASE_REQUISITION_STATUS_LABELS}
+              variants={PURCHASE_REQUISITION_STATUS_BADGE}
+              className="text-sm"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

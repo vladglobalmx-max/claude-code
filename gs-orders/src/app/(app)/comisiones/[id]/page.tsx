@@ -7,6 +7,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { canManageCommissions } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateTime, formatMoneyByCurrency } from "@/lib/utils/format";
 import { COMMISSION_RECORD_STATUS_BADGE, COMMISSION_RECORD_STATUS_LABELS } from "@/types/domain";
@@ -37,7 +38,7 @@ export default async function ComisionDetailPage({ params }: { params: { id: str
   const record = data as CommissionRecord;
 
   const [{ data: soData }, { data: spData }, { data: eventsData }] = await Promise.all([
-    supabase.from("sales_orders").select("id, order_number, customer_id, currency, total, amount_paid").eq("id", record.sales_order_id).maybeSingle(),
+    supabase.from("sales_orders").select("id, order_number, customer_id, currency, total, amount_paid, is_test").eq("id", record.sales_order_id).maybeSingle(),
     supabase.from("salespeople").select("name").eq("id", record.salesperson_id).maybeSingle(),
     supabase.from("commission_events").select("*").eq("commission_record_id", record.id).order("created_at"),
   ]);
@@ -65,7 +66,10 @@ export default async function ComisionDetailPage({ params }: { params: { id: str
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Comisión</p>
             <p className="text-2xl font-bold text-ink">{spData?.name ?? "—"}</p>
           </div>
-          <StatusBadge status={record.status} labels={COMMISSION_RECORD_STATUS_LABELS} variants={COMMISSION_RECORD_STATUS_BADGE} className="text-sm" />
+          <div className="flex items-center gap-2">
+            <TestOperationBadge isTest={soData?.is_test ?? false} />
+            <StatusBadge status={record.status} labels={COMMISSION_RECORD_STATUS_LABELS} variants={COMMISSION_RECORD_STATUS_BADGE} className="text-sm" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-border bg-surface-2/50 p-4 sm:grid-cols-3">

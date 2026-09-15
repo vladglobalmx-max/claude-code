@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { PURCHASE_REQUISITION_STATUS_BADGE, PURCHASE_REQUISITION_STATUS_LABELS } from "@/types/domain";
@@ -18,17 +20,26 @@ export const dynamic = "force-dynamic";
  * can_prepare_purchase_orders o can_view_all_sales — sin filtro extra
  * aquí, RLS ya acota a la organización.
  */
-export default async function RequisicionesPage() {
+export default async function RequisicionesPage({ searchParams }: { searchParams: { incluir_pruebas?: string } }) {
   const supabase = createSupabaseServerClient();
+  const includeTest = searchParams.incluir_pruebas === "1";
 
   const { data } = await supabase.from("purchase_requisitions").select("*").order("created_at", { ascending: false }).limit(200);
-  const requisitions = (data ?? []) as PurchaseRequisition[];
+  let requisitions = (data ?? []) as PurchaseRequisition[];
 
   const salesOrderIds = Array.from(new Set(requisitions.map((r) => r.sales_order_id)));
   const { data: salesOrdersData } = salesOrderIds.length
-    ? await supabase.from("sales_orders").select("id, order_number, customer_id").in("id", salesOrderIds)
+    ? await supabase.from("sales_orders").select("id, order_number, customer_id, is_test").in("id", salesOrderIds)
     : { data: [] };
   const soById = new Map((salesOrdersData ?? []).map((so) => [so.id, so]));
+
+  // THÖREN 0077 — is_test se hereda de la Sales Order de origen (join, sin
+  // columna propia — ver DISEÑO en 0077_test_data_purge.sql). Filtro en
+  // memoria: mismo criterio que el resto de esta página (ya arma soById en
+  // JS en vez de un join embebido).
+  if (!includeTest) {
+    requisitions = requisitions.filter((r) => !(soById.get(r.sales_order_id)?.is_test ?? false));
+  }
 
   const customerIds = Array.from(new Set((salesOrdersData ?? []).map((so) => so.customer_id)));
   const { data: customersData } = customerIds.length
@@ -38,7 +49,11 @@ export default async function RequisicionesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Requisiciones de Compra" description="Requisiciones originadas desde Sales Orders liberadas." />
+      <PageHeader
+        title="Requisiciones de Compra"
+        description="Requisiciones originadas desde Sales Orders liberadas."
+        actions={<IncludeTestDataToggle />}
+      />
 
       {requisitions.length === 0 ? (
         <Card>
@@ -60,7 +75,10 @@ export default async function RequisicionesPage() {
                       <p className="truncate font-mono text-sm font-medium text-accent">{r.requisition_number}</p>
                       <p className="mt-0.5 truncate text-sm font-medium text-ink">{so ? customerNameById.get(so.customer_id) ?? "—" : "—"}</p>
                     </Link>
-                    <StatusBadge status={r.status} labels={PURCHASE_REQUISITION_STATUS_LABELS} variants={PURCHASE_REQUISITION_STATUS_BADGE} />
+                    <div className="flex items-center gap-2">
+                      <TestOperationBadge isTest={so?.is_test ?? false} />
+                      <StatusBadge status={r.status} labels={PURCHASE_REQUISITION_STATUS_LABELS} variants={PURCHASE_REQUISITION_STATUS_BADGE} />
+                    </div>
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
                     {so?.order_number ?? "—"} · {formatDateShort(r.created_at)}
@@ -103,7 +121,10 @@ export default async function RequisicionesPage() {
                       </Td>
                       <Td>{so ? customerNameById.get(so.customer_id) ?? "—" : "—"}</Td>
                       <Td>
-                        <StatusBadge status={r.status} labels={PURCHASE_REQUISITION_STATUS_LABELS} variants={PURCHASE_REQUISITION_STATUS_BADGE} />
+                        <div className="flex items-center gap-2">
+                          <TestOperationBadge isTest={so?.is_test ?? false} />
+                          <StatusBadge status={r.status} labels={PURCHASE_REQUISITION_STATUS_LABELS} variants={PURCHASE_REQUISITION_STATUS_BADGE} />
+                        </div>
                       </Td>
                     </Tr>
                   );

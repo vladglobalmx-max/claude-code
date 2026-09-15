@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABELS } from "@/types/domain";
@@ -25,10 +27,11 @@ export const dynamic = "force-dynamic";
  * este entorno) — un no-op silencioso para quien no tiene autoridad
  * financiera.
  */
-export default async function FacturasPage() {
+export default async function FacturasPage({ searchParams }: { searchParams: { incluir_pruebas?: string } }) {
   const profile = await getCurrentProfile();
   const capabilities = await getCurrentCapabilities(profile?.userId);
   const canManageFinance = canManageSalesOrderFinance(profile, capabilities);
+  const includeTest = searchParams.incluir_pruebas === "1";
 
   if (canManageFinance) {
     await refreshOverdueInvoices();
@@ -36,15 +39,21 @@ export default async function FacturasPage() {
 
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.from("invoices").select("*").order("created_at", { ascending: false }).limit(200);
-  const invoices = (data ?? []) as Invoice[];
+  let invoices = (data ?? []) as Invoice[];
 
   const salesOrderIds = Array.from(new Set(invoices.map((inv) => inv.sales_order_id)));
   const { data: soData } = salesOrderIds.length
-    ? await supabase.from("sales_orders").select("id, order_number, customer_id, currency").in("id", salesOrderIds)
+    ? await supabase.from("sales_orders").select("id, order_number, customer_id, currency, is_test").in("id", salesOrderIds)
     : { data: [] };
   const soById = new Map(
     (soData ?? []).map((so) => [so.id, { ...so, currency: so.currency as SalesOrderCurrency }])
   );
+
+  // THÖREN 0077 — is_test se hereda de la Sales Order (join, sin columna
+  // propia). Filtro en memoria, mismo criterio que el resto de la página.
+  if (!includeTest) {
+    invoices = invoices.filter((inv) => !(soById.get(inv.sales_order_id)?.is_test ?? false));
+  }
 
   const customerIds = Array.from(new Set((soData ?? []).map((so) => so.customer_id)));
   const { data: customersData } = customerIds.length
@@ -54,7 +63,7 @@ export default async function FacturasPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Facturas" description="Facturación y cobranza de Sales Orders." />
+      <PageHeader title="Facturas" description="Facturación y cobranza de Sales Orders." actions={<IncludeTestDataToggle />} />
 
       {invoices.length === 0 ? (
         <Card>
@@ -77,7 +86,10 @@ export default async function FacturasPage() {
                       <p className="truncate font-mono text-sm font-medium text-accent">{inv.invoice_number}</p>
                       <p className="mt-0.5 truncate text-sm font-medium text-ink">{so ? customerNameById.get(so.customer_id) ?? "—" : "—"}</p>
                     </Link>
-                    <StatusBadge status={inv.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} />
+                    <div className="flex items-center gap-2">
+                      <TestOperationBadge isTest={so?.is_test ?? false} />
+                      <StatusBadge status={inv.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} />
+                    </div>
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
                     {so?.order_number ?? "—"} · Vence {formatDateShort(inv.due_date)}
@@ -131,7 +143,10 @@ export default async function FacturasPage() {
                       <Td className="text-ink-soft">{formatMoneyByCurrency(inv.amount_paid, currency)}</Td>
                       <Td className="font-medium text-ink">{formatMoneyByCurrency(balance, currency)}</Td>
                       <Td>
-                        <StatusBadge status={inv.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} />
+                        <div className="flex items-center gap-2">
+                          <TestOperationBadge isTest={so?.is_test ?? false} />
+                          <StatusBadge status={inv.status} labels={INVOICE_STATUS_LABELS} variants={INVOICE_STATUS_BADGE} />
+                        </div>
                       </Td>
                     </Tr>
                   );

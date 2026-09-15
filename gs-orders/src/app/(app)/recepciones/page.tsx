@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { GOODS_RECEIPT_STATUS_BADGE, GOODS_RECEIPT_STATUS_LABELS } from "@/types/domain";
@@ -18,17 +20,25 @@ export const dynamic = "force-dynamic";
  * activo de la organización — mismo criterio que Inventory
  * (inventory_movements_select, 0036), sin filtro extra aquí.
  */
-export default async function RecepcionesPage() {
+export default async function RecepcionesPage({ searchParams }: { searchParams: { incluir_pruebas?: string } }) {
   const supabase = createSupabaseServerClient();
+  const includeTest = searchParams.incluir_pruebas === "1";
 
   const { data } = await supabase.from("goods_receipts").select("*").order("created_at", { ascending: false }).limit(200);
-  const receipts = (data ?? []) as GoodsReceipt[];
+  let receipts = (data ?? []) as GoodsReceipt[];
 
   const purchaseOrderIds = Array.from(new Set(receipts.map((r) => r.purchase_order_id)));
   const { data: poData } = purchaseOrderIds.length
-    ? await supabase.from("purchase_orders").select("id, folio, supplier_id").in("id", purchaseOrderIds)
+    ? await supabase.from("purchase_orders").select("id, folio, supplier_id, is_test").in("id", purchaseOrderIds)
     : { data: [] };
   const poById = new Map((poData ?? []).map((po) => [po.id, po]));
+
+  // THÖREN 0077 — is_test se hereda de la Purchase Order (columna propia,
+  // ver DISEÑO en 0077_test_data_purge.sql). Filtro en memoria, mismo
+  // criterio que el resto de esta página.
+  if (!includeTest) {
+    receipts = receipts.filter((r) => !(poById.get(r.purchase_order_id)?.is_test ?? false));
+  }
 
   const supplierIds = Array.from(new Set((poData ?? []).map((po) => po.supplier_id)));
   const { data: suppliersData } = supplierIds.length
@@ -44,7 +54,11 @@ export default async function RecepcionesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Recepciones de Mercancía" description="Recepciones registradas contra Purchase Orders." />
+      <PageHeader
+        title="Recepciones de Mercancía"
+        description="Recepciones registradas contra Purchase Orders."
+        actions={<IncludeTestDataToggle />}
+      />
 
       {receipts.length === 0 ? (
         <Card>
@@ -66,7 +80,10 @@ export default async function RecepcionesPage() {
                       <p className="truncate font-mono text-sm font-medium text-accent">{r.receipt_number}</p>
                       <p className="mt-0.5 truncate text-sm font-medium text-ink">{po ? supplierNameById.get(po.supplier_id) ?? "—" : "—"}</p>
                     </Link>
-                    <StatusBadge status={r.status} labels={GOODS_RECEIPT_STATUS_LABELS} variants={GOODS_RECEIPT_STATUS_BADGE} />
+                    <div className="flex items-center gap-2">
+                      <TestOperationBadge isTest={po?.is_test ?? false} />
+                      <StatusBadge status={r.status} labels={GOODS_RECEIPT_STATUS_LABELS} variants={GOODS_RECEIPT_STATUS_BADGE} />
+                    </div>
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
                     {po?.folio ?? "—"} · {warehouseNameById.get(r.warehouse_id) ?? "—"} · {formatDateShort(r.received_at)}
@@ -111,7 +128,10 @@ export default async function RecepcionesPage() {
                       <Td className="text-ink-soft">{warehouseNameById.get(r.warehouse_id) ?? "—"}</Td>
                       <Td className="text-ink-soft">{formatDateShort(r.received_at)}</Td>
                       <Td>
-                        <StatusBadge status={r.status} labels={GOODS_RECEIPT_STATUS_LABELS} variants={GOODS_RECEIPT_STATUS_BADGE} />
+                        <div className="flex items-center gap-2">
+                          <TestOperationBadge isTest={po?.is_test ?? false} />
+                          <StatusBadge status={r.status} labels={GOODS_RECEIPT_STATUS_LABELS} variants={GOODS_RECEIPT_STATUS_BADGE} />
+                        </div>
                       </Td>
                     </Tr>
                   );

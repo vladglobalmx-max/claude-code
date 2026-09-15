@@ -55,6 +55,10 @@ export const salesOrderPayloadSchema = z.object({
   shipping_address_snapshot: z.string().trim().optional(),
   commercial_notes: z.string().trim().optional(),
   internal_notes: z.string().trim().optional(),
+  // THÖREN 0077 — solo tiene efecto en rpc_create_sales_order (inmutable
+  // después: trg_prevent_sales_order_identity_change); rpc_update_sales_order
+  // ni siquiera lo lee. updateSalesOrder nunca lo envía.
+  is_test: z.boolean().optional(),
   items: z.array(salesOrderItemSchema).default([]),
 });
 

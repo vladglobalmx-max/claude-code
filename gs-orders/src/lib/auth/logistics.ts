@@ -1,5 +1,6 @@
 import type { CurrentProfile } from "./profile";
 import { canWriteRecord } from "./ownership";
+import { PURCHASE_ORDER_RECEIVABLE_STATUSES, type PurchaseOrderStatus } from "@/types/domain";
 
 /**
  * Autoridad LOGÍSTICA cross-sales (THÖREN 6R.1B-2) — separada por diseño
@@ -59,6 +60,23 @@ export function canReceiveInventory(profile: CapabilityProfile | null, capabilit
   if (!profile || !profile.active) return false;
   if (profile.role === "admin") return true;
   return capabilities.has("can_receive_inventory");
+}
+
+/**
+ * Fix puntual — mostrar "Recibir mercancía" en el detalle de una Purchase
+ * Order: canReceiveInventory (arriba) + el status de la PO debe estar en
+ * PURCHASE_ORDER_RECEIVABLE_STATUSES (domain.ts) — incluye 'en_transito'
+ * (bug reportado: el botón no aparecía para una PO en tránsito) y excluye
+ * 'borrador'/'cancelada'/'recibida' (fully received). Extraído a una
+ * función pura (antes era una expresión inline en compras/[id]/page.tsx)
+ * para poder probarlo con Vitest sin renderizar el server component.
+ */
+export function canCreatePurchaseOrderReceipt(
+  profile: CapabilityProfile | null,
+  capabilities: ReadonlySet<string>,
+  purchaseOrderStatus: PurchaseOrderStatus
+): boolean {
+  return canReceiveInventory(profile, capabilities) && PURCHASE_ORDER_RECEIVABLE_STATUSES.includes(purchaseOrderStatus);
 }
 
 /**

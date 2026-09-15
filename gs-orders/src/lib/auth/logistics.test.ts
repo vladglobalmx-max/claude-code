@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canCreatePurchaseOrderReceipt,
   canFulfillInventory,
   canManageCommissions,
   canManageDeliveries,
@@ -263,6 +264,50 @@ describe("[11]-[20] cobertura funcional/UI por pantalla", () => {
     it("sin capability y sin ser admin → false, incluso con can_manage_sales_order_finance (comisiones es estrictamente independiente de Finanzas)", () => {
       const finance = profile({ role: "vendedor", salespersonId: OTHER_SP });
       expect(canManageCommissions(finance, new Set(["can_manage_sales_order_finance", "can_view_all_sales"]))).toBe(false);
+    });
+  });
+
+  describe("canCreatePurchaseOrderReceipt — fix puntual: botón \"Recibir mercancía\" (bug reportado: no aparecía para una PO en_transito)", () => {
+    it("PO en_transito + permiso (can_receive_inventory) → true", () => {
+      const receiver = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "en_transito")).toBe(true);
+    });
+
+    it("PO en_transito + admin (sin capability explícita) → true", () => {
+      const admin = profile({ role: "admin", salespersonId: null });
+      expect(canCreatePurchaseOrderReceipt(admin, NONE, "en_transito")).toBe(true);
+    });
+
+    it("PO en_transito SIN permiso → false (oculto)", () => {
+      const vendedor = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(vendedor, NONE, "en_transito")).toBe(false);
+    });
+
+    it("PO borrador, con permiso → false (oculto — nunca hay nada que recibir en un borrador)", () => {
+      const receiver = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "borrador")).toBe(false);
+    });
+
+    it("PO cancelada, con permiso → false (oculto)", () => {
+      const receiver = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "cancelada")).toBe(false);
+    });
+
+    it("PO recibida (fully received), con permiso → false (oculto — fix: 'recibida' se retiró de PURCHASE_ORDER_RECEIVABLE_STATUSES)", () => {
+      const receiver = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "recibida")).toBe(false);
+    });
+
+    it("PO ordenada/confirmada/recibida_parcial, con permiso → true (siguen siendo receptibles)", () => {
+      const receiver = profile({ role: "vendedor", salespersonId: OTHER_SP });
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "ordenada")).toBe(true);
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "confirmada")).toBe(true);
+      expect(canCreatePurchaseOrderReceipt(receiver, new Set(["can_receive_inventory"]), "recibida_parcial")).toBe(true);
+    });
+
+    it("usuario inactivo → false incluso en en_transito con la capability activa", () => {
+      const inactive = profile({ active: false });
+      expect(canCreatePurchaseOrderReceipt(inactive, new Set(["can_receive_inventory"]), "en_transito")).toBe(false);
     });
   });
 });

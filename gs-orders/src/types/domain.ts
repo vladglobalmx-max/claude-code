@@ -1080,13 +1080,20 @@ export const PURCHASE_ORDER_STATUS_BADGE: Record<
   cancelada: "danger",
 };
 
-/** Estados en los que ya se puede registrar recepción (ver rpc_receive_purchase_order_item: bloqueado en 'borrador' y 'cancelada'). */
+/**
+ * Estados en los que ya se puede registrar recepción. 'recibida' (fully
+ * received) se excluye a propósito — fix puntual: incluirla mostraba
+ * "Recibir mercancía"/permitía entrar a /recepciones/nueva para una PO sin
+ * NADA pendiente (rpc_receive_purchase_order_item la rechazaría igual al
+ * postear, por saldo pendiente 0, pero el botón no debía ofrecerse desde
+ * el inicio). 'borrador'/'cancelada' siguen bloqueadas
+ * (rpc_receive_purchase_order_item las rechaza).
+ */
 export const PURCHASE_ORDER_RECEIVABLE_STATUSES: PurchaseOrderStatus[] = [
   "ordenada",
   "confirmada",
   "en_transito",
   "recibida_parcial",
-  "recibida",
 ];
 
 /** Estados asignables a mano vía rpc_update_purchase_order_status — 'recibida'/'recibida_parcial' quedan fuera a propósito. */

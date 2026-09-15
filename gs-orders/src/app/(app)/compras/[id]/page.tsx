@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowLeft, PackageCheck } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
-import { canReceiveInventory } from "@/lib/auth/logistics";
+import { canCreatePurchaseOrderReceipt } from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders, canApprovePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,7 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import { resolveSupplierReferenceSnapshot, isMissingSupplierReference } from "@/lib/purchasing/supplier-reference-display";
-import { PURCHASE_ORDER_RECEIVABLE_STATUSES, PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
+import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
 import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier } from "@/types/domain";
 import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
@@ -40,14 +40,17 @@ function one<T>(value: OneOrMany<T> | null | undefined): T | null {
  *   - canApprove  -> can_approve_purchase_orders (o admin): sacar de
  *     borrador y administrar el ciclo posterior, incluida cancelar
  *     post-borrador.
- *   - canReceive  -> can_receive_inventory (o admin, 0044): botón "Recibir
- *     mercancía" -> /recepciones/nueva. THÖREN 0070 retira la columna de
- *     recepción en línea por partida (ReceiveItemForm) — la recepción
- *     ahora es un documento (goods_receipts) con folio propio y ciclo
- *     draft/posted, UN solo punto de entrada en vez de dos (ver DECISIÓN
- *     de UI en la migración 0070). rpc_receive_purchase_order_item en sí
- *     NO se retira — sigue siendo la pieza real que mueve inventario,
- *     ahora invocada solo desde rpc_post_goods_receipt.
+ *   - canCreateReceipt (canCreatePurchaseOrderReceipt, logistics.ts) ->
+ *     can_receive_inventory (o admin, 0044) Y la PO en un status
+ *     receptible (PURCHASE_ORDER_RECEIVABLE_STATUSES, domain.ts —
+ *     incluye 'en_transito'; excluye 'borrador'/'cancelada'/'recibida'):
+ *     botón "Recibir mercancía" -> /recepciones/nueva. THÖREN 0070 retira
+ *     la columna de recepción en línea por partida (ReceiveItemForm) — la
+ *     recepción ahora es un documento (goods_receipts) con folio propio y
+ *     ciclo draft/posted, UN solo punto de entrada en vez de dos (ver
+ *     DECISIÓN de UI en la migración 0070). rpc_receive_purchase_order_item
+ *     en sí NO se retira — sigue siendo la pieza real que mueve
+ *     inventario, ahora invocada solo desde rpc_post_goods_receipt.
  * El proveedor es inmutable después de creación para TODOS (trigger de
  * 0035) — nunca se ofrece un selector para cambiarlo, ni siquiera a admin.
  */
@@ -55,7 +58,6 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
   const profile = await getCurrentProfile();
   const isAdmin = profile?.role === "admin";
   const capabilities = await getCurrentCapabilities(profile?.userId);
-  const canReceive = canReceiveInventory(profile, capabilities);
   const canPrepare = canPreparePurchaseOrders(profile, capabilities);
   const canApprove = canApprovePurchaseOrders(profile, capabilities);
   const supabase = createSupabaseServerClient();
@@ -112,7 +114,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
       : { data: [] as OrderItem[] };
   const orderItems = (orderItemsData ?? []) as OrderItem[];
   const missingReferenceCount = items.filter(isMissingSupplierReference).length;
-  const canCreateReceipt = canReceive && PURCHASE_ORDER_RECEIVABLE_STATUSES.includes(po.status);
+  const canCreateReceipt = canCreatePurchaseOrderReceipt(profile, capabilities, po.status);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">

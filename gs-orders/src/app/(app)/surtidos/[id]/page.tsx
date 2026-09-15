@@ -8,6 +8,7 @@ import { canManageSalesFulfillment } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime } from "@/lib/utils/format";
 import { SALES_FULFILLMENT_STATUS_BADGE, SALES_FULFILLMENT_STATUS_LABELS } from "@/types/domain";
@@ -69,6 +70,7 @@ export default async function SurtidoDetailPage({ params }: { params: { id: stri
           <ArrowLeft className="h-4 w-4" />
           Surtidos
         </Link>
+        <DownloadPdfButton docType="fulfillment" id={fulfillment.id} />
       </div>
 
       <Card className="mb-6">

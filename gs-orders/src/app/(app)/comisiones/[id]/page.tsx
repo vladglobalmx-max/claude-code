@@ -8,6 +8,7 @@ import { canManageCommissions } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateTime, formatMoneyByCurrency } from "@/lib/utils/format";
 import { COMMISSION_RECORD_STATUS_BADGE, COMMISSION_RECORD_STATUS_LABELS } from "@/types/domain";
@@ -58,6 +59,7 @@ export default async function ComisionDetailPage({ params }: { params: { id: str
           <ArrowLeft className="h-4 w-4" />
           Comisiones
         </Link>
+        {canManage && <DownloadPdfButton docType="commission" id={record.id} />}
       </div>
 
       <Card className="mb-6">

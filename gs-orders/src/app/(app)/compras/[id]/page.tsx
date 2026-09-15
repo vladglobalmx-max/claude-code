@@ -9,6 +9,7 @@ import { canPreparePurchaseOrders, canApprovePurchaseOrders } from "@/lib/auth/p
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -124,12 +125,15 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
           <ArrowLeft className="h-4 w-4" />
           Compras
         </Link>
-        {canCreateReceipt && (
-          <Link href={`/recepciones/nueva?purchase_order_id=${po.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-            <PackageCheck className="h-3.5 w-3.5" />
-            Recibir mercancía
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <DownloadPdfButton docType="purchase-order" id={po.id} />
+          {canCreateReceipt && (
+            <Link href={`/recepciones/nueva?purchase_order_id=${po.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <PackageCheck className="h-3.5 w-3.5" />
+              Recibir mercancía
+            </Link>
+          )}
+        </div>
       </div>
 
       <Card className="mb-6">

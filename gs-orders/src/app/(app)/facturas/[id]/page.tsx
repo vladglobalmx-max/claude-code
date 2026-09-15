@@ -8,6 +8,7 @@ import { canManageSalesOrderFinance } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime, formatMoneyByCurrency } from "@/lib/utils/format";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABELS, SALES_ORDER_PAYMENT_TERMS_TYPE_LABELS } from "@/types/domain";
@@ -62,6 +63,7 @@ export default async function FacturaDetailPage({ params }: { params: { id: stri
           <ArrowLeft className="h-4 w-4" />
           Facturas
         </Link>
+        <DownloadPdfButton docType="invoice" id={invoice.id} />
       </div>
 
       <Card className="mb-6">

@@ -8,6 +8,7 @@ import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
 import { PURCHASE_REQUISITION_STATUS_BADGE, PURCHASE_REQUISITION_STATUS_LABELS } from "@/types/domain";
@@ -74,6 +75,7 @@ export default async function RequisicionDetailPage({ params }: { params: { id: 
           <ArrowLeft className="h-4 w-4" />
           Requisiciones de Compra
         </Link>
+        <DownloadPdfButton docType="requisition" id={requisition.id} />
       </div>
 
       <Card className="mb-6">

@@ -8,6 +8,7 @@ import { canReceiveInventory } from "@/lib/auth/logistics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort, formatDateTime } from "@/lib/utils/format";
 import { GOODS_RECEIPT_STATUS_BADGE, GOODS_RECEIPT_STATUS_LABELS, INVENTORY_MOVEMENT_TYPE_LABELS } from "@/types/domain";
@@ -68,6 +69,7 @@ export default async function RecepcionDetailPage({ params }: { params: { id: st
           <ArrowLeft className="h-4 w-4" />
           Recepciones de Mercancía
         </Link>
+        <DownloadPdfButton docType="goods-receipt" id={goodsReceipt.id} />
       </div>
 
       <Card className="mb-6">

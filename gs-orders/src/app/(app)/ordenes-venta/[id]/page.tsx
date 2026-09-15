@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
+import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
@@ -100,6 +101,7 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
           Órdenes de Venta
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <DownloadPdfButton docType="sales-order" id={salesOrder.id} />
           {canWrite && <SalesOrderStatusActions salesOrder={salesOrder} />}
           {canCreateRequisition && (
             <Link

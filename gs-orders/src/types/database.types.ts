@@ -3656,6 +3656,18 @@ export interface Database {
         };
         Returns: string;
       };
+      // Ajuste de cierre — "Seleccionar los N que coinciden con estos
+      // filtros" del Catálogo (0078). SECURITY DEFINER: resuelve
+      // organización/autoridad admin internamente, nunca confía en nada
+      // enviado por el cliente. p_bu/p_tipo null = sin ese filtro. Devuelve
+      // el conteo real de filas afectadas (nunca una lista de ids).
+      rpc_bulk_deactivate_catalog_products_by_filters: {
+        Args: {
+          p_bu: string | null;
+          p_tipo: string | null;
+        };
+        Returns: number;
+      };
       // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
       // requiere can_prepare_purchase_orders (o admin). Crea encabezado +
       // líneas de una Purchase Requisition en una transacción. p_items es

@@ -8,7 +8,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { filterCatalogRows } from "@/lib/products/catalog-search";
-import { CATALOG_PAGE_SIZE, catalogPageCount, catalogPageRange, needsSlowCatalogPath, resolveCatalogPageNumber } from "@/lib/products/catalog-pagination";
+import {
+  CATALOG_PAGE_SIZE,
+  canOfferSelectAllMatching,
+  catalogPageCount,
+  catalogPageRange,
+  needsSlowCatalogPath,
+  resolveCatalogPageNumber,
+} from "@/lib/products/catalog-pagination";
 import { CatalogFilters } from "./catalog-filters";
 import { CatalogSelectionTable, type CatalogRow } from "./catalog-selection-table";
 
@@ -192,7 +199,14 @@ export default async function CatalogoPage({ searchParams }: { searchParams: Cat
         </div>
       ) : (
         <>
-          <CatalogSelectionTable products={products} businessUnits={businessUnits} imageUrls={imageUrls} />
+          <CatalogSelectionTable
+            products={products}
+            businessUnits={businessUnits}
+            imageUrls={imageUrls}
+            totalMatching={totalMatching}
+            canSelectAllMatching={canOfferSelectAllMatching(searchParams)}
+            filters={{ bu: searchParams.bu, tipo: searchParams.tipo }}
+          />
 
           {pageCount > 1 && (
             <div className="mt-4 flex items-center justify-between text-sm text-ink-faint">

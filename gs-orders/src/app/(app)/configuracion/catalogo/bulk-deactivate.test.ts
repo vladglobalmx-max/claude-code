@@ -7,7 +7,7 @@ vi.mock("@/lib/auth/profile", () => ({ getCurrentProfile: (...args: unknown[]) =
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: (...args: unknown[]) => createSupabaseServerClient(...args) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-const { bulkDeactivateCatalogProducts } = await import("./actions");
+const { bulkDeactivateCatalogProducts, bulkDeactivateAllMatchingCatalogProducts } = await import("./actions");
 
 type Filter = { method: string; args: unknown[] };
 
@@ -174,6 +174,96 @@ describe("bulkDeactivateCatalogProducts (ajuste de cierre — Catálogo)", () =>
     createSupabaseServerClient.mockReturnValue(client);
 
     const result = await bulkDeactivateCatalogProducts(["p-1"]);
+
+    expect(result.updatedCount).toBe(0);
+    expect(result.error).toBeTruthy();
+  });
+});
+
+/**
+ * Ajuste operativo — "Seleccionar todos los que coinciden con los
+ * filtros". bulkDeactivateAllMatchingCatalogProducts NUNCA recibe ni
+ * construye una lista de ids — delega el conjunto completo a
+ * rpc_bulk_deactivate_catalog_products_by_filters (0078), que resuelve
+ * organización/autoridad admin/active=true/bu/tipo DENTRO de Postgres. La
+ * seguridad real (cross-org, soft-delete, históricos intactos) se prueba
+ * contra Postgres real en 0078_catalog_bulk_deactivate_by_filters_functional_tests.sql;
+ * aquí solo se fija el contrato de la Server Action: qué llama, con qué
+ * argumentos, y cómo traduce cada resultado posible del RPC.
+ */
+describe("bulkDeactivateAllMatchingCatalogProducts (ajuste operativo — seleccionar todos los que coinciden)", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function createFakeSupabaseForRpc(opts: { rpcResult: { data: unknown; error: unknown } }) {
+    const rpc = vi.fn(async () => opts.rpcResult);
+    return { rpc };
+  }
+
+  it("usuario sin permiso (no admin) -> rechazado, nunca llama al RPC", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "vendedor", active: true });
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: 0, error: null } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateAllMatchingCatalogProducts({ bu: "bu-juno" });
+
+    expect(result).toEqual({ error: "Solo un administrador puede eliminar productos del catálogo.", updatedCount: 0 });
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
+  it("usuario admin inactivo -> rechazado, nunca llama al RPC", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: false });
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: 0, error: null } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateAllMatchingCatalogProducts({});
+
+    expect(result.error).toBe("Solo un administrador puede eliminar productos del catálogo.");
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
+  it("admin -> llama al RPC con p_bu/p_tipo tal cual, nunca con una lista de ids", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: 1296, error: null } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateAllMatchingCatalogProducts({ bu: "bu-juno", tipo: "tipo-proyector" });
+
+    expect(client.rpc).toHaveBeenCalledWith("rpc_bulk_deactivate_catalog_products_by_filters", {
+      p_bu: "bu-juno",
+      p_tipo: "tipo-proyector",
+    });
+    expect(result).toEqual({ error: null, updatedCount: 1296 });
+  });
+
+  it("filtros ausentes -> se envían como null (no undefined, no string vacío)", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: 5000, error: null } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    await bulkDeactivateAllMatchingCatalogProducts({});
+
+    expect(client.rpc).toHaveBeenCalledWith("rpc_bulk_deactivate_catalog_products_by_filters", { p_bu: null, p_tipo: null });
+  });
+
+  it("el resultado real del RPC (updatedCount) es lo que se devuelve, aunque haya cambiado desde que el usuario vio el conteo", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    // El usuario vio "1296" en pantalla, pero para cuando el RPC corrió, solo 1290 seguían activos coincidiendo con el filtro.
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: 1290, error: null } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateAllMatchingCatalogProducts({ bu: "bu-juno" });
+
+    expect(result.updatedCount).toBe(1290);
+  });
+
+  it("error del RPC -> mensaje traducido, updatedCount 0", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    const client = createFakeSupabaseForRpc({ rpcResult: { data: null, error: { code: "XXYYY", message: "boom" } } });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateAllMatchingCatalogProducts({ bu: "bu-juno" });
 
     expect(result.updatedCount).toBe(0);
     expect(result.error).toBeTruthy();

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatMoneyMxn, formatMoneyUsd } from "@/lib/utils/format";
-import { bulkDeactivateCatalogProducts } from "./actions";
+import { bulkDeactivateAllMatchingCatalogProducts, bulkDeactivateCatalogProducts } from "./actions";
 
 export interface CatalogRow {
   id: string;
@@ -57,19 +57,37 @@ function currencyLabel(product: CatalogRow) {
  * "Eliminar del catálogo" (URL de `.in("id", ids)` con miles de ids).
  * `visibleIdsKey` cambia si y solo si el CONJUNTO de ids visibles cambia
  * (nunca en cada re-render idéntico) — el único disparador real, más
- * robusto que atar esto a `page`/`estado`/`tipo`/`q` por separado.
+ * robusto que atar esto a `page`/`estado`/`tipo`/`q` por separado. El
+ * mismo reset también sale del modo `allMatchingSelected` (abajo).
+ *
+ * Ajuste operativo — "Seleccionar los N que coinciden con estos filtros":
+ * cuando `canSelectAllMatching` (page.tsx, solo estado=Activo/default y
+ * sin búsqueda `q` — ver canOfferSelectAllMatching) y ya están
+ * seleccionados TODOS los visibles de la página actual, se ofrece marcar
+ * el modo `allMatchingSelected` — un booleano, NUNCA una lista de
+ * `totalMatching` ids en el cliente. En ese modo, "Eliminar del catálogo"
+ * llama a `bulkDeactivateAllMatchingCatalogProducts(filters)`, que
+ * resuelve y desactiva el conjunto completo dentro de Postgres (RPC
+ * 0078) — el navegador nunca ve ni envía esos ids.
  */
 export function CatalogSelectionTable({
   products,
   businessUnits,
   imageUrls,
+  totalMatching,
+  canSelectAllMatching,
+  filters,
 }: {
   products: CatalogRow[];
   businessUnits: { id: string; name: string }[];
   imageUrls: Record<string, string>;
+  totalMatching: number;
+  canSelectAllMatching: boolean;
+  filters: { bu?: string; tipo?: string };
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [allMatchingSelected, setAllMatchingSelected] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -78,11 +96,15 @@ export function CatalogSelectionTable({
 
   useEffect(() => {
     setSelected(new Set());
+    setAllMatchingSelected(false);
   }, [visibleIdsKey]);
 
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const offerSelectAllMatching = canSelectAllMatching && !allMatchingSelected && allVisibleSelected && totalMatching > products.length;
+  const selectedCount = allMatchingSelected ? totalMatching : selected.size;
 
   function toggle(id: string) {
+    if (allMatchingSelected) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -92,6 +114,7 @@ export function CatalogSelectionTable({
   }
 
   function toggleAllVisible(checked: boolean) {
+    if (allMatchingSelected) return;
     setSelected((prev) => {
       const next = new Set(prev);
       for (const id of visibleIds) {
@@ -102,16 +125,23 @@ export function CatalogSelectionTable({
     });
   }
 
+  function clearSelection() {
+    setSelected(new Set());
+    setAllMatchingSelected(false);
+  }
+
   function handleConfirmDelete() {
-    const ids = Array.from(selected);
     startTransition(async () => {
-      const result = await bulkDeactivateCatalogProducts(ids);
+      const result = allMatchingSelected
+        ? await bulkDeactivateAllMatchingCatalogProducts(filters)
+        : await bulkDeactivateCatalogProducts(Array.from(selected));
+
       if (result.error) {
         toast.error(result.error);
         return;
       }
       setConfirmOpen(false);
-      setSelected(new Set());
+      clearSelection();
       toast.success(
         `${result.updatedCount} producto${result.updatedCount === 1 ? "" : "s"} eliminado${result.updatedCount === 1 ? "" : "s"} del catálogo.`
       );
@@ -121,19 +151,29 @@ export function CatalogSelectionTable({
 
   return (
     <div className="space-y-3">
-      {selected.size > 0 && (
+      {selectedCount > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-2/60 px-4 py-2.5">
           <span className="text-sm font-medium text-ink">
-            {selected.size} producto{selected.size === 1 ? "" : "s"} seleccionado{selected.size === 1 ? "" : "s"}
+            {selectedCount} producto{selectedCount === 1 ? "" : "s"} seleccionado{selectedCount === 1 ? "" : "s"}
           </span>
           <Button type="button" variant="danger" size="sm" onClick={() => setConfirmOpen(true)}>
             <Trash2 className="h-3.5 w-3.5" />
-            Eliminar del catálogo ({selected.size})
+            Eliminar del catálogo ({selectedCount})
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+          <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
             Cancelar selección
           </Button>
         </div>
+      )}
+
+      {offerSelectAllMatching && (
+        <button
+          type="button"
+          className="text-sm text-accent hover:underline"
+          onClick={() => setAllMatchingSelected(true)}
+        >
+          Seleccionar los {totalMatching} productos que coinciden con estos filtros
+        </button>
       )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -144,7 +184,8 @@ export function CatalogSelectionTable({
                 <input
                   type="checkbox"
                   aria-label="Seleccionar todos los visibles"
-                  checked={allVisibleSelected}
+                  checked={allMatchingSelected || allVisibleSelected}
+                  disabled={allMatchingSelected}
                   onChange={(e) => toggleAllVisible(e.target.checked)}
                   className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
                 />
@@ -180,7 +221,8 @@ export function CatalogSelectionTable({
                     <input
                       type="checkbox"
                       aria-label={`Seleccionar ${p.sku}`}
-                      checked={selected.has(p.id)}
+                      checked={allMatchingSelected || selected.has(p.id)}
+                      disabled={allMatchingSelected}
                       onChange={() => toggle(p.id)}
                       className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
                     />
@@ -221,7 +263,7 @@ export function CatalogSelectionTable({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              ¿Eliminar {selected.size} producto{selected.size === 1 ? "" : "s"} del catálogo?
+              ¿Eliminar {selectedCount} producto{selectedCount === 1 ? "" : "s"} del catálogo?
             </DialogTitle>
             <DialogDescription>
               Dejarán de estar disponibles para nuevas cotizaciones y operaciones. Los documentos históricos no se

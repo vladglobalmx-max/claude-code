@@ -254,6 +254,58 @@ export async function bulkDeactivateCatalogProducts(productIds: string[]): Promi
   return { error: null, updatedCount: (data ?? []).length };
 }
 
+export type BulkDeactivateAllMatchingCatalogProductsResult = { error: string | null; updatedCount: number };
+
+/**
+ * "Seleccionar los N productos que coinciden con estos filtros" — V1
+ * deliberadamente acotada a Business Unit (bu) y Tipo de Producto (tipo)
+ * ÚNICAMENTE. NUNCA recibe ni envía una lista de ids desde el navegador
+ * (el caso real que rompía: filtro BU con ~1,296 resultados generaba una
+ * URL de PostgREST demasiado grande) — delega el conjunto completo a
+ * `rpc_bulk_deactivate_catalog_products_by_filters` (0078), que resuelve y
+ * desactiva TODO en una sola sentencia SQL dentro de Postgres.
+ *
+ * Deliberadamente SIN soporte para `q` (búsqueda de texto): `ILIKE`
+ * (Postgres) no es insensible a acentos como `canonicalize()` (JS, usado
+ * en pantalla) — podría desactivar un conjunto ligeramente distinto al que
+ * el usuario vio contar. La UI (catalog-selection-table.tsx) solo ofrece
+ * esta acción cuando no hay búsqueda activa y el filtro Estado es
+ * "Activo"/default — nunca con "Inactivo"/"Todos" (evita un conteo que
+ * ya incluya productos inactivos). Esta función no repite esas
+ * validaciones porque son de UX/alcance, no de seguridad — la seguridad
+ * real (organización, active=true, admin) vive en el RPC.
+ *
+ * Autoridad y organización: resueltas DENTRO del RPC
+ * (current_user_organization_id()/current_user_is_admin()) — nunca se
+ * confía en nada enviado desde el cliente, ni siquiera un organization_id.
+ * Si el catálogo cambió entre que el usuario vio el conteo y confirmó, el
+ * RPC opera sobre el conjunto vigente en el momento de ejecutar (una sola
+ * sentencia UPDATE) y `updatedCount` refleja exactamente lo que en verdad
+ * cambió.
+ */
+export async function bulkDeactivateAllMatchingCatalogProducts(filters: {
+  bu?: string;
+  tipo?: string;
+}): Promise<BulkDeactivateAllMatchingCatalogProductsResult> {
+  const profile = await getCurrentProfile();
+  if (!profile || !profile.active || profile.role !== "admin") {
+    return { error: "Solo un administrador puede eliminar productos del catálogo.", updatedCount: 0 };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_bulk_deactivate_catalog_products_by_filters", {
+    p_bu: filters.bu || null,
+    p_tipo: filters.tipo || null,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron eliminar los productos del catálogo. Intenta de nuevo."), updatedCount: 0 };
+  }
+
+  revalidatePath("/configuracion/catalogo");
+  return { error: null, updatedCount: data ?? 0 };
+}
+
 /** Edita un producto del catálogo, incluida su activación/desactivación. No borra el producto (sin borrado físico en esta fase). */
 export async function updateCatalogProduct(id: string, payload: CatalogProductPayload): Promise<CatalogActionResult> {
   const parsed = catalogProductSchema.safeParse(payload);

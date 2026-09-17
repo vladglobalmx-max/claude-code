@@ -39,3 +39,24 @@ export function catalogPageRange(page: number, pageSize: number = CATALOG_PAGE_S
 export function catalogPageCount(totalMatching: number, pageSize: number = CATALOG_PAGE_SIZE): number {
   return Math.max(1, Math.ceil(totalMatching / pageSize));
 }
+
+/**
+ * Ajuste operativo — "Seleccionar todos los N que coinciden con estos
+ * filtros" (bulk deactivate masivo, 0078). V1 deliberadamente acotada:
+ * SOLO se ofrece cuando el filtro Estado es "Activo"/omitido (default) Y
+ * no hay búsqueda de texto activa. Evita dos discrepancias reales entre
+ * lo que el usuario ve contar y lo que en verdad se desactivaría:
+ *   - `q`: ILIKE (Postgres, usado por el RPC) no es insensible a acentos
+ *     como canonicalize() (JS, usado por la pantalla) — un producto
+ *     "México" podría contarse en pantalla pero no coincidir en el RPC.
+ *   - Estado "Inactivo"/"Todos": el RPC siempre opera sobre active=true
+ *     únicamente; bajo esos filtros el conteo mostrado incluiría
+ *     productos que el RPC nunca tocaría (ya inactivos), o sería
+ *     directamente engañoso ("Todos" mezcla ambos estados).
+ * Business Unit y Tipo de Producto (solos o combinados) sí son seguros —
+ * el RPC los replica EXACTAMENTE igual que filterCatalogRows.ts.
+ */
+export function canOfferSelectAllMatching(params: { q?: string; estado?: string }): boolean {
+  const estado = params.estado || "activo";
+  return !params.q?.trim() && estado === "activo";
+}

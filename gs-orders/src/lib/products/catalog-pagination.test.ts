@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CATALOG_PAGE_SIZE,
+  canOfferSelectAllMatching,
   catalogPageCount,
   catalogPageRange,
   needsSlowCatalogPath,
@@ -69,5 +70,37 @@ describe("catalogPageCount", () => {
   it("redondea hacia arriba cuando sobra un resto", () => {
     expect(catalogPageCount(101, 50)).toBe(3);
     expect(catalogPageCount(49, 50)).toBe(1);
+  });
+});
+
+describe("canOfferSelectAllMatching (V1 acotada — solo estado=Activo/default y sin búsqueda `q`)", () => {
+  it("sin `estado` (default) y sin `q` -> true", () => {
+    expect(canOfferSelectAllMatching({})).toBe(true);
+  });
+
+  it("estado='activo' explícito y sin `q` -> true", () => {
+    expect(canOfferSelectAllMatching({ estado: "activo" })).toBe(true);
+  });
+
+  it("Business Unit y/o Tipo no afectan la elegibilidad (se validan aparte, en el RPC)", () => {
+    // canOfferSelectAllMatching no recibe bu/tipo a propósito — son siempre seguros en V1.
+    expect(canOfferSelectAllMatching({ estado: "activo" })).toBe(true);
+  });
+
+  it("estado='inactivo' -> false (el RPC solo toca active=true, el conteo sería engañoso)", () => {
+    expect(canOfferSelectAllMatching({ estado: "inactivo" })).toBe(false);
+  });
+
+  it("estado='todos' -> false (mezcla activos e inactivos)", () => {
+    expect(canOfferSelectAllMatching({ estado: "todos" })).toBe(false);
+  });
+
+  it("con `q` no vacío -> false, sin importar el estado (discrepancia de acentos ILIKE vs canonicalize)", () => {
+    expect(canOfferSelectAllMatching({ q: "mexico" })).toBe(false);
+    expect(canOfferSelectAllMatching({ q: "mexico", estado: "activo" })).toBe(false);
+  });
+
+  it("`q` solo espacios en blanco cuenta como vacío", () => {
+    expect(canOfferSelectAllMatching({ q: "   " })).toBe(true);
   });
 });

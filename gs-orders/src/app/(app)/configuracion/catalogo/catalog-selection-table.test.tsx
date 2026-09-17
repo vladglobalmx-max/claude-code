@@ -3,6 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CatalogSelectionTable, type CatalogRow } from "./catalog-selection-table";
 
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+
+vi.mock("sonner", () => ({
+  toast: { success: (...args: unknown[]) => toastSuccess(...args), error: (...args: unknown[]) => toastError(...args) },
+}));
+
 /**
  * Ajuste de cierre — selección múltiple + eliminación (soft-delete) del
  * Catálogo. Fija el contrato de la UI: seleccionar uno/varios/todos los
@@ -11,6 +18,7 @@ import { CatalogSelectionTable, type CatalogRow } from "./catalog-selection-tabl
  */
 
 const bulkDeactivateCatalogProducts = vi.fn();
+const bulkDeactivateAllMatchingCatalogProducts = vi.fn();
 const refresh = vi.fn();
 
 vi.mock("next/navigation", () => ({
@@ -19,6 +27,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("./actions", () => ({
   bulkDeactivateCatalogProducts: (...args: unknown[]) => bulkDeactivateCatalogProducts(...args),
+  bulkDeactivateAllMatchingCatalogProducts: (...args: unknown[]) => bulkDeactivateAllMatchingCatalogProducts(...args),
 }));
 
 function buildProduct(overrides: Partial<CatalogRow>): CatalogRow {
@@ -46,8 +55,19 @@ const products: CatalogRow[] = [
   buildProduct({ id: "p-3", sku: "SKU-3", name: "Producto 3" }),
 ];
 
-function renderTable(rows: CatalogRow[] = products) {
-  return render(<CatalogSelectionTable products={rows} businessUnits={[]} imageUrls={{}} />);
+function defaultProps(rows: CatalogRow[]) {
+  return {
+    products: rows,
+    businessUnits: [] as { id: string; name: string }[],
+    imageUrls: {} as Record<string, string>,
+    totalMatching: rows.length,
+    canSelectAllMatching: false,
+    filters: {} as { bu?: string; tipo?: string },
+  };
+}
+
+function renderTable(rows: CatalogRow[] = products, overrides: Partial<ReturnType<typeof defaultProps>> = {}) {
+  return render(<CatalogSelectionTable {...defaultProps(rows)} {...overrides} />);
 }
 
 describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eliminar del catálogo)", () => {
@@ -162,7 +182,7 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
       fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
       expect(screen.getByText("3 productos seleccionados")).toBeTruthy();
 
-      rerender(<CatalogSelectionTable products={page2} businessUnits={[]} imageUrls={{}} />);
+      rerender(<CatalogSelectionTable {...defaultProps(page2)} />);
 
       expect(screen.queryByText(/seleccionado/)).toBeNull();
       expect(screen.getByLabelText("Seleccionar SKU-4")).toHaveProperty("checked", false);
@@ -180,7 +200,7 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
       fireEvent.click(screen.getByLabelText("Seleccionar SKU-2"));
       expect(screen.getByText("2 productos seleccionados")).toBeTruthy();
 
-      rerender(<CatalogSelectionTable products={filtroB} businessUnits={[]} imageUrls={{}} />);
+      rerender(<CatalogSelectionTable {...defaultProps(filtroB)} />);
 
       expect(screen.queryByText(/seleccionado/)).toBeNull();
     });
@@ -191,7 +211,7 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
       expect(screen.getByText("1 producto seleccionado")).toBeTruthy();
 
       // Mismo array de productos (misma referencia de contenido/ids) — un re-render normal, no una navegación real.
-      rerender(<CatalogSelectionTable products={products} businessUnits={[]} imageUrls={{}} />);
+      rerender(<CatalogSelectionTable {...defaultProps(products)} />);
 
       expect(screen.getByText("1 producto seleccionado")).toBeTruthy();
     });
@@ -203,6 +223,105 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
 
       expect(screen.getByText("50 productos seleccionados")).toBeTruthy();
       expect(screen.getByRole("button", { name: "Eliminar del catálogo (50)" })).toBeTruthy();
+    });
+  });
+
+  /**
+   * Ajuste operativo — "Seleccionar los N productos que coinciden con
+   * estos filtros" (caso real: filtro BU Juno Promotional, ~1,296
+   * resultados, 50 visibles por página). NUNCA guarda esos N ids en el
+   * cliente — solo un booleano (`allMatchingSelected`) + los filtros
+   * (bu/tipo) ya conocidos por page.tsx, y delega el conjunto completo al
+   * RPC (0078) al confirmar.
+   */
+  describe("Seleccionar todos los que coinciden con los filtros (V1: BU/Tipo, sin q, sin estado inactivo/todos)", () => {
+    const bigPage = Array.from({ length: 50 }, (_, i) => buildProduct({ id: `p-${i}`, sku: `SKU-${i}` }));
+
+    it("página de 50 con total 1,296 y canSelectAllMatching -> tras seleccionar todos los visibles, aparece 'Seleccionar los 1,296…'", () => {
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+
+      expect(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros")).toBeTruthy();
+    });
+
+    it("no aparece si canSelectAllMatching=false (V1: estado != activo, o hay búsqueda `q`), aunque totalMatching > página", () => {
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: false });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+
+      expect(screen.queryByText(/Seleccionar los 1296/)).toBeNull();
+    });
+
+    it("no aparece si totalMatching no excede lo ya visible (nada más que seleccionar)", () => {
+      renderTable(bigPage, { totalMatching: 50, canSelectAllMatching: true });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+
+      expect(screen.queryByText(/coinciden con estos filtros/)).toBeNull();
+    });
+
+    it("al hacer clic: modo allMatchingSelected -> muestra '1,296 productos seleccionados', NUNCA construye una lista de 1,296 ids", () => {
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      fireEvent.click(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros"));
+
+      expect(screen.getByText("1296 productos seleccionados")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Eliminar del catálogo (1296)" })).toBeTruthy();
+      // Las casillas de fila quedan deshabilitadas — no hay forma de acumular una lista de ids en este modo.
+      expect(screen.getByLabelText("Seleccionar SKU-0")).toHaveProperty("disabled", true);
+    });
+
+    it("confirmar en este modo llama a bulkDeactivateAllMatchingCatalogProducts con los FILTROS (bu/tipo), nunca con una lista de ids", async () => {
+      bulkDeactivateAllMatchingCatalogProducts.mockResolvedValue({ error: null, updatedCount: 1296 });
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno", tipo: "tipo-proyector" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      fireEvent.click(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros"));
+      fireEvent.click(screen.getByRole("button", { name: "Eliminar del catálogo (1296)" }));
+
+      expect(screen.getByText("¿Eliminar 1296 productos del catálogo?")).toBeTruthy();
+
+      const confirmButtons = screen.getAllByRole("button", { name: "Eliminar del catálogo" });
+      fireEvent.click(confirmButtons[confirmButtons.length - 1]!);
+
+      await waitFor(() => expect(bulkDeactivateAllMatchingCatalogProducts).toHaveBeenCalledTimes(1));
+      expect(bulkDeactivateAllMatchingCatalogProducts).toHaveBeenCalledWith({ bu: "bu-juno", tipo: "tipo-proyector" });
+      expect(bulkDeactivateCatalogProducts).not.toHaveBeenCalled();
+
+      await waitFor(() => expect(screen.queryByText(/seleccionado/)).toBeNull());
+    });
+
+    it("si el conteo real cambió, el toast final muestra el updatedCount devuelto por el RPC, no el conteo mostrado antes de confirmar", async () => {
+      bulkDeactivateAllMatchingCatalogProducts.mockResolvedValue({ error: null, updatedCount: 1290 });
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      fireEvent.click(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros"));
+      fireEvent.click(screen.getByRole("button", { name: "Eliminar del catálogo (1296)" }));
+      const confirmButtons = screen.getAllByRole("button", { name: "Eliminar del catálogo" });
+      fireEvent.click(confirmButtons[confirmButtons.length - 1]!);
+
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("1290 productos eliminados del catálogo."));
+    });
+
+    it("Cancelar selección en este modo vuelve a 0 y no llama al backend", () => {
+      renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      fireEvent.click(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros"));
+      fireEvent.click(screen.getByRole("button", { name: "Cancelar selección" }));
+
+      expect(screen.queryByText(/seleccionado/)).toBeNull();
+      expect(screen.getByLabelText("Seleccionar todos los visibles")).toHaveProperty("checked", false);
+      expect(bulkDeactivateAllMatchingCatalogProducts).not.toHaveBeenCalled();
+    });
+
+    it("cambiar de página/filtros (nuevo conjunto de products) sale del modo allMatchingSelected", () => {
+      const { rerender } = renderTable(bigPage, { totalMatching: 1296, canSelectAllMatching: true, filters: { bu: "bu-juno" } });
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      fireEvent.click(screen.getByText("Seleccionar los 1296 productos que coinciden con estos filtros"));
+      expect(screen.getByText("1296 productos seleccionados")).toBeTruthy();
+
+      const page2 = Array.from({ length: 50 }, (_, i) => buildProduct({ id: `p2-${i}`, sku: `SKU2-${i}` }));
+      rerender(<CatalogSelectionTable {...defaultProps(page2)} totalMatching={1296} canSelectAllMatching filters={{ bu: "bu-juno" }} />);
+
+      expect(screen.queryByText(/seleccionado/)).toBeNull();
+      expect(screen.getByLabelText("Seleccionar SKU2-0")).toHaveProperty("disabled", false);
     });
   });
 });

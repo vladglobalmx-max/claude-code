@@ -61,11 +61,11 @@ export function CatalogFilters({
 
       <Select
         className="w-auto"
-        defaultValue={searchParams.get("estado") ?? ""}
+        defaultValue={searchParams.get("estado") ?? "activo"}
         onChange={(e) => updateParam("estado", e.target.value)}
       >
-        <option value="">Todos los estados</option>
         <option value="activo">Activo</option>
+        <option value="todos">Todos los estados</option>
         <option value="inactivo">Inactivo</option>
       </Select>
     </FilterBar>

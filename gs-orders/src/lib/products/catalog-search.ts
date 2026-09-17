@@ -27,6 +27,12 @@ export interface CatalogFilterParams {
 
 export function filterCatalogRows<T extends CatalogFilterRow>(products: T[], params: CatalogFilterParams): T[] {
   const q = params.q?.trim() ? canonicalize(params.q.trim()) : null;
+  // Ajuste UX — sin `estado` explícito, default a "Activo" (antes mostraba
+  // ambos): un producto recién desactivado (individual o bulk) debe
+  // desaparecer del catálogo al abrirlo, no seguir visible bajo lo que
+  // parecía "sin filtro". "todos" es ahora el único valor que muestra
+  // activos + inactivos — ver catalog-filters.tsx.
+  const estado = params.estado || "activo";
 
   return products.filter((p) => {
     if (q) {
@@ -39,8 +45,8 @@ export function filterCatalogRows<T extends CatalogFilterRow>(products: T[], par
       if (!matchesBu) return false;
     }
     if (params.tipo && p.product_type_id !== params.tipo) return false;
-    if (params.estado === "activo" && !p.active) return false;
-    if (params.estado === "inactivo" && p.active) return false;
+    if (estado === "activo" && !p.active) return false;
+    if (estado === "inactivo" && p.active) return false;
     return true;
   });
 }

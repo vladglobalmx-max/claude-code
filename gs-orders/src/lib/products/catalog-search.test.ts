@@ -185,3 +185,40 @@ describe("filterCatalogRows — filtro por Tipo de Producto (tipo)", () => {
     expect(filterCatalogRows(rows, { tipo: PT_PROYECTOR, bu: BU_THUNDER }).map((r) => r.id)).toEqual(["p1"]);
   });
 });
+
+/**
+ * Fix puntual de UX (Cloud: 10550-CS6-K desactivado, seguía visible porque
+ * el catálogo abría con "Todos los estados"). Nuevo contrato: sin `estado`
+ * explícito, default a "Activo" — "todos" es ahora el único valor que
+ * muestra activos + inactivos (antes era el string vacío/ausente).
+ */
+describe("filterCatalogRows — estado, default a Activo (fix UX 10550-CS6-K)", () => {
+  function row(overrides: Partial<Row> = {}): Row {
+    return {
+      id: overrides.id ?? "p1",
+      sku: overrides.sku ?? "SKU-1",
+      name: overrides.name ?? "Producto",
+      model: overrides.model ?? null,
+      product_type_id: overrides.product_type_id ?? null,
+      active: overrides.active ?? true,
+      product_business_units: overrides.product_business_units ?? [],
+    };
+  }
+  const rows = [row({ id: "activo-1", active: true }), row({ id: "inactivo-1", active: false })];
+
+  it("sin `estado` en absoluto -> solo activos (un producto recién desactivado desaparece de inmediato)", () => {
+    expect(filterCatalogRows(rows, {}).map((r) => r.id)).toEqual(["activo-1"]);
+  });
+
+  it("`estado: 'activo'` explícito -> mismo resultado que el default", () => {
+    expect(filterCatalogRows(rows, { estado: "activo" }).map((r) => r.id)).toEqual(["activo-1"]);
+  });
+
+  it("`estado: 'inactivo'` -> solo los desactivados", () => {
+    expect(filterCatalogRows(rows, { estado: "inactivo" }).map((r) => r.id)).toEqual(["inactivo-1"]);
+  });
+
+  it("`estado: 'todos'` -> activos e inactivos", () => {
+    expect(filterCatalogRows(rows, { estado: "todos" }).map((r) => r.id).sort()).toEqual(["activo-1", "inactivo-1"]);
+  });
+});

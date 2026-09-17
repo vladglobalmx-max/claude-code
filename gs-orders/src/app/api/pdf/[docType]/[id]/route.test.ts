@@ -17,7 +17,33 @@ vi.mock("@/lib/pdf/documents/registry", () => ({
   },
 }));
 
+// THÖREN — fix bug "Descargar PDF baja un .txt" (0081): las pruebas de las
+// rutas de falla necesitan forzar que renderDocumentPdf rechace en un caso
+// controlado, sin perder la implementación REAL para el resto de las
+// pruebas (que sí validan bytes de PDF reales) — de ahí `importOriginal`.
+const { renderDocumentPdf: realRenderDocumentPdf } = await vi.importActual<typeof import("@/lib/pdf/render")>("@/lib/pdf/render");
+const renderDocumentPdfMock = vi.fn(realRenderDocumentPdf);
+vi.mock("@/lib/pdf/render", () => ({
+  renderDocumentPdf: (...args: Parameters<typeof realRenderDocumentPdf>) => renderDocumentPdfMock(...args),
+}));
+
 const { GET } = await import("./route");
+
+const validSpec = {
+  documentTypeLabel: "Sales Order",
+  folio: "SO-20261509-004",
+  statusLabel: "Confirmada",
+  dateLabel: "Creada: 01/01/2026",
+  relatedData: [],
+  columns: [],
+  rows: [],
+  totals: null,
+  notes: null,
+  isTest: false,
+  disclaimer: null,
+  branding: { logoUrl: null, organizationName: "GS Orders", businessUnitName: null },
+  generatedAtLabel: "01/01/2026 00:00",
+};
 
 /**
  * THÖREN 0078 — el endpoint único. La autorización real (RLS + capability
@@ -100,5 +126,90 @@ describe("GET /api/pdf/[docType]/[id] (THÖREN 0078)", () => {
     const buffer = Buffer.from(await response.arrayBuffer());
     expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     expect(buffer.subarray(-10).toString("latin1")).toContain("%%EOF");
+  });
+
+  /**
+   * THÖREN — fix bug "Descargar PDF en Orden de Compra baja un .txt"
+   * (0081). Antes de este fix ninguna de estas 4 rutas de falla estaba
+   * capturada: la excepción escapaba sin manejar, Next.js respondía su
+   * error por defecto (Content-Type: text/plain, sin Content-Disposition)
+   * y el navegador — al no tener extensión en la URL ni filename del
+   * header — infería `.txt` del MIME type. Ahora TODA falla responde JSON
+   * con Content-Type explícito, nunca una excepción cruda; y un logo de
+   * Business Unit roto/inalcanzable (causa real más probable, ver
+   * comentario del route.ts) se recupera con un reintento sin logo en vez
+   * de tumbar la descarga completa.
+   */
+  it("adapter.build() lanza una excepción -> 500 JSON con Content-Type explícito, nunca escapa sin manejar", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    getCurrentCapabilities.mockResolvedValue(new Set());
+    buildMock.mockRejectedValue(new Error("boom en el adapter"));
+
+    const response = await GET(new Request("http://localhost/api/pdf/sales-order/so-1"), {
+      params: { docType: "sales-order", id: "so-1" },
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    const body = await response.json();
+    expect(typeof body.error).toBe("string");
+  });
+
+  it("renderDocumentPdf() falla con un logo de Business Unit configurado -> reintenta UNA vez sin logo y responde el PDF real igualmente", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    getCurrentCapabilities.mockResolvedValue(new Set());
+    buildMock.mockResolvedValue({
+      filename: "OC-20261709-001.pdf",
+      spec: { ...validSpec, branding: { logoUrl: "https://example.com/logo-roto.png", organizationName: "GS Orders", businessUnitName: "BU Uno" } },
+    });
+    renderDocumentPdfMock.mockRejectedValueOnce(new Error("no se pudo obtener la imagen del logo"));
+
+    const response = await GET(new Request("http://localhost/api/pdf/sales-order/so-1"), {
+      params: { docType: "sales-order", id: "so-1" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="OC-20261709-001.pdf"');
+    expect(renderDocumentPdfMock).toHaveBeenCalledTimes(2);
+    // El reintento debe pedir el spec SIN logo (cae a texto, PdfBranding).
+    expect(renderDocumentPdfMock.mock.calls[1]![0].branding.logoUrl).toBeNull();
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(buffer.subarray(-10).toString("latin1")).toContain("%%EOF");
+  });
+
+  it("renderDocumentPdf() falla y el reintento sin logo TAMBIÉN falla -> 500 JSON, nunca una excepción cruda", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    getCurrentCapabilities.mockResolvedValue(new Set());
+    buildMock.mockResolvedValue({
+      filename: "OC-20261709-001.pdf",
+      spec: { ...validSpec, branding: { logoUrl: "https://example.com/logo-roto.png", organizationName: "GS Orders", businessUnitName: "BU Uno" } },
+    });
+    renderDocumentPdfMock.mockRejectedValue(new Error("sigue fallando, incluso sin logo"));
+
+    const response = await GET(new Request("http://localhost/api/pdf/sales-order/so-1"), {
+      params: { docType: "sales-order", id: "so-1" },
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    expect(renderDocumentPdfMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("renderDocumentPdf() falla SIN logo configurado -> 500 JSON directo, sin reintento (nada que reintentar)", async () => {
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    getCurrentCapabilities.mockResolvedValue(new Set());
+    buildMock.mockResolvedValue({ filename: "SO-20261509-004.pdf", spec: validSpec });
+    renderDocumentPdfMock.mockRejectedValueOnce(new Error("boom en el render, sin logo de por medio"));
+
+    const response = await GET(new Request("http://localhost/api/pdf/sales-order/so-1"), {
+      params: { docType: "sales-order", id: "so-1" },
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    expect(renderDocumentPdfMock).toHaveBeenCalledTimes(1);
   });
 });

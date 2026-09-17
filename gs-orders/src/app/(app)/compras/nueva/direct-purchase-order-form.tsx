@@ -10,14 +10,29 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoneyByCurrency } from "@/lib/utils/format";
+import { filterEligibleCatalogProducts, searchCatalogProducts } from "@/lib/catalog/eligibility";
 import { PURCHASE_ORDER_DIRECT_REASON_LABELS } from "@/types/domain";
 import type { PurchaseOrderDirectReason } from "@/types/domain";
 import type { PurchaseOrderActionResult } from "../actions";
 import type { DirectPurchaseOrderPayload } from "@/lib/validations/purchase-order";
 
+interface CatalogProductOption {
+  id: string;
+  sku: string;
+  name: string;
+  unit: string | null;
+  model: string | null;
+  brand: string | null;
+  businessUnitIds: string[];
+}
+
+/** Máximo de opciones renderizadas por línea — evita volcar miles de <option> al DOM; el catálogo completo ya está en memoria (fetchAllPages, page.tsx), esto solo acota lo que se pinta. */
+const MAX_PRODUCT_OPTIONS = 50;
+
 interface ItemDraft {
   key: string;
   catalogProductId: string | null;
+  productQuery: string;
   description: string;
   unit: string;
   supplierSku: string;
@@ -31,6 +46,7 @@ function emptyItem(): ItemDraft {
   return {
     key: crypto.randomUUID(),
     catalogProductId: null,
+    productQuery: "",
     description: "",
     unit: "",
     supplierSku: "",
@@ -68,7 +84,7 @@ export function DirectPurchaseOrderForm({
   businessUnits: { id: string; name: string }[];
   suppliers: { id: string; name: string }[];
   warehouses: { id: string; name: string }[];
-  catalogProducts: { id: string; sku: string; name: string; unit: string | null }[];
+  catalogProducts: CatalogProductOption[];
   onSubmit: (purchaseOrderId: string, payload: DirectPurchaseOrderPayload) => Promise<PurchaseOrderActionResult>;
 }) {
   const [businessUnitId, setBusinessUnitId] = useState("");
@@ -96,6 +112,23 @@ export function DirectPurchaseOrderForm({
     const product = catalogProducts.find((p) => p.id === productId);
     if (!product) return;
     patchItem(key, { catalogProductId: product.id, description: product.name, unit: product.unit ?? "" });
+  }
+
+  // Fix bug "selector de producto incompleto" — filtra por la Business Unit
+  // de la OC (misma semántica que Orders/Quotes, lib/catalog/eligibility.ts:
+  // 0 relaciones en product_business_units = compartido con TODAS las BU),
+  // y solo si ya hay una BU elegida — antes de eso se ofrece el catálogo
+  // completo de la organización, nunca un subconjunto arbitrario.
+  const eligibleProducts = useMemo(
+    () => (businessUnitId ? filterEligibleCatalogProducts(catalogProducts, businessUnitId) : catalogProducts),
+    [catalogProducts, businessUnitId]
+  );
+
+  function productOptionsFor(item: ItemDraft) {
+    const selected = item.catalogProductId ? catalogProducts.find((p) => p.id === item.catalogProductId) : undefined;
+    const matches = searchCatalogProducts(eligibleProducts, item.productQuery);
+    const withSelected = selected && !matches.some((p) => p.id === selected.id) ? [selected, ...matches] : matches;
+    return withSelected.slice(0, MAX_PRODUCT_OPTIONS);
   }
 
   const totals = useMemo(() => {
@@ -275,15 +308,30 @@ export function DirectPurchaseOrderForm({
 
                 <div className="space-y-4">
                   <div>
+                    <Label htmlFor={`product-search-${item.key}`}>Buscar en catálogo (SKU, nombre o modelo)</Label>
+                    <Input
+                      id={`product-search-${item.key}`}
+                      value={item.productQuery}
+                      onChange={(e) => patchItem(item.key, { productQuery: e.target.value })}
+                      placeholder="Ej. LED-100, reflector, ABC-123"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor={`product-${item.key}`}>Producto del catálogo (opcional)</Label>
                     <Select id={`product-${item.key}`} value={item.catalogProductId ?? ""} onChange={(e) => handleSelectProduct(item.key, e.target.value)}>
                       <option value="">Sin producto de catálogo — servicio/refacción/muestra/otro</option>
-                      {catalogProducts.map((p) => (
+                      {productOptionsFor(item).map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.sku} — {p.name}
+                          {p.model ? ` (${p.model})` : ""}
                         </option>
                       ))}
                     </Select>
+                    {eligibleProducts.length === 0 && (
+                      <p className="mt-1 text-xs text-ink-faint">
+                        No hay productos activos del catálogo disponibles{businessUnitId ? " para esta Business Unit" : ""}.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package } from "lucide-react";
+import { Package, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,8 +11,9 @@ import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { IncludeTestDataToggle } from "@/components/ui/include-test-data-toggle";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { formatDateShort } from "@/lib/utils/format";
-import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
-import type { PurchaseOrderStatus, Supplier } from "@/types/domain";
+import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS, PURCHASE_ORDER_ORIGIN_LABELS } from "@/types/domain";
+import type { PurchaseOrderStatus, PurchaseOrderOrigin, Supplier } from "@/types/domain";
+import { purchaseOrderMatchesBusinessUnit } from "@/lib/purchasing/purchase-order-business-unit-filter";
 import { PurchaseOrderFilters } from "./purchase-order-filters";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +31,11 @@ interface PurchaseOrderRow {
   supplier_commitment_date: string | null;
   estimated_reception_date: string | null;
   is_test: boolean;
+  origin: PurchaseOrderOrigin;
+  business_unit_id: string | null;
   supplier: OneOrMany<{ name: string }> | null;
   order: OneOrMany<{ id: string; folio: string; business_unit_id: string | null; business_units: OneOrMany<{ name: string }> | null }> | null;
+  business_unit: OneOrMany<{ name: string }> | null;
 }
 
 /**
@@ -58,19 +62,26 @@ export default async function ComprasPage({
   let query = supabase
     .from("purchase_orders")
     .select(
-      searchParams.bu
-        ? "id, folio, status, supplier_commitment_date, estimated_reception_date, is_test, supplier:suppliers(name), order:orders!inner(id, folio, business_unit_id, business_units(name))"
-        : "id, folio, status, supplier_commitment_date, estimated_reception_date, is_test, supplier:suppliers(name), order:orders(id, folio, business_unit_id, business_units(name))"
+      "id, folio, status, supplier_commitment_date, estimated_reception_date, is_test, origin, business_unit_id, supplier:suppliers(name), order:orders(id, folio, business_unit_id, business_units(name)), business_unit:business_units(name)"
     )
     .order("created_at", { ascending: false });
 
   if (searchParams.estado) query = query.eq("status", searchParams.estado);
   if (searchParams.proveedor) query = query.eq("supplier_id", searchParams.proveedor);
-  if (searchParams.bu) query = query.eq("order.business_unit_id", searchParams.bu);
   if (!includeTest) query = query.eq("is_test", false);
 
   const { data } = await query.limit(200);
   let purchaseOrders = (data ?? []) as unknown as PurchaseOrderRow[];
+
+  // THÖREN 0081, fix de cierre — una OC sin Pedido de origen (directa o de
+  // requisición) no puede filtrarse por Business Unit vía un join a
+  // `orders` (nunca lo tiene): se compara contra las dos fuentes posibles
+  // de BU (purchase_orders.business_unit_id propio, u orders.business_unit_id
+  // heredado del Pedido legado) — ver purchase-order-business-unit-filter.ts.
+  if (searchParams.bu) {
+    const bu = searchParams.bu;
+    purchaseOrders = purchaseOrders.filter((po) => purchaseOrderMatchesBusinessUnit({ business_unit_id: po.business_unit_id, order: one(po.order) }, bu));
+  }
 
   if (searchParams.q) {
     const q = searchParams.q.trim().toLowerCase();
@@ -91,6 +102,10 @@ export default async function ComprasPage({
             <IncludeTestDataToggle />
             <Link href="/compras/necesidades" className={cn(buttonVariants({ variant: "outline" }))}>
               Necesidades de compra
+            </Link>
+            <Link href="/compras/nueva" className={cn(buttonVariants())}>
+              <Plus className="h-4 w-4" />
+              Nueva Orden de Compra
             </Link>
           </div>
         }
@@ -125,9 +140,15 @@ export default async function ComprasPage({
                     </div>
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
-                    Pedido {order ? <Link href={`/pedidos/${order.id}`} className="font-mono text-accent hover:underline">{order.folio}</Link> : "—"}
+                    {PURCHASE_ORDER_ORIGIN_LABELS[po.origin]}
+                    {order && (
+                      <>
+                        {" · "}
+                        <Link href={`/pedidos/${order.id}`} className="font-mono text-accent hover:underline">{order.folio}</Link>
+                      </>
+                    )}
                     {" · "}
-                    {one(order?.business_units)?.name ?? "—"}
+                    {one(order?.business_units)?.name ?? one(po.business_unit)?.name ?? "—"}
                   </p>
                   <p className="mt-1 text-xs text-ink-faint">
                     Compromiso: {po.supplier_commitment_date ? formatDateShort(po.supplier_commitment_date) : "—"}
@@ -172,12 +193,13 @@ export default async function ComprasPage({
                           "—"
                         )}
                       </Td>
-                      <Td className="text-ink-soft">{one(order?.business_units)?.name ?? "—"}</Td>
+                      <Td className="text-ink-soft">{one(order?.business_units)?.name ?? one(po.business_unit)?.name ?? "—"}</Td>
                       <Td>
                         <div className="flex items-center gap-2">
                           <TestOperationBadge isTest={po.is_test} />
                           <StatusBadge status={po.status} labels={PURCHASE_ORDER_STATUS_LABELS} variants={PURCHASE_ORDER_STATUS_BADGE} />
                         </div>
+                        <p className="mt-1 text-xs text-ink-faint">{PURCHASE_ORDER_ORIGIN_LABELS[po.origin]}</p>
                       </Td>
                       <Td className="text-ink-soft">
                         {po.supplier_commitment_date ? formatDateShort(po.supplier_commitment_date) : "—"}

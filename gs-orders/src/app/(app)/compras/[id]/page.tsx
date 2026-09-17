@@ -15,7 +15,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
 import { resolveSupplierReferenceSnapshot, isMissingSupplierReference } from "@/lib/purchasing/supplier-reference-display";
-import { PURCHASE_ORDER_STATUS_BADGE, PURCHASE_ORDER_STATUS_LABELS } from "@/types/domain";
+import {
+  PURCHASE_ORDER_STATUS_BADGE,
+  PURCHASE_ORDER_STATUS_LABELS,
+  PURCHASE_ORDER_ORIGIN_LABELS,
+  PURCHASE_ORDER_DIRECT_REASON_LABELS,
+} from "@/types/domain";
 import type { OrderItem, PurchaseOrder, PurchaseOrderItem, Supplier } from "@/types/domain";
 import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
@@ -66,7 +71,9 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
 
   const { data } = await supabase
     .from("purchase_orders")
-    .select("*, supplier:suppliers(*), order:orders(id, folio, business_unit_id, business_units(name))")
+    .select(
+      "*, supplier:suppliers(*), order:orders(id, folio, business_unit_id, business_units(name)), business_unit:business_units(name), destination_warehouse:warehouses(name)"
+    )
     .eq("id", params.id)
     .maybeSingle();
 
@@ -75,9 +82,13 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
   const po = data as unknown as PurchaseOrder & {
     supplier: OneOrMany<Supplier> | null;
     order: OneOrMany<{ id: string; folio: string; business_unit_id: string | null; business_units: OneOrMany<{ name: string }> | null }> | null;
+    business_unit: OneOrMany<{ name: string }> | null;
+    destination_warehouse: OneOrMany<{ name: string }> | null;
   };
   const supplier = one(po.supplier);
   const order = one(po.order);
+  const businessUnitName = one(order?.business_units)?.name ?? one(po.business_unit)?.name ?? "—";
+  const destinationWarehouseName = one(po.destination_warehouse)?.name ?? null;
 
   // Detalles: admin puede seguir editando en cualquier status no cancelado
   // (0045, sin cambio); un preparador no-admin SOLO en borrador — mismo
@@ -156,6 +167,10 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
               <dd className="text-sm font-medium text-ink">{supplier?.name ?? "—"}</dd>
             </div>
             <div>
+              <dt className="text-xs text-ink-faint">Origen</dt>
+              <dd className="text-sm font-medium text-ink">{PURCHASE_ORDER_ORIGIN_LABELS[po.origin]}</dd>
+            </div>
+            <div>
               <dt className="text-xs text-ink-faint">Pedido origen</dt>
               <dd className="text-sm font-medium text-ink">
                 {order ? (
@@ -169,7 +184,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
             </div>
             <div>
               <dt className="text-xs text-ink-faint">Business Unit</dt>
-              <dd className="text-sm font-medium text-ink">{one(order?.business_units)?.name ?? "—"}</dd>
+              <dd className="text-sm font-medium text-ink">{businessUnitName}</dd>
             </div>
             <div>
               <dt className="text-xs text-ink-faint">Fecha de orden</dt>
@@ -179,6 +194,32 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
               <dt className="text-xs text-ink-faint">Referencia del proveedor</dt>
               <dd className="text-sm font-medium text-ink">{po.supplier_reference ?? "—"}</dd>
             </div>
+            {po.origin === "directa" && (
+              <>
+                <div>
+                  <dt className="text-xs text-ink-faint">Moneda</dt>
+                  <dd className="text-sm font-medium text-ink">{po.currency ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-faint">Tipo/motivo de compra</dt>
+                  <dd className="text-sm font-medium text-ink">
+                    {po.direct_purchase_reason ? PURCHASE_ORDER_DIRECT_REASON_LABELS[po.direct_purchase_reason] : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-faint">Almacén destino</dt>
+                  <dd className="text-sm font-medium text-ink">{destinationWarehouseName ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-faint">Fecha requerida</dt>
+                  <dd className="text-sm font-medium text-ink">{po.required_date ? formatDateShort(po.required_date) : "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-faint">Condiciones de pago</dt>
+                  <dd className="text-sm font-medium text-ink">{po.payment_terms ?? "—"}</dd>
+                </div>
+              </>
+            )}
           </dl>
 
           {/* Autorización de compra: acciones de status separadas de
@@ -264,6 +305,13 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                     <Th>Ordenado</Th>
                     <Th>Recibido</Th>
                     <Th>Pendiente</Th>
+                    {po.origin === "directa" && (
+                      <>
+                        <Th className="text-right">Precio unitario</Th>
+                        <Th className="text-right">Impuesto</Th>
+                        <Th className="text-right">Importe</Th>
+                      </>
+                    )}
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -306,11 +354,42 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                         </Td>
                         <Td className="tabular-nums text-ink-soft">{item.quantity_received}</Td>
                         <Td className="tabular-nums text-ink-soft">{item.quantity_ordered - item.quantity_received}</Td>
+                        {po.origin === "directa" && (
+                          <>
+                            <Td className="text-right tabular-nums text-ink-soft">
+                              {item.unit_price != null ? `$${item.unit_price.toFixed(2)}` : "—"}
+                            </Td>
+                            <Td className="text-right tabular-nums text-ink-soft">{item.tax_percent != null ? `${item.tax_percent}%` : "—"}</Td>
+                            <Td className="text-right tabular-nums text-ink-soft">
+                              {item.line_total != null ? `$${item.line_total.toFixed(2)}` : "—"}
+                            </Td>
+                          </>
+                        )}
                       </Tr>
                     );
                   })}
                 </Tbody>
               </Table>
+              {po.origin === "directa" && (
+                <div className="flex justify-end border-t border-border px-4 py-3">
+                  <dl className="w-full max-w-xs space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-ink-faint">Subtotal</dt>
+                      <dd className="tabular-nums text-ink">${po.subtotal.toFixed(2)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-faint">Impuestos</dt>
+                      <dd className="tabular-nums text-ink">${po.tax_total.toFixed(2)}</dd>
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <dt className="text-ink">Total</dt>
+                      <dd className="tabular-nums text-ink">
+                        ${po.total.toFixed(2)} {po.currency}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
             </>
           )}
         </CardContent>

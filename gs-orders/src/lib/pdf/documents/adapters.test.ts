@@ -90,6 +90,11 @@ describe("salesOrderPdfAdapter (THÖREN 0078)", () => {
     expect(result?.spec.rows[0]).toEqual(
       expect.objectContaining({ sku: "SKU-1", description: "Producto 1" })
     );
+    // Fix de cierre 0081 — regresión: un tipo de documento ajeno a Purchase
+    // Order nunca pasa overrides de sección, el layout sigue en español.
+    expect(result?.spec.relatedDataSectionLabel).toBeUndefined();
+    expect(result?.spec.notesSectionLabel).toBeUndefined();
+    expect(result?.spec.generatedAtPrefixLabel).toBeUndefined();
   });
 
   it("is_test=true -> spec.isTest true (watermark); is_test=false -> false", async () => {
@@ -184,6 +189,161 @@ describe("purchaseOrderPdfAdapter (THÖREN 0078)", () => {
   it("documento inexistente -> null", async () => {
     const supabase = createSupabaseStub({ purchase_orders: [], purchase_order_items: [], organizations: [] });
     expect(await purchaseOrderPdfAdapter.build({ supabase, id: "no-existe", profile: null, capabilities: new Set() })).toBeNull();
+  });
+
+  it("origin='directa' — respeta document_language, agrega precio/impuesto/importe + totales, y resuelve branding por su propia Business Unit (0081)", async () => {
+    const supabase = createSupabaseStub({
+      purchase_orders: [
+        {
+          id: "po-2",
+          organization_id: "org-1",
+          folio: "OC-000002",
+          status: "borrador",
+          po_date: "2026-01-01",
+          supplier_reference: null,
+          supplier_commitment_date: null,
+          estimated_reception_date: null,
+          notes: null,
+          is_test: false,
+          origin: "directa",
+          business_unit_id: "bu-1",
+          document_language: "en",
+          currency: "USD",
+          destination_warehouse_id: "wh-1",
+          direct_purchase_reason: "stock",
+          payment_terms: "Net 30",
+          required_date: "2026-02-01",
+          subtotal: 100,
+          tax_total: 16,
+          total: 116,
+          supplier: { id: "sup-1", name: "Proveedor Uno" },
+        },
+      ],
+      purchase_order_items: [
+        {
+          purchase_order_id: "po-2",
+          description: "Servicio de instalación",
+          model: "MODELO-INTERNO",
+          unit: "pza",
+          quantity_ordered: 2,
+          unit_price: 50,
+          tax_percent: 16,
+          line_total: 116,
+        },
+      ],
+      business_units: [{ id: "bu-1", name: "BU Uno", logo_path: null }],
+      warehouses: [{ id: "wh-1", name: "Almacén Norte" }],
+      organizations: [{ id: "org-1", name: "GS Orders" }],
+    });
+    const result = await purchaseOrderPdfAdapter.build({ supabase, id: "po-2", profile: null, capabilities: new Set() });
+
+    expect(result?.spec.documentTypeLabel).toBe("Purchase Order");
+    expect(result?.spec.statusLabel).toBe("Draft");
+    // document_language='en' -> nombre de mes en inglés, nunca español (ver translatePurchaseOrderDate).
+    expect(result?.spec.dateLabel).toBe("Date: January 1, 2026");
+    expect(result?.spec.branding.businessUnitName).toBe("BU Uno");
+    expect(result?.spec.relatedData).toEqual(
+      expect.arrayContaining([
+        { label: "Supplier", value: "Proveedor Uno" },
+        { label: "Required Date", value: "February 1, 2026" },
+        { label: "Payment Terms", value: "Net 30" },
+        { label: "Ship To", value: "Almacén Norte" },
+      ])
+    );
+    expect(result?.spec.rows[0]).toEqual(
+      expect.objectContaining({ description: "Servicio de instalación", unitPrice: "$50.00", amount: "$116.00" })
+    );
+    expect(result?.spec.totals).toEqual([
+      { label: "Subtotal", value: "$100.00" },
+      { label: "Taxes", value: "$16.00" },
+      { label: "Total", value: "$116.00 USD", emphasis: true },
+    ]);
+    // Fix de cierre 0081 — con document_language='en' NINGUNO de los 3 textos
+    // del layout compartido queda en español (Datos relacionados/Notas/Generado el).
+    expect(result?.spec.relatedDataSectionLabel).toBe("Related Information");
+    expect(result?.spec.notesSectionLabel).toBe("Notes");
+    expect(result?.spec.generatedAtPrefixLabel).toBe("Generated on");
+    expect([result?.spec.relatedDataSectionLabel, result?.spec.notesSectionLabel, result?.spec.generatedAtPrefixLabel]).not.toEqual(
+      expect.arrayContaining(["Datos relacionados", "Notas", "Generado el"])
+    );
+    // "Generado el" también respeta el idioma con mes en inglés, nunca español.
+    expect(result?.spec.generatedAtLabel).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{2}:\d{2}$/);
+  });
+
+  it("origin='directa' con document_language='es' — conserva EXACTAMENTE los labels actuales del layout compartido (Datos relacionados/Notas/Generado el)", async () => {
+    const supabase = createSupabaseStub({
+      purchase_orders: [
+        {
+          id: "po-4",
+          organization_id: "org-1",
+          folio: "OC-000004",
+          status: "borrador",
+          po_date: "2026-01-01",
+          supplier_reference: null,
+          supplier_commitment_date: null,
+          estimated_reception_date: null,
+          notes: "Ver anexo",
+          is_test: false,
+          origin: "directa",
+          business_unit_id: "bu-1",
+          document_language: "es",
+          currency: "MXN",
+          direct_purchase_reason: "stock",
+          subtotal: 100,
+          tax_total: 16,
+          total: 116,
+          supplier: { id: "sup-1", name: "Proveedor Uno" },
+        },
+      ],
+      purchase_order_items: [
+        { purchase_order_id: "po-4", description: "Servicio", model: "MOD-1", unit: "pza", quantity_ordered: 1, unit_price: 100, tax_percent: 16, line_total: 116 },
+      ],
+      business_units: [{ id: "bu-1", name: "BU Uno", logo_path: null }],
+      organizations: [{ id: "org-1", name: "GS Orders" }],
+    });
+    const result = await purchaseOrderPdfAdapter.build({ supabase, id: "po-4", profile: null, capabilities: new Set() });
+
+    expect(result?.spec.relatedDataSectionLabel).toBe("Datos relacionados");
+    expect(result?.spec.notesSectionLabel).toBe("Notas");
+    expect(result?.spec.generatedAtPrefixLabel).toBe("Generado el");
+  });
+
+  it("origin='pedido' (default legado) — nunca agrega columnas/totales de precio, mismo comportamiento previo a 0081", async () => {
+    const supabase = createSupabaseStub({
+      purchase_orders: [
+        {
+          id: "po-3",
+          organization_id: "org-1",
+          folio: "OC-000003",
+          status: "ordenada",
+          po_date: "2026-01-01",
+          supplier_reference: "REF-1",
+          supplier_commitment_date: null,
+          estimated_reception_date: null,
+          notes: null,
+          is_test: false,
+          origin: "pedido",
+          business_unit_id: null,
+          document_language: "es",
+          currency: null,
+          supplier: { id: "sup-1", name: "Proveedor Uno" },
+        },
+      ],
+      purchase_order_items: [
+        { purchase_order_id: "po-3", description: "Item 1", model: "MOD-1", unit: "pza", quantity_ordered: 3 },
+      ],
+      organizations: [],
+    });
+    const result = await purchaseOrderPdfAdapter.build({ supabase, id: "po-3", profile: null, capabilities: new Set() });
+
+    expect(result?.spec.documentTypeLabel).toBe("Purchase Order");
+    expect(result?.spec.totals).toBeNull();
+    expect(result?.spec.columns.map((c) => c.key)).toEqual(["reference", "description", "unit", "quantity"]);
+    // Fix de cierre 0081 — un PO legado NUNCA pasa overrides: el layout
+    // compartido debe caer a sus 3 textos en español de siempre, sin cambio.
+    expect(result?.spec.relatedDataSectionLabel).toBeUndefined();
+    expect(result?.spec.notesSectionLabel).toBeUndefined();
+    expect(result?.spec.generatedAtPrefixLabel).toBeUndefined();
   });
 });
 

@@ -8,9 +8,11 @@ import {
   purchaseOrderPayloadSchema,
   purchaseOrderDetailsPayloadSchema,
   purchaseOrderItemsReplacePayloadSchema,
+  directPurchaseOrderPayloadSchema,
   type PurchaseOrderPayload,
   type PurchaseOrderDetailsPayload,
   type PurchaseOrderItemsReplacePayload,
+  type DirectPurchaseOrderPayload,
 } from "@/lib/validations/purchase-order";
 import type { PurchaseOrderStatus } from "@/types/domain";
 
@@ -52,6 +54,55 @@ export async function createPurchaseOrder(
 
   revalidatePath("/compras");
   revalidatePath(`/pedidos/${parsed.data.order_id}`);
+  redirect(`/compras/${purchaseOrderId}`);
+}
+
+/**
+ * THÖREN — Orden de Compra Directa (0081). Sin Pedido/Sales Order/
+ * Requisición/cliente — admin OR can_prepare_purchase_orders (RLS/RPC son
+ * la autoridad real, esta Server Action no gatea nada por su cuenta).
+ */
+export async function createDirectPurchaseOrder(
+  purchaseOrderId: string,
+  payload: DirectPurchaseOrderPayload
+): Promise<PurchaseOrderActionResult> {
+  const parsed = directPurchaseOrderPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_create_direct_purchase_order", {
+    p_purchase_order_id: purchaseOrderId,
+    p_purchase_order: {
+      business_unit_id: parsed.data.business_unit_id,
+      supplier_id: parsed.data.supplier_id,
+      direct_purchase_reason: parsed.data.direct_purchase_reason,
+      po_date: parsed.data.po_date ?? null,
+      required_date: parsed.data.required_date ?? null,
+      currency: parsed.data.currency,
+      payment_terms: parsed.data.payment_terms ?? null,
+      destination_warehouse_id: parsed.data.destination_warehouse_id ?? null,
+      document_language: parsed.data.document_language ?? null,
+      notes: parsed.data.notes ?? null,
+    },
+    p_items: parsed.data.items.map((item) => ({
+      catalog_product_id: item.catalog_product_id ?? null,
+      description: item.description ?? null,
+      unit: item.unit ?? null,
+      supplier_sku: item.supplier_sku ?? null,
+      supplier_model: item.supplier_model ?? null,
+      quantity_ordered: item.quantity_ordered,
+      unit_price: item.unit_price,
+      tax_percent: item.tax_percent,
+    })),
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo crear la Orden de Compra. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/compras");
   redirect(`/compras/${purchaseOrderId}`);
 }
 

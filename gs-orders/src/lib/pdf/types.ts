@@ -60,4 +60,17 @@ export interface PdfDocumentSpec {
   branding: PdfBranding;
   /** Fecha/hora de generación ya formateada — el footer nunca reformatea ni recalcula. */
   generatedAtLabel: string;
+  /**
+   * THÖREN — Orden de Compra Directa (0081), fix de cierre: overrides
+   * OPCIONALES de los 3 textos que el layout único (document-pdf.tsx)
+   * hasta ahora tenía hardcodeados en español ("Datos relacionados"/
+   * "Notas"/"Generado el"), para que un documento con idioma propio
+   * (hoy solo Purchase Order vía document_language) pueda mostrarlos en
+   * inglés. Si un adapter no los provee, el layout usa exactamente el
+   * mismo texto en español de siempre — CERO cambio visual para los otros
+   * 6 tipos de documento de 0078, que nunca los pasan.
+   */
+  relatedDataSectionLabel?: string;
+  notesSectionLabel?: string;
+  generatedAtPrefixLabel?: string;
 }

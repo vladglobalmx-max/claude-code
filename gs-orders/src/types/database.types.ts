@@ -1141,6 +1141,19 @@ export interface Database {
           is_test: boolean;
           created_at: string;
           updated_at: string;
+          // THÖREN — Orden de Compra Directa (0081). origin/business_unit_id/
+          // document_language inmutables tras crear.
+          origin: string;
+          business_unit_id: string | null;
+          document_language: string;
+          currency: string | null;
+          destination_warehouse_id: string | null;
+          direct_purchase_reason: string | null;
+          payment_terms: string | null;
+          required_date: string | null;
+          subtotal: number;
+          tax_total: number;
+          total: number;
         };
         Insert: {
           id?: string;
@@ -1159,6 +1172,17 @@ export interface Database {
           is_test?: boolean;
           created_at?: string;
           updated_at?: string;
+          origin?: string;
+          business_unit_id?: string | null;
+          document_language?: string;
+          currency?: string | null;
+          destination_warehouse_id?: string | null;
+          direct_purchase_reason?: string | null;
+          payment_terms?: string | null;
+          required_date?: string | null;
+          subtotal?: number;
+          tax_total?: number;
+          total?: number;
         };
         Update: Partial<Database["public"]["Tables"]["purchase_orders"]["Insert"]>;
         Relationships: [
@@ -1218,6 +1242,12 @@ export interface Database {
           // originada en un Pedido; poblado exclusivamente por
           // rpc_convert_requisition_to_purchase_order.
           purchase_requisition_item_id: string | null;
+          // THÖREN — Orden de Compra Directa (0081). Nullable/0 default para
+          // toda partida de Pedido/Requisición.
+          unit_price: number | null;
+          tax_percent: number;
+          line_subtotal: number | null;
+          line_total: number | null;
         };
         Insert: {
           id?: string;
@@ -1239,6 +1269,10 @@ export interface Database {
           supplier_description_snapshot?: string | null;
           supplier_uom_snapshot?: string | null;
           purchase_requisition_item_id?: string | null;
+          unit_price?: number | null;
+          tax_percent?: number;
+          line_subtotal?: number | null;
+          line_total?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["purchase_order_items"]["Insert"]>;
         Relationships: [
@@ -3301,6 +3335,17 @@ export interface Database {
       // unit/customer_requirements) se snapshotea server-side desde
       // order_items, nunca se confía en lo que mande el cliente.
       rpc_create_purchase_order: {
+        Args: {
+          p_purchase_order_id: string;
+          p_purchase_order: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["purchase_orders"]["Row"];
+      };
+      // THÖREN — Orden de Compra Directa (0081). No requiere Pedido, Sales
+      // Order ni Requisición. Resuelve organización/idioma/autoridad
+      // server-side; calcula subtotal/impuestos/total de las líneas.
+      rpc_create_direct_purchase_order: {
         Args: {
           p_purchase_order_id: string;
           p_purchase_order: Json;

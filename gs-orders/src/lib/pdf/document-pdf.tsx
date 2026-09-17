@@ -104,7 +104,7 @@ export function DocumentPdf({ spec }: { spec: PdfDocumentSpec }) {
 
         {spec.relatedData.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Datos relacionados</Text>
+            <Text style={styles.sectionTitle}>{spec.relatedDataSectionLabel ?? "Datos relacionados"}</Text>
             <View style={styles.relatedGrid}>
               {spec.relatedData.map((row, index) => (
                 <View key={`${row.label}-${index}`} style={styles.relatedItem}>
@@ -150,7 +150,7 @@ export function DocumentPdf({ spec }: { spec: PdfDocumentSpec }) {
 
         {spec.notes ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notas</Text>
+            <Text style={styles.sectionTitle}>{spec.notesSectionLabel ?? "Notas"}</Text>
             <Text style={styles.notes}>{spec.notes}</Text>
           </View>
         ) : null}
@@ -158,7 +158,7 @@ export function DocumentPdf({ spec }: { spec: PdfDocumentSpec }) {
         {spec.disclaimer ? <Text style={styles.disclaimer}>{spec.disclaimer}</Text> : null}
 
         <Text style={styles.footer} fixed>
-          {spec.branding.organizationName} · Generado el {spec.generatedAtLabel}
+          {spec.branding.organizationName} · {spec.generatedAtPrefixLabel ?? "Generado el"} {spec.generatedAtLabel}
         </Text>
       </Page>
     </Document>

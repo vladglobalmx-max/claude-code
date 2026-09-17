@@ -1158,7 +1158,48 @@ export interface PurchaseOrder {
   is_test: boolean;
   created_at: string;
   updated_at: string;
+  /**
+   * THÖREN — Orden de Compra Directa (0081). Fuente real del origen:
+   * 'pedido' (rpc_create_purchase_order) | 'requisicion'
+   * (rpc_convert_requisition_to_purchase_order) | 'directa'
+   * (rpc_create_direct_purchase_order). Inmutable tras crear.
+   */
+  origin: PurchaseOrderOrigin;
+  /** THÖREN 0081 — nullable (solo poblado en origin='directa'), inmutable tras crear. */
+  business_unit_id: string | null;
+  /**
+   * THÖREN 0081 — snapshot del idioma del documento (es/en), resuelto al
+   * crear desde business_unit_process_settings.provider_document_language
+   * salvo override manual. Inmutable tras crear.
+   */
+  document_language: "es" | "en";
+  currency: "MXN" | "USD" | null;
+  destination_warehouse_id: string | null;
+  direct_purchase_reason: PurchaseOrderDirectReason | null;
+  payment_terms: string | null;
+  required_date: string | null;
+  subtotal: number;
+  tax_total: number;
+  total: number;
 }
+
+export type PurchaseOrderOrigin = "pedido" | "requisicion" | "directa";
+export type PurchaseOrderDirectReason = "stock" | "interno" | "muestras" | "refaccion_mantenimiento" | "equipo" | "proyecto_especial";
+
+export const PURCHASE_ORDER_DIRECT_REASON_LABELS: Record<PurchaseOrderDirectReason, string> = {
+  stock: "Compra para stock",
+  interno: "Compra interna",
+  muestras: "Muestras",
+  refaccion_mantenimiento: "Refacciones/mantenimiento",
+  equipo: "Compra de equipo",
+  proyecto_especial: "Proyecto especial",
+};
+
+export const PURCHASE_ORDER_ORIGIN_LABELS: Record<PurchaseOrderOrigin, string> = {
+  pedido: "Pedido",
+  requisicion: "Requisición",
+  directa: "Compra directa",
+};
 
 /**
  * Partida de una Purchase Order — snapshot operativo de un order_item al
@@ -1207,6 +1248,15 @@ export interface PurchaseOrderItem {
    * exclusivamente por rpc_convert_requisition_to_purchase_order.
    */
   purchase_requisition_item_id: string | null;
+  /**
+   * THÖREN — Orden de Compra Directa (0081). Nullable/0 por default para
+   * toda partida de Pedido/Requisición (nunca tuvieron dato monetario);
+   * pobladas por rpc_create_direct_purchase_order.
+   */
+  unit_price: number | null;
+  tax_percent: number;
+  line_subtotal: number | null;
+  line_total: number | null;
 }
 
 /**

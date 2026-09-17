@@ -3668,6 +3668,19 @@ export interface Database {
         };
         Returns: number;
       };
+      // Ajuste de cierre — hard delete de vendedores para limpieza inicial
+      // (0079). SECURITY DEFINER: resuelve organización/autoridad admin
+      // internamente. Verifica referencias reales (orders, quotes,
+      // salesperson_quote_sequences, sales_orders, commission_records,
+      // usuario con role='vendedor' ligado) antes de borrar; si existe
+      // alguna, lanza una excepción P0001 con el detalle exacto. Nunca
+      // borra la Persona vinculada ni un login/usuario.
+      rpc_delete_salesperson: {
+        Args: {
+          p_salesperson_id: string;
+        };
+        Returns: undefined;
+      };
       // THÖREN Sales Order → Procurement (0069) — SECURITY INVOKER,
       // requiere can_prepare_purchase_orders (o admin). Crea encabezado +
       // líneas de una Purchase Requisition en una transacción. p_items es

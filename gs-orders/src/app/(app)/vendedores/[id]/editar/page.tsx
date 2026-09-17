@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { SalespersonForm } from "../../salesperson-form";
+import { DeleteSalespersonButton } from "../../delete-salesperson-button";
 import { updateSalesperson } from "../../actions";
 import type { Salesperson } from "@/types/domain";
 
@@ -47,6 +48,10 @@ export default async function EditarVendedorPage({ params }: { params: { id: str
         </CardHeader>
         <CardContent>
           <SalespersonForm action={action} salesperson={salesperson} submitLabel="Guardar cambios" />
+
+          <div className="mt-8 border-t border-border pt-6">
+            <DeleteSalespersonButton salespersonId={salesperson.id} salespersonName={salesperson.name} />
+          </div>
         </CardContent>
       </Card>
     </div>

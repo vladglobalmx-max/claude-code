@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { salespersonSchema } from "@/lib/validations/salesperson";
 import { mapDbError } from "@/lib/db-errors";
 
 export type SalespersonFormState = { error?: string } | undefined;
+export type DeleteSalespersonResult = { error: string | null };
 
 function parseForm(formData: FormData) {
   return salespersonSchema.safeParse({
@@ -43,6 +45,31 @@ export async function createSalesperson(
 
   revalidatePath("/vendedores");
   redirect("/vendedores");
+}
+
+/**
+ * Ajuste de cierre — eliminación definitiva de vendedores (limpieza
+ * inicial). rpc_delete_salesperson (0079) es la única autoridad real:
+ * verifica referencias en Pedidos, Cotizaciones, configuración de folio de
+ * Cotizaciones, Órdenes de venta, Comisiones y usuarios con role='vendedor'
+ * ligados, y lanza una excepción P0001 con el detalle exacto si alguna
+ * existe. Nunca borra la Persona vinculada ni un usuario/login.
+ */
+export async function deleteSalesperson(id: string): Promise<DeleteSalespersonResult> {
+  const profile = await getCurrentProfile();
+  if (!profile || !profile.active || profile.role !== "admin") {
+    return { error: "Solo un administrador puede eliminar vendedores." };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_delete_salesperson", { p_salesperson_id: id });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo eliminar el vendedor. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/vendedores");
+  return { error: null };
 }
 
 export async function updateSalesperson(

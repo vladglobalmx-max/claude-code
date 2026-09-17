@@ -24,6 +24,10 @@ export function CatalogFilters({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    // Fix de performance/paginación — cambiar cualquier filtro invalida la
+    // posición de página actual (podría quedar fuera de rango con el nuevo
+    // resultado); siempre vuelve a la página 1.
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 

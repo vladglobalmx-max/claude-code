@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -15,12 +16,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * cada RPC/policy backend), y los helpers de src/lib/auth/logistics.ts
  * chequean profile.role === "admin" aparte, antes de mirar este Set. Esta
  * función es solo el dato crudo: qué capabilities tiene otorgadas.
+ *
+ * Ajuste de performance — `cache()` de React (memoización por request,
+ * mismo criterio que getCurrentProfile, profile.ts): el layout raíz y el
+ * de /configuracion ya la llaman cada uno por su cuenta en la misma
+ * navegación — "una sola query por página/request" era la intención
+ * documentada arriba desde el inicio, pero nunca se hizo cumplir; `cache()`
+ * la hace real sin cambiar el resultado (sigue siendo por-request).
  */
-export async function getCurrentCapabilities(userId: string | null | undefined): Promise<Set<string>> {
+export const getCurrentCapabilities = cache(async (userId: string | null | undefined): Promise<Set<string>> => {
   if (!userId) return new Set();
 
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.from("user_capabilities").select("capability").eq("user_id", userId).eq("active", true);
 
   return new Set((data ?? []).map((row) => row.capability));
-}
+});

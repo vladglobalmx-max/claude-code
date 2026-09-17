@@ -37,7 +37,7 @@ export function SalespersonForm({
       </div>
 
       <div>
-        <Label htmlFor="prefix">Prefijo Thunder</Label>
+        <Label htmlFor="prefix">Prefijo</Label>
         <Input
           id="prefix"
           name="prefix"
@@ -49,7 +49,7 @@ export function SalespersonForm({
         />
         <p className="mt-1 text-xs text-ink-faint">
           Máximo 5 caracteres, sin espacios. Se convierte a MAYÚSCULAS automáticamente y debe ser único.
-          Se usa en el folio: VPT-20261108-001
+          Se utiliza para generar los folios del vendedor.
         </p>
       </div>
 

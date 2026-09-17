@@ -6,45 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
-import { formatMoneyMxn, formatMoneyUsd } from "@/lib/utils/format";
 import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { filterCatalogRows } from "@/lib/products/catalog-search";
 import { countUnclassified } from "@/lib/products/unclassified";
 import { CatalogFilters } from "./catalog-filters";
+import { CatalogSelectionTable, type CatalogRow } from "./catalog-selection-table";
 
 export const dynamic = "force-dynamic";
 
 /** Tamaño de página para traer product_catalog completo — mismo criterio/utilidad que getProductImportCandidates (ver paginated-fetch.ts). */
 const CATALOG_PAGE_SIZE = 1000;
-
-interface CatalogRow {
-  id: string;
-  sku: string;
-  name: string;
-  brand: string | null;
-  model: string | null;
-  unit: string | null;
-  default_price_mxn: number | null;
-  default_price_usd: number | null;
-  active: boolean;
-  image_path: string | null;
-  product_type_id: string | null;
-  product_types: { name: string } | null;
-  product_business_units: { business_unit_id: string }[] | null;
-}
-
-function formatPrice(product: CatalogRow) {
-  if (product.default_price_usd != null) return formatMoneyUsd(product.default_price_usd);
-  if (product.default_price_mxn != null) return formatMoneyMxn(product.default_price_mxn);
-  return "—";
-}
-
-function currencyLabel(product: CatalogRow) {
-  if (product.default_price_usd != null) return "USD";
-  if (product.default_price_mxn != null) return "MXN";
-  return "—";
-}
 
 /**
  * Catálogo de Productos (Fase 6C — THÖREN Catálogo Maestro). Filtra/busca
@@ -178,68 +149,7 @@ export default async function CatalogoPage({
           Ningún producto coincide con la búsqueda/filtros.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <Table>
-            <Thead>
-              <Tr>
-                <Th />
-                <Th>SKU</Th>
-                <Th>Producto</Th>
-                <Th>Business Unit</Th>
-                <Th>Tipo</Th>
-                <Th>Marca</Th>
-                <Th>Modelo</Th>
-                <Th>Unidad</Th>
-                <Th>Moneda</Th>
-                <Th>Precio base</Th>
-                <Th>Estado</Th>
-                <Th />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {products.map((p) => {
-                const buRows = p.product_business_units ?? [];
-                const firstBuId = buRows[0]?.business_unit_id;
-                const buLabel =
-                  buRows.length === 0
-                    ? "Todas"
-                    : buRows.length === 1
-                      ? (businessUnits.find((bu) => bu.id === firstBuId)?.name ?? "1 unidad")
-                      : `${buRows.length} unidades`;
-
-                return (
-                  <Tr key={p.id}>
-                    <Td>
-                      {p.image_path && imageUrls[p.image_path] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={imageUrls[p.image_path]} alt={p.name} className="h-10 w-10 rounded-md object-cover" />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md bg-surface-2" />
-                      )}
-                    </Td>
-                    <Td className="font-mono text-ink-soft">{p.sku}</Td>
-                    <Td className="font-medium">{p.name}</Td>
-                    <Td className="text-ink-soft">{buLabel}</Td>
-                    <Td className="text-ink-soft">{p.product_types?.name ?? "—"}</Td>
-                    <Td className="text-ink-soft">{p.brand ?? "—"}</Td>
-                    <Td className="text-ink-soft">{p.model ?? "—"}</Td>
-                    <Td className="text-ink-soft">{p.unit ?? "—"}</Td>
-                    <Td className="text-ink-soft">{currencyLabel(p)}</Td>
-                    <Td className="text-ink-soft">{formatPrice(p)}</Td>
-                    <Td>
-                      <Badge variant={p.active ? "success" : "neutral"}>{p.active ? "Activo" : "Inactivo"}</Badge>
-                    </Td>
-                    <Td className="text-right">
-                      <Link href={`/configuracion/catalogo/${p.id}/editar`} className="text-sm text-accent hover:underline">
-                        Editar
-                      </Link>
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
-        </div>
+        <CatalogSelectionTable products={products} businessUnits={businessUnits} imageUrls={imageUrls} />
       )}
     </div>
   );

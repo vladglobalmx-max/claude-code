@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveCurrentOrganizationId } from "@/lib/user-access";
 import { catalogProductSchema, type CatalogProductPayload } from "@/lib/validations/catalog";
 import {
@@ -171,6 +172,64 @@ export async function bulkAssignProductType(
 
   revalidatePath("/configuracion/catalogo");
   revalidatePath("/configuracion/catalogo/sin-clasificar");
+  return { error: null, updatedCount: (data ?? []).length };
+}
+
+export type BulkDeactivateCatalogProductsResult = { error: string | null; updatedCount: number };
+
+/**
+ * Ajuste de cierre — selección múltiple + "Eliminar del catálogo" masivo.
+ * SIEMPRE soft-delete (`active = false`), NUNCA borrado físico — mismo
+ * criterio ya establecido para la edición individual (ver
+ * updateCatalogProduct abajo): conserva SKU, nombre y toda referencia
+ * histórica en cotizaciones/Sales Orders/compras/inventario intacta (esta
+ * función NUNCA toca ninguna otra tabla). Un producto inactivo ya
+ * desaparece automáticamente de todos los selectores de nueva operación
+ * (Cotizaciones/Sales Orders/Pedidos/Inventario ya filtran
+ * `.eq("active", true)`, patrón preexistente) sin ningún cambio adicional
+ * aquí.
+ *
+ * Autoridad: además de `product_catalog_admin_write` (RLS, 0019 —
+ * `is_organization_admin`, la misma que ya protege cualquier UPDATE
+ * directo a esta tabla), se agrega un chequeo explícito de
+ * `profile.role === "admin"` — no es un permiso nuevo, es la MISMA señal
+ * que ya usa layout.tsx para bloquear el acceso a toda la sección
+ * /configuracion/catalogo; se repite aquí porque una Server Action se
+ * puede invocar directo (fuera de la UI) sin pasar por ese layout guard.
+ *
+ * Cross-org: mismo criterio de defensa en profundidad que
+ * bulkAssignProductType — `.eq("organization_id", ...)` explícito en el
+ * UPDATE, nunca confía únicamente en RLS para una operación masiva.
+ * `.eq("active", true)` en el WHERE: nunca vuelve a "tocar" un producto ya
+ * inactivo (evita ruido en revalidación/auditoría sin cambiar nada real).
+ */
+export async function bulkDeactivateCatalogProducts(productIds: string[]): Promise<BulkDeactivateCatalogProductsResult> {
+  if (productIds.length === 0) {
+    return { error: "Selecciona al menos un producto.", updatedCount: 0 };
+  }
+
+  const profile = await getCurrentProfile();
+  if (!profile || !profile.active || profile.role !== "admin") {
+    return { error: "Solo un administrador puede eliminar productos del catálogo.", updatedCount: 0 };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const orgResult = await resolveCurrentOrganizationId(supabase);
+  if ("error" in orgResult) return { error: orgResult.error, updatedCount: 0 };
+
+  const { data, error } = await supabase
+    .from("product_catalog")
+    .update({ active: false })
+    .in("id", productIds)
+    .eq("organization_id", orgResult.organizationId)
+    .eq("active", true)
+    .select("id");
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron eliminar los productos del catálogo. Intenta de nuevo."), updatedCount: 0 };
+  }
+
+  revalidatePath("/configuracion/catalogo");
   return { error: null, updatedCount: (data ?? []).length };
 }
 

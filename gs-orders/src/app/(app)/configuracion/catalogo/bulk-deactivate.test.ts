@@ -61,6 +61,40 @@ describe("bulkDeactivateCatalogProducts (ajuste de cierre — Catálogo)", () =>
     expect(getCurrentProfile).not.toHaveBeenCalled();
   });
 
+  /**
+   * Fix de bug de cierre — segunda capa de defensa: aunque la UI ya no
+   * debería poder acumular selección entre páginas (catalog-selection-table.tsx),
+   * el backend nunca debe confiar únicamente en eso. Reproduce el caso
+   * real de producción: un payload de 1,296 ids (acumulado por el bug de
+   * selección) debe rechazarse con un mensaje legible, ANTES de intentar
+   * ningún `.in("id", ids)` — eso es lo que producía el Bad Request
+   * genérico (URL de PostgREST demasiado grande).
+   */
+  it("payload por encima del límite (ej. 1,296 ids del bug de selección) -> rechazado con mensaje legible, nunca llega a la base de datos", async () => {
+    const tooManyIds = Array.from({ length: 1296 }, (_, i) => `p-${i}`);
+
+    const result = await bulkDeactivateCatalogProducts(tooManyIds);
+
+    expect(result.updatedCount).toBe(0);
+    expect(result.error).toMatch(/no puedes eliminar más de \d+ productos a la vez/i);
+    expect(getCurrentProfile).not.toHaveBeenCalled();
+  });
+
+  it("payload justo en el límite (100 ids) -> se acepta, no lo rechaza el guard de tamaño", async () => {
+    const exactlyAtLimit = Array.from({ length: 100 }, (_, i) => `p-${i}`);
+    getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "admin", active: true });
+    const { client } = createFakeSupabase({
+      orgId: "org-1",
+      selectResult: { data: exactlyAtLimit.map((id) => ({ id })), error: null },
+    });
+    createSupabaseServerClient.mockReturnValue(client);
+
+    const result = await bulkDeactivateCatalogProducts(exactlyAtLimit);
+
+    expect(result.error).toBeNull();
+    expect(result.updatedCount).toBe(100);
+  });
+
   it("usuario sin permiso (no admin) -> rechazado, nunca llega a la base de datos", async () => {
     getCurrentProfile.mockResolvedValue({ userId: "u-1", role: "vendedor", active: true });
     const { client } = createFakeSupabase({ orgId: "org-1", selectResult: { data: [], error: null } });

@@ -142,4 +142,67 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
 
     expect(bulkDeactivateCatalogProducts).not.toHaveBeenCalled();
   });
+
+  /**
+   * Fix de bug de cierre — la selección se acumulaba entre páginas
+   * (evidencia en producción: filtro BU, page=26, "1296 productos
+   * seleccionados", Bad Request al confirmar). Next.js re-renderiza esta
+   * MISMA instancia con un `products` prop distinto al navegar/filtrar —
+   * nunca la desmonta — así que el fix depende de resetear `selected`
+   * cuando cambia el CONJUNTO de ids visibles, no de un remount.
+   */
+  describe("fix — la selección nunca sobrevive a un cambio del conjunto `products`", () => {
+    it("seleccionar todos en la página 1, luego recibir la página 2 -> selección queda en 0", () => {
+      const page1 = products; // p-1, p-2, p-3
+      const page2 = [
+        buildProduct({ id: "p-4", sku: "SKU-4", name: "Producto 4" }),
+        buildProduct({ id: "p-5", sku: "SKU-5", name: "Producto 5" }),
+      ];
+      const { rerender } = renderTable(page1);
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+      expect(screen.getByText("3 productos seleccionados")).toBeTruthy();
+
+      rerender(<CatalogSelectionTable products={page2} businessUnits={[]} imageUrls={{}} />);
+
+      expect(screen.queryByText(/seleccionado/)).toBeNull();
+      expect(screen.getByLabelText("Seleccionar SKU-4")).toHaveProperty("checked", false);
+    });
+
+    it("cambiar filtros (nuevo conjunto de productos, misma cantidad) -> selección limpia igual", () => {
+      const filtroA = products; // p-1, p-2, p-3
+      const filtroB = [
+        buildProduct({ id: "p-9", sku: "SKU-9", name: "Producto 9" }),
+        buildProduct({ id: "p-10", sku: "SKU-10", name: "Producto 10" }),
+        buildProduct({ id: "p-11", sku: "SKU-11", name: "Producto 11" }),
+      ];
+      const { rerender } = renderTable(filtroA);
+      fireEvent.click(screen.getByLabelText("Seleccionar SKU-1"));
+      fireEvent.click(screen.getByLabelText("Seleccionar SKU-2"));
+      expect(screen.getByText("2 productos seleccionados")).toBeTruthy();
+
+      rerender(<CatalogSelectionTable products={filtroB} businessUnits={[]} imageUrls={{}} />);
+
+      expect(screen.queryByText(/seleccionado/)).toBeNull();
+    });
+
+    it("re-render con el MISMO conjunto de ids (sin cambio real) NO borra una selección en curso", () => {
+      const { rerender } = renderTable(products);
+      fireEvent.click(screen.getByLabelText("Seleccionar SKU-1"));
+      expect(screen.getByText("1 producto seleccionado")).toBeTruthy();
+
+      // Mismo array de productos (misma referencia de contenido/ids) — un re-render normal, no una navegación real.
+      rerender(<CatalogSelectionTable products={products} businessUnits={[]} imageUrls={{}} />);
+
+      expect(screen.getByText("1 producto seleccionado")).toBeTruthy();
+    });
+
+    it("'Seleccionar todos los visibles' nunca excede el tamaño de la página recibida, incluso con una página grande (50)", () => {
+      const bigPage = Array.from({ length: 50 }, (_, i) => buildProduct({ id: `p-${i}`, sku: `SKU-${i}` }));
+      renderTable(bigPage);
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+
+      expect(screen.getByText("50 productos seleccionados")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Eliminar del catálogo (50)" })).toBeTruthy();
+    });
+  });
 });

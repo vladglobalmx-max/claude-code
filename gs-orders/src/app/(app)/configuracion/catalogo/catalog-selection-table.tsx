@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -43,13 +43,21 @@ function currencyLabel(product: CatalogRow) {
 /**
  * Ajuste de cierre — selección múltiple + "Eliminar del catálogo"
  * (soft-delete, active=false) masivo. "Seleccionar todos" marca
- * EXCLUSIVAMENTE `products` — el catálogo completo no pagina en esta
- * página (page.tsx trae TODO el catálogo de la organización vía
- * fetchAllPages y filtra/busca en JS con filterCatalogRows; TODOS los
- * resultados que pasan los filtros actuales se renderizan aquí en una
- * sola tabla, sin "cargar más" ni páginas ocultas) — así que "visibles"
- * es exactamente `products`, nunca el catálogo completo de la
- * organización por debajo del filtro/búsqueda activos.
+ * EXCLUSIVAMENTE `products` — con la paginación real de catalog/page.tsx
+ * (fix de performance), eso es literalmente la página actual (máximo
+ * CATALOG_PAGE_SIZE), nunca el catálogo completo ni todo el resultado del
+ * filtro/búsqueda.
+ *
+ * Fix de bug — la selección NUNCA debe sobrevivir a un cambio del
+ * conjunto `products`: al navegar entre páginas o cambiar filtros, Next.js
+ * re-renderiza esta MISMA instancia del componente con un `products` prop
+ * distinto (no la desmonta), así que sin este reset `selected` se
+ * arrastraba entre páginas — visto en producción acumulando cientos de
+ * ids de páginas ya no visibles y provocando un Bad Request al confirmar
+ * "Eliminar del catálogo" (URL de `.in("id", ids)` con miles de ids).
+ * `visibleIdsKey` cambia si y solo si el CONJUNTO de ids visibles cambia
+ * (nunca en cada re-render idéntico) — el único disparador real, más
+ * robusto que atar esto a `page`/`estado`/`tipo`/`q` por separado.
  */
 export function CatalogSelectionTable({
   products,
@@ -66,6 +74,12 @@ export function CatalogSelectionTable({
   const [isPending, startTransition] = useTransition();
 
   const visibleIds = useMemo(() => products.map((p) => p.id), [products]);
+  const visibleIdsKey = visibleIds.join(",");
+
+  useEffect(() => {
+    setSelected(new Set());
+  }, [visibleIdsKey]);
+
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
   function toggle(id: string) {

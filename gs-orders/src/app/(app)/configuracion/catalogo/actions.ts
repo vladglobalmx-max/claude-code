@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveCurrentOrganizationId } from "@/lib/user-access";
+import { CATALOG_PAGE_SIZE } from "@/lib/products/catalog-pagination";
 import { catalogProductSchema, type CatalogProductPayload } from "@/lib/validations/catalog";
 import {
   supplierProductReferencesPayloadSchema,
@@ -178,6 +179,20 @@ export async function bulkAssignProductType(
 export type BulkDeactivateCatalogProductsResult = { error: string | null; updatedCount: number };
 
 /**
+ * Máximo de ids aceptados por llamada — el doble de CATALOG_PAGE_SIZE
+ * (page.tsx), suficiente holgura sobre lo que la UI puede seleccionar hoy
+ * ("Seleccionar todos los visibles" nunca marca más que la página actual)
+ * sin permitir un volumen absurdo. Fix de bug — un `selected` acumulado
+ * entre páginas (arreglado en catalog-selection-table.tsx) llegó a mandar
+ * 1,296 ids en producción: `.in("id", ids)` con esa cantidad genera una
+ * URL PostgREST que Supabase rechaza con un Bad Request genérico, no un
+ * error legible. Este límite es una segunda capa de defensa (nunca
+ * confiar únicamente en que el cliente se comporte) que convierte ese caso
+ * en un mensaje claro en vez de una falla opaca.
+ */
+const MAX_BULK_DEACTIVATE_IDS = CATALOG_PAGE_SIZE * 2;
+
+/**
  * Ajuste de cierre — selección múltiple + "Eliminar del catálogo" masivo.
  * SIEMPRE soft-delete (`active = false`), NUNCA borrado físico — mismo
  * criterio ya establecido para la edición individual (ver
@@ -206,6 +221,12 @@ export type BulkDeactivateCatalogProductsResult = { error: string | null; update
 export async function bulkDeactivateCatalogProducts(productIds: string[]): Promise<BulkDeactivateCatalogProductsResult> {
   if (productIds.length === 0) {
     return { error: "Selecciona al menos un producto.", updatedCount: 0 };
+  }
+  if (productIds.length > MAX_BULK_DEACTIVATE_IDS) {
+    return {
+      error: `No puedes eliminar más de ${MAX_BULK_DEACTIVATE_IDS} productos a la vez. Selecciona un grupo más pequeño.`,
+      updatedCount: 0,
+    };
   }
 
   const profile = await getCurrentProfile();

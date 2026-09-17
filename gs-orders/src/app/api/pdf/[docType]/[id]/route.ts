@@ -40,6 +40,18 @@ import { renderDocumentPdf } from "@/lib/pdf/render";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// TEMPORAL — diagnóstico del bug "PDF sigue fallando en producción"
+// (Orden de Compra Directa, 0081). Expone en el JSON de error, además del
+// mensaje genérico de siempre, en qué etapa exacta falló (`stage`) y el
+// mensaje real de la excepción (`message`) — SOLO mientras se diagnostica
+// la causa concreta. Quitar `stage`/`message` del body en cuanto se
+// identifique y corrija la causa raíz (no es una superficie de error
+// pensada para quedarse permanentemente así de detallada).
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 export async function GET(_request: Request, { params }: { params: { docType: string; id: string } }) {
   const adapter = PDF_DOCUMENT_ADAPTERS[params.docType];
   if (!adapter) {
@@ -59,7 +71,10 @@ export async function GET(_request: Request, { params }: { params: { docType: st
     result = await adapter.build({ supabase, id: params.id, profile, capabilities });
   } catch (error) {
     console.error(`[api/pdf] Error construyendo el documento ${params.docType}/${params.id}:`, error);
-    return NextResponse.json({ error: "No se pudo generar el documento. Intenta de nuevo." }, { status: 500 });
+    return NextResponse.json(
+      { error: "No se pudo generar el documento. Intenta de nuevo.", stage: "adapter_build", message: errorMessage(error) },
+      { status: 500 }
+    );
   }
 
   if (!result) {
@@ -72,14 +87,24 @@ export async function GET(_request: Request, { params }: { params: { docType: st
   } catch (error) {
     if (!result.spec.branding.logoUrl) {
       console.error(`[api/pdf] Error generando el PDF ${params.docType}/${params.id}:`, error);
-      return NextResponse.json({ error: "No se pudo generar el PDF. Intenta de nuevo." }, { status: 500 });
+      return NextResponse.json(
+        { error: "No se pudo generar el PDF. Intenta de nuevo.", stage: "render", message: errorMessage(error) },
+        { status: 500 }
+      );
     }
     console.error(`[api/pdf] Falló el render con logo de ${params.docType}/${params.id}, reintentando sin logo:`, error);
     try {
       buffer = await renderDocumentPdf({ ...result.spec, branding: { ...result.spec.branding, logoUrl: null } });
     } catch (retryError) {
       console.error(`[api/pdf] Error generando el PDF (incluso sin logo) ${params.docType}/${params.id}:`, retryError);
-      return NextResponse.json({ error: "No se pudo generar el PDF. Intenta de nuevo." }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "No se pudo generar el PDF. Intenta de nuevo.",
+          stage: "render_without_logo",
+          message: errorMessage(retryError),
+        },
+        { status: 500 }
+      );
     }
   }
 

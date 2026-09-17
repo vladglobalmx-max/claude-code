@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
@@ -201,7 +201,6 @@ export function CatalogSelectionTable({
               <Th>Moneda</Th>
               <Th>Precio base</Th>
               <Th>Estado</Th>
-              <Th />
             </Tr>
           </Thead>
           <Tbody>
@@ -236,7 +235,16 @@ export function CatalogSelectionTable({
                     )}
                   </Td>
                   <Td className="font-mono text-ink-soft">{p.sku}</Td>
-                  <Td className="font-medium">{p.name}</Td>
+                  <Td className="font-medium">
+                    <Link
+                      href={`/configuracion/catalogo/${p.id}/editar`}
+                      aria-label={`Editar ${p.name}`}
+                      className="group inline-flex items-center gap-1.5 text-ink hover:text-accent hover:underline"
+                    >
+                      {p.name}
+                      <Pencil className="h-3.5 w-3.5 shrink-0 text-ink-faint group-hover:text-accent" aria-hidden="true" />
+                    </Link>
+                  </Td>
                   <Td className="text-ink-soft">{buLabel}</Td>
                   <Td className="text-ink-soft">{p.product_types?.name ?? "—"}</Td>
                   <Td className="text-ink-soft">{p.brand ?? "—"}</Td>
@@ -246,11 +254,6 @@ export function CatalogSelectionTable({
                   <Td className="text-ink-soft">{formatPrice(p)}</Td>
                   <Td>
                     <Badge variant={p.active ? "success" : "neutral"}>{p.active ? "Activo" : "Inactivo"}</Badge>
-                  </Td>
-                  <Td className="text-right">
-                    <Link href={`/configuracion/catalogo/${p.id}/editar`} className="text-sm text-accent hover:underline">
-                      Editar
-                    </Link>
                   </Td>
                 </Tr>
               );

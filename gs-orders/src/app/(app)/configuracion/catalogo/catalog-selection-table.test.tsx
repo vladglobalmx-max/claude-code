@@ -324,4 +324,59 @@ describe("CatalogSelectionTable (ajuste de cierre — selección múltiple / eli
       expect(screen.getByLabelText("Seleccionar SKU2-0")).toHaveProperty("disabled", false);
     });
   });
+
+  /**
+   * Fix UX Catálogo — hacer visible la edición de productos. La ruta de
+   * edición ya existía (/configuracion/catalogo/[id]/editar); el problema
+   * era puramente de descubribilidad (el único acceso quedaba en una
+   * columna "Editar" al extremo derecho de una tabla ancha). El nombre del
+   * producto ahora ES el enlace de edición, con un ícono de lápiz visible
+   * junto a él — sin tocar la pantalla de edición ni su lógica.
+   */
+  describe("fix UX — edición visible desde la fila (nombre clickeable + ícono)", () => {
+    it("el nombre del producto es un link que abre la edición correcta de ESE producto", () => {
+      renderTable();
+      const link = screen.getByRole("link", { name: /Producto 1/ });
+
+      expect(link.getAttribute("href")).toBe("/configuracion/catalogo/p-1/editar");
+    });
+
+    it("cada fila enlaza a su propio id de edición, nunca al de otra fila", () => {
+      renderTable();
+
+      expect(screen.getByRole("link", { name: /Producto 1/ }).getAttribute("href")).toBe("/configuracion/catalogo/p-1/editar");
+      expect(screen.getByRole("link", { name: /Producto 2/ }).getAttribute("href")).toBe("/configuracion/catalogo/p-2/editar");
+      expect(screen.getByRole("link", { name: /Producto 3/ }).getAttribute("href")).toBe("/configuracion/catalogo/p-3/editar");
+    });
+
+    it("el link de edición tiene un nombre accesible que deja claro que es 'Editar' (icono + aria-label), no solo el nombre plano", () => {
+      renderTable();
+      // Mismo elemento que el nombre clickeable — el ícono de lápiz es parte del mismo link, con aria-label "Editar {nombre}".
+      expect(screen.getByRole("link", { name: "Editar Producto 1" })).toBeTruthy();
+    });
+
+    it("ya NO existe una columna/link 'Editar' separado al extremo derecho (quedaba redundante)", () => {
+      renderTable();
+      // Antes había un <Link>Editar</Link> de solo texto; ahora la única vía es el nombre+ícono ya probado arriba.
+      expect(screen.queryByText("Editar", { selector: "a" })).toBeNull();
+    });
+
+    it("marcar el checkbox de una fila NO activa el link de edición ni afecta el de otras filas", () => {
+      renderTable();
+      fireEvent.click(screen.getByLabelText("Seleccionar SKU-1"));
+
+      expect(screen.getByLabelText("Seleccionar SKU-1")).toHaveProperty("checked", true);
+      expect(screen.getByRole("link", { name: /Producto 1/ }).getAttribute("href")).toBe("/configuracion/catalogo/p-1/editar");
+      expect(screen.getByLabelText("Seleccionar SKU-2")).toHaveProperty("checked", false);
+    });
+
+    it("la selección múltiple (varias filas + todos los visibles) sigue funcionando igual con el nuevo link de edición en la fila", () => {
+      renderTable();
+      fireEvent.click(screen.getByLabelText("Seleccionar todos los visibles"));
+
+      expect(screen.getByText("3 productos seleccionados")).toBeTruthy();
+      expect(screen.getByLabelText("Seleccionar SKU-1")).toHaveProperty("checked", true);
+      expect(screen.getByLabelText("Seleccionar SKU-3")).toHaveProperty("checked", true);
+    });
+  });
 });

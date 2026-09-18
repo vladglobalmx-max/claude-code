@@ -23,7 +23,7 @@ export function DeliveryFilters({ businessUnits }: { businessUnits: { id: string
     <FilterBar
       searchValue={searchParams.get("q") ?? ""}
       onSearchChange={(value) => updateParam("q", value)}
-      searchPlaceholder="Buscar por Pedido, cliente o producto…"
+      searchPlaceholder="Buscar por Orden de Trabajo, cliente o producto…"
     >
       <Select
         className="w-auto"

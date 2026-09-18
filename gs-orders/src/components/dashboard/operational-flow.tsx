@@ -52,7 +52,7 @@ export function buildOperationalFlowStages(data: {
 }): OperationalFlowStage[] {
   return [
     { label: "Cotizaciones", value: data.quotesActiveCount, unit: "activas", icon: FileSpreadsheet, href: "/cotizaciones" },
-    { label: "Pedidos", value: data.activeOperationalOrderCount, unit: "activos", icon: FileText, href: "/pedidos" },
+    { label: "Órdenes de Trabajo", value: data.activeOperationalOrderCount, unit: "activas", icon: FileText, href: "/pedidos" },
     { label: "Compras", value: data.purchaseOrdersOpenCount, unit: "abiertas", icon: Package, href: "/compras" },
     { label: "Recepción", value: data.incomingUnitsTotal, unit: "unidades en camino", icon: Warehouse, href: "/compras" },
     { label: "Inventario", value: data.committedUnitsTotal, unit: "unidades comprometidas", icon: Boxes, href: "/inventario" },

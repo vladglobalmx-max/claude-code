@@ -60,11 +60,11 @@ export function BusinessUnitProcessSettingsForm({
       <div className="space-y-1 text-sm text-ink">
         <p>
           {initialRequireSupplierBeforeOrder
-            ? "Requiere Proveedor antes de convertir a Pedido."
-            : "No requiere Proveedor antes de convertir a Pedido."}
+            ? "Requiere Proveedor antes de convertir a Orden de Trabajo."
+            : "No requiere Proveedor antes de convertir a Orden de Trabajo."}
         </p>
         <p>
-          Idioma del PDF de Pedido para Proveedor:{" "}
+          Idioma del PDF de Orden de Trabajo para Proveedor:{" "}
           {initialProviderDocumentLanguage === "en" ? "English" : "Español"}
         </p>
       </div>
@@ -80,12 +80,12 @@ export function BusinessUnitProcessSettingsForm({
           onChange={(e) => setRequireSupplier(e.target.checked)}
           className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
         />
-        Requerir proveedor antes de convertir a Pedido
+        Requerir proveedor antes de convertir a Orden de Trabajo
       </label>
 
       <div className="space-y-1.5">
         <label htmlFor="provider-document-language" className="block text-sm text-ink-soft">
-          Idioma del PDF de Pedido para Proveedor
+          Idioma del PDF de Orden de Trabajo para Proveedor
         </label>
         <select
           id="provider-document-language"

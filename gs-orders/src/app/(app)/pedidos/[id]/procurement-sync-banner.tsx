@@ -46,7 +46,7 @@ export function ProcurementSyncBanner({
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          No se pudo calcular la disponibilidad/reserva de este Pedido.
+          No se pudo calcular la disponibilidad/reserva de esta Orden de Trabajo.
           {error && <span className="block text-xs text-danger/80">{error}</span>}
         </p>
       </div>

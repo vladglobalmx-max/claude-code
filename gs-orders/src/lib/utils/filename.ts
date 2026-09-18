@@ -32,5 +32,5 @@ export function buildQuotePdfFilename(folio: string, customerName: string): stri
 export function buildOrderPdfFilename(folio: string, language: "es" | "en" = "es"): string {
   const sanitizedFolio = sanitizeFilenamePart(folio);
   if (!sanitizedFolio) return "THÖREN";
-  return language === "en" ? `Purchase-Order-${sanitizedFolio}` : `Pedido-${sanitizedFolio}`;
+  return language === "en" ? `Purchase-Order-${sanitizedFolio}` : `Orden-de-Trabajo-${sanitizedFolio}`;
 }

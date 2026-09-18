@@ -184,7 +184,7 @@ export function NewDeliveryForm({ deliveryId, orderId, items }: { deliveryId: st
       <div>
         <Label>Partidas surtidas pendientes de entregar</Label>
         {deliverableItems.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-faint">Este Pedido no tiene partidas surtidas pendientes de entregar.</p>
+          <p className="mt-2 text-sm text-ink-faint">Esta Orden de Trabajo no tiene partidas surtidas pendientes de entregar.</p>
         ) : (
           <div className="mt-2 space-y-2">
             {deliverableItems.map((item) => (
@@ -199,7 +199,7 @@ export function NewDeliveryForm({ deliveryId, orderId, items }: { deliveryId: st
                   <p className="text-sm font-medium text-ink">{item.model}</p>
                   {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
                   <p className="text-xs text-ink-faint">
-                    Pedido: {formatNumber(item.ordered)} · Surtido: {formatNumber(item.fulfilled)} · Ya entregado:{" "}
+                    Orden de Trabajo: {formatNumber(item.ordered)} · Surtido: {formatNumber(item.fulfilled)} · Ya entregado:{" "}
                     {formatNumber(item.delivered)} · Pendiente: {formatNumber(item.pendingToDeliver)}
                     {item.unit ? ` ${item.unit}` : ""}
                   </p>

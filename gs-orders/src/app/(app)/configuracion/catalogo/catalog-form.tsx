@@ -300,7 +300,7 @@ export function CatalogForm({
               onChange={(e) => setActive(e.target.checked)}
               className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
             />
-            Activo (visible en Cotizaciones y Pedidos)
+            Activo (visible en Cotizaciones y Órdenes de Trabajo)
           </label>
         </CardContent>
       </Card>

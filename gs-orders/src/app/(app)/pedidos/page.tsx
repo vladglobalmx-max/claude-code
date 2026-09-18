@@ -163,13 +163,13 @@ export default async function PedidosPage({
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        title="Pedidos"
-        description="Pedidos internos de tu organización"
+        title="Órdenes de Trabajo"
+        description="Órdenes de Trabajo internas de tu organización"
         actions={
           <Link href="/pedidos/nuevo">
             <Button>
               <Plus className="h-4 w-4" />
-              Nuevo pedido
+              Nueva Orden de Trabajo
             </Button>
           </Link>
         }
@@ -186,8 +186,8 @@ export default async function PedidosPage({
         <Card>
           <EmptyState
             icon={FileText}
-            title="No hay pedidos que coincidan"
-            description="Ajusta la búsqueda o los filtros, o crea un nuevo pedido."
+            title="No hay Órdenes de Trabajo que coincidan"
+            description="Ajusta la búsqueda o los filtros, o crea una nueva Orden de Trabajo."
           />
         </Card>
       ) : (
@@ -218,22 +218,22 @@ export default async function PedidosPage({
                   {order.dueDateStatus && <DueDateStatusIndicator status={order.dueDateStatus} />}
                 </div>
                 <div className="mt-3 flex items-center gap-1 border-t border-border pt-2">
-                  <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver pedido">
+                  <Link href={`/pedidos/${order.id}`} className={iconLinkClass} aria-label="Ver Orden de Trabajo">
                     <Eye className="h-4 w-4" />
                   </Link>
                   {canWriteRecord(profile, order.salesperson_id) && (
-                    <Link href={`/pedidos/${order.id}/editar`} className={iconLinkClass} aria-label="Editar pedido">
+                    <Link href={`/pedidos/${order.id}/editar`} className={iconLinkClass} aria-label="Editar Orden de Trabajo">
                       <Pencil className="h-4 w-4" />
                     </Link>
                   )}
-                  <DuplicateButton orderId={order.id} className={iconLinkClass} aria-label="Duplicar pedido">
+                  <DuplicateButton orderId={order.id} className={iconLinkClass} aria-label="Duplicar Orden de Trabajo">
                     <Copy className="h-4 w-4" />
                   </DuplicateButton>
                   <Link href={`/pedidos/${order.id}/pdf`} target="_blank" className={iconLinkClass} aria-label="Ver PDF">
                     <Printer className="h-4 w-4" />
                   </Link>
                   {canWriteRecord(profile, order.salesperson_id) && (
-                    <DeleteButton orderId={order.id} folio={order.folio} className={iconButtonClass} aria-label="Eliminar pedido">
+                    <DeleteButton orderId={order.id} folio={order.folio} className={iconButtonClass} aria-label="Eliminar Orden de Trabajo">
                       <Trash2 className="h-4 w-4" />
                     </DeleteButton>
                   )}

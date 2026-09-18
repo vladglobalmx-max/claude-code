@@ -163,7 +163,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operación",
     items: [
-      { href: "/pedidos", label: "Pedidos", icon: FileText, adminOnly: false },
+      { href: "/pedidos", label: "Órdenes de Trabajo", icon: FileText, adminOnly: false },
       { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false },
     ],
   },

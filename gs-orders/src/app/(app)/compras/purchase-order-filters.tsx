@@ -29,7 +29,7 @@ export function PurchaseOrderFilters({
     <FilterBar
       searchValue={searchParams.get("q") ?? ""}
       onSearchChange={(value) => updateParam("q", value)}
-      searchPlaceholder="Buscar por folio, proveedor o Pedido…"
+      searchPlaceholder="Buscar por folio, proveedor u Orden de Trabajo…"
     >
       <Select
         className="w-auto"

@@ -174,7 +174,7 @@ export function ReservationRow({
       {row.isOrphaned && (
         <Badge variant="warning" className="mb-3">
           <AlertTriangle className="h-3 w-3" />
-          Reserva sin partida activa — el producto ya no está en las partidas de este Pedido
+          Reserva sin partida activa — el producto ya no está en las partidas de esta Orden de Trabajo
         </Badge>
       )}
 

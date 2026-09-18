@@ -118,7 +118,7 @@ describe("CustomFieldsRenderer (THÖREN 8B) — genérico, sin nombres de negoci
 describe("fieldRequirementSuffix (bug real: campo 'opcional' que bloqueaba Pedido)", () => {
   it("un campo required_before_order=true (required=false) NO se etiqueta como opcional — se comunica como requerido antes de Pedido", () => {
     const def = makeDef({ key: "projection_description", label: "¿Qué quiere proyectar el cliente?", required: false, requiredBeforeOrder: true });
-    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Pedido)");
+    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Orden de Trabajo)");
     expect(fieldRequirementSuffix(def)).not.toMatch(/opcional/i);
   });
 
@@ -134,7 +134,7 @@ describe("fieldRequirementSuffix (bug real: campo 'opcional' que bloqueaba Pedid
 
   it("genérico: funciona para cualquier key/label, no solo projection_description — sin hardcode vertical", () => {
     const def = makeDef({ key: "prioridad", label: "Prioridad", required: false, requiredBeforeOrder: true });
-    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Pedido)");
+    expect(fieldRequirementSuffix(def)).toBe(" (requerido antes de Orden de Trabajo)");
   });
 
   it("en el DOM: un campo required_before_order muestra el label correcto, nunca '(opcional)'", () => {
@@ -148,7 +148,7 @@ describe("fieldRequirementSuffix (bug real: campo 'opcional' que bloqueaba Pedid
         onChange={() => {}}
       />
     );
-    expect(screen.getByLabelText("¿Qué quiere proyectar el cliente? (requerido antes de Pedido)")).toBeTruthy();
+    expect(screen.getByLabelText("¿Qué quiere proyectar el cliente? (requerido antes de Orden de Trabajo)")).toBeTruthy();
     expect(container.textContent).not.toMatch(/opcional/i);
   });
 });

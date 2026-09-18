@@ -41,7 +41,7 @@ export default async function NecesidadesDeCompraPage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
         title="Necesidades de compra"
-        description="Faltantes detectados automáticamente al confirmar un Pedido — selecciona las que quieras cubrir con una Purchase Order."
+        description="Faltantes detectados automáticamente al confirmar una Orden de Trabajo — selecciona las que quieras cubrir con una Purchase Order."
       />
 
       {validRows.length === 0 ? (
@@ -49,7 +49,7 @@ export default async function NecesidadesDeCompraPage() {
           <EmptyState
             icon={ClipboardList}
             title="No hay necesidades de compra abiertas"
-            description="Cuando un Pedido confirmado no tenga stock suficiente, aparecerá aquí."
+            description="Cuando una Orden de Trabajo confirmada no tenga stock suficiente, aparecerá aquí."
           />
         </Card>
       ) : (

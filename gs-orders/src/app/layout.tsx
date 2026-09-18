@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "THÖREN",
-  description: "Gestión de pedidos, cotizaciones y compras",
+  description: "Gestión de órdenes de trabajo, cotizaciones y compras",
 };
 
 /** #23282B = Basalt (THÖREN_Manual_de_Marca.pdf, paleta oficial). */

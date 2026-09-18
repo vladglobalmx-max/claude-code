@@ -23,7 +23,7 @@ export function ObservacionesSection({
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="vendor-notes">Observaciones</Label>
-          <p className="mb-2 text-xs text-ink-faint">Este texto aparece de forma clara en el PDF del pedido.</p>
+          <p className="mb-2 text-xs text-ink-faint">Este texto aparece de forma clara en el PDF de la Orden de Trabajo.</p>
           <Textarea
             id="vendor-notes"
             rows={6}

@@ -92,7 +92,7 @@ export default async function VerPedidoPage({ params }: { params: { id: string }
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link href="/pedidos" className="flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink">
           <ArrowLeft className="h-4 w-4" />
-          Pedidos
+          Órdenes de Trabajo
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           {canWrite && <OrderStatusQuickActions order={detail.order} />}

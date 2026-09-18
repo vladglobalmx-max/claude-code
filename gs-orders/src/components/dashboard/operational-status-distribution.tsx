@@ -48,9 +48,9 @@ export function OperationalStatusDistribution({ breakdown }: { breakdown: Record
 
   return (
     <div>
-      <p className="text-xs font-medium text-ink-faint">Pedidos por seguimiento</p>
+      <p className="text-xs font-medium text-ink-faint">Órdenes de Trabajo por seguimiento</p>
       {total === 0 ? (
-        <p className="mt-4 text-sm text-ink-faint">Sin pedidos todavía.</p>
+        <p className="mt-4 text-sm text-ink-faint">Sin Órdenes de Trabajo todavía.</p>
       ) : (
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-4">
           {STATUS_ORDER.map((status) => (

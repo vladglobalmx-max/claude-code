@@ -181,7 +181,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
               <dd className="text-sm font-medium text-ink">{PURCHASE_ORDER_ORIGIN_LABELS[po.origin]}</dd>
             </div>
             <div>
-              <dt className="text-xs text-ink-faint">Pedido origen</dt>
+              <dt className="text-xs text-ink-faint">Orden de Trabajo origen</dt>
               <dd className="text-sm font-medium text-ink">
                 {order ? (
                   <Link href={`/pedidos/${order.id}`} className="font-mono text-accent hover:underline">

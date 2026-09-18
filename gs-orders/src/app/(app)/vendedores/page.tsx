@@ -52,7 +52,7 @@ export default async function VendedoresPage() {
           <EmptyState
             icon={Users}
             title="Todavía no hay vendedores"
-            description="Agrega el primer vendedor para poder generar pedidos."
+            description="Agrega el primer vendedor para poder generar Órdenes de Trabajo."
             action={
               <Link href="/vendedores/nuevo">
                 <Button>

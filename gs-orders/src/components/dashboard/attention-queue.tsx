@@ -58,7 +58,7 @@ export function AttentionQueue({
       <CardHeader className="flex items-center justify-between">
         <CardTitle>{title}</CardTitle>
         <Link href="/pedidos" className="text-xs font-medium text-accent hover:underline">
-          Ver todos los pedidos
+          Ver todas las Órdenes de Trabajo
         </Link>
       </CardHeader>
 
@@ -66,7 +66,7 @@ export function AttentionQueue({
         <EmptyState
           icon={AlertTriangle}
           title="Sin pendientes"
-          description="No hay pedidos activos esperando avanzar de estado."
+          description="No hay Órdenes de Trabajo activas esperando avanzar de estado."
         />
       ) : compact ? (
         <div className="divide-y divide-border">

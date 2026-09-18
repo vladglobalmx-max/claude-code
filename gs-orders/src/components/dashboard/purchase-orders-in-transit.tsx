@@ -37,7 +37,7 @@ export function PurchaseOrdersInTransit({ rows, totalCount }: { rows: PurchaseOr
               <div className="min-w-0">
                 <p className="truncate font-mono text-sm font-medium text-accent">{row.folio}</p>
                 <p className="mt-0.5 truncate text-xs text-ink-faint">
-                  {row.supplierName} · Pedido {row.orderFolio}
+                  {row.supplierName} · Orden de Trabajo {row.orderFolio}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">

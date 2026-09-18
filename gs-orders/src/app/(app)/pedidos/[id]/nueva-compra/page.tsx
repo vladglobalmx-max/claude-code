@@ -37,7 +37,7 @@ export default async function NuevaCompraPage({ params }: { params: { id: string
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <PageHeader title="Nueva Purchase Order" description={`Desde el Pedido ${detail.order.folio}`} />
+      <PageHeader title="Nueva Purchase Order" description={`Desde la Orden de Trabajo ${detail.order.folio}`} />
       <Card>
         <CardHeader>
           <CardTitle>Datos de la orden de compra</CardTitle>

@@ -88,7 +88,7 @@ export function NecesidadesList({ requirements, suppliers }: { requirements: Req
         <div className="flex items-center gap-3">
           {orderCount > 1 && (
             <p className="text-xs text-ink-faint">
-              Se crearán {orderCount} Purchase Orders porque actualmente cada PO pertenece a un solo Pedido.
+              Se crearán {orderCount} Purchase Orders porque actualmente cada PO pertenece a una sola Orden de Trabajo.
             </p>
           )}
           <Button type="button" loading={isPending} disabled={isPending} onClick={handleCreate}>
@@ -102,7 +102,7 @@ export function NecesidadesList({ requirements, suppliers }: { requirements: Req
           <Thead>
             <Tr>
               <Th />
-              <Th>Pedido</Th>
+              <Th>Orden de Trabajo</Th>
               <Th>Producto</Th>
               <Th>Proveedor sugerido</Th>
               <Th>Falta cubrir</Th>

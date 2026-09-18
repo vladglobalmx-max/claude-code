@@ -14,10 +14,10 @@ export function OrdersByBusinessUnit({ rows, monthLabel }: { rows: BusinessUnitO
 
   return (
     <div>
-      <p className="text-xs font-medium text-ink-faint">Pedidos por Business Unit · {monthLabel}</p>
+      <p className="text-xs font-medium text-ink-faint">Órdenes de Trabajo por Business Unit · {monthLabel}</p>
       <div className="mt-4 space-y-3">
         {rows.length === 0 ? (
-          <p className="text-sm text-ink-faint">Sin pedidos con Business Unit asignada este mes.</p>
+          <p className="text-sm text-ink-faint">Sin Órdenes de Trabajo con Business Unit asignada este mes.</p>
         ) : (
           rows.map((row) => {
             const pct = total > 0 ? Math.round((row.count / total) * 100) : 0;

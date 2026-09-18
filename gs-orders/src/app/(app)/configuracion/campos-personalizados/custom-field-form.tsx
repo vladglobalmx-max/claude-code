@@ -14,7 +14,7 @@ import type { CustomFieldFormState } from "./actions";
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   product: "Producto",
   quote_item: "Producto de cotización",
-  order_item: "Producto de pedido",
+  order_item: "Producto de Orden de Trabajo",
 };
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
@@ -152,7 +152,7 @@ export function CustomFieldForm({
           placeholder="Ej. Printing technique"
         />
         <p className="mt-1 text-xs text-ink-faint">
-          Solo se usa en el PDF de Pedido cuando la Business Unit lo genera para Proveedor en otro idioma (ej.
+          Solo se usa en el PDF de Orden de Trabajo cuando la Business Unit lo genera para Proveedor en otro idioma (ej.
           inglés). Si se deja vacío, ese documento usa la Etiqueta de arriba tal cual — nunca se traduce
           automáticamente.
         </p>
@@ -223,7 +223,7 @@ export function CustomFieldForm({
             defaultChecked={definition?.requiredBeforeOrder ?? false}
             className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
           />
-          Obligatorio antes de Pedido
+          Obligatorio antes de Orden de Trabajo
         </label>
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <input

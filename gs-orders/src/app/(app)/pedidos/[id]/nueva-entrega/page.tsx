@@ -71,7 +71,7 @@ export default async function NuevaEntregaPage({ params }: { params: { id: strin
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <PageHeader title="Nueva entrega" description={`Desde el Pedido ${detail.order.folio}`} />
+      <PageHeader title="Nueva entrega" description={`Desde la Orden de Trabajo ${detail.order.folio}`} />
       <Card>
         <CardHeader>
           <CardTitle>Datos de la entrega</CardTitle>

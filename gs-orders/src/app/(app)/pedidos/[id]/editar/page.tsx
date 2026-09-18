@@ -234,7 +234,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
   return (
     <div>
       <div className="mx-auto max-w-3xl px-6 pt-6">
-        <h1 className="text-lg font-semibold text-ink">Editar pedido</h1>
+        <h1 className="text-lg font-semibold text-ink">Editar Orden de Trabajo</h1>
         <p className="mt-0.5 text-sm text-ink-faint">
           El folio, el vendedor y la fecha ya son definitivos y no se pueden modificar.
         </p>
@@ -250,7 +250,7 @@ export default async function EditarPedidoPage({ params }: { params: { id: strin
         initialState={initialState}
         folio={typedOrder.folio}
         canChooseSalesperson={profile.role === "admin"}
-        submitLabel={{ draft: "Guardar cambios", order: "Guardar y marcar como Pedido" }}
+        submitLabel={{ draft: "Guardar cambios", order: "Guardar y marcar como Orden de Trabajo" }}
         onSubmit={updateOrder}
       />
     </div>

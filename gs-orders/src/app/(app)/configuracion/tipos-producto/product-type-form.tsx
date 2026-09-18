@@ -35,7 +35,7 @@ export function ProductTypeForm({
       <div>
         <Label htmlFor="name">Nombre</Label>
         <Input id="name" name="name" required defaultValue={productType?.name} placeholder="Iluminación Industrial" />
-        <p className="mt-1 text-xs text-ink-faint">Texto que se muestra en Nuevo Pedido, Ver Pedido y el PDF.</p>
+        <p className="mt-1 text-xs text-ink-faint">Texto que se muestra en Nueva Orden de Trabajo, Ver Orden de Trabajo y el PDF.</p>
       </div>
 
       {isEdit ? (
@@ -66,7 +66,7 @@ export function ProductTypeForm({
           defaultChecked={productType?.active ?? true}
           className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
         />
-        Activo (visible en Nuevo Pedido)
+        Activo (visible en Nueva Orden de Trabajo)
       </label>
 
       {state?.error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{state.error}</p>}

@@ -63,7 +63,7 @@ export async function DeliveriesSection({
       </CardHeader>
       <CardContent>
         {deliveries.length === 0 ? (
-          <EmptyState icon={PackageCheck} title="Sin entregas" description="Este Pedido todavía no tiene entregas registradas." />
+          <EmptyState icon={PackageCheck} title="Sin entregas" description="Esta Orden de Trabajo todavía no tiene entregas registradas." />
         ) : (
           <Table>
             <Thead>

@@ -55,7 +55,7 @@ export function RevisarSection({
       {editableStatus && (
         <Card>
           <CardHeader>
-            <CardTitle>Estado del pedido</CardTitle>
+            <CardTitle>Estado de la Orden de Trabajo</CardTitle>
           </CardHeader>
           <CardContent>
             <Label htmlFor="status">Estado</Label>

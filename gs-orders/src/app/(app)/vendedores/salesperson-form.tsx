@@ -63,7 +63,7 @@ export function SalespersonForm({
           defaultValue={salesperson?.sequence_current ?? 0}
         />
         <p className="mt-1 text-xs text-ink-faint">
-          El siguiente pedido de este vendedor usará el consecutivo {" "}
+          La siguiente Orden de Trabajo de este vendedor usará el consecutivo {" "}
           <span className="font-medium text-ink-soft">
             {(salesperson?.sequence_current ?? 0) + 1}
           </span>

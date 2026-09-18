@@ -26,12 +26,12 @@ describe("buildQuotePdfFilename", () => {
 });
 
 describe("buildOrderPdfFilename (THÖREN — bug de PDF con título 'THÖREN')", () => {
-  it('arma "Pedido-{FOLIO}" para usarlo como document.title', () => {
-    expect(buildOrderPdfFilename("KST-20261009-010")).toBe("Pedido-KST-20261009-010");
+  it('arma "Orden-de-Trabajo-{FOLIO}" para usarlo como document.title', () => {
+    expect(buildOrderPdfFilename("KST-20261009-010")).toBe("Orden-de-Trabajo-KST-20261009-010");
   });
 
   it("sanitiza el folio antes de usarlo", () => {
-    expect(buildOrderPdfFilename('KST/2026"010')).toBe("Pedido-KST2026010");
+    expect(buildOrderPdfFilename('KST/2026"010')).toBe("Orden-de-Trabajo-KST2026010");
   });
 
   it("cae a THÖREN si el folio queda vacío tras sanitizar — nunca al literal folio ausente", () => {
@@ -50,7 +50,7 @@ describe("buildOrderPdfFilename (THÖREN — bug de PDF con título 'THÖREN')",
     expect(filename).toContain("KST-20261009-010");
   });
 
-  it('sin idioma (default) sigue siendo "Pedido-{FOLIO}" — el default no cambia comportamiento existente', () => {
-    expect(buildOrderPdfFilename("KST-20261009-010")).toBe("Pedido-KST-20261009-010");
+  it('sin idioma (default) sigue siendo "Orden-de-Trabajo-{FOLIO}" — el default no cambia comportamiento existente', () => {
+    expect(buildOrderPdfFilename("KST-20261009-010")).toBe("Orden-de-Trabajo-KST-20261009-010");
   });
 });

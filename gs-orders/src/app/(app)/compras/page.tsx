@@ -96,7 +96,7 @@ export default async function ComprasPage({
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
         title="Compras"
-        description="Purchase Orders generadas desde los Pedidos, por proveedor."
+        description="Purchase Orders generadas desde las Órdenes de Trabajo, por proveedor."
         actions={
           <div className="flex items-center gap-3">
             <IncludeTestDataToggle />
@@ -118,7 +118,7 @@ export default async function ComprasPage({
           <EmptyState
             icon={Package}
             title="No hay Purchase Orders que coincidan"
-            description="Ajusta la búsqueda o los filtros, o crea una desde el detalle de un Pedido."
+            description="Ajusta la búsqueda o los filtros, o crea una desde el detalle de una Orden de Trabajo."
           />
         </Card>
       ) : (
@@ -164,7 +164,7 @@ export default async function ComprasPage({
                 <Tr>
                   <Th>Folio</Th>
                   <Th>Proveedor</Th>
-                  <Th>Pedido</Th>
+                  <Th>Orden de Trabajo</Th>
                   <Th>Business Unit</Th>
                   <Th>Estado</Th>
                   <Th>Fecha compromiso</Th>

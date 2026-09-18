@@ -18,7 +18,7 @@ export default function PedidosError({ error, reset }: { error: Error & { digest
     <div className="mx-auto max-w-3xl px-6 py-16">
       <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
         <AlertTriangle className="h-8 w-8 text-danger" />
-        <p className="text-sm font-medium text-ink">No se pudo cargar esta sección de Pedidos</p>
+        <p className="text-sm font-medium text-ink">No se pudo cargar esta sección de Órdenes de Trabajo</p>
         <p className="max-w-sm text-sm text-ink-faint">
           Ocurrió un error inesperado. Puedes intentar de nuevo; si el problema continúa, contacta a soporte.
         </p>

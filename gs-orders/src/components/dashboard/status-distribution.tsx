@@ -18,11 +18,11 @@ export function StatusDistribution({ breakdown }: { breakdown: Record<OrderStatu
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pedidos por estado — este mes</CardTitle>
+        <CardTitle>Órdenes de Trabajo por estado — este mes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {total === 0 ? (
-          <p className="text-sm text-ink-faint">Sin pedidos este mes todavía.</p>
+          <p className="text-sm text-ink-faint">Sin Órdenes de Trabajo este mes todavía.</p>
         ) : (
           STATUS_ORDER.map((status) => {
             const count = breakdown[status];

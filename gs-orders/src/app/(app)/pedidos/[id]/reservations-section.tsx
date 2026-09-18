@@ -150,7 +150,7 @@ export async function ReservationsSection({
           <EmptyState
             icon={Boxes}
             title="Sin productos de catálogo"
-            description="Este Pedido no tiene partidas vinculadas al Catálogo de Productos — solo esas se pueden reservar."
+            description="Esta Orden de Trabajo no tiene partidas vinculadas al Catálogo de Productos — solo esas se pueden reservar."
           />
         ) : (
           rows.map((row) => (

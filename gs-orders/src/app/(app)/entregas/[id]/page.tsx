@@ -89,7 +89,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
     <div className="mx-auto max-w-3xl px-6 py-8">
       <Link href={`/pedidos/${delivery.order_id}`} className="mb-6 flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink">
         <ArrowLeft className="h-4 w-4" />
-        Pedido {order?.folio ?? "—"}
+        Orden de Trabajo {order?.folio ?? "—"}
       </Link>
 
       <PageHeader

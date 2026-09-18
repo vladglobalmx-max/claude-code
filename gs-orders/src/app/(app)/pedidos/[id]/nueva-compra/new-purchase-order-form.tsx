@@ -146,7 +146,7 @@ export function NewPurchaseOrderForm({
       </div>
 
       <div>
-        <Label>Partidas del Pedido {orderFolio}</Label>
+        <Label>Partidas de la Orden de Trabajo {orderFolio}</Label>
         <div className="mt-2 space-y-2">
           {items.map((item) => (
             <div key={item.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
@@ -160,7 +160,7 @@ export function NewPurchaseOrderForm({
                 <p className="text-sm font-medium text-ink">{item.model}</p>
                 {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
                 <p className="text-xs text-ink-faint">
-                  Cantidad en el Pedido: {item.quantity}
+                  Cantidad en la Orden de Trabajo: {item.quantity}
                   {item.unit ? ` ${item.unit}` : ""}
                 </p>
               </div>

@@ -71,7 +71,7 @@ export default async function EntregasPage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Entregas" description="Entregas e instalaciones registradas desde los Pedidos." />
+      <PageHeader title="Entregas" description="Entregas e instalaciones registradas desde las Órdenes de Trabajo." />
 
       <DeliveryFilters businessUnits={businessUnits} />
 
@@ -80,7 +80,7 @@ export default async function EntregasPage({
           <EmptyState
             icon={PackageCheck}
             title="No hay entregas que coincidan"
-            description="Ajusta la búsqueda o los filtros, o crea una desde el detalle de un Pedido."
+            description="Ajusta la búsqueda o los filtros, o crea una desde el detalle de una Orden de Trabajo."
           />
         </Card>
       ) : (
@@ -115,7 +115,7 @@ export default async function EntregasPage({
               <Thead>
                 <Tr>
                   <Th>Entrega</Th>
-                  <Th>Pedido</Th>
+                  <Th>Orden de Trabajo</Th>
                   <Th>Cliente</Th>
                   <Th>Business Unit</Th>
                   <Th>Tipo</Th>

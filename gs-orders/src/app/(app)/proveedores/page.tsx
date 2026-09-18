@@ -37,7 +37,7 @@ export default async function ProveedoresPage({ searchParams }: { searchParams: 
     <div className="mx-auto max-w-5xl px-6 py-8">
       <PageHeader
         title="Proveedores"
-        description="Proveedores de la organización, para generar Purchase Orders desde los Pedidos."
+        description="Proveedores de la organización, para generar Purchase Orders desde las Órdenes de Trabajo."
         actions={
           <Link href="/proveedores/nuevo">
             <Button>

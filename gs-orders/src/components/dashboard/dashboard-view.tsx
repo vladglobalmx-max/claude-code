@@ -109,8 +109,8 @@ export function DashboardView({ data }: { data: DashboardData }) {
           <div className="rounded-xl border border-border bg-surface">
             <EmptyState
               icon={ClipboardList}
-              title="Todavía no hay pedidos"
-              description="En cuanto se cree el primer pedido, aquí aparecerá el resumen operativo."
+              title="Todavía no hay Órdenes de Trabajo"
+              description="En cuanto se cree la primera Orden de Trabajo, aquí aparecerá el resumen operativo."
             />
           </div>
         </div>
@@ -137,13 +137,13 @@ export function DashboardView({ data }: { data: DashboardData }) {
   // DECISIÓN arriba), reordenados por role+capabilities vía buildKpiOrder().
   const kpiByid: Record<(typeof KPI_IDS)[number], HeroKpi> = {
     "pedidos-mes": {
-      label: "Pedidos del mes",
+      label: "Órdenes de Trabajo del mes",
       value: formatNumber(data.monthOrderCount),
       trend: monthTrend ? { label: `${monthTrend} vs. mes anterior`, positive: !monthTrend.startsWith("-") } : null,
       icon: FileText,
     },
     "pedidos-activos": {
-      label: "Pedidos activos",
+      label: "Órdenes de Trabajo activas",
       value: formatNumber(data.activeOperationalOrderCount),
       helper: "En el pipeline operativo",
       icon: ClipboardList,
@@ -162,7 +162,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       // UNIDADES (committedUnitsTotal), no un conteo de productos/pedidos.
       label: "Unidades comprometidas",
       value: formatNumber(data.committedUnitsTotal),
-      helper: "Reservadas para pedidos activos",
+      helper: "Reservadas para Órdenes de Trabajo activas",
       icon: Boxes,
     },
     "ordenes-compra-abiertas": {

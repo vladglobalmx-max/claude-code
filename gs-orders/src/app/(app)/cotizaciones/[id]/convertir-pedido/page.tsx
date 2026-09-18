@@ -54,7 +54,7 @@ export default async function ConvertirPedidoPage({ params }: { params: { id: st
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Convertir a pedido</CardTitle>
+          <CardTitle className="text-base">Convertir a Orden de Trabajo</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -77,8 +77,8 @@ export default async function ConvertirPedidoPage({ params }: { params: { id: st
           </div>
 
           <p className="text-sm text-ink-faint">
-            El pedido se creará como borrador con folio nuevo. Precios, descuentos e IVA no se copian — Orders no
-            maneja montos. Los datos de proyector/GOBO se capturan después, en Editar Pedido.
+            La Orden de Trabajo se creará como borrador con folio nuevo. Precios, descuentos e IVA no se copian — Orders no
+            maneja montos. Los datos de proyector/GOBO se capturan después, en Editar Orden de Trabajo.
           </p>
 
           <ConvertQuoteForm quoteId={quote.id} productTypes={productTypes} />

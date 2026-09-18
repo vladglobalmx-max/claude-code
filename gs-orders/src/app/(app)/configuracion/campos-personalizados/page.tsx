@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   product: "Producto",
   quote_item: "Producto de cotización",
-  order_item: "Producto de pedido",
+  order_item: "Producto de Orden de Trabajo",
 };
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
@@ -60,7 +60,7 @@ export default async function CamposPersonalizadosPage() {
           <EmptyState
             icon={SlidersHorizontal}
             title="Todavía no hay campos personalizados"
-            description="Agrega el primero para capturarlo en Pedidos, Cotizaciones o el Catálogo."
+            description="Agrega el primero para capturarlo en Órdenes de Trabajo, Cotizaciones o el Catálogo."
             action={
               <Link href="/configuracion/campos-personalizados/nuevo">
                 <Button>

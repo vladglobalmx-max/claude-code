@@ -108,7 +108,7 @@ export default async function NuevaOrdenDeCompraPage() {
       <div className="mx-auto max-w-3xl px-6 pt-6">
         <h1 className="text-lg font-semibold text-ink">Nueva Orden de Compra</h1>
         <p className="mt-1 text-sm text-ink-faint">
-          Compra directa — sin Pedido, sin Sales Order ni Requisición de origen (stock, compra interna, muestras,
+          Compra directa — sin Orden de Trabajo, sin Sales Order ni Requisición de origen (stock, compra interna, muestras,
           refacciones/mantenimiento, equipo, proyecto especial).
         </p>
       </div>

@@ -144,7 +144,7 @@ export default async function CatalogoPage({ searchParams }: { searchParams: Cat
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <PageHeader title="Catálogo de productos" description="Productos y servicios disponibles para Cotizaciones y Pedidos." />
+      <PageHeader title="Catálogo de productos" description="Productos y servicios disponibles para Cotizaciones y Órdenes de Trabajo." />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <CatalogFilters businessUnits={businessUnits} productTypes={productTypes} />
@@ -182,7 +182,7 @@ export default async function CatalogoPage({ searchParams }: { searchParams: Cat
           <EmptyState
             icon={Package}
             title="Todavía no hay productos en el catálogo"
-            description="Agrega el primer producto para poder seleccionarlo en Cotizaciones y Pedidos."
+            description="Agrega el primer producto para poder seleccionarlo en Cotizaciones y Órdenes de Trabajo."
             action={
               <Link href="/configuracion/catalogo/nuevo">
                 <Button>
@@ -248,7 +248,7 @@ export default async function CatalogoPage({ searchParams }: { searchParams: Cat
 function CatalogLoadError() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <PageHeader title="Catálogo de productos" description="Productos y servicios disponibles para Cotizaciones y Pedidos." />
+      <PageHeader title="Catálogo de productos" description="Productos y servicios disponibles para Cotizaciones y Órdenes de Trabajo." />
       <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
         <AlertTriangle className="h-8 w-8 text-danger" />
         <p className="text-sm font-medium text-ink">No se pudo cargar el catálogo</p>

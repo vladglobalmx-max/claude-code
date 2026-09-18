@@ -168,7 +168,7 @@ export default async function InventarioDetallePage({ params }: { params: { id: 
                 <Tr>
                   <Th>Purchase Order</Th>
                   <Th>Proveedor</Th>
-                  <Th>Pedido origen</Th>
+                  <Th>Orden de Trabajo origen</Th>
                   <Th>Pendiente</Th>
                   <Th>Fecha compromiso</Th>
                   <Th>Fecha estimada</Th>

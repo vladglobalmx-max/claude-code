@@ -40,7 +40,7 @@ export function DeleteButton({
         return;
       }
       setOpen(false);
-      toast.success(`Pedido ${folio} eliminado`);
+      toast.success(`Orden de Trabajo ${folio} eliminada`);
       router.refresh();
     });
   }
@@ -54,7 +54,7 @@ export function DeleteButton({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Eliminar pedido {folio}</DialogTitle>
+          <DialogTitle>Eliminar Orden de Trabajo {folio}</DialogTitle>
           <DialogDescription>
             Esta acción no se puede deshacer: se eliminarán también sus productos, fotos y archivos adjuntos.
           </DialogDescription>

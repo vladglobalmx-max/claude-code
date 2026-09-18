@@ -109,7 +109,7 @@ export function ReplaceItemsForm({
               <p className="text-sm font-medium text-ink">{item.model}</p>
               {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
               <p className="text-xs text-ink-faint">
-                Cantidad en el Pedido: {item.quantity}
+                Cantidad en la Orden de Trabajo: {item.quantity}
                 {item.unit ? ` ${item.unit}` : ""}
               </p>
               {supplierRef && <p className="text-xs text-ink-faint">Referencia proveedor: {supplierRef}</p>}

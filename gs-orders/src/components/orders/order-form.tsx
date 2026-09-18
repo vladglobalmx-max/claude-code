@@ -117,7 +117,7 @@ export function OrderForm({
   initialState,
   folio,
   canChooseSalesperson = true,
-  submitLabel = { draft: "Guardar borrador", order: "Generar pedido" },
+  submitLabel = { draft: "Guardar borrador", order: "Generar Orden de Trabajo" },
   onSubmit,
 }: {
   orderId: string;

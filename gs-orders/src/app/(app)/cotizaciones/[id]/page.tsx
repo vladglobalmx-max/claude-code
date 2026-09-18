@@ -62,7 +62,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
               href={`/pedidos/${linkedOrder.id}`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Ver pedido {linkedOrder.folio}
+              Ver Orden de Trabajo {linkedOrder.folio}
             </Link>
           ) : (
             !isHistorical &&
@@ -71,7 +71,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                 href={`/cotizaciones/${quote.id}/convertir-pedido`}
                 className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
               >
-                Convertir a pedido
+                Convertir a Orden de Trabajo
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )

@@ -38,7 +38,7 @@ export function ConvertQuoteForm({ quoteId, productTypes }: { quoteId: string; p
       </div>
 
       <Button type="button" loading={isPending} disabled={isPending} onClick={handleSubmit} className="w-full">
-        Crear pedido
+        Crear Orden de Trabajo
         <ArrowRight className="h-3.5 w-3.5" />
       </Button>
     </div>

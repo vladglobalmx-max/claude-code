@@ -61,7 +61,7 @@ export async function PurchaseOrdersSection({ orderId, canPrepare }: { orderId: 
       </CardHeader>
       <CardContent>
         {purchaseOrders.length === 0 ? (
-          <EmptyState icon={Package} title="Sin Purchase Orders" description="Este Pedido todavía no tiene compras generadas." />
+          <EmptyState icon={Package} title="Sin Purchase Orders" description="Esta Orden de Trabajo todavía no tiene compras generadas." />
         ) : (
           <Table>
             <Thead>

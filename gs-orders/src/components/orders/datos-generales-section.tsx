@@ -84,7 +84,7 @@ export function DatosGeneralesSection({
           )}
           {locked && <p className="mt-1 text-xs text-ink-faint">La fecha y el vendedor ya generaron el folio; no se pueden cambiar.</p>}
           {!locked && !canChooseSalesperson && (
-            <p className="mt-1 text-xs text-ink-faint">El pedido se genera a tu nombre automáticamente.</p>
+            <p className="mt-1 text-xs text-ink-faint">La Orden de Trabajo se genera a tu nombre automáticamente.</p>
           )}
         </div>
 

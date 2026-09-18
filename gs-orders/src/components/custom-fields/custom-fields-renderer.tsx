@@ -23,7 +23,7 @@ import type { CustomFieldDefinition } from "@/lib/custom-fields/types";
  */
 export function fieldRequirementSuffix(definition: CustomFieldDefinition): string {
   if (definition.required) return "";
-  if (definition.requiredBeforeOrder) return " (requerido antes de Pedido)";
+  if (definition.requiredBeforeOrder) return " (requerido antes de Orden de Trabajo)";
   return " (opcional)";
 }
 

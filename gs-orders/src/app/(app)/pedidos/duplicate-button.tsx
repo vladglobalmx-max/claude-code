@@ -28,10 +28,10 @@ export function DuplicateButton({
         startTransition(async () => {
           try {
             const { id } = await duplicateOrder(orderId);
-            toast.success("Pedido duplicado");
+            toast.success("Orden de Trabajo duplicada");
             router.push(`/pedidos/${id}`);
           } catch {
-            toast.error("No se pudo duplicar el pedido");
+            toast.error("No se pudo duplicar la Orden de Trabajo");
           }
         })
       }

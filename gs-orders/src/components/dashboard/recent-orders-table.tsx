@@ -19,7 +19,7 @@ export function RecentOrdersTable({ orders }: { orders: RecentOrderRow[] }) {
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>Pedidos recientes</CardTitle>
+        <CardTitle>Órdenes de Trabajo recientes</CardTitle>
         <Link href="/pedidos" className="text-xs font-medium text-accent hover:underline">
           Ver todos
         </Link>
@@ -28,7 +28,7 @@ export function RecentOrdersTable({ orders }: { orders: RecentOrderRow[] }) {
         <EmptyState
           icon={FileText}
           title="Sin actividad reciente"
-          description="Los últimos pedidos creados aparecerán aquí."
+          description="Las últimas Órdenes de Trabajo creadas aparecerán aquí."
         />
       ) : (
         <div className="divide-y divide-border">

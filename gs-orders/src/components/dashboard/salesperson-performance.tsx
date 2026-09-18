@@ -19,7 +19,7 @@ export function SalespersonPerformance({ rows }: { rows: SalespersonBreakdownRow
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.length === 0 ? (
-          <p className="text-sm text-ink-faint">Sin pedidos este mes todavía.</p>
+          <p className="text-sm text-ink-faint">Sin Órdenes de Trabajo este mes todavía.</p>
         ) : (
           rows.map((row) => {
             const pct = maxCount > 0 ? Math.round((row.count / maxCount) * 100) : 0;

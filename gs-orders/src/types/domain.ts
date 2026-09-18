@@ -153,9 +153,9 @@ export type OrderStatus = "borrador" | "pedido" | "cerrado" | "cancelado";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   borrador: "Borrador",
-  pedido: "Pedido",
-  cerrado: "Cerrado",
-  cancelado: "Cancelado",
+  pedido: "Confirmada",
+  cerrado: "Cerrada",
+  cancelado: "Cancelada",
 };
 
 export const ORDER_STATUS_BADGE: Record<OrderStatus, "neutral" | "accent" | "success" | "danger"> = {
@@ -186,14 +186,14 @@ export type OrderOperationalStatus =
   | "cancelado";
 
 export const ORDER_OPERATIONAL_STATUS_LABELS: Record<OrderOperationalStatus, string> = {
-  pedido: "Pedido",
+  pedido: "Confirmada",
   en_proceso: "En proceso",
   ordenado_a_proveedor: "Ordenado a proveedor",
   en_transito: "En tránsito",
   recibido: "Recibido",
   programado_entrega_instalacion: "Programado para entrega/instalación",
   completado: "Completado",
-  cancelado: "Cancelado",
+  cancelado: "Cancelada",
 };
 
 export const ORDER_OPERATIONAL_STATUS_BADGE: Record<
@@ -1196,7 +1196,7 @@ export const PURCHASE_ORDER_DIRECT_REASON_LABELS: Record<PurchaseOrderDirectReas
 };
 
 export const PURCHASE_ORDER_ORIGIN_LABELS: Record<PurchaseOrderOrigin, string> = {
-  pedido: "Pedido",
+  pedido: "Orden de Trabajo",
   requisicion: "Requisición",
   directa: "Compra directa",
 };
@@ -1330,7 +1330,7 @@ export const INVENTORY_MOVEMENT_TYPE_LABELS: Record<InventoryMovementType, strin
   ajuste_positivo: "Ajuste positivo",
   ajuste_negativo: "Ajuste negativo",
   correccion_recepcion: "Corrección de recepción",
-  surtido_pedido: "Surtido de Pedido",
+  surtido_pedido: "Surtido de Orden de Trabajo",
   surtido_venta: "Surtido de Sales Order",
 };
 

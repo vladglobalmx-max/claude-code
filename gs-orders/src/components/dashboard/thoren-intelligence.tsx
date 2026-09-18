@@ -33,15 +33,15 @@ export function buildThorenInsights(data: {
 }): { headline: string; insights: ThorenInsight[] } {
   const headline =
     data.criticalAttentionCount > 0
-      ? `${formatNumber(data.criticalAttentionCount)} pedido${
-          data.criticalAttentionCount === 1 ? "" : "s"
-        } requiere${data.criticalAttentionCount === 1 ? "" : "n"} atención inmediata.`
+      ? `${formatNumber(data.criticalAttentionCount)} ${
+          data.criticalAttentionCount === 1 ? "Orden de Trabajo requiere" : "Órdenes de Trabajo requieren"
+        } atención inmediata.`
       : "Tu operación no presenta alertas críticas en este momento.";
 
   const insights: ThorenInsight[] = [
     {
       value: data.criticalAttentionCount,
-      text: data.criticalAttentionCount === 1 ? "pedido crítico" : "pedidos críticos",
+      text: data.criticalAttentionCount === 1 ? "Orden de Trabajo crítica" : "Órdenes de Trabajo críticas",
       icon: AlertTriangle,
       iconColorClassName: data.criticalAttentionCount > 0 ? "bg-danger/15 text-danger" : "bg-white/10 text-sidebar-ink-soft",
     },

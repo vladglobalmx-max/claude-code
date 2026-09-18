@@ -350,7 +350,7 @@ export async function convertQuoteToOrder(quoteId: string, productType: string):
   });
 
   if (error || !order) {
-    return { error: mapDbError(error, "No se pudo convertir la cotización a pedido. Intenta de nuevo.") };
+    return { error: mapDbError(error, "No se pudo convertir la cotización a Orden de Trabajo. Intenta de nuevo.") };
   }
 
   revalidatePath("/cotizaciones");
@@ -428,14 +428,14 @@ export async function deleteQuote(quoteId: string): Promise<QuoteActionResult> {
     .select("id", { count: "exact", head: true })
     .eq("source_quote_id", quoteId);
   if (count) {
-    return { error: "No se puede eliminar esta cotización porque ya tiene un pedido asociado." };
+    return { error: "No se puede eliminar esta cotización porque ya tiene una Orden de Trabajo asociada." };
   }
 
   const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
 
   if (error) {
     if (error.code === "23503") {
-      return { error: "No se puede eliminar esta cotización porque ya tiene un pedido asociado." };
+      return { error: "No se puede eliminar esta cotización porque ya tiene una Orden de Trabajo asociada." };
     }
     return { error: mapDbError(error, "No se pudo eliminar la cotización. Intenta de nuevo.") };
   }

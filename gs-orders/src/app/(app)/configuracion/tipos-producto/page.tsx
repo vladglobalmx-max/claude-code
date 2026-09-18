@@ -21,7 +21,7 @@ export default async function TiposProductoPage() {
         <div>
           <h1 className="text-lg font-semibold text-ink">Tipos de producto</h1>
           <p className="mt-0.5 text-sm text-ink-faint">
-            Se usan en &ldquo;Tipo de producto&rdquo; al crear un pedido. Desactivar uno no afecta pedidos ya creados.
+            Se usan en &ldquo;Tipo de producto&rdquo; al crear una Orden de Trabajo. Desactivar uno no afecta Órdenes de Trabajo ya creadas.
           </p>
         </div>
         <Link href="/configuracion/tipos-producto/nuevo">
@@ -37,7 +37,7 @@ export default async function TiposProductoPage() {
           <EmptyState
             icon={Tags}
             title="Todavía no hay tipos de producto"
-            description="Agrega el primer tipo para poder seleccionarlo al crear pedidos."
+            description="Agrega el primer tipo para poder seleccionarlo al crear Órdenes de Trabajo."
             action={
               <Link href="/configuracion/tipos-producto/nuevo">
                 <Button>

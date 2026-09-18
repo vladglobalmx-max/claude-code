@@ -61,7 +61,7 @@ export default async function ConfiguracionPage() {
               >
                 <span className="flex items-center gap-2">
                   <Tags className="h-4 w-4 text-ink-faint" />
-                  Administrar el &ldquo;Tipo de producto&rdquo; de Nuevo Pedido
+                  Administrar el &ldquo;Tipo de producto&rdquo; de Nueva Orden de Trabajo
                 </span>
                 <ChevronRight className="h-4 w-4 text-ink-faint" />
               </Link>

@@ -3401,6 +3401,17 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["purchase_order_items"]["Row"][];
       };
+      // THÖREN — Eliminación segura de Orden de Compra (0082). SECURITY
+      // DEFINER — admin OR can_prepare_purchase_orders (verificado dentro
+      // del RPC). Solo status borrador/cancelada, sin goods_receipts/
+      // quantity_received/inventory_movements asociados. Borra partidas y
+      // encabezado en una sola transacción implícita.
+      rpc_delete_purchase_order: {
+        Args: {
+          p_purchase_order_id: string;
+        };
+        Returns: undefined;
+      };
       // THÖREN — Supplier Product References (0066) — SECURITY INVOKER,
       // ADMIN-only (verificado dentro del RPC). Reemplaza atómicamente el
       // conjunto completo de referencias de proveedor de un producto —

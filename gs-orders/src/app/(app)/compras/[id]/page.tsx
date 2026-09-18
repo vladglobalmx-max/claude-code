@@ -26,6 +26,7 @@ import { PurchaseOrderStatusActions } from "./status-actions";
 import { PurchaseOrderDetailsForm } from "./details-form";
 import { ReplaceItemsForm } from "./replace-items-form";
 import { RefreshSupplierReferencesButton } from "./refresh-supplier-references-button";
+import { DeletePurchaseOrderButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,14 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
   const orderItems = (orderItemsData ?? []) as OrderItem[];
   const missingReferenceCount = items.filter(isMissingSupplierReference).length;
   const canCreateReceipt = canCreatePurchaseOrderReceipt(profile, capabilities, po.status);
+  // THÖREN — Eliminación segura de Orden de Compra (0082). Misma autoridad
+  // que preparación (admin o can_prepare_purchase_orders) + status
+  // borrador/cancelada — mismo guard que rpc_delete_purchase_order, solo
+  // para decidir si se OFRECE el botón; los bloqueos reales por
+  // goods_receipts/quantity_received/inventory_movements los da el RPC
+  // (nunca se pre-consultan aquí, mismo criterio que el resto de acciones
+  // de esta página).
+  const canDelete = canPrepare && (po.status === "borrador" || po.status === "cancelada");
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -144,6 +153,7 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
               Recibir mercancía
             </Link>
           )}
+          {canDelete && <DeletePurchaseOrderButton purchaseOrderId={po.id} folio={po.folio} />}
         </div>
       </div>
 

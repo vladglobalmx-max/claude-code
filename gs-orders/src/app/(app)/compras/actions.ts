@@ -202,3 +202,25 @@ export async function refreshPurchaseOrderSupplierReferences(purchaseOrderId: st
 
   revalidatePath(`/compras/${purchaseOrderId}`);
 }
+
+/**
+ * THÖREN — Eliminación segura de Orden de Compra (0082). Admin OR
+ * can_prepare_purchase_orders (misma autoridad que crear/preparar) — el
+ * RPC (rpc_delete_purchase_order) es quien decide de verdad: solo status
+ * borrador/cancelada, sin goods_receipts/quantity_received/inventory_
+ * movements asociados. Esta Server Action no gatea nada por su cuenta,
+ * solo traduce el error y redirige tras el éxito.
+ */
+export async function deletePurchaseOrder(purchaseOrderId: string): Promise<PurchaseOrderActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_delete_purchase_order", {
+    p_purchase_order_id: purchaseOrderId,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo eliminar la Orden de Compra. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/compras");
+  redirect("/compras");
+}

@@ -4003,6 +4003,43 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["commission_records"]["Row"];
       };
+      // THÖREN 0083 — SECURITY DEFINER, requiere can_view_own_commissions
+      // (SIN atajo de admin). Única vía de lectura de comisiones para un
+      // vendedor: sin SELECT directo sobre commission_records posible
+      // (commission_records_select no tiene rama de dueño). Resuelve
+      // organización/vendedor internamente — sin parámetros — y devuelve
+      // exclusivamente las comisiones cuya salesperson_id sea la propia,
+      // con columnas fijas que NUNCA incluyen tasa/base/elegible/pagado.
+      rpc_list_own_commissions: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          sales_order_id: string;
+          sales_order_folio: string;
+          customer_name: string | null;
+          commission_amount: number;
+          currency: string;
+          status: string;
+          created_at: string;
+        }[];
+      };
+      // THÖREN 0083 — mismo criterio que rpc_list_own_commissions, para una
+      // sola comisión por id. Devuelve 0 filas (nunca una excepción) si la
+      // comisión no existe o pertenece a otro vendedor — mismo criterio de
+      // no-disclosure que un 404 vía RLS.
+      rpc_get_own_commission: {
+        Args: { p_commission_id: string };
+        Returns: {
+          id: string;
+          sales_order_id: string;
+          sales_order_folio: string;
+          customer_name: string | null;
+          commission_amount: number;
+          currency: string;
+          status: string;
+          created_at: string;
+        }[];
+      };
       // THÖREN Customer Contacts (0021) — SECURITY INVOKER, transacción
       // única: inserta el Customer y todos sus contactos; si cualquier
       // contacto falla, revierte el Customer también. organization_id se

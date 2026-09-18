@@ -133,6 +133,24 @@ export function canManageCommissions(profile: CapabilityProfile | null, capabili
 }
 
 /**
+ * Consultar en solo lectura las PROPIAS comisiones (THÖREN 0083) —
+ * capability separada de canManageCommissions, nunca la reemplaza ni se
+ * combina con ella aquí (cada página decide su propia rama admin vs.
+ * vendedor). Igual que canManageCommissions, SIN atajo de admin: la
+ * autoridad depende únicamente de tener la capability activa, nunca del
+ * rol — espeja current_user_has_own_commission_view_authority() (0083).
+ * Esto NO es autorización de lectura por sí sola: la RLS de
+ * commission_records_select (0083) exige ADEMÁS
+ * salesperson_id = current_user_salesperson_id() — este helper solo decide
+ * si la app debe intentar la rama de "vista propia" (nav/UI), la fila real
+ * la sigue acotando la base de datos.
+ */
+export function canViewOwnCommissions(profile: CapabilityProfile | null, capabilities: ReadonlySet<string>): boolean {
+  if (!profile || !profile.active) return false;
+  return capabilities.has("can_view_own_commissions");
+}
+
+/**
  * Eliminar permanentemente una operación de prueba (Test Data / Purga,
  * 0077) — mismo guard que rpc_purge_test_sales_order: admin O
  * can_purge_test_operations, SIN rama de ownership (Dirección General

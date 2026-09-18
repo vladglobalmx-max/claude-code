@@ -33,6 +33,14 @@ function isUserManagerAllowedConfigPath(pathname: string): boolean {
  * sobre RLS (el ticket pide explícitamente "proteger con RLS/capability,
  * no solo ocultar UI") — bloquea el render de la página completa antes de
  * que RLS siquiera entre en juego.
+ *
+ * THÖREN 0083 — vista propia de solo lectura para vendedor: can_view_own_commissions
+ * ahora también pasa el chequeo de /comisiones y /comisiones/[id] (RLS,
+ * 0083, sigue acotando a las filas propias del vendedor). /comisiones/nueva
+ * es la ÚNICA subruta que se queda exclusiva de can_manage_commissions —
+ * crear una comisión es autoridad de gestión, nunca de la vista propia de
+ * solo lectura (la propia página /comisiones/nueva ya se autoprotege
+ * igual, esto es la misma defensa en profundidad a nivel de ruta).
  */
 
 /**
@@ -112,14 +120,21 @@ export async function middleware(request: NextRequest) {
     // admin sin can_manage_commissions se redirige exactamente igual que
     // un vendedor.
     if (request.nextUrl.pathname.startsWith("/comisiones")) {
-      const { data: capability } = await supabase
+      const { data: commissionCapabilities } = await supabase
         .from("user_capabilities")
         .select("capability")
         .eq("user_id", user.id)
-        .eq("capability", "can_manage_commissions")
-        .eq("active", true)
-        .maybeSingle();
-      if (!capability) {
+        .in("capability", ["can_manage_commissions", "can_view_own_commissions"])
+        .eq("active", true);
+
+      const grantedCapabilities = new Set((commissionCapabilities ?? []).map((row) => row.capability));
+      const canManage = grantedCapabilities.has("can_manage_commissions");
+      const canViewOwn = grantedCapabilities.has("can_view_own_commissions");
+
+      const requiresManageOnly = request.nextUrl.pathname.startsWith("/comisiones/nueva");
+      const allowed = requiresManageOnly ? canManage : canManage || canViewOwn;
+
+      if (!allowed) {
         return NextResponse.redirect(new URL("/pedidos", request.url));
       }
     }

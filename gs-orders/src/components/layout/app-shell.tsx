@@ -18,6 +18,7 @@ export function AppShell({
   role,
   canManageUsers,
   canManageCommissions,
+  canViewOwnCommissions,
   name,
   email,
   organizationName,
@@ -26,6 +27,8 @@ export function AppShell({
   role: UserRole;
   canManageUsers: boolean;
   canManageCommissions: boolean;
+  /** THÖREN 0083 — vista propia de solo lectura de comisiones (vendedor). */
+  canViewOwnCommissions: boolean;
   name: string;
   email: string | null;
   organizationName: string;
@@ -53,6 +56,7 @@ export function AppShell({
         role={role}
         canManageUsers={canManageUsers}
         canManageCommissions={canManageCommissions}
+        canViewOwnCommissions={canViewOwnCommissions}
         organizationName={organizationName}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}

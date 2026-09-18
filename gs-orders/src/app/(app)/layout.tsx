@@ -3,7 +3,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { getCurrentOrganizationName } from "@/lib/auth/organization";
 import { canManageUsers as canManageUsersGuard } from "@/lib/auth/user-management";
-import { canManageCommissions as canManageCommissionsGuard } from "@/lib/auth/logistics";
+import { canManageCommissions as canManageCommissionsGuard, canViewOwnCommissions as canViewOwnCommissionsGuard } from "@/lib/auth/logistics";
 import { AppShell } from "@/components/layout/app-shell";
 
 /**
@@ -40,6 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       role={profile.role}
       canManageUsers={canManageUsersGuard(profile, capabilities)}
       canManageCommissions={canManageCommissionsGuard(profile, capabilities)}
+      canViewOwnCommissions={canViewOwnCommissionsGuard(profile, capabilities)}
       name={profile.name}
       email={profile.email}
       organizationName={organizationName}

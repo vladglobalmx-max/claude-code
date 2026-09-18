@@ -23,6 +23,7 @@ export function Sidebar({
   role,
   canManageUsers,
   canManageCommissions,
+  canViewOwnCommissions,
   organizationName,
   collapsed,
   onToggleCollapsed,
@@ -32,6 +33,8 @@ export function Sidebar({
   role: UserRole;
   canManageUsers: boolean;
   canManageCommissions: boolean;
+  /** THÖREN 0083 — vista propia de solo lectura de comisiones (vendedor). Ver DECISIÓN en nav-config.ts. */
+  canViewOwnCommissions: boolean;
   /** THÖREN 7B — nombre real de la organización activa (ver src/lib/auth/organization.ts), nunca hardcodeado. */
   organizationName: string;
   collapsed: boolean;
@@ -92,14 +95,17 @@ export function Sidebar({
 
           <nav className="mt-5 flex-1 space-y-4 overflow-y-auto px-3">
             {NAV_GROUPS.map((group, groupIndex) => {
-              // THÖREN 0073 (ajuste post-review) — `commissionsOnly` ignora
-              // por completo `adminOnly`/rol: se resuelve ANTES y en vez
-              // de la lógica normal, para que un admin sin
-              // can_manage_commissions NO vea la entrada (a diferencia de
-              // `visibleForUserManager`, que es una excepción ADICIONAL a
-              // "admin siempre ve adminOnly", no un reemplazo).
+              // THÖREN 0073 (ajuste post-review) / 0083 — `commissionsOnly`
+              // ignora por completo `adminOnly`/rol: se resuelve ANTES y en
+              // vez de la lógica normal, para que un admin sin ninguna de
+              // las dos capabilities de comisiones NO vea la entrada (a
+              // diferencia de `visibleForUserManager`, que es una
+              // excepción ADICIONAL a "admin siempre ve adminOnly", no un
+              // reemplazo). can_manage_commissions (gestión) y
+              // can_view_own_commissions (0083, solo lectura propia) son
+              // alternativas — cualquiera de las dos muestra la entrada.
               const items = group.items.filter((item) => {
-                if (item.commissionsOnly) return canManageCommissions;
+                if (item.commissionsOnly) return canManageCommissions || canViewOwnCommissions;
                 return !item.adminOnly || role === "admin" || (item.visibleForUserManager && canManageUsers);
               });
               if (items.length === 0) return null;

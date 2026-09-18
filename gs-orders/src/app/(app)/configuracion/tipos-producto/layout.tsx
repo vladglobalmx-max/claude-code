@@ -14,7 +14,7 @@ export default async function TiposProductoLayout({ children }: { children: Reac
   const profile = await getCurrentProfile();
 
   if (!profile || !profile.active || profile.role !== "admin") {
-    redirect("/pedidos");
+    redirect("/inicio");
   }
 
   return <>{children}</>;

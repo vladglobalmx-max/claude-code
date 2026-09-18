@@ -1,53 +1,38 @@
-import Link from "next/link";
-import { AlertTriangle, ClipboardList } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Briefcase, Package, PackageCheck, FileText, ClipboardList } from "lucide-react";
+import { DashboardHero } from "./dashboard-hero";
+import { DashboardQuickActions } from "./dashboard-quick-actions";
+import { DashboardBlockSection } from "./dashboard-block-section";
+import { DashboardAttentionPanel } from "./dashboard-attention-panel";
+import { DashboardTodayPanel } from "./dashboard-today-panel";
 import { DashboardMetricCard } from "./dashboard-metric-card";
-import type { AttentionSeverity, DashboardCard, RoleDashboardData } from "./get-role-dashboard-data";
-
-const SEVERITY_BADGE_VARIANT: Record<AttentionSeverity, "danger" | "warning" | "neutral"> = {
-  vencido: "danger",
-  atencion: "warning",
-  pendiente: "neutral",
-};
-
-const SEVERITY_LABEL: Record<AttentionSeverity, string> = {
-  vencido: "Vencido",
-  atencion: "Atención",
-  pendiente: "Pendiente",
-};
-
-function CardGrid({ cards }: { cards: DashboardCard[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {cards.map((card) => (
-        <DashboardMetricCard key={card.label} {...card} />
-      ))}
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-faint">{children}</h2>;
-}
+import type { RoleDashboardData } from "./get-role-dashboard-data";
 
 /**
- * THÖREN 0084 — Dashboard de Inicio por rol. Presentación pura: toda la
- * lógica de qué sección aplica ya se resolvió en get-role-dashboard-data.ts
- * (isAdmin/isCompras/isLogistica no excluyentes entre sí — ticket, punto
- * 5). Sin gráficas (alcance explícito del ticket): solo tarjetas de
- * conteo con link al módulo y la lista "Requiere atención" (solo Admin).
+ * THÖREN 0085 — rediseño visual del dashboard de Inicio (0084). Presentación
+ * pura: toda la lógica de qué sección aplica ya se resolvió en
+ * get-role-dashboard-data.ts. Sin gráficas (alcance explícito del ticket).
+ *
+ * Distribución (ticket, punto 4): Admin usa el layout completo de Command
+ * Center — hero, quick actions, grid 65/35 (bloques + atención a la
+ * izquierda, "Hoy" a la derecha). El resto de personas (Vendedor/Compras/
+ * Logística) no tienen "Requiere atención" ni panel "Hoy" en el alcance de
+ * este ticket (ninguno de los dos existía para ellas en V1 tampoco) — se
+ * quedan con hero + quick actions + sus bloques en una sola columna.
  */
 export function RoleDashboardView({ data }: { data: RoleDashboardData }) {
   const {
     name,
+    timezone,
     isAdmin,
     isCompras,
     isLogistica,
-    adminCards,
+    canCreatePurchaseOrder,
+    heroKpis,
+    adminComercialCards,
+    adminComprasCards,
+    adminOperacionCards,
     attentionItems,
+    todayPanel,
     vendorCards,
     comprasCards,
     logisticaCards,
@@ -57,79 +42,64 @@ export function RoleDashboardView({ data }: { data: RoleDashboardData }) {
 
   if (hasError) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
-          <AlertTriangle className="h-8 w-8 text-danger" />
-          <p className="text-sm font-medium text-ink">No se pudo cargar el dashboard completo</p>
-          <p className="max-w-sm text-sm text-ink-faint">Ocurrió un error leyendo la información. Intenta recargar la página en unos momentos.</p>
+      <div>
+        <DashboardHero name={name} timezone={timezone} kpis={[]} />
+        <div className="mx-auto max-w-3xl px-6 py-16">
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
+            <AlertTriangle className="h-8 w-8 text-danger" />
+            <p className="text-sm font-medium text-ink">No se pudo cargar el dashboard completo</p>
+            <p className="max-w-sm text-sm text-ink-faint">Ocurrió un error leyendo la información. Intenta recargar la página en unos momentos.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <PageHeader title="Inicio" description={name ? `Hola, ${name}` : undefined} />
+    <div>
+      <DashboardHero name={name} timezone={timezone} kpis={heroKpis} />
 
-      <div className="space-y-8">
-        {isAdmin && adminCards && (
-          <section>
-            <SectionTitle>Resumen general</SectionTitle>
-            <CardGrid cards={adminCards} />
-          </section>
-        )}
+      <div className="mx-auto max-w-[1440px] px-6 py-8 sm:px-10">
+        <div className="mb-8">
+          <DashboardQuickActions canCreatePurchaseOrder={canCreatePurchaseOrder} />
+        </div>
 
-        {!isAdmin && vendorCards && (
-          <section>
-            <SectionTitle>Mi resumen</SectionTitle>
-            <CardGrid cards={vendorCards} />
-          </section>
-        )}
+        {isAdmin ? (
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0 space-y-8">
+              <div className="space-y-8">
+                {adminComercialCards && <DashboardBlockSection title="Comercial" icon={Briefcase} cards={adminComercialCards} />}
+                {adminComprasCards && <DashboardBlockSection title="Compras" icon={Package} cards={adminComprasCards} />}
+                {adminOperacionCards && <DashboardBlockSection title="Operación" icon={PackageCheck} cards={adminOperacionCards} />}
+              </div>
 
-        {isCompras && comprasCards && (
-          <section>
-            <SectionTitle>Compras</SectionTitle>
-            <CardGrid cards={comprasCards} />
-          </section>
-        )}
+              <section>
+                <div className="mb-3 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-ink-faint" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Requiere atención</h2>
+                </div>
+                <DashboardAttentionPanel items={attentionItems} />
+              </section>
+            </div>
 
-        {isLogistica && logisticaCards && (
-          <section>
-            <SectionTitle>Logística</SectionTitle>
-            <CardGrid cards={logisticaCards} />
-          </section>
-        )}
-
-        <section>
-          <SectionTitle>Órdenes de Trabajo</SectionTitle>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            <DashboardMetricCard label="Órdenes de Trabajo activas" count={activeWorkOrdersCount} href="/pedidos" />
+            <div className="lg:sticky lg:top-6 lg:self-start">{todayPanel && <DashboardTodayPanel items={todayPanel} />}</div>
           </div>
-        </section>
+        ) : (
+          <div className="space-y-8">
+            {vendorCards && <DashboardBlockSection title="Mi resumen" icon={Briefcase} cards={vendorCards} />}
+            {isCompras && comprasCards && <DashboardBlockSection title="Compras" icon={Package} cards={comprasCards} />}
+            {isLogistica && logisticaCards && <DashboardBlockSection title="Logística" icon={PackageCheck} cards={logisticaCards} />}
 
-        {isAdmin && (
-          <section>
-            <SectionTitle>Requiere atención</SectionTitle>
-            {attentionItems.length === 0 ? (
-              <Card>
-                <EmptyState icon={ClipboardList} title="Nada requiere atención por ahora" description="Los pendientes urgentes de todo el pipeline aparecerán aquí." />
-              </Card>
-            ) : (
-              <Card className="divide-y divide-border overflow-hidden">
-                {attentionItems.map((item) => (
-                  <Link key={item.id} href={item.href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2/50">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-ink">{item.label}</p>
-                      <p className="truncate text-xs text-ink-faint">{item.description}</p>
-                    </div>
-                    <Badge variant={SEVERITY_BADGE_VARIANT[item.severity]} className="shrink-0">
-                      {SEVERITY_LABEL[item.severity]}
-                    </Badge>
-                  </Link>
-                ))}
-              </Card>
-            )}
-          </section>
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-ink-faint" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Órdenes de Trabajo</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <DashboardMetricCard label="Órdenes de Trabajo activas" count={activeWorkOrdersCount} href="/pedidos" icon={FileText} compact />
+              </div>
+            </section>
+          </div>
         )}
       </div>
     </div>

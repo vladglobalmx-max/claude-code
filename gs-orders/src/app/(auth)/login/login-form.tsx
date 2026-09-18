@@ -31,7 +31,7 @@ export function LoginForm() {
       return;
     }
 
-    const redirectTo = searchParams.get("redirectTo") || "/pedidos";
+    const redirectTo = searchParams.get("redirectTo") || "/inicio";
     router.push(redirectTo);
     router.refresh();
   }

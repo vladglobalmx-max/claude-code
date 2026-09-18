@@ -20,12 +20,12 @@ import { canManageUsers } from "@/lib/auth/user-management";
 export default async function ConfiguracionLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
   if (!profile || !profile.active) {
-    redirect("/pedidos");
+    redirect("/inicio");
   }
 
   const capabilities = await getCurrentCapabilities(profile.userId);
   if (!canManageUsers(profile, capabilities)) {
-    redirect("/pedidos");
+    redirect("/inicio");
   }
 
   return <>{children}</>;

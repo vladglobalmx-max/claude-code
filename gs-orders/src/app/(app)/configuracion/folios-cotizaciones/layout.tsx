@@ -14,7 +14,7 @@ export default async function FoliosCotizacionesLayout({ children }: { children:
   const profile = await getCurrentProfile();
 
   if (!profile || !profile.active || profile.role !== "admin") {
-    redirect("/pedidos");
+    redirect("/inicio");
   }
 
   return <>{children}</>;

@@ -111,7 +111,7 @@ export async function middleware(request: NextRequest) {
         allowed = !!capability;
       }
       if (!allowed) {
-        return NextResponse.redirect(new URL("/pedidos", request.url));
+        return NextResponse.redirect(new URL("/inicio", request.url));
       }
     }
 
@@ -135,13 +135,13 @@ export async function middleware(request: NextRequest) {
       const allowed = requiresManageOnly ? canManage : canManage || canViewOwn;
 
       if (!allowed) {
-        return NextResponse.redirect(new URL("/pedidos", request.url));
+        return NextResponse.redirect(new URL("/inicio", request.url));
       }
     }
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/pedidos", request.url));
+    return NextResponse.redirect(new URL("/inicio", request.url));
   }
 
   return response;

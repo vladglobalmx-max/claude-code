@@ -6,7 +6,7 @@ export default async function CamposPersonalizadosLayout({ children }: { childre
   const profile = await getCurrentProfile();
 
   if (!profile || !profile.active || profile.role !== "admin") {
-    redirect("/pedidos");
+    redirect("/inicio");
   }
 
   return <>{children}</>;

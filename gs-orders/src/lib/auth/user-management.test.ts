@@ -230,10 +230,10 @@ describe("[19] admin pleno conserva comportamiento actual", () => {
 });
 
 describe("[20] vendedor normal sin capability sigue sin entrar a Usuarios", () => {
-  it("canManageUsers=false → configuracion/layout.tsx redirige a /pedidos, igual que antes de 4B", () => {
+  it("canManageUsers=false → configuracion/layout.tsx redirige a /inicio, igual que antes de 4B", () => {
     const vendedor = profile();
     expect(canManageUsers(vendedor, NONE)).toBe(false);
-    expect(configuracionLayoutSource).toContain('redirect("/pedidos")');
+    expect(configuracionLayoutSource).toContain('redirect("/inicio")');
   });
 });
 

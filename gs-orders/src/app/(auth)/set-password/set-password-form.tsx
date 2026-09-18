@@ -114,7 +114,7 @@ export function SetPasswordForm() {
       return;
     }
 
-    router.push("/pedidos");
+    router.push("/inicio");
     router.refresh();
   }
 

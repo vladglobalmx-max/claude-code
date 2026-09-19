@@ -10,6 +10,7 @@
 //
 //   SUPABASE_URL=https://xxxx.supabase.co \
 //   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+//   SITE_URL=https://thoren.mx \
 //   node scripts/provision-organization.mjs \
 //     --org-name "Acme Corp" \
 //     --org-slug "acme-corp" \
@@ -28,10 +29,15 @@
 // vacío. currency debe ser exactamente MXN o USD (mismo dominio que
 // sales_orders/quotes) — rpc_provision_organization lo valida en DB.
 //
-// Variable opcional SITE_URL: si se define, se usa como redirectTo del
-// correo de invitación (mismo mecanismo que createUserAccess en
-// configuracion/usuarios/actions.ts). Si se omite, GoTrue usa el Site URL
-// configurado en el proyecto de Supabase.
+// SITE_URL es OBLIGATORIA (antes era opcional — ese fue exactamente el bug
+// que dejaba la invitación cayendo al login en vez de /set-password): se usa
+// como redirectTo del correo de invitación (mismo mecanismo que
+// createUserAccess en configuracion/usuarios/actions.ts, cuyo getSiteUrl()
+// SIEMPRE arma redirectTo sin condicionarlo a ninguna env var — esta env var
+// es el equivalente de ese helper para un script de línea de comandos, que
+// no tiene acceso a los headers de una petición HTTP). Sin ella, GoTrue cae
+// a su Site URL default configurado en el proyecto de Supabase, que apunta
+// al login — nunca a /set-password.
 //
 // QUÉ HACE:
 //   1) Crea/invita el usuario de Auth del primer admin (GoTrue envía el
@@ -82,9 +88,13 @@ export function validateArgs(args) {
 async function main() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SITE_URL = process.env.SITE_URL;
 
-  if (!SUPABASE_URL || !SERVICE_KEY) {
-    console.error("Faltan variables de entorno. Requeridas: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.");
+  if (!SUPABASE_URL || !SERVICE_KEY || !SITE_URL) {
+    console.error("Faltan variables de entorno. Requeridas: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL.");
+    console.error(
+      "SITE_URL es obligatoria (antes era opcional): sin ella, la invitación cae al Site URL default de Supabase Auth (login) en vez de /set-password."
+    );
     process.exit(1);
   }
 
@@ -100,7 +110,7 @@ async function main() {
   });
 
   console.log(`Creando usuario de Auth para ${args["admin-email"]}...`);
-  const inviteOptions = process.env.SITE_URL ? { redirectTo: `${process.env.SITE_URL}/set-password` } : undefined;
+  const inviteOptions = { redirectTo: `${SITE_URL}/set-password` };
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     args["admin-email"],
     inviteOptions

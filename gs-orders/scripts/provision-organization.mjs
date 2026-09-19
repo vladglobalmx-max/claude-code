@@ -16,7 +16,17 @@
 //     --admin-email admin@acme.com \
 //     --admin-name "Jane Doe" \
 //     --bu-name "Acme Principal" \
-//     --bu-code "acme_principal"
+//     --bu-code "acme_principal" \
+//     --trade-name "Acme" \
+//     --tax-id "ACM010101AAA" \
+//     --currency USD \
+//     --timezone "America/Mexico_City"
+//
+// --trade-name/--tax-id/--currency/--timezone son OPCIONALES (THÖREN 0084):
+// trade_name/tax_id quedan NULL si se omiten; currency cae a MXN; timezone
+// cae al default de la columna (America/Monterrey) si se omite o viene
+// vacío. currency debe ser exactamente MXN o USD (mismo dominio que
+// sales_orders/quotes) — rpc_provision_organization lo valida en DB.
 //
 // Variable opcional SITE_URL: si se define, se usa como redirectTo del
 // correo de invitación (mismo mecanismo que createUserAccess en
@@ -26,19 +36,23 @@
 // QUÉ HACE:
 //   1) Crea/invita el usuario de Auth del primer admin (GoTrue envía el
 //      correo de invitación real — mismo flujo que createUserAccess).
-//   2) Llama a rpc_provision_organization() (0052, restringida a
+//   2) Llama a rpc_provision_organization() (0052/0084, restringida a
 //      service_role) que crea, en UNA sola transacción de Postgres: la
-//      organización, user_profiles (admin), organization_members (admin),
-//      la Business Unit inicial, y la Person del admin — todo o nada.
+//      organización (incluidos trade_name/tax_id/currency/timezone),
+//      user_profiles (admin), organization_members (admin), la Business
+//      Unit inicial, y la Person del admin — todo o nada.
 //   3) Si el paso 2 falla, revierte el usuario de Auth creado en el paso 1
 //      (mismo patrón de compensación que insertProfileAndMembershipOrCompensate)
 //      — nunca deja un tenant a medias.
 //
-// QUÉ NO HACE (fuera de alcance de 7B, a propósito):
+// QUÉ NO HACE (fuera de alcance, a propósito):
 //   No crea almacenes ni configuración de folios de cotización (no son
 //   obligatorios para operar). No resuelve la restricción de dominio de
 //   correo (7C). No expone ningún endpoint HTTP. No construye un panel de
-//   administración — es una herramienta de línea de comandos.
+//   administración — es una herramienta de línea de comandos. No configura
+//   módulos habilitados por organización (0084) — la organización nueva
+//   nace con TODOS los módulos toggleables habilitados (default-on); el
+//   propio admin nuevo los ajusta después desde Configuración → Organización.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -102,6 +116,10 @@ async function main() {
   const { data, error } = await admin.rpc("rpc_provision_organization", {
     p_organization_name: args["org-name"],
     p_organization_slug: args["org-slug"],
+    p_trade_name: args["trade-name"] ?? null,
+    p_tax_id: args["tax-id"] ?? null,
+    p_currency: args["currency"] ?? "MXN",
+    p_timezone: args["timezone"] ?? null,
     p_admin_user_id: authUserId,
     p_admin_name: args["admin-name"],
     p_admin_email: args["admin-email"],

@@ -778,6 +778,15 @@ export interface Database {
           id: string;
           name: string;
           slug: string;
+          // THÖREN 0084 — editables por el Admin de la organización vía
+          // Configuración → Organización (rpc_update_organization_settings).
+          // name/slug/active NO son editables por el Admin (ver DECISIÓN en
+          // 0084_organization_modules.sql) — active queda reservado a
+          // plataforma/service_role.
+          trade_name: string | null;
+          tax_id: string | null;
+          // THÖREN 0084 — mismo dominio que sales_orders/quotes ('MXN' | 'USD').
+          currency: string;
           // THÖREN Fase 7C (0053) — NOT NULL, DEFAULT 'America/Monterrey'.
           // IANA timezone identifier (ej. "America/Mexico_City") — usado por
           // business-date.ts para calcular la fecha/hora de negocio de ESTA
@@ -791,6 +800,9 @@ export interface Database {
           id?: string;
           name: string;
           slug: string;
+          trade_name?: string | null;
+          tax_id?: string | null;
+          currency?: string;
           timezone?: string;
           active?: boolean;
           created_at?: string;
@@ -798,6 +810,39 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["organizations"]["Insert"]>;
         Relationships: [];
+      };
+      organization_modules: {
+        Row: {
+          organization_id: string;
+          // THÖREN 0084 — solo los 14 module_key toggleables (ver CHECK en
+          // 0084_organization_modules.sql y TOGGLEABLE_MODULE_KEYS en
+          // src/lib/organization-modules.ts). inicio/configuracion/
+          // unidades_negocio/personas/vendedores nunca aparecen aquí.
+          module_key: string;
+          // Default-on: la ausencia de fila significa habilitado. Solo
+          // existe fila cuando enabled = false (ver rpc_set_organization_module,
+          // que BORRA la fila al reactivar en vez de poner enabled = true).
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          module_key: string;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organization_modules"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "organization_modules_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       organization_members: {
         Row: {
@@ -4152,6 +4197,24 @@ export interface Database {
       current_user_organization_id: {
         Args: Record<string, never>;
         Returns: string | null;
+      };
+      // THÖREN 0084 — único camino de escritura a organizations para un
+      // Admin de organización (no hay policy RLS de UPDATE en la tabla).
+      // Resuelve la organización internamente vía current_user_organization_id();
+      // solo toca trade_name/tax_id/currency/timezone — name/slug/active
+      // quedan fuera de alcance (active reservado a plataforma/service_role).
+      rpc_update_organization_settings: {
+        Args: { p_trade_name: string | null; p_tax_id: string | null; p_currency: string; p_timezone: string };
+        Returns: Database["public"]["Tables"]["organizations"]["Row"];
+      };
+      // THÖREN 0084 — único camino de escritura a organization_modules (no
+      // hay policy RLS de INSERT/UPDATE/DELETE en la tabla). p_enabled = true
+      // BORRA la fila (restaura el default-on); p_enabled = false la crea/
+      // actualiza. Lanza excepción si p_module_key no es uno de los 14
+      // toggleables (los siempre-disponibles nunca se pueden deshabilitar).
+      rpc_set_organization_module: {
+        Args: { p_module_key: string; p_enabled: boolean };
+        Returns: undefined;
       };
       // THÖREN Core 1 — actualización atómica de role/active en
       // user_profiles + organization_members (ver 0013). Lanza excepción

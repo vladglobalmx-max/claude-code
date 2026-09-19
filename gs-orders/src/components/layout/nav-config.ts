@@ -17,12 +17,23 @@ import {
   Home,
   type LucideIcon,
 } from "lucide-react";
+import type { ToggleableModuleKey } from "@/lib/organization-modules";
 
 export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
   adminOnly: boolean;
+  /**
+   * THÖREN 0084 — Multiempresa: módulos habilitados por organización.
+   * Ausente = infraestructura administrativa siempre disponible (Inicio/
+   * Configuración/Unidades de Negocio/Personas/Vendedores) — nunca se
+   * oculta por configuración de organización, solo por rol/capability
+   * (arriba). Presente = el ítem además exige que ESTE module_key esté
+   * habilitado para la organización activa (organization_modules,
+   * default-on) — ver sidebar.tsx.
+   */
+  moduleKey?: ToggleableModuleKey;
   /**
    * THÖREN 6R.1B-4B — excepción ESTRECHA a `adminOnly`: además de un admin
    * pleno, un titular de can_manage_users también puede ver esta entrada.
@@ -160,6 +171,17 @@ export interface NavGroup {
  * destino del link a /configuracion/usuarios directamente rompería ese
  * acceso. Se preserva el comportamiento actual exacto (guardrail: no
  * rediseñar contenido interno de Configuración).
+ *
+ * THÖREN 0084 — Multiempresa: `moduleKey` (ver NavItem arriba) es una
+ * capa ADICIONAL de filtrado, independiente de `adminOnly`/capabilities:
+ * "módulo visible = módulo habilitado para la organización + usuario con
+ * acceso suficiente" (regla del ticket). Un ítem con `moduleKey` se oculta
+ * si `organization_modules` lo tiene deshabilitado para la organización
+ * activa, SIN IMPORTAR el rol/capability del usuario — ni un admin ve un
+ * módulo que su propia organización desactivó. Inicio/Configuración/
+ * Unidades de Negocio/Personas/Vendedores NUNCA llevan `moduleKey` —son
+ * infraestructura administrativa siempre disponible, la organización no
+ * puede apagarlos (ver `organization_modules_module_key_check`, 0084).
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -169,24 +191,25 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operación",
     items: [
-      { href: "/pedidos", label: "Órdenes de Trabajo", icon: FileText, adminOnly: false },
-      { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false },
+      { href: "/pedidos", label: "Órdenes de Trabajo", icon: FileText, adminOnly: false, moduleKey: "ordenes_trabajo" },
+      { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false, moduleKey: "entregas" },
     ],
   },
   {
     label: "Comercial",
     items: [
-      { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false },
-      { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false },
-      { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false },
-      { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false },
-      { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false },
+      { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false, moduleKey: "clientes" },
+      { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false, moduleKey: "cotizaciones" },
+      { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false, moduleKey: "ordenes_venta" },
+      { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false, moduleKey: "surtidos" },
+      { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false, moduleKey: "facturas" },
       {
         href: "/comisiones",
         label: "Comisiones",
         icon: Percent,
         adminOnly: false,
         commissionsOnly: true,
+        moduleKey: "comisiones",
       },
       { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
@@ -195,17 +218,17 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Compras",
     items: [
-      { href: "/compras", label: "Compras", icon: Package, adminOnly: false },
-      { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false },
-      { href: "/recepciones", label: "Recepciones de Mercancía", icon: PackageCheck, adminOnly: false },
-      { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false },
+      { href: "/compras", label: "Compras", icon: Package, adminOnly: false, moduleKey: "compras" },
+      { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false, moduleKey: "requisiciones" },
+      { href: "/recepciones", label: "Recepciones de Mercancía", icon: PackageCheck, adminOnly: false, moduleKey: "recepciones" },
+      { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false, moduleKey: "proveedores" },
     ],
   },
   {
     label: "Inventario",
     items: [
-      { href: "/inventario", label: "Inventario", icon: Boxes, adminOnly: false },
-      { href: "/almacenes", label: "Almacenes", icon: Building2, adminOnly: false },
+      { href: "/inventario", label: "Inventario", icon: Boxes, adminOnly: false, moduleKey: "inventario" },
+      { href: "/almacenes", label: "Almacenes", icon: Building2, adminOnly: false, moduleKey: "almacenes" },
     ],
   },
   {

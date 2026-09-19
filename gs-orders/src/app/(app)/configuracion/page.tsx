@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Hash, Package, SlidersHorizontal, Tags, Users } from "lucide-react";
+import { Building2, ChevronRight, Hash, Package, SlidersHorizontal, Tags, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -25,7 +25,7 @@ export default async function ConfiguracionPage() {
         title="Configuración"
         description={
           admin
-            ? "Catálogo, tipos de producto, folios de cotización y usuarios de THÖREN."
+            ? "Organización, catálogo, tipos de producto, folios de cotización y usuarios de THÖREN."
             : "Administración de usuarios de THÖREN."
         }
       />
@@ -33,6 +33,24 @@ export default async function ConfiguracionPage() {
       {admin && (
         <>
           <Card>
+            <CardHeader>
+              <CardTitle>Organización</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/configuracion/organizacion"
+                className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm text-ink transition-colors hover:bg-surface-2"
+              >
+                <span className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-ink-faint" />
+                  Nombre comercial, RFC, moneda, zona horaria y módulos habilitados
+                </span>
+                <ChevronRight className="h-4 w-4 text-ink-faint" />
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
             <CardHeader>
               <CardTitle>Catálogo de productos</CardTitle>
             </CardHeader>

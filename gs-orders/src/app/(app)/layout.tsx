@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
-import { getCurrentOrganizationName } from "@/lib/auth/organization";
+import { getCurrentOrganizationName, getDisabledModules } from "@/lib/auth/organization";
 import { canManageUsers as canManageUsersGuard } from "@/lib/auth/user-management";
 import { canManageCommissions as canManageCommissionsGuard, canViewOwnCommissions as canViewOwnCommissionsGuard } from "@/lib/auth/logistics";
 import { AppShell } from "@/components/layout/app-shell";
@@ -34,6 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // aceptable si por algún motivo no resuelve — nunca el nombre de un
   // tenant específico.
   const organizationName = (await getCurrentOrganizationName()) ?? "THÖREN";
+  // THÖREN 0084 — módulos deshabilitados por la organización activa; oculta
+  // las entradas correspondientes del sidebar (la protección real por URL
+  // vive en middleware.ts, no aquí — ver DECISIÓN en sidebar.tsx).
+  const disabledModules = await getDisabledModules();
 
   return (
     <AppShell
@@ -41,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       canManageUsers={canManageUsersGuard(profile, capabilities)}
       canManageCommissions={canManageCommissionsGuard(profile, capabilities)}
       canViewOwnCommissions={canViewOwnCommissionsGuard(profile, capabilities)}
+      disabledModules={disabledModules}
       name={profile.name}
       email={profile.email}
       organizationName={organizationName}

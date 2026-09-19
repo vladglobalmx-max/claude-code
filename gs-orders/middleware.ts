@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { MODULE_KEY_BY_PATH_PREFIX } from "@/lib/organization-modules";
 
 const PUBLIC_PATHS = ["/login", "/set-password"];
 // Rutas cuya sección completa requiere rol ADMIN. Esto es defensa en
@@ -135,6 +136,31 @@ export async function middleware(request: NextRequest) {
       const allowed = requiresManageOnly ? canManage : canManage || canViewOwn;
 
       if (!allowed) {
+        return NextResponse.redirect(new URL("/inicio", request.url));
+      }
+    }
+
+    // THÖREN 0084 — bloqueo por URL de un módulo deshabilitado por la
+    // organización activa. Ocultar el link en el sidebar es solo UX (ver
+    // DECISIÓN en sidebar.tsx); esta es la protección real. Se evalúa para
+    // TODO usuario sin excepción de rol (mismo criterio que /comisiones
+    // arriba) — un admin cuya propia organización deshabilitó un módulo
+    // tampoco entra por URL directa. organization_modules es default-on
+    // (ausente = habilitado): solo existe fila cuando enabled = false, y
+    // RLS (organization_modules_select_member) ya scopea la lectura a la
+    // propia organización del usuario, sin necesitar el organization_id
+    // aquí.
+    const moduleMatch = MODULE_KEY_BY_PATH_PREFIX.find(([prefix]) => request.nextUrl.pathname.startsWith(prefix));
+    if (moduleMatch) {
+      const [, moduleKey] = moduleMatch;
+      const { data: moduleRow } = await supabase
+        .from("organization_modules")
+        .select("enabled")
+        .eq("module_key", moduleKey)
+        .eq("enabled", false)
+        .maybeSingle();
+
+      if (moduleRow) {
         return NextResponse.redirect(new URL("/inicio", request.url));
       }
     }

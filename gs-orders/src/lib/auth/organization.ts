@@ -1,6 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DEFAULT_BUSINESS_TIMEZONE } from "@/lib/business-date";
+import { isToggleableModuleKey, type ToggleableModuleKey } from "@/lib/organization-modules";
 
 /**
  * THÖREN 7B — nombre real de la organización del usuario actual, para
@@ -44,4 +45,28 @@ export async function getCurrentOrganizationId(): Promise<string | null> {
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.rpc("current_user_organization_id");
   return data ?? null;
+}
+
+/**
+ * THÖREN 0084 — module_key toggleables deshabilitados para la organización
+ * activa (organization_modules, default-on: ausente = habilitado, solo
+ * existe fila cuando enabled = false). RLS (organization_modules_select_
+ * member) ya scopea a la propia organización; el filtro por organization_id
+ * es explícito de todas formas, mismo criterio que getCurrentOrganizationName.
+ * Devuelve [] (nada deshabilitado) si no hay sesión/organización resoluble
+ * — el fallback seguro es "todo visible", igual que el comportamiento
+ * previo a 0084.
+ */
+export async function getDisabledModules(): Promise<ToggleableModuleKey[]> {
+  const supabase = createSupabaseServerClient();
+  const { data: organizationId } = await supabase.rpc("current_user_organization_id");
+  if (!organizationId) return [];
+
+  const { data } = await supabase
+    .from("organization_modules")
+    .select("module_key")
+    .eq("organization_id", organizationId)
+    .eq("enabled", false);
+
+  return (data ?? []).map((row) => row.module_key).filter(isToggleableModuleKey);
 }

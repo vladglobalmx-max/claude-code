@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import type { UserRole } from "@/types/domain";
+import type { ToggleableModuleKey } from "@/lib/organization-modules";
 
 const COLLAPSED_STORAGE_KEY = "thoren.sidebar.collapsed";
 
@@ -19,6 +20,7 @@ export function AppShell({
   canManageUsers,
   canManageCommissions,
   canViewOwnCommissions,
+  disabledModules,
   name,
   email,
   organizationName,
@@ -29,6 +31,8 @@ export function AppShell({
   canManageCommissions: boolean;
   /** THÖREN 0083 — vista propia de solo lectura de comisiones (vendedor). */
   canViewOwnCommissions: boolean;
+  /** THÖREN 0084 — module_key deshabilitados para la organización activa. */
+  disabledModules: ToggleableModuleKey[];
   name: string;
   email: string | null;
   organizationName: string;
@@ -57,6 +61,7 @@ export function AppShell({
         canManageUsers={canManageUsers}
         canManageCommissions={canManageCommissions}
         canViewOwnCommissions={canViewOwnCommissions}
+        disabledModules={disabledModules}
         organizationName={organizationName}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}

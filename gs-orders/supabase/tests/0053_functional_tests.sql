@@ -85,7 +85,15 @@ set role authenticated;
 
 -- =========================================================================
 -- TEST 3: una organización recién provisionada (rpc_provision_organization,
--- 0052 — sin parámetro de timezone) también recibe el DEFAULT.
+-- 0052 — sin p_timezone explícito) también recibe el DEFAULT.
+--
+-- THÖREN 0084 — rpc_provision_organization() cambió de firma (agrega
+-- trade_name/tax_id/currency/timezone, ver 0084_organization_modules.sql).
+-- Se pasa null en los 4 campos nuevos a propósito: el objetivo de este TEST
+-- sigue siendo verificar que, sin timezone explícito, la organización
+-- recibe el DEFAULT 'America/Monterrey' — mismo comportamiento observable
+-- que antes de 0084 (coalesce(nullif(btrim(coalesce(p_timezone, '')), ''),
+-- 'America/Monterrey')).
 -- =========================================================================
 \set acme_admin '00000000-0000-0000-0000-0000000000c1'
 insert into auth.users (id, email) values (:'acme_admin', 'jane@acme.example');
@@ -93,7 +101,7 @@ insert into auth.users (id, email) values (:'acme_admin', 'jane@acme.example');
 set role service_role;
 select organization_id as acme_org_id
 from rpc_provision_organization(
-  'Acme Corp', 'acme-corp', :'acme_admin', 'Jane Doe', 'jane@acme.example', 'Acme Principal', 'acme_principal'
+  'Acme Corp', 'acme-corp', null, null, null, null, :'acme_admin', 'Jane Doe', 'jane@acme.example', 'Acme Principal', 'acme_principal'
 ) \gset
 select set_config('test.acme_org_id', :'acme_org_id', false);
 set role authenticated;

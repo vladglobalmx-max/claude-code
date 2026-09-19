@@ -9,6 +9,11 @@
 -- Corp) exclusivamente vía rpc_provision_organization() — nunca con INSERT
 -- manual — y valida aislamiento cruzado contra las otras dos.
 --
+-- THÖREN 0084 — rpc_provision_organization() cambió de firma (forward-only,
+-- ver 0084_organization_modules.sql: agrega trade_name/tax_id/currency/
+-- timezone). Las llamadas de este archivo se actualizaron a la firma
+-- nueva — el comportamiento/aserciones de cada TEST no cambiaron.
+--
 -- NOTA — bug conocido de psql: la sustitución `:'variable'` NO funciona
 -- dentro de bloques `do $ ... $` (dólar-quoted) — por eso todo id usado
 -- DENTRO de un bloque `do $$` se resuelve vía current_setting() (guardado
@@ -35,7 +40,7 @@ do $$
 declare v_failed boolean := false;
 begin
   begin
-    perform rpc_provision_organization('Intento No Autorizado', 'intento-no-autorizado', gen_random_uuid(), 'X', 'x@test.local', 'BU', 'bu');
+    perform rpc_provision_organization('Intento No Autorizado', 'intento-no-autorizado', null, null, 'MXN', null, gen_random_uuid(), 'X', 'x@test.local', 'BU', 'bu');
   exception when insufficient_privilege then v_failed := true;
   end;
   if not v_failed then raise exception 'FALLÓ: un admin authenticated pudo ejecutar rpc_provision_organization()'; end if;
@@ -52,7 +57,8 @@ insert into auth.users (id, email) values (:'acme_admin', 'jane@acme.example');
 set role service_role;
 select organization_id as acme_org_id, business_unit_id as acme_bu_id
 from rpc_provision_organization(
-  'Acme Corp', 'acme-corp', :'acme_admin', 'Jane Doe', 'jane@acme.example', 'Acme Principal', 'acme_principal'
+  'Acme Corp', 'acme-corp', 'Acme', 'ACM010101AAA', 'USD', 'America/Mexico_City',
+  :'acme_admin', 'Jane Doe', 'jane@acme.example', 'Acme Principal', 'acme_principal'
 ) \gset
 
 select set_config('test.acme_org_id', :'acme_org_id', false);
@@ -65,14 +71,25 @@ set role authenticated;
 -- miembro de Acme Corp y no vería nada, con o sin bug).
 select test_set_user(:'acme_admin');
 
--- TEST 1: crea organization.
+-- TEST 1: crea organization, incluidas las columnas nuevas de 0084
+-- (trade_name/tax_id/currency/timezone) — parametrizadas, sin hardcode.
 do $$
 declare v_org_id uuid := current_setting('test.acme_org_id')::uuid;
 begin
   if not exists (select 1 from organizations where id = v_org_id and name = 'Acme Corp') then
     raise exception 'TEST 1 FALLÓ: no se creó la organización Acme Corp';
   end if;
-  raise notice 'TEST 1 OK: crea organization.';
+  if not exists (
+    select 1 from organizations
+    where id = v_org_id
+      and trade_name = 'Acme'
+      and tax_id = 'ACM010101AAA'
+      and currency = 'USD'
+      and timezone = 'America/Mexico_City'
+  ) then
+    raise exception 'TEST 1 FALLÓ: trade_name/tax_id/currency/timezone de Acme Corp no quedaron correctos (0084)';
+  end if;
+  raise notice 'TEST 1 OK: crea organization (incluidas columnas nuevas de 0084).';
 end $$;
 
 -- TEST 2: slug único — un segundo intento con el mismo slug falla
@@ -83,7 +100,7 @@ declare v_failed boolean := false; v_new_user uuid := gen_random_uuid();
 begin
   insert into auth.users (id, email) values (v_new_user, 'otro@acme.example');
   begin
-    perform rpc_provision_organization('Acme Corp 2', 'acme-corp', v_new_user, 'Otro', 'otro@acme.example', 'BU2', 'bu2');
+    perform rpc_provision_organization('Acme Corp 2', 'acme-corp', null, null, 'MXN', null, v_new_user, 'Otro', 'otro@acme.example', 'BU2', 'bu2');
   exception when unique_violation then v_failed := true; end;
   if not v_failed then raise exception 'TEST 2 FALLÓ: se permitió un slug duplicado'; end if;
   raise notice 'TEST 2 OK: slug único (duplicado bloqueado).';
@@ -166,7 +183,7 @@ begin
   select count(*) into v_org_count_before from organizations;
   select count(*) into v_bu_count_before from business_units;
   begin
-    perform rpc_provision_organization('Acme Duplicado', 'acme-duplicado', '00000000-0000-0000-0000-0000000000c1', 'Jane Otra Vez', 'jane2@acme.example', 'BU Duplicada', 'bu_dup');
+    perform rpc_provision_organization('Acme Duplicado', 'acme-duplicado', null, null, 'MXN', null, '00000000-0000-0000-0000-0000000000c1', 'Jane Otra Vez', 'jane2@acme.example', 'BU Duplicada', 'bu_dup');
   exception when unique_violation then v_failed := true; end;
   select count(*) into v_org_count_after from organizations;
   select count(*) into v_bu_count_after from business_units;

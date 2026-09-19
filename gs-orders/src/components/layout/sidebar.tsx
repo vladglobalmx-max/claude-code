@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { UserRole } from "@/types/domain";
+import type { ToggleableModuleKey } from "@/lib/organization-modules";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -18,12 +19,19 @@ function isActive(pathname: string, href: string) {
  * protección real. Las rutas siguen protegidas server-side en
  * middleware.ts y en RLS (los datos mismos). Un VENDEDOR que escriba la
  * URL a mano de todas formas es rechazado ahí.
+ *
+ * THÖREN 0084 — lo mismo aplica a `disabledModules`: ocultar el link es
+ * solo UX, la protección real por URL vive en middleware.ts
+ * (MODULE_KEY_BY_PATH_PREFIX + organization_modules). Un admin cuya propia
+ * organización deshabilitó un módulo tampoco lo ve — el filtro de módulo
+ * corre ANTES que el de rol/capability, sin excepción de rol.
  */
 export function Sidebar({
   role,
   canManageUsers,
   canManageCommissions,
   canViewOwnCommissions,
+  disabledModules,
   organizationName,
   collapsed,
   onToggleCollapsed,
@@ -35,6 +43,8 @@ export function Sidebar({
   canManageCommissions: boolean;
   /** THÖREN 0083 — vista propia de solo lectura de comisiones (vendedor). Ver DECISIÓN en nav-config.ts. */
   canViewOwnCommissions: boolean;
+  /** THÖREN 0084 — module_key deshabilitados para la organización activa (organization_modules, default-on: ausente = habilitado). Array (no Set) para cruzar limpio la frontera server/client component. Ver DECISIÓN en nav-config.ts. */
+  disabledModules: ToggleableModuleKey[];
   /** THÖREN 7B — nombre real de la organización activa (ver src/lib/auth/organization.ts), nunca hardcodeado. */
   organizationName: string;
   collapsed: boolean;
@@ -105,6 +115,7 @@ export function Sidebar({
               // can_view_own_commissions (0083, solo lectura propia) son
               // alternativas — cualquiera de las dos muestra la entrada.
               const items = group.items.filter((item) => {
+                if (item.moduleKey && disabledModules.includes(item.moduleKey)) return false;
                 if (item.commissionsOnly) return canManageCommissions || canViewOwnCommissions;
                 return !item.adminOnly || role === "admin" || (item.visibleForUserManager && canManageUsers);
               });

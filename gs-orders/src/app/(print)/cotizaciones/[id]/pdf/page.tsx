@@ -101,6 +101,19 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
  * pago y tiempo de entrega YA NO están en esta lista: 0025 los agregó
  * como campos reales, snapshot, opcionales.
  *
+ * FIX — customer_requirements por línea (0028_quotes_historical_import_
+ * schema.sql) SÍ existe desde 0028 y ya se capturaba en quote-items-section.tsx
+ * y se snapshoteaba en rpc_create_quote/rpc_update_quote, pero este PDF
+ * nunca lo imprimía — quedó fuera por omisión, no por decisión. Se agrega
+ * debajo de description/model, en gris y tamaño menor, con whitespace-pre-wrap
+ * (respeta saltos de línea) y sin reservar espacio si viene vacío — mismo
+ * criterio ya usado en order-detail-content.tsx y en el PDF de Pedidos
+ * (pedidos/[id]/pdf/page.tsx). No es "unidad por línea" (unit, sigue sin
+ * imprimirse, fuera de alcance de este fix) ni una nota interna: es el
+ * único campo de requisitos visible para el cliente que existe en
+ * quote_items hoy — no hay un campo de notas internas por línea en Quotes
+ * (a diferencia de order_items.notes).
+ *
  * MEJORA FUTURA — "Quote Customer Contact Snapshot": para poder imprimir
  * contacto/email/teléfono del cliente de forma histórica y consistente
  * (igual que customer_name/customer_legal_name/customer_tax_id), habría
@@ -236,6 +249,11 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
                     <div className="min-w-0">
                       <p className="font-medium text-ink">{item.description || item.model}</p>
                       {item.description && <p className="mt-0.5 text-xs text-ink-faint">{item.model}</p>}
+                      {item.customer_requirements && (
+                        <p className="mt-0.5 whitespace-pre-wrap text-xs text-ink-faint">
+                          Requisitos del cliente: {item.customer_requirements}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </td>

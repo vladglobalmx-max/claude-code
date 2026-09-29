@@ -1998,7 +1998,13 @@ export interface Database {
           unit: string | null;
           // "Requisitos del cliente" por línea (0028) — especificación
           // técnica de esa línea, separado de description/customer_notes.
+          // THÖREN 0086 — desde esta fase guarda HTML sanitizado (editor
+          // Tiptap), nunca renderizar sin RichTextView.
           customer_requirements: string | null;
+          // THÖREN 0086 — checkbox "Incluir en la cotización (visible en
+          // PDF)". Default true = comportamiento de siempre (se imprime si
+          // hay contenido). Solo afecta el PDF de Cotización.
+          customer_requirements_visible_in_pdf: boolean;
           line_subtotal: number;
           created_at: string;
           updated_at: string;
@@ -2015,6 +2021,7 @@ export interface Database {
           line_discount_percent?: number;
           unit?: string | null;
           customer_requirements?: string | null;
+          customer_requirements_visible_in_pdf?: boolean;
           // Lo calcula rpc_create_quote/rpc_update_quote; nunca se envía desde la app.
           line_subtotal?: number;
           created_at?: string;

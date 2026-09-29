@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { RichTextView } from "@/components/ui/rich-text-view";
 import { formatBytes, formatDate, formatMeasure } from "@/lib/utils/format";
 import {
   ORDER_STATUS_BADGE,
@@ -140,7 +141,11 @@ export function OrderDetailContent({ detail }: { detail: OrderDetail }) {
                       {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
                       {item.unit && <p className="mt-1 text-xs text-ink-faint">Unidad: {item.unit}</p>}
                       {item.customer_requirements && (
-                        <p className="text-xs text-ink-faint">Requisitos del cliente: {item.customer_requirements}</p>
+                        <div className="text-xs text-ink-faint">
+                          <span className="font-medium">Requisitos del cliente:</span>
+                          {/* THÖREN 0086 — customer_requirements puede llegar como HTML si el Pedido viene de una Quote convertida (copiado tal cual por rpc_create_order_from_quote, 0029); RichTextView también renderiza texto plano legacy sin cambios. */}
+                          <RichTextView html={item.customer_requirements} />
+                        </div>
                       )}
                       {specs.length > 0 && <p className="mt-1 text-xs text-ink-faint">{specs.join(" · ")}</p>}
                       {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}

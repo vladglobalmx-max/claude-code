@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
+import { RichTextView } from "@/components/ui/rich-text-view";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import type { Quote, QuoteItem, QuoteVersion } from "@/types/domain";
 
@@ -25,6 +26,13 @@ export const dynamic = "force-dynamic";
  * imágenes de catálogo en vivo — mostrar la imagen ACTUAL de un producto
  * sería inconsistente con "fielmente esa versión" si el catálogo cambió
  * desde entonces.
+ *
+ * THÖREN 0086 — customer_requirements dentro del snapshot puede ser HTML
+ * (versiones creadas después de 0086) o texto plano (versiones archivadas
+ * antes) — RichTextView renderiza ambos correctamente. Se muestra siempre,
+ * sin importar `customer_requirements_visible_in_pdf`: esta vista es un
+ * registro administrativo interno, no una réplica del PDF que vio el
+ * cliente (mismo criterio que el detalle vigente de la Quote).
  */
 export default async function QuoteVersionPage({ params }: { params: { id: string; version: string } }) {
   const versionNumber = Number(params.version);
@@ -159,9 +167,10 @@ export default async function QuoteVersionPage({ params }: { params: { id: strin
                     {item.line_discount_percent > 0 ? ` · -${item.line_discount_percent}%` : ""}
                   </p>
                   {item.customer_requirements && (
-                    <p className="mt-1 whitespace-pre-wrap text-xs text-ink-faint">
-                      Requisitos del cliente: {item.customer_requirements}
-                    </p>
+                    <div className="mt-1 text-xs text-ink-faint">
+                      <span className="font-medium">Requisitos del cliente:</span>
+                      <RichTextView html={item.customer_requirements} />
+                    </div>
                   )}
                   <p className="mt-1 text-right text-sm font-medium text-ink">
                     {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
@@ -188,9 +197,10 @@ export default async function QuoteVersionPage({ params }: { params: { id: strin
                         <p className="font-medium text-ink">{item.model}</p>
                         {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
                         {item.customer_requirements && (
-                          <p className="mt-0.5 whitespace-pre-wrap text-xs text-ink-faint">
-                            Requisitos del cliente: {item.customer_requirements}
-                          </p>
+                          <div className="mt-0.5 text-xs text-ink-faint">
+                            <span className="font-medium">Requisitos del cliente:</span>
+                            <RichTextView html={item.customer_requirements} />
+                          </div>
                         )}
                       </Td>
                       <Td className="text-ink-soft">

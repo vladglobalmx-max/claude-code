@@ -5,6 +5,7 @@ import { getSignedUrl } from "@/lib/storage";
 import { formatDate } from "@/lib/utils/format";
 import { buildOrderPdfFilename } from "@/lib/utils/filename";
 import { Badge } from "@/components/ui/badge";
+import { RichTextView } from "@/components/ui/rich-text-view";
 import {
   BUSINESS_UNIT_LABELS,
   ORDER_STATUS_BADGE,
@@ -304,7 +305,11 @@ export default async function PedidoPdfPage({ params }: { params: { id: string }
                           </p>
                           {item.description && <p className="text-sm text-ink-soft">{item.description}</p>}
                           {item.customer_requirements && (
-                            <p className="text-xs text-ink-faint">{providerLabel("customerRequirements", documentLanguage)}: {item.customer_requirements}</p>
+                            <div className="text-xs text-ink-faint">
+                              <span className="font-medium">{providerLabel("customerRequirements", documentLanguage)}:</span>
+                              {/* THÖREN 0086 — puede ser HTML si el Pedido viene de una Quote convertida (0029); RichTextView también renderiza texto plano legacy. */}
+                              <RichTextView html={item.customer_requirements} />
+                            </div>
                           )}
                           {specs.length > 0 && <p className="text-xs text-ink-faint">{specs.join(" · ")}</p>}
                           {item.notes && <p className="text-xs text-ink-faint">{item.notes}</p>}

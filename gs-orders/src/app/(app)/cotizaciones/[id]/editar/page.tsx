@@ -145,6 +145,7 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
             lineDiscountPercent: String(item.line_discount_percent),
             unit: item.unit ?? "",
             customerRequirements: item.customer_requirements ?? "",
+            customerRequirementsVisibleInPdf: item.customer_requirements_visible_in_pdf,
           }))
         : [emptyQuoteItem()],
   };

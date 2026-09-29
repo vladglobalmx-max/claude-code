@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sanitizeRichText } from "@/lib/rich-text";
 
 /**
  * Línea de una Quote — espejo de las constraints de `quote_items`
@@ -21,8 +22,23 @@ export const quoteItemSchema = z.object({
   // se autocompleta desde product_catalog.unit al elegir un producto del
   // catálogo (sigue siendo editable); `customer_requirements` nace vacío
   // salvo captura manual — ninguno de los dos se inventa nunca.
+  //
+  // THÖREN 0086 — customer_requirements ahora es HTML (editor Tiptap,
+  // RichTextEditor). Se sanitiza AQUÍ, en el único punto de entrada de los
+  // 3 write-paths (createQuote/updateQuote/createQuoteRevision, todos
+  // parsean con este schema) — nunca se envía a ningún RPC sin pasar por
+  // sanitizeRichText primero. No es la única barrera (RichTextView vuelve
+  // a sanitizar al leer, ver DECISIÓN en 0086_quote_item_rich_text_
+  // requirements.sql), pero sí la que mantiene limpio lo que se guarda.
   unit: z.string().trim().optional(),
-  customer_requirements: z.string().trim().optional(),
+  customer_requirements: z
+    .string()
+    .trim()
+    .optional()
+    .transform((html) => (html ? sanitizeRichText(html) : html)),
+  // Checkbox "Incluir en la cotización (visible en PDF)". Default true —
+  // mismo comportamiento de siempre (se imprime si hay contenido).
+  customer_requirements_visible_in_pdf: z.boolean().optional().default(true),
 });
 
 /**

@@ -87,7 +87,10 @@ export interface QuoteWriteItemPayload {
   unit_price: number;
   line_discount_percent: number;
   unit?: string;
+  /** THÖREN 0086 — HTML (editor Tiptap). Se sanitiza en quotePayloadSchema, nunca aquí. */
   customer_requirements?: string;
+  /** THÖREN 0086 — "Incluir en la cotización (visible en PDF)". */
+  customer_requirements_visible_in_pdf?: boolean;
 }
 
 /**
@@ -453,6 +456,7 @@ export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteAction
       line_discount_percent: item.line_discount_percent,
       unit: item.unit ?? undefined,
       customer_requirements: item.customer_requirements ?? undefined,
+      customer_requirements_visible_in_pdf: item.customer_requirements_visible_in_pdf,
     })),
   };
 

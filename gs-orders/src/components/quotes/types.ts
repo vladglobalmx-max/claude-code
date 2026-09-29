@@ -48,7 +48,10 @@ export interface QuoteItemDraft {
    * del catálogo.
    */
   unit: string;
+  /** THÖREN 0086 — HTML del editor Tiptap (RichTextEditor), sanitizado server-side al guardar (nunca aquí). */
   customerRequirements: string;
+  /** THÖREN 0086 — "Incluir en la cotización (visible en PDF)". Nace en true (mismo comportamiento de siempre). */
+  customerRequirementsVisibleInPdf: boolean;
 }
 
 export function emptyQuoteItem(): QuoteItemDraft {
@@ -62,6 +65,7 @@ export function emptyQuoteItem(): QuoteItemDraft {
     lineDiscountPercent: "0",
     unit: "",
     customerRequirements: "",
+    customerRequirementsVisibleInPdf: true,
   };
 }
 

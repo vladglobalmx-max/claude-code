@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { TestOperationBadge } from "@/components/ui/test-operation-badge";
 import { DownloadPdfButton } from "@/components/ui/download-pdf-button";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
+import { RichTextView } from "@/components/ui/rich-text-view";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { formatDateShort } from "@/lib/utils/format";
@@ -356,7 +357,13 @@ export default async function CompraDetailPage({ params }: { params: { id: strin
                             </>
                           )}
                           {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
-                          {item.customer_requirements && <p className="text-xs text-ink-faint">Requisitos: {item.customer_requirements}</p>}
+                          {item.customer_requirements && (
+                            <div className="text-xs text-ink-faint">
+                              <span className="font-medium">Requisitos:</span>
+                              {/* THÖREN 0086 — puede ser HTML si viene de una Quote convertida; RichTextView también renderiza texto plano legacy. */}
+                              <RichTextView html={item.customer_requirements} />
+                            </div>
+                          )}
                         </Td>
                         <Td className="tabular-nums text-ink-soft">
                           {item.quantity_ordered}

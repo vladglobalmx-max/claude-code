@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { QuoteProductPicker } from "./quote-product-picker";
 import { emptyQuoteItem, type QuoteCatalogProductOption, type QuoteItemDraft } from "./types";
 import type { QuoteCurrency } from "@/types/domain";
@@ -171,14 +172,21 @@ export function QuoteItemsSection({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <Label htmlFor={`customer-requirements-${item.key}`}>Requisitos del cliente (opcional)</Label>
-                    <Textarea
-                      id={`customer-requirements-${item.key}`}
-                      rows={2}
+                    <Label>Requisitos del cliente (opcional)</Label>
+                    <RichTextEditor
                       value={item.customerRequirements}
-                      onChange={(e) => updateItem(item.key, { customerRequirements: e.target.value })}
-                      placeholder="Color, dimensiones, instalación, indicaciones particulares…"
+                      onChange={(html) => updateItem(item.key, { customerRequirements: html })}
                     />
+                    {/* THÖREN 0086 — checkbox por partida. Nace marcado (true): mismo comportamiento de siempre. */}
+                    <label className="mt-2 flex items-center gap-2 text-sm text-ink-soft">
+                      <input
+                        type="checkbox"
+                        checked={item.customerRequirementsVisibleInPdf}
+                        onChange={(e) => updateItem(item.key, { customerRequirementsVisibleInPdf: e.target.checked })}
+                        className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+                      />
+                      Incluir en la cotización (visible en PDF)
+                    </label>
                   </div>
                 </div>
 

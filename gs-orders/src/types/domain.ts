@@ -725,6 +725,24 @@ export interface QuoteItem {
    */
   customer_requirements: string | null;
 
+  /**
+   * THÖREN 0086 — desde esta fase, `customer_requirements` guarda HTML
+   * sanitizado (editor Tiptap: negrita/cursiva/subrayado/listas/
+   * alineación) en vez de texto plano — nunca renderizar sin pasar por
+   * RichTextView (src/components/ui/rich-text-view.tsx), que vuelve a
+   * sanitizar antes de dangerouslySetInnerHTML. Texto legacy sin ninguna
+   * etiqueta sigue siendo válido y se ve igual que antes.
+   *
+   * `customer_requirements_visible_in_pdf` — checkbox por partida
+   * ("Incluir en la cotización (visible en PDF)"). DEFAULT true (mismo
+   * comportamiento de siempre: si hay contenido, se imprime). En false, el
+   * contenido se conserva pero el PDF de Cotización no lo imprime. Solo
+   * afecta el PDF de Cotización — el Pedido generado a partir de esta
+   * Quote (order_items.customer_requirements, 0029) sigue imprimiendo
+   * siempre, sin este toggle.
+   */
+  customer_requirements_visible_in_pdf: boolean;
+
   line_subtotal: number;
 
   created_at: string;

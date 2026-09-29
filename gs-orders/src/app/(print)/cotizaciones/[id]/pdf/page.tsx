@@ -5,6 +5,7 @@ import { getSignedUrl, getSignedUrls } from "@/lib/storage";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { buildQuotePdfFilename } from "@/lib/utils/filename";
 import { Badge } from "@/components/ui/badge";
+import { RichTextView } from "@/components/ui/rich-text-view";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem } from "@/types/domain";
 import { PrintButton } from "./print-button";
@@ -121,6 +122,15 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
  * independiente. Las versiones superadas no tienen PDF propio (ver
  * DECISIÓN en 0085_quote_versioning.sql — snapshot jsonb + vista de solo
  * lectura, sin binario por versión).
+ *
+ * THÖREN 0086 — customer_requirements pasó de texto plano a HTML
+ * sanitizado (editor Tiptap: negrita/cursiva/subrayado/listas/alineación).
+ * Se renderiza con RichTextView (nunca interpolado directo — vuelve a
+ * sanitizar antes de dangerouslySetInnerHTML). Nuevo checkbox por línea
+ * `customer_requirements_visible_in_pdf` (default true, mismo
+ * comportamiento de siempre): en false, el contenido existe en DB pero
+ * este PDF no lo imprime — sigue sin reservar espacio si el campo está
+ * vacío, sin importar el checkbox.
  *
  * MEJORA FUTURA — "Quote Customer Contact Snapshot": para poder imprimir
  * contacto/email/teléfono del cliente de forma histórica y consistente
@@ -259,10 +269,11 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
                     <div className="min-w-0">
                       <p className="font-medium text-ink">{item.description || item.model}</p>
                       {item.description && <p className="mt-0.5 text-xs text-ink-faint">{item.model}</p>}
-                      {item.customer_requirements && (
-                        <p className="mt-0.5 whitespace-pre-wrap text-xs text-ink-faint">
-                          Requisitos del cliente: {item.customer_requirements}
-                        </p>
+                      {item.customer_requirements_visible_in_pdf && item.customer_requirements && (
+                        <div className="mt-0.5 text-xs text-ink-faint">
+                          <span className="font-medium">Requisitos del cliente:</span>
+                          <RichTextView html={item.customer_requirements} />
+                        </div>
                       )}
                     </div>
                   </div>

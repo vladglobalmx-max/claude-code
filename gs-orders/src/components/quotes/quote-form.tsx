@@ -51,6 +51,7 @@ function buildPayload(state: QuoteFormState): QuoteWritePayload {
         line_discount_percent: Number(item.lineDiscountPercent) || 0,
         unit: item.unit || undefined,
         customer_requirements: item.customerRequirements || undefined,
+        customer_requirements_visible_in_pdf: item.customerRequirementsVisibleInPdf,
       })),
   };
 }

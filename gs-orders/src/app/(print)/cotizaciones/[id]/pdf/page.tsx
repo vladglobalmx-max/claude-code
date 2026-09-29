@@ -114,6 +114,14 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
  * quote_items hoy — no hay un campo de notas internas por línea en Quotes
  * (a diferencia de order_items.notes).
  *
+ * THÖREN 0085 — este PDF sigue siendo SIEMPRE el de la versión vigente
+ * (misma fila `quotes`/`quote_items`, sin cambio estructural): solo se
+ * agrega un texto discreto "Versión N" bajo el folio, cuando
+ * `quote.version > 1`. El folio nunca cambia — `version` es un dato
+ * independiente. Las versiones superadas no tienen PDF propio (ver
+ * DECISIÓN en 0085_quote_versioning.sql — snapshot jsonb + vista de solo
+ * lectura, sin binario por versión).
+ *
  * MEJORA FUTURA — "Quote Customer Contact Snapshot": para poder imprimir
  * contacto/email/teléfono del cliente de forma histórica y consistente
  * (igual que customer_name/customer_legal_name/customer_tax_id), habría
@@ -187,6 +195,8 @@ export default async function CotizacionPdfPage({ params }: { params: { id: stri
           <div className="shrink-0 text-right">
             <p className="text-xs uppercase tracking-wide text-ink-faint">Cotización</p>
             <p className="font-mono text-2xl font-bold text-ink">{quote.folio}</p>
+            {/* THÖREN 0085 — discreto, solo si ya hubo una revisión; nunca modifica el folio. */}
+            {quote.version > 1 && <p className="mt-1 text-xs text-ink-faint">Versión {quote.version}</p>}
             <Badge variant={QUOTE_STATUS_BADGE[quote.status]} className="mt-1.5">
               {QUOTE_STATUS_LABELS[quote.status]}
             </Badge>

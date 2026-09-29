@@ -8,7 +8,7 @@ import { fetchAllPages } from "@/lib/products/paginated-fetch";
 import { buildBusinessUnitIdsByProduct, type ProductBusinessUnitRow } from "@/lib/products/business-unit-map";
 import { QuoteForm } from "@/components/quotes/quote-form";
 import { emptyQuoteItem, type QuoteCatalogProductOption, type QuoteFormState } from "@/components/quotes/types";
-import { updateQuote } from "../../actions";
+import { updateQuote, createQuoteRevision } from "../../actions";
 import type { Customer, ProductCatalogItem, Quote, QuoteItem } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +19,19 @@ const PRODUCT_CATALOG_PAGE_SIZE = 1000;
 type CatalogRow = ProductCatalogItem & { product_types: { name: string } | null };
 
 /**
- * Edición de una Quote — BORRADOR-only. Fuera de "borrador",
- * trg_quote_status_transition (0020_core_quotes.sql) congela el contenido
- * comercial en DB: redirige al detalle antes de renderizar un formulario
- * que fallaría al guardar (mismo criterio que /clientes/[id]/editar para
- * el guard de rol — aquí el guard es de status, no de rol).
+ * Edición de una Quote — BORRADOR o ENVIADA (THÖREN 0085). Fuera de esos
+ * dos estados, trg_quote_status_transition (0020/0085) congela el
+ * contenido comercial en DB: redirige al detalle antes de renderizar un
+ * formulario que fallaría al guardar (mismo criterio que
+ * /clientes/[id]/editar para el guard de rol — aquí el guard es de
+ * status, no de rol). Una Quote 'aceptada'/'rechazada'/'cancelada' es
+ * terminal — la única vía es "Duplicar" (ya existe, sin cambios).
+ *
+ * BORRADOR: mode="edit", onSubmit=updateQuote — sobrescribe en el sitio,
+ * sin versionar (nada "enviado" que preservar).
+ * ENVIADA: mode="revise", onSubmit=createQuoteRevision — archiva la
+ * versión actual en quote_versions y la Quote resultante queda en
+ * 'borrador' con version+1 (QuoteForm pide confirmación antes de enviar).
  */
 export default async function EditarCotizacionPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
@@ -61,7 +69,7 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
   if (!quoteData) notFound();
   const quote = quoteData as Quote;
 
-  if (quote.status !== "borrador") {
+  if (quote.status !== "borrador" && quote.status !== "enviada") {
     redirect(`/cotizaciones/${quote.id}`);
   }
 
@@ -141,13 +149,21 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
         : [emptyQuoteItem()],
   };
 
+  const isRevision = quote.status === "enviada";
+
   return (
     <div>
       <div className="mx-auto max-w-3xl px-6 pt-6">
-        <h1 className="text-lg font-semibold text-ink">Editar cotización</h1>
+        <h1 className="text-lg font-semibold text-ink">{isRevision ? "Crear nueva versión" : "Editar cotización"}</h1>
+        {isRevision && (
+          <p className="mt-1 text-sm text-ink-faint">
+            Esta cotización ya fue enviada. Al guardar se creará una nueva versión en borrador; la versión actual
+            quedará disponible en el historial.
+          </p>
+        )}
       </div>
       <QuoteForm
-        mode="edit"
+        mode={isRevision ? "revise" : "edit"}
         quoteId={quote.id}
         folio={quote.folio}
         eligiblePairs={[]}
@@ -156,7 +172,7 @@ export default async function EditarCotizacionPage({ params }: { params: { id: s
         customers={customers}
         catalogProducts={catalogProducts}
         initialState={initialState}
-        onSubmit={updateQuote}
+        onSubmit={isRevision ? createQuoteRevision : updateQuote}
       />
     </div>
   );

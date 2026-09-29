@@ -1860,6 +1860,10 @@ export interface Database {
           customer_email: string | null;
           customer_phone: string | null;
           warranty: string | null;
+          // THÖREN 0085 — arranca en 1; solo rpc_create_quote_revision la
+          // incrementa (crear una nueva versión sobre una Quote 'enviada').
+          // Editar en 'borrador' (rpc_update_quote) nunca la toca.
+          version: number;
           created_at: string;
           updated_at: string;
         };
@@ -1903,6 +1907,7 @@ export interface Database {
           customer_email?: string | null;
           customer_phone?: string | null;
           warranty?: string | null;
+          version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1934,6 +1939,41 @@ export interface Database {
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // THÖREN 0085 — archivo de versiones superadas de una Quote. Solo
+      // rpc_create_quote_revision escribe aquí (SECURITY DEFINER); sin
+      // policy de INSERT/UPDATE/DELETE. `snapshot` = { quote: <fila
+      // completa>, items: <arreglo completo de quote_items> } tal como
+      // estaban justo antes de reemplazarse.
+      quote_versions: {
+        Row: {
+          id: string;
+          quote_id: string;
+          version: number;
+          snapshot: Json;
+          created_by: string | null;
+          created_by_name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          quote_id: string;
+          version: number;
+          snapshot: Json;
+          created_by?: string | null;
+          created_by_name?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["quote_versions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_quote_id_fkey";
+            columns: ["quote_id"];
+            isOneToOne: false;
+            referencedRelation: "quotes";
             referencedColumns: ["id"];
           },
         ];
@@ -3661,6 +3701,20 @@ export interface Database {
       // la Quote sigue en status "borrador" (verificado dentro del RPC,
       // además de RLS/trigger). Reemplaza todos los quote_items.
       rpc_update_quote: {
+        Args: {
+          p_quote_id: string;
+          p_quote: Json;
+          p_items: Json;
+        };
+        Returns: Database["public"]["Tables"]["quotes"]["Row"];
+      };
+      // THÖREN 0085 — única vía para editar una Quote en status "enviada".
+      // SECURITY DEFINER (necesario: quote_items solo es escribible en
+      // "borrador" vía RLS). Archiva el contenido actual en quote_versions,
+      // aplica el mismo cálculo que rpc_update_quote, y fuerza status =
+      // "borrador" + version = version + 1. Rechaza cualquier status que no
+      // sea "enviada".
+      rpc_create_quote_revision: {
         Args: {
           p_quote_id: string;
           p_quote: Json;

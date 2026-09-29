@@ -205,6 +205,52 @@ export async function updateQuote(quoteId: string, payload: QuoteWritePayload): 
 }
 
 /**
+ * THÖREN 0085 — crea una nueva versión sobre una Quote en status "enviada"
+ * vía rpc_create_quote_revision (SECURITY DEFINER): archiva el contenido
+ * actual en `quote_versions`, aplica el mismo cálculo que updateQuote, y la
+ * fila resultante queda en status "borrador" con `version` incrementada. El
+ * propio RPC rechaza cualquier otro status (aceptada/rechazada/cancelada/
+ * borrador) — este action solo traduce el error. business_unit_id/
+ * salesperson_id no se envían: son inmutables, igual que en updateQuote.
+ */
+export async function createQuoteRevision(quoteId: string, payload: QuoteWritePayload): Promise<QuoteActionResult> {
+  const parsed = quotePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createSupabaseServerClient();
+
+  const catalogError = await validateCatalogProductSelections(supabase, parsed.data.business_unit_id, parsed.data.items);
+  if (catalogError) return catalogError;
+
+  const { error } = await supabase.rpc("rpc_create_quote_revision", {
+    p_quote_id: quoteId,
+    p_quote: {
+      customer_id: parsed.data.customer_id,
+      currency: parsed.data.currency,
+      tax_rate: parsed.data.tax_rate,
+      global_discount_percent: parsed.data.global_discount_percent,
+      valid_until: parsed.data.valid_until,
+      notes: parsed.data.notes ?? null,
+      payment_terms: parsed.data.payment_terms ?? null,
+      delivery_time: parsed.data.delivery_time ?? null,
+      customer_notes: parsed.data.customer_notes ?? null,
+      warranty: parsed.data.warranty ?? null,
+    },
+    p_items: parsed.data.items,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo crear la nueva versión de la cotización. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/cotizaciones");
+  revalidatePath(`/cotizaciones/${quoteId}`);
+  redirect(`/cotizaciones/${quoteId}`);
+}
+
+/**
  * Alta rápida de Cliente desde el modal de Nueva Cotización. Delega en
  * createCustomerWithOptionalContact (compartida con la importación Excel)
  * — createCustomer (clientes/actions.ts) no sirve aquí porque su contrato
@@ -244,8 +290,21 @@ export async function createCustomerInline(input: {
  * enviar al cliente una cotización sin ningún producto no es una regla de
  * integridad de datos, es una regla de razonabilidad comercial — se valida
  * aquí, en la app, sin tocar 0020 ni agregar ningún CHECK nuevo.
+ *
+ * THÖREN 0085 — "borrador" NUNCA es un destino válido aquí, a propósito:
+ * trg_quote_status_transition (0085) sí permite estructuralmente
+ * enviada→borrador (la necesita rpc_create_quote_revision), pero esa
+ * transición SOLO debe ocurrir atómicamente junto con el archivado de la
+ * versión anterior — nunca como un cambio de status aislado, que dejaría
+ * el contenido "enviada" editable sin haber preservado nada en
+ * quote_versions. Defensa en profundidad en la capa de aplicación, mismo
+ * criterio que el resto del proyecto.
  */
 export async function setQuoteStatus(quoteId: string, status: QuoteStatus): Promise<{ error: string } | void> {
+  if (status === "borrador") {
+    return { error: 'No es una transición válida. Usa "Editar" para crear una nueva versión en borrador.' };
+  }
+
   const supabase = createSupabaseServerClient();
 
   if (status === "enviada") {

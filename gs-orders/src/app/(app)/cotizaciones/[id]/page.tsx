@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatDateShort, formatMoneyByCurrency } from "@/lib/utils/format";
 import { isQuoteExpired } from "@/lib/quote-expiry";
 import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
-import type { Quote, QuoteItem } from "@/types/domain";
+import type { Quote, QuoteItem, QuoteVersion } from "@/types/domain";
 import { QuoteStatusActions } from "./quote-status-actions";
 import { DuplicateQuoteButton } from "./duplicate-quote-button";
 import { QuoteNotesEditor } from "./quote-notes-editor";
@@ -25,15 +25,20 @@ export const dynamic = "force-dynamic";
 export default async function VerCotizacionPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
-  const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }] = await Promise.all([
+  const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }, { data: versionsData }] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", params.id).single(),
     supabase.from("quote_items").select("*").eq("quote_id", params.id).order("position"),
     supabase.from("orders").select("id, folio").eq("source_quote_id", params.id).maybeSingle(),
+    // THÖREN 0085 — solo hay filas aquí si esta Quote ya tuvo al menos una
+    // versión reemplazada (editar una 'enviada' crea una); una Quote que
+    // nunca salió de version=1 no tiene historial que mostrar.
+    supabase.from("quote_versions").select("*").eq("quote_id", params.id).order("version", { ascending: false }),
   ]);
 
   if (!quoteData) notFound();
   const quote = quoteData as Quote;
   const items = (itemsData ?? []) as QuoteItem[];
+  const versions = (versionsData ?? []) as unknown as QuoteVersion[];
   const expired = isQuoteExpired(quote);
   const isAdmin = profile?.role === "admin";
   // VIEW != WRITE (THÖREN 6R.1B-1 UX fix): can_view_all_sales (0041) amplió
@@ -95,7 +100,7 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
               Ver PDF original de CotizIA
             </a>
           )}
-          {quote.status === "borrador" && canWrite && (
+          {(quote.status === "borrador" || quote.status === "enviada") && canWrite && (
             <Link
               href={`/cotizaciones/${quote.id}/editar`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -128,6 +133,8 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
           <div className="flex items-center gap-2">
             {isHistorical && <Badge variant="neutral">Histórica · CotizIA</Badge>}
             {expired && <Badge variant="warning">Vencida</Badge>}
+            {/* THÖREN 0085 — discreto, solo si ya hubo una revisión; version=1 nunca lo muestra. */}
+            {quote.version > 1 && <Badge variant="neutral">Versión {quote.version}</Badge>}
             <StatusBadge status={quote.status} labels={QUOTE_STATUS_LABELS} variants={QUOTE_STATUS_BADGE} />
           </div>
         </CardHeader>
@@ -291,6 +298,56 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
           </div>
         </CardContent>
       </Card>
+
+      {/*
+        THÖREN 0085 — solo se muestra si esta Quote ya tuvo al menos una
+        revisión (version > 1); una Quote que nunca salió de version=1 no
+        tiene nada que listar. La fecha/autor de la fila "vigente" se toma
+        de la versión archivada más reciente (versions[0], ya viene
+        ordenada desc) — es el mismo instante en que esta versión nació,
+        más preciso que quote.updated_at (que cambia con cualquier edición
+        posterior de borrador, no solo al crear la versión).
+      */}
+      {quote.version > 1 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Historial de versiones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
+                <span className="text-ink">
+                  <span className="font-medium">Versión {quote.version}</span>
+                  <span className="text-ink-faint">
+                    {" "}
+                    — {QUOTE_STATUS_LABELS[quote.status]} — {formatDateShort(versions[0]?.created_at ?? quote.created_at)}
+                    {versions[0]?.created_by_name ? ` — ${versions[0].created_by_name}` : ""}
+                  </span>
+                </span>
+                <Badge variant="accent">Vigente</Badge>
+              </li>
+              {versions.map((v) => (
+                <li key={v.id}>
+                  <Link
+                    href={`/cotizaciones/${quote.id}/versiones/${v.version}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-ink transition-colors hover:bg-surface-2"
+                  >
+                    <span>
+                      <span className="font-medium">Versión {v.version}</span>
+                      <span className="text-ink-faint">
+                        {" "}
+                        — Reemplazada — {formatDateShort(v.created_at)}
+                        {v.created_by_name ? ` — ${v.created_by_name}` : ""}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-ink-faint" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

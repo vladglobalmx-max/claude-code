@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -74,13 +75,21 @@ export function QuoteForm({
   initialState,
   onSubmit,
 }: {
-  mode: "create" | "edit";
+  /**
+   * THÖREN 0085 — "revise" es una Quote 'enviada' que el usuario está
+   * editando: se comporta como "edit" en todo (folio real, vendedor/BU de
+   * solo lectura) salvo el botón final y la confirmación previa, porque
+   * `onSubmit` en ese modo es createQuoteRevision — crea una nueva versión
+   * en 'borrador' y ARCHIVA la actual, nunca la sobrescribe en el sitio
+   * como sí hace "edit" sobre un borrador.
+   */
+  mode: "create" | "edit" | "revise";
   quoteId: string;
-  /** Presente solo en modo "edit" — el folio ya es real, nunca un preview. */
+  /** Presente en modo "edit"/"revise" — el folio ya es real, nunca un preview. */
   folio?: string;
   /** Modo "create": pares Salesperson × Business Unit con configuración de folio activa (ver salesperson_quote_sequences). Siempre no vacío — la página bloquea antes de renderizar el form si está vacío. */
   eligiblePairs: EligibleQuotePair[];
-  /** Modo "edit": nombres ya fijos (folio generado, inmutables — ver trg_prevent_quote_folio_change). */
+  /** Modo "edit"/"revise": nombres ya fijos (folio generado, inmutables — ver trg_prevent_quote_folio_change). */
   businessUnitName?: string;
   salespersonName?: string;
   customers: Customer[];
@@ -92,6 +101,8 @@ export function QuoteForm({
   const [state, setState] = useState<QuoteFormState>(initialState);
   const [customerList, setCustomerList] = useState(customers);
   const [isPending, startTransition] = useTransition();
+  const [confirmRevisionOpen, setConfirmRevisionOpen] = useState(false);
+  const isReadOnlyIdentity = mode === "edit" || mode === "revise";
 
   function patch(p: Partial<QuoteFormState>) {
     setState((prev) => ({ ...prev, ...p }));
@@ -189,6 +200,15 @@ export function QuoteForm({
       return;
     }
 
+    if (mode === "revise") {
+      setConfirmRevisionOpen(true);
+      return;
+    }
+
+    submitNow();
+  }
+
+  function submitNow() {
     const payload = buildPayload(state);
     startTransition(async () => {
       const result = await onSubmit(quoteId, payload);
@@ -217,9 +237,9 @@ export function QuoteForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label>Vendedor</Label>
-              {mode === "edit" || salespeople.length <= 1 ? (
+              {isReadOnlyIdentity || salespeople.length <= 1 ? (
                 <p className="mt-1.5 text-sm text-ink">
-                  {mode === "edit" ? salespersonName : salespeople[0]?.name ?? "—"}
+                  {isReadOnlyIdentity ? salespersonName : salespeople[0]?.name ?? "—"}
                 </p>
               ) : (
                 <Select value={state.salespersonId} onChange={(e) => handleSalespersonChange(e.target.value)}>
@@ -237,9 +257,9 @@ export function QuoteForm({
 
             <div>
               <Label>Business Unit</Label>
-              {mode === "edit" || businessUnitsForSalesperson.length <= 1 ? (
+              {isReadOnlyIdentity || businessUnitsForSalesperson.length <= 1 ? (
                 <p className="mt-1.5 text-sm text-ink">
-                  {mode === "edit" ? businessUnitName : businessUnitsForSalesperson[0]?.businessUnitName ?? "—"}
+                  {isReadOnlyIdentity ? businessUnitName : businessUnitsForSalesperson[0]?.businessUnitName ?? "—"}
                 </p>
               ) : (
                 <Select value={state.businessUnitId} onChange={(e) => { tryChangeBusinessUnit(e.target.value); }}>
@@ -417,9 +437,39 @@ export function QuoteForm({
           Cancelar
         </Button>
         <Button type="button" loading={isPending} disabled={isPending} onClick={handleSubmit}>
-          {mode === "create" ? "Crear cotización" : "Guardar cambios"}
+          {mode === "create" ? "Crear cotización" : mode === "revise" ? "Crear nueva versión" : "Guardar cambios"}
         </Button>
       </div>
+
+      {/* THÖREN 0085 — confirmación explícita antes de archivar la versión enviada actual. */}
+      <Dialog open={confirmRevisionOpen} onOpenChange={(open) => { if (!isPending) setConfirmRevisionOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Crear una nueva versión de {folio}?</DialogTitle>
+            <DialogDescription>
+              Se creará una nueva versión de esta cotización. La versión anterior permanecerá disponible en el
+              historial. La nueva versión quedará en borrador — deberás revisarla y marcarla como enviada
+              explícitamente para notificar al cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isPending} onClick={() => setConfirmRevisionOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              loading={isPending}
+              disabled={isPending}
+              onClick={() => {
+                setConfirmRevisionOpen(false);
+                submitNow();
+              }}
+            >
+              Crear nueva versión
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

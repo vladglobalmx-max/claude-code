@@ -655,8 +655,36 @@ export interface Quote {
   customer_phone: string | null;
   warranty: string | null;
 
+  /**
+   * THÖREN 0085 — arranca en 1. Solo rpc_create_quote_revision la
+   * incrementa, al crear una nueva versión sobre una Quote 'enviada'
+   * (archiva la anterior en `quote_versions` y esta fila pasa a
+   * 'borrador'). Editar mientras sigue en 'borrador' (rpc_update_quote)
+   * nunca la toca. El folio NUNCA cambia entre versiones — `version` es un
+   * dato independiente, nunca se concatena al folio real.
+   */
+  version: number;
+
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * THÖREN 0085 — una versión superada de una Quote (archivada por
+ * rpc_create_quote_revision antes de reemplazar el contenido vigente).
+ * `snapshot` es la foto completa `{ quote: Quote, items: QuoteItem[] }` tal
+ * como estaba esa Quote justo antes del reemplazo — suficiente para
+ * reconstruir fielmente el contenido comercial de esa versión en una vista
+ * de solo lectura, sin necesitar un PDF guardado. Nunca editable.
+ */
+export interface QuoteVersion {
+  id: string;
+  quote_id: string;
+  version: number;
+  snapshot: { quote: Quote; items: QuoteItem[] };
+  created_by: string | null;
+  created_by_name: string | null;
+  created_at: string;
 }
 
 /**

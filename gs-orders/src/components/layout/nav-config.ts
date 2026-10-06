@@ -191,7 +191,16 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operación",
     items: [
-      { href: "/pedidos", label: "Órdenes de Trabajo", icon: FileText, adminOnly: false, moduleKey: "ordenes_trabajo" },
+      // THÖREN Ticket E1 — decisión confirmada: sales_orders es el Pedido
+      // oficial; orders (esta ruta, sin cambiar) queda como pipeline
+      // histórico/legado, relabeled a "Pedidos históricos" (antes "Órdenes
+      // de Trabajo") para que el usuario vea UN solo concepto "Pedidos" en
+      // el árbol de navegación — el de abajo, en Comercial. Ruta/moduleKey/
+      // agrupación SIN CAMBIOS a propósito (ver DECISIÓN de alcance en el
+      // reporte de E1): mover físicamente /pedidos a sales_orders
+      // habría roto deep links de PDF/entregas/compras/editar del pipeline
+      // legado, que el ticket exige preservar intactos.
+      { href: "/pedidos", label: "Pedidos históricos", icon: FileText, adminOnly: false, moduleKey: "ordenes_trabajo" },
       { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false, moduleKey: "entregas" },
     ],
   },
@@ -200,7 +209,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false, moduleKey: "clientes" },
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false, moduleKey: "cotizaciones" },
-      { href: "/ordenes-venta", label: "Órdenes de Venta", icon: ClipboardList, adminOnly: false, moduleKey: "ordenes_venta" },
+      { href: "/ordenes-venta", label: "Pedidos", icon: ClipboardList, adminOnly: false, moduleKey: "ordenes_venta" },
       { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false, moduleKey: "surtidos" },
       { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false, moduleKey: "facturas" },
       {

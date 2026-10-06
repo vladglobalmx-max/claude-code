@@ -163,13 +163,13 @@ export default async function PedidosPage({
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        title="Órdenes de Trabajo"
-        description="Órdenes de Trabajo internas de tu organización"
+        title="Pedidos históricos"
+        description="Pipeline histórico de Órdenes de Trabajo — solo consulta y continuidad de los Pedidos existentes. El Pedido oficial de THÖREN ahora vive en Pedidos."
         actions={
-          <Link href="/pedidos/nuevo">
+          <Link href="/ordenes-venta/nueva">
             <Button>
               <Plus className="h-4 w-4" />
-              Nueva Orden de Trabajo
+              Nuevo Pedido
             </Button>
           </Link>
         }

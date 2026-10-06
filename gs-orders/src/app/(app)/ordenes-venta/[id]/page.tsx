@@ -4,7 +4,13 @@ import { ArrowLeft, Pencil, PackageCheck, ShoppingCart, Receipt, Percent } from 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
-import { canManageSalesOrderFinance, canManageSalesFulfillment, canManageCommissions, canPurgeTestOperations } from "@/lib/auth/logistics";
+import {
+  canManageSalesOrderFinance,
+  canManageSalesFulfillment,
+  canManageCommissions,
+  canPurgeTestOperations,
+  canReserveInventory,
+} from "@/lib/auth/logistics";
 import { canPreparePurchaseOrders } from "@/lib/auth/purchase-orders";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +27,8 @@ import { SalesOrderStatusActions } from "./sales-order-status-actions";
 import { PurgeTestSalesOrderButton } from "./purge-test-sales-order-button";
 import { SalesOrderInternalNotesEditor } from "./sales-order-internal-notes-editor";
 import { SalesOrderFinancialPanel } from "./sales-order-financial-panel";
+import { SalesOrderShortagePanel } from "./sales-order-shortage-panel";
+import type { SalesOrderShortageRow } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +44,30 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   if (!soData) notFound();
   const salesOrder = soData as SalesOrder;
   const items = (itemsData ?? []) as SalesOrderItem[];
+
+  // THÖREN Ticket C1 (0091) — shortage por partida, solo lectura. No se
+  // sincroniza nada automáticamente al cargar la página — solo se MUESTRA
+  // el último estado calculado; el usuario decide cuándo sincronizar.
+  // fn_sales_order_item_shortage (helper de solo lectura) devuelve
+  // reserved_this_qty/reserved_other_qty, no reserved_qty/
+  // purchase_requisition_item_id (esos son forma de salida de
+  // rpc_sync_sales_order_procurement) — se remapea aquí para que el panel
+  // reciba siempre la misma forma, sin sincronizar nada.
+  const { data: shortageData } = await supabase.rpc("fn_sales_order_item_shortage", {
+    p_sales_order_id: salesOrder.id,
+  });
+  const shortageByItem: Record<string, SalesOrderShortageRow> = {};
+  for (const row of shortageData ?? []) {
+    shortageByItem[row.sales_order_item_id] = {
+      sales_order_item_id: row.sales_order_item_id,
+      catalog_product_id: row.catalog_product_id,
+      pending_qty: row.pending_qty,
+      available_qty: row.available_qty,
+      reserved_qty: row.reserved_this_qty,
+      shortage_qty: row.shortage_qty,
+      purchase_requisition_item_id: null,
+    };
+  }
 
   // THÖREN 0072 — Facturación: a lo sumo una factura activa por Sales
   // Order (índice único parcial en DB) — si ya existe, el botón lleva a
@@ -92,6 +124,9 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
   // condiciones se cumplen (is_test=true Y autoridad) — rpc_purge_test_sales_order
   // repite ambas validaciones en DB de todos modos.
   const canPurge = salesOrder.is_test && canPurgeTestOperations(profile, capabilities);
+  // THÖREN Ticket C1/E1 — mismo guard exacto que rpc_sync_sales_order_procurement
+  // (admin, dueño de la Sales Order, o can_reserve_inventory).
+  const canSyncProcurement = canReserveInventory(profile, capabilities, salesOrder.salesperson_id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -307,6 +342,16 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
 
       <div className="mt-5">
         <SalesOrderFinancialPanel salesOrder={salesOrder} canManageFinance={canManageFinance} />
+      </div>
+
+      <div className="mt-5">
+        <SalesOrderShortagePanel
+          salesOrderId={salesOrder.id}
+          items={items}
+          initialShortage={shortageByItem}
+          canSync={canSyncProcurement}
+          isBlocked={salesOrder.fulfillment_release_status === "blocked"}
+        />
       </div>
     </div>
   );

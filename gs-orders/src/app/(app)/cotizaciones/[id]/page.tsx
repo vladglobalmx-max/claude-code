@@ -18,6 +18,7 @@ import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABELS } from "@/types/domain";
 import type { Quote, QuoteItem, QuoteVersion } from "@/types/domain";
 import { QuoteStatusActions } from "./quote-status-actions";
 import { DuplicateQuoteButton } from "./duplicate-quote-button";
+import { ConvertToSalesOrderButton } from "./convert-to-sales-order-button";
 import { QuoteNotesEditor } from "./quote-notes-editor";
 import { DeleteQuoteButton } from "../delete-quote-button";
 
@@ -26,15 +27,23 @@ export const dynamic = "force-dynamic";
 export default async function VerCotizacionPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile();
   const supabase = createSupabaseServerClient();
-  const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }, { data: versionsData }] = await Promise.all([
-    supabase.from("quotes").select("*").eq("id", params.id).single(),
-    supabase.from("quote_items").select("*").eq("quote_id", params.id).order("position"),
-    supabase.from("orders").select("id, folio").eq("source_quote_id", params.id).maybeSingle(),
-    // THÖREN 0085 — solo hay filas aquí si esta Quote ya tuvo al menos una
-    // versión reemplazada (editar una 'enviada' crea una); una Quote que
-    // nunca salió de version=1 no tiene historial que mostrar.
-    supabase.from("quote_versions").select("*").eq("quote_id", params.id).order("version", { ascending: false }),
-  ]);
+  const [{ data: quoteData }, { data: itemsData }, { data: linkedOrder }, { data: linkedSalesOrder }, { data: versionsData }] =
+    await Promise.all([
+      supabase.from("quotes").select("*").eq("id", params.id).single(),
+      supabase.from("quote_items").select("*").eq("quote_id", params.id).order("position"),
+      supabase.from("orders").select("id, folio").eq("source_quote_id", params.id).maybeSingle(),
+      // THÖREN Ticket E1 — el Pedido oficial (sales_orders) es la primera
+      // prioridad: si ya existe, siempre gana sobre un order legado (en la
+      // práctica nunca coexisten para la MISMA Quote — rpc_create_sales_order_from_quote
+      // rechaza convertir una Quote que ya tiene order legado, y viceversa
+      // nunca se vuelve a invocar rpc_create_order_from_quote desde esta
+      // pantalla — pero se consulta igual por separado, sin asumir).
+      supabase.from("sales_orders").select("id, order_number").eq("source_quote_id", params.id).maybeSingle(),
+      // THÖREN 0085 — solo hay filas aquí si esta Quote ya tuvo al menos una
+      // versión reemplazada (editar una 'enviada' crea una); una Quote que
+      // nunca salió de version=1 no tiene historial que mostrar.
+      supabase.from("quote_versions").select("*").eq("quote_id", params.id).order("version", { ascending: false }),
+    ]);
 
   if (!quoteData) notFound();
   const quote = quoteData as Quote;
@@ -83,24 +92,25 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
         <div className="flex flex-wrap items-center gap-2">
           {canWrite && <QuoteStatusActions quote={quote} />}
           <DuplicateQuoteButton quoteId={quote.id} />
-          {linkedOrder ? (
+          {linkedSalesOrder ? (
             <Link
-              href={`/pedidos/${linkedOrder.id}`}
+              href={`/ordenes-venta/${linkedSalesOrder.id}`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Ver Orden de Trabajo {linkedOrder.folio}
+              Ver Pedido {linkedSalesOrder.order_number}
             </Link>
-          ) : (
-            !isHistorical &&
-            quote.status === "aceptada" && (
+          ) : linkedOrder ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="neutral">Pertenece al flujo histórico de Pedidos</Badge>
               <Link
-                href={`/cotizaciones/${quote.id}/convertir-pedido`}
-                className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+                href={`/pedidos/${linkedOrder.id}`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
               >
-                Convertir a Orden de Trabajo
-                <ArrowRight className="h-3.5 w-3.5" />
+                Ver Pedido histórico {linkedOrder.folio}
               </Link>
-            )
+            </div>
+          ) : (
+            !isHistorical && quote.status === "aceptada" && <ConvertToSalesOrderButton quoteId={quote.id} />
           )}
           <Link
             href={`/cotizaciones/${quote.id}/pdf`}

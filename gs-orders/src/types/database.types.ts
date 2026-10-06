@@ -3743,6 +3743,17 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
       };
+      // THÖREN Ticket B1 (0090) — SECURITY INVOKER. Convierte una Cotización
+      // aceptada (origin "thoren", sin conversión previa a sales_order ni a
+      // order legado, sin descuento global) en el Pedido oficial, copiando
+      // partidas y campos personalizados compatibles por "key" + business
+      // unit.
+      rpc_create_sales_order_from_quote: {
+        Args: {
+          p_quote_id: string;
+        };
+        Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
       // THÖREN Sales Orders MVP (0067) — SECURITY INVOKER. Solo permite
       // escribir si la Sales Order sigue en status "draft" (verificado
       // dentro del RPC, además de RLS/trigger). Reemplaza todo el set de
@@ -3766,6 +3777,44 @@ export interface Database {
           p_status: string;
         };
         Returns: Database["public"]["Tables"]["sales_orders"]["Row"];
+      };
+      // THÖREN Ticket C1 (0091) — SECURITY DEFINER, STABLE, solo lectura.
+      // Shortage por partida (ordered/on_hand/reserved/available/incoming/
+      // shortage), sin efectos secundarios — rpc_sync_sales_order_procurement
+      // es el único punto de escritura real.
+      fn_sales_order_item_shortage: {
+        Args: {
+          p_sales_order_id: string;
+        };
+        Returns: {
+          sales_order_item_id: string;
+          catalog_product_id: string | null;
+          pending_qty: number;
+          on_hand_qty: number;
+          reserved_other_qty: number;
+          reserved_this_qty: number;
+          available_qty: number;
+          incoming_qty: number;
+          shortage_qty: number;
+        }[];
+      };
+      // THÖREN Ticket C1 (0091) — SECURITY DEFINER. Único punto de entrada
+      // para sincronizar abastecimiento (reservas + requisición automática
+      // draft) de una Sales Order ya liberada financieramente — idempotente,
+      // no crea PO, respeta trg_check_purchase_requisition_eligible.
+      rpc_sync_sales_order_procurement: {
+        Args: {
+          p_sales_order_id: string;
+        };
+        Returns: {
+          sales_order_item_id: string;
+          catalog_product_id: string | null;
+          pending_qty: number;
+          available_qty: number;
+          reserved_qty: number;
+          shortage_qty: number;
+          purchase_requisition_item_id: string | null;
+        }[];
       };
       // THÖREN Financial Release (0068) — SECURITY INVOKER, requiere
       // can_manage_sales_order_finance (o admin). Registra un pago,

@@ -421,6 +421,37 @@ export async function convertQuoteToOrder(quoteId: string, productType: string):
   redirect(`/pedidos/${order.id}`);
 }
 
+/**
+ * THÖREN Ticket E1 (transición orders -> sales_orders, Pedido oficial) —
+ * convierte una Quote aceptada directamente en el Pedido oficial
+ * (sales_orders), vía rpc_create_sales_order_from_quote (Ticket B1,
+ * 0090_sales_order_from_quote.sql). A diferencia de convertQuoteToOrder,
+ * no hay pantalla intermedia: el RPC no necesita ningún dato adicional de
+ * la app (business_unit/cliente/vendedor/moneda/precios/customer_requirements
+ * los resuelve server-side a partir de la propia Quote), así que el botón
+ * de la UI llama este action directo, un solo clic. Las protecciones reales
+ * (Quote aceptada + origen 'thoren', anti-pipeline-doble contra `orders`
+ * legado, idempotencia contra doble conversión a sales_orders, descuento
+ * global bloqueado) viven TODAS en el RPC — este action solo invoca y
+ * traduce el error, nunca las reimplementa. rpc_create_order_from_quote
+ * (flujo legado) NO se toca ni se invoca desde aquí.
+ */
+export async function convertQuoteToSalesOrder(quoteId: string): Promise<QuoteActionResult> {
+  const supabase = createSupabaseServerClient();
+  const { data: salesOrder, error } = await supabase.rpc("rpc_create_sales_order_from_quote", {
+    p_quote_id: quoteId,
+  });
+
+  if (error || !salesOrder) {
+    return { error: mapDbError(error, "No se pudo convertir la cotización a Pedido. Intenta de nuevo.") };
+  }
+
+  revalidatePath("/cotizaciones");
+  revalidatePath(`/cotizaciones/${quoteId}`);
+  revalidatePath("/ordenes-venta");
+  redirect(`/ordenes-venta/${salesOrder.id}`);
+}
+
 export async function duplicateQuote(sourceQuoteId: string): Promise<QuoteActionResult> {
   const supabase = createSupabaseServerClient();
   const timezone = await getCurrentOrganizationTimezone();

@@ -359,3 +359,38 @@ export async function purgeTestSalesOrder(salesOrderId: string): Promise<PurgeTe
   revalidatePath("/ordenes-venta");
   return { error: null, orderNumber: data as string };
 }
+
+export interface SalesOrderShortageRow {
+  sales_order_item_id: string;
+  catalog_product_id: string | null;
+  pending_qty: number;
+  available_qty: number;
+  reserved_qty: number;
+  shortage_qty: number;
+  purchase_requisition_item_id: string | null;
+}
+
+/**
+ * THÖREN Ticket C1 (0091_sales_order_shortage_procurement.sql) —
+ * sincroniza abastecimiento (reservas + requisición automática) de una
+ * Sales Order. Reutiliza íntegramente rpc_sync_sales_order_procurement:
+ * no reimplementa ninguna regla de disponibilidad/gate financiero/
+ * idempotencia aquí — esta acción solo invoca el RPC y traduce el error.
+ * Si la Sales Order está bloqueada por pago, el propio RPC es un no-op
+ * limpio (0 filas), nunca un error — se refleja igual en la UI.
+ */
+export async function syncSalesOrderProcurement(
+  salesOrderId: string
+): Promise<{ error: string | null; rows?: SalesOrderShortageRow[] }> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rpc_sync_sales_order_procurement", {
+    p_sales_order_id: salesOrderId,
+  });
+
+  if (error) {
+    return { error: mapDbError(error, "No se pudo sincronizar el abastecimiento. Intenta de nuevo.") };
+  }
+
+  revalidatePath(`/ordenes-venta/${salesOrderId}`);
+  return { error: null, rows: (data ?? []) as SalesOrderShortageRow[] };
+}

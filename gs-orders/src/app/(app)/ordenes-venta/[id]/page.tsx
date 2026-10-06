@@ -236,7 +236,7 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
             )}
           </div>
 
-          {(salesOrder.payment_terms || salesOrder.customer_contact_snapshot || salesOrder.commercial_notes) && (
+          {(salesOrder.payment_terms || salesOrder.delivery_time || salesOrder.customer_contact_snapshot || salesOrder.commercial_notes) && (
             <div className="space-y-3 border-t border-border pt-4">
               <p className="text-xs uppercase tracking-wide text-ink-faint">Condiciones comerciales</p>
               <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
@@ -244,6 +244,13 @@ export default async function VerOrdenVentaPage({ params }: { params: { id: stri
                   <div>
                     <p className="text-xs uppercase tracking-wide text-ink-faint">Condición de pago</p>
                     <p className="text-ink">{salesOrder.payment_terms}</p>
+                  </div>
+                )}
+                {/* THÖREN 0092 — texto libre tal cual (ej. "3-4 Semanas"), nunca una fecha; ver requested_delivery_date arriba para el compromiso de fecha concreta. */}
+                {salesOrder.delivery_time && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-ink-faint">Tiempo de entrega</p>
+                    <p className="text-ink">{salesOrder.delivery_time}</p>
                   </div>
                 )}
                 {salesOrder.customer_contact_snapshot && (

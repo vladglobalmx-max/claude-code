@@ -865,6 +865,16 @@ export interface SalesOrder {
   exchange_rate: number | null;
   payment_terms: string | null;
   requested_delivery_date: string | null;
+  /**
+   * THÖREN 0092 — condición comercial de entrega en texto libre (ej. "3-4
+   * Semanas"), copiada de quotes.delivery_time al convertir
+   * (rpc_create_sales_order_from_quote). NUNCA se parsea a fecha; es
+   * independiente de requested_delivery_date (date real, para cuando existe
+   * un compromiso concreto). rpc_update_sales_order no la toca — se
+   * preserva a través de cualquier edición posterior, mismo mecanismo que
+   * business_unit_id/source_quote_id (0090).
+   */
+  delivery_time: string | null;
 
   billing_address_snapshot: string | null;
   shipping_address_snapshot: string | null;

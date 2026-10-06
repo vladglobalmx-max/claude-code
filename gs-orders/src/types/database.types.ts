@@ -2148,6 +2148,11 @@ export interface Database {
           exchange_rate: number | null;
           payment_terms: string | null;
           requested_delivery_date: string | null;
+          // THÖREN 0092 — condición comercial de entrega en texto libre (ej.
+          // "3-4 Semanas"), copiada de quotes.delivery_time en la conversión
+          // (rpc_create_sales_order_from_quote). Nunca parseada a fecha —
+          // independiente de requested_delivery_date.
+          delivery_time: string | null;
           billing_address_snapshot: string | null;
           shipping_address_snapshot: string | null;
           customer_contact_snapshot: string | null;
@@ -2186,6 +2191,7 @@ export interface Database {
           exchange_rate?: number | null;
           payment_terms?: string | null;
           requested_delivery_date?: string | null;
+          delivery_time?: string | null;
           billing_address_snapshot?: string | null;
           shipping_address_snapshot?: string | null;
           customer_contact_snapshot?: string | null;

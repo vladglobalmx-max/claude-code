@@ -29,7 +29,7 @@ const LABELS = {
   paymentTerms: { es: "Condiciones de Pago", en: "Payment Terms" },
   shipTo: { es: "Entregar en", en: "Ship To" },
   notes: { es: "Notas", en: "Notes" },
-  reference: { es: "Referencia/modelo proveedor", en: "Supplier reference/model" },
+  reference: { es: "Referencia/modelo proveedor", en: "Supplier SKU" },
   /** THÖREN — fix de cierre 0081: título de la sección "Datos relacionados" del layout compartido (document-pdf.tsx). */
   relatedData: { es: "Datos relacionados", en: "Related Information" },
   /** THÖREN — fix de cierre 0081: prefijo "Generado el <fecha>" del pie de página del layout compartido. */

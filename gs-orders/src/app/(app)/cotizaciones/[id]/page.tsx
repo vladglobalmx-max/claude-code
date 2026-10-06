@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Download, FileText, Pencil, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSignedUrl } from "@/lib/storage";
+import { getSignedUrl, getSignedUrls } from "@/lib/storage";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canWriteRecord } from "@/lib/auth/ownership";
 import { buttonVariants } from "@/components/ui/button";
@@ -41,6 +41,26 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
   const items = (itemsData ?? []) as QuoteItem[];
   const versions = (versionsData ?? []) as unknown as QuoteVersion[];
   const expired = isQuoteExpired(quote);
+
+  // THÖREN — imagen de producto por partida (mismo patrón ya probado en el
+  // PDF de Cotización, (print)/cotizaciones/[id]/pdf/page.tsx): solo para
+  // líneas vinculadas a un producto del catálogo (catalog_product_id), vía
+  // product_catalog.image_path + URL firmada del bucket order-media. Si el
+  // producto no tiene imagen, no se reserva espacio.
+  const catalogProductIds = Array.from(
+    new Set(items.map((item) => item.catalog_product_id).filter((id): id is string => !!id))
+  );
+  const { data: catalogImages } =
+    catalogProductIds.length > 0
+      ? await supabase.from("product_catalog").select("id, image_path").in("id", catalogProductIds)
+      : { data: [] as { id: string; image_path: string | null }[] };
+  const imagePathByProductId = new Map((catalogImages ?? []).map((p) => [p.id, p.image_path]));
+  const productImagePaths = Array.from(new Set(Array.from(imagePathByProductId.values()).filter((p): p is string => !!p)));
+  const signedProductImageUrls = await getSignedUrls("order-media", productImagePaths);
+  const productImageUrlByProductId = new Map<string, string>();
+  for (const [productId, path] of imagePathByProductId) {
+    if (path && signedProductImageUrls[path]) productImageUrlByProductId.set(productId, signedProductImageUrls[path]);
+  }
   const isAdmin = profile?.role === "admin";
   // VIEW != WRITE (THÖREN 6R.1B-1 UX fix): can_view_all_sales (0041) amplió
   // qué cotizaciones puede VER un vendedor, pero canWriteRecord nunca
@@ -221,8 +241,20 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
             <p className="mb-2 text-xs uppercase tracking-wide text-ink-faint">Productos</p>
 
             <div className="space-y-2 sm:hidden">
-              {items.map((item) => (
+              {items.map((item) => {
+                const imageUrl = item.catalog_product_id ? productImageUrlByProductId.get(item.catalog_product_id) : undefined;
+                return (
                 <div key={item.id} className="rounded-lg border border-border p-3 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    {imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-md border border-border object-contain"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
                   <p className="font-medium text-ink">{item.model}</p>
                   {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
                   <p className="mt-1 text-xs text-ink-faint">
@@ -242,8 +274,11 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                   <p className="mt-1 text-right text-sm font-medium text-ink">
                     {formatMoneyByCurrency(item.line_subtotal, quote.currency)}
                   </p>
+                    </div>
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="hidden sm:block">
@@ -258,20 +293,34 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {items.map((item) => (
+                  {items.map((item) => {
+                    const imageUrl = item.catalog_product_id ? productImageUrlByProductId.get(item.catalog_product_id) : undefined;
+                    return (
                     <Tr key={item.id}>
                       <Td>
-                        <p className="font-medium text-ink">{item.model}</p>
-                        {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
-                        {item.customer_requirements && (
-                          <div className="mt-0.5 text-xs text-ink-faint">
-                            <span className="font-medium">Requisitos del cliente:</span>
-                            {!item.customer_requirements_visible_in_pdf && (
-                              <span className="italic"> (oculto en PDF)</span>
+                        <div className="flex items-start gap-2.5">
+                          {imageUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              className="h-10 w-10 shrink-0 rounded-md border border-border object-contain"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium text-ink">{item.model}</p>
+                            {item.description && <p className="text-xs text-ink-faint">{item.description}</p>}
+                            {item.customer_requirements && (
+                              <div className="mt-0.5 text-xs text-ink-faint">
+                                <span className="font-medium">Requisitos del cliente:</span>
+                                {!item.customer_requirements_visible_in_pdf && (
+                                  <span className="italic"> (oculto en PDF)</span>
+                                )}
+                                <RichTextView html={item.customer_requirements} />
+                              </div>
                             )}
-                            <RichTextView html={item.customer_requirements} />
                           </div>
-                        )}
+                        </div>
                       </Td>
                       <Td className="text-ink-soft">
                         {item.quantity}
@@ -281,7 +330,8 @@ export default async function VerCotizacionPage({ params }: { params: { id: stri
                       <Td className="text-ink-soft">{item.line_discount_percent}%</Td>
                       <Td className="text-ink-soft">{formatMoneyByCurrency(item.line_subtotal, quote.currency)}</Td>
                     </Tr>
-                  ))}
+                    );
+                  })}
                 </Tbody>
               </Table>
             </div>

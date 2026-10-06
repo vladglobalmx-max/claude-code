@@ -13,6 +13,47 @@ import {
   translatePurchaseOrderDateTime,
 } from "./purchase-order-i18n";
 
+const formatMoney = (value: number | null) => (value != null ? `$${value.toFixed(2)}` : "—");
+
+/**
+ * THÖREN — fix de cierre 0081: la rama `isDirect` del PDF (Orden de Compra
+ * Directa) nunca mostraba ningún SKU/referencia por partida — ni el
+ * interno ni el del proveedor (a diferencia de la rama no-directa, que
+ * desde 0078 ya muestra `supplier_sku_snapshot`/`supplier_model_snapshot`
+ * en su propia columna "reference"). Extraída como función pura (en vez de
+ * quedar inline en `build()`) para poder probarla sin mockear Supabase —
+ * mismo criterio que el resto del proyecto (funciones de cálculo/formato
+ * puras, cada una con su propio .test.ts).
+ *
+ * Prioridad de la columna "reference" (Supplier reference/model): SIEMPRE
+ * `supplier_sku_snapshot` -> `supplier_model_snapshot` -> "—". Nunca cae al
+ * SKU interno (`item.model`) como sustituto — ese es un dato de referencia
+ * DISTINTO, que el proveedor no reconoce. El SKU interno se conserva como
+ * dato SECUNDARIO dentro de la columna "description" (segunda línea,
+ * "Internal SKU: <model>"), solo cuando `model` existe y aporta algo que
+ * la primera línea no mostraba ya (si no hay descripción libre capturada,
+ * `description` ya es literalmente `model` — repetirlo sería redundante).
+ */
+export function buildDirectPurchaseOrderRow(
+  item: Pick<
+    PurchaseOrderItem,
+    "description" | "model" | "unit" | "quantity_ordered" | "unit_price" | "line_total" | "supplier_sku_snapshot" | "supplier_model_snapshot"
+  >
+) {
+  const baseDescription = item.description ?? item.model ?? "";
+  const description =
+    item.model && item.model !== baseDescription ? `${baseDescription}\nInternal SKU: ${item.model}` : baseDescription;
+
+  return {
+    description,
+    reference: item.supplier_sku_snapshot ?? item.supplier_model_snapshot ?? "—",
+    unit: item.unit ?? "—",
+    quantity: String(item.quantity_ordered),
+    unitPrice: formatMoney(item.unit_price),
+    amount: formatMoney(item.line_total),
+  };
+}
+
 /**
  * Mismo criterio que src/app/(app)/compras/[id]/page.tsx: select por id +
  * join a suppliers, RLS (purchase_orders_select) es la única puerta.
@@ -101,6 +142,7 @@ export const purchaseOrderPdfAdapter: PdfDocumentAdapter = {
     const columns = isDirect
       ? [
           { key: "description", label: purchaseOrderLabel("description", language) },
+          { key: "reference", label: purchaseOrderLabel("reference", language) },
           { key: "unit", label: purchaseOrderLabel("unit", language) },
           { key: "quantity", label: purchaseOrderLabel("quantity", language), align: "right" as const },
           { key: "unitPrice", label: purchaseOrderLabel("unitPrice", language), align: "right" as const },
@@ -113,16 +155,8 @@ export const purchaseOrderPdfAdapter: PdfDocumentAdapter = {
           { key: "quantity", label: "Cantidad", align: "right" as const },
         ];
 
-    const formatMoney = (value: number | null) => (value != null ? `$${value.toFixed(2)}` : "—");
-
     const rows = isDirect
-      ? items.map((item) => ({
-          description: item.description ?? item.model,
-          unit: item.unit ?? "—",
-          quantity: String(item.quantity_ordered),
-          unitPrice: formatMoney(item.unit_price),
-          amount: formatMoney(item.line_total),
-        }))
+      ? items.map((item) => buildDirectPurchaseOrderRow(item))
       : items.map((item) => ({
           reference: item.supplier_sku_snapshot ?? item.supplier_model_snapshot ?? "—",
           description: item.supplier_description_snapshot ?? item.description ?? item.model,

@@ -251,7 +251,16 @@ describe("purchaseOrderPdfAdapter (THÖREN 0078)", () => {
       ])
     );
     expect(result?.spec.rows[0]).toEqual(
-      expect.objectContaining({ description: "Servicio de instalación", unitPrice: "$50.00", amount: "$116.00" })
+      expect.objectContaining({
+        // THÖREN — fix de cierre 0081: columna "reference" nueva en la
+        // rama directa (sin supplier_sku_snapshot/supplier_model_snapshot
+        // en este fixture -> "—"); description gana la línea secundaria
+        // "Internal SKU" porque aquí sí hay descripción libre distinta de model.
+        description: "Servicio de instalación\nInternal SKU: MODELO-INTERNO",
+        reference: "—",
+        unitPrice: "$50.00",
+        amount: "$116.00",
+      })
     );
     expect(result?.spec.totals).toEqual([
       { label: "Subtotal", value: "$100.00" },

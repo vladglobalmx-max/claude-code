@@ -76,3 +76,10 @@ Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documenta
 - La guía PDF para padres no explicaba cómo salir del modo adulto (el mismo punto de confusión que se corrigió en la app en 1.1.2), y no mencionaba la pestaña nueva de "Materias" en el panel de padres. Ambos se agregaron a la sección 5 ("Tu panel de padres").
 - Regenerado el PDF confirmando que las 10 páginas siguen cabiendo exactas en A4 sin desbordes.
 - Sincronizada la guía actualizada dentro del paquete de entrega y el ZIP para Hotmart.
+
+## [1.1.4] - 2026-10-13
+
+### Cambiado
+
+- Decisión final de precio: $258 MXN base (≈ $299 MXN con IVA incluido en el checkout) para el lanzamiento, en vez de $297/$344.52. Prioriza que el precio no sea una barrera para las primeras ventas sin reseñas todavía. Precio regular sugerido ajustado a $301 MXN base (≈ $349 con IVA) para cuando ya haya reseñas reales. Confirmado contra la simulación de impuestos del propio formulario de Hotmart (México, 16%, $258 → $299.28).
+- `PRECIO-Y-POSICIONAMIENTO.md`/.pdf actualizados con la tabla de precio base vs. precio final con IVA, ya que en México Hotmart no permite fijar precio "con impuestos incluidos": el IVA se suma aparte en el checkout, a cargo de la persona compradora.

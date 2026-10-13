@@ -1,0 +1,54 @@
+# Licencia de uso — Bookfluence Kids · Mi Día Genial
+
+> **Nota antes de usar este documento:** esta es una plantilla estándar para un producto digital de pago único, escrita en lenguaje simple. No sustituye asesoría legal profesional. Si vas a vender a mayor escala, te conviene que un abogado la revise una vez, sobre todo las cláusulas de responsabilidad y la jurisdicción aplicable. Reemplaza los campos `[ ]` con tus datos antes de publicarla.
+
+**Producto:** Bookfluence Kids — Mi Día Genial
+**Vendedor:** [Tu nombre o razón social]
+**Contacto:** [tu correo de soporte]
+**Última actualización:** [fecha]
+
+## 1. Qué estás comprando
+
+Al comprar Bookfluence Kids — Mi Día Genial adquieres una **licencia de uso**, no la propiedad del software. Esta licencia te permite:
+
+- Instalar y usar la aplicación en los dispositivos de tu propia familia (computadora, tableta, celular), para uso personal y no comercial.
+- Crear perfiles para tus propios hijos, hijas o menores a tu cargo.
+- Imprimir los reportes que la aplicación genera para uso familiar o educativo privado.
+- Conservar y usar la guía en PDF incluida, para tu uso personal.
+
+## 2. Qué NO incluye esta licencia
+
+Esta licencia **no** te permite:
+
+- Revender, redistribuir, compartir públicamente, subir a otra tienda o plataforma, ni regalar copias del archivo de la aplicación o de la guía en PDF a terceros fuera de tu núcleo familiar.
+- Modificar el código de la aplicación y distribuir una versión derivada como si fuera tuya.
+- Usar el nombre "Bookfluence Kids", su diseño o sus textos para crear un producto competidor.
+- Usar la aplicación con fines comerciales (por ejemplo, venderla como servicio a otras familias, instituciones o clientes) sin un acuerdo de licencia distinto. Si tienes una escuela, guardería o consultorio y te interesa una licencia para varias familias o alumnos, contáctanos a [tu correo] para una licencia ampliada.
+
+## 3. Entrega y requisitos técnicos
+
+El producto se entrega como un archivo digital descargable inmediatamente después de tu compra en Hotmart. Para usarlo necesitas un dispositivo con un navegador moderno (Chrome, Safari, Edge o Firefox); no requiere instalación ni conexión a internet para funcionar día a día.
+
+Es tu responsabilidad conservar una copia del archivo y, si quieres conservar la información que vayas guardando (perfiles, tareas, estrellas, etc.), usar la función de "Exportar respaldo" incluida en la propia aplicación, ya que toda la información se guarda localmente en el navegador de tu dispositivo.
+
+## 4. Garantía y reembolsos
+
+Cuentas con **[7] días** a partir de tu compra para solicitar un reembolso completo directamente a través de la plataforma de Hotmart, sin necesidad de justificar el motivo, conforme a la política de garantía que configures en tu cuenta de Hotmart y a la normativa de protección al consumidor aplicable en tu país.
+
+## 5. Limitación de responsabilidad
+
+Bookfluence Kids — Mi Día Genial es una **herramienta de organización y desarrollo de hábitos**. No es un dispositivo médico, no ofrece diagnóstico, tratamiento ni asesoría psicológica, y no garantiza resultados académicos, conductuales o emocionales específicos. El uso de la aplicación no sustituye el acompañamiento, supervisión y criterio de un adulto responsable del menor que la use.
+
+En la medida permitida por la ley aplicable, el vendedor no será responsable por daños indirectos derivados del uso o la imposibilidad de uso de la aplicación. Nada en este documento limita los derechos que te reconozca de forma irrenunciable la legislación de protección al consumidor de tu país.
+
+## 6. Actualizaciones
+
+Las actualizaciones futuras del producto, cuando existan, se entregarán sin costo adicional a quienes ya hayan comprado una licencia, a través del mismo canal de entrega de Hotmart o del medio que el vendedor indique.
+
+## 7. Ley aplicable
+
+Este acuerdo se rige por las leyes de [tu país/estado]. Cualquier controversia se resolverá ante los tribunales competentes de [tu ciudad/estado], sin perjuicio de los mecanismos de resolución de disputas que ofrezca Hotmart como plataforma intermediaria de la venta.
+
+---
+
+Al completar tu compra, aceptas los términos de esta licencia de uso.

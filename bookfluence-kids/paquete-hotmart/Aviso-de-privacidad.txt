@@ -1,0 +1,86 @@
+BOOKFLUENCE KIDS — MI DÍA GENIAL
+AVISO DE PRIVACIDAD
+================================================================
+
+Responsable: [Tu nombre o razón social]
+Contacto: [tu correo de soporte]
+Última actualización: [fecha]
+
+
+EN UNA FRASE
+----------------------------------------------------------------
+La aplicación Bookfluence Kids — Mi Día Genial NO recolecta,
+NO transmite ni almacena en ningún servidor la información de
+tu hijo o hija, ni la tuya. Todo lo que la app guarda (perfiles,
+tareas, hábitos, estrellas, emociones, gratitud, etc.) se queda
+ÚNICAMENTE en el navegador del dispositivo donde la uses.
+
+
+QUÉ INFORMACIÓN MANEJA LA APLICACIÓN Y DÓNDE SE GUARDA
+----------------------------------------------------------------
+- Nombre o apodo, edad y avatar del perfil infantil:
+  se guarda localmente en el navegador. No sale del
+  dispositivo.
+
+- Tareas, hábitos, lecturas, metas, emociones, gratitud,
+  estrellas: se guardan localmente en el navegador. No salen
+  del dispositivo.
+
+- PIN familiar: se guarda localmente, cifrado con hash y sal
+  (Web Crypto API). No sale del dispositivo.
+
+- Archivos de respaldo que tú exportas manualmente: el archivo
+  se descarga a tu dispositivo. Solo sale de ahí si tú decides
+  compartirlo o subirlo a algún lugar; eso queda fuera del
+  control de la aplicación.
+
+La aplicación no usa cookies de rastreo, no tiene analítica, no
+se conecta a ningún servidor propio ni de terceros, no muestra
+anuncios y no requiere crear una cuenta.
+
+
+SOBRE LA COMPRA EN HOTMART
+----------------------------------------------------------------
+La información que Hotmart recolecta al momento de tu compra
+(nombre, correo, datos de pago) la procesa Hotmart como
+plataforma de pagos, conforme a su propio aviso de privacidad,
+no conforme a este documento. El vendedor del producto solo
+recibe de Hotmart los datos necesarios para la entrega del
+producto y la atención de soporte (normalmente tu nombre y
+correo de contacto).
+
+
+DATOS DE MENORES DE EDAD
+----------------------------------------------------------------
+Como la aplicación está pensada para que la usen niñas y niños
+de 7 a 12 años, es importante aclarar: ningún dato que el niño
+o la niña escriba dentro de la aplicación (su nombre, sus
+tareas, sus emociones, su gratitud) se envía a ningún lado.
+Permanece en el dispositivo, bajo el control del adulto
+responsable de esa familia. El vendedor del producto nunca
+tiene acceso a esa información, porque nunca llega a sus manos
+ni a ningún servidor.
+
+
+RESPONSABILIDAD DEL USUARIO SOBRE EL RESPALDO
+----------------------------------------------------------------
+Si decides usar la función de "Exportar respaldo" para guardar
+un archivo con la información de tu familia, ese archivo queda
+bajo tu propia responsabilidad: guárdalo en un lugar seguro, ya
+que contiene la información que tu familia fue registrando.
+
+
+CAMBIOS A ESTE AVISO
+----------------------------------------------------------------
+Si una futura versión de la aplicación cambia esta situación
+(por ejemplo, si se agregara alguna función opcional de
+sincronización en la nube), se actualizará este aviso de
+privacidad y se te informará a través del mismo canal de
+entrega de Hotmart antes de que la nueva versión esté
+disponible.
+
+
+CONTACTO
+----------------------------------------------------------------
+Para dudas sobre este aviso de privacidad, escribe a
+[tu correo de soporte].

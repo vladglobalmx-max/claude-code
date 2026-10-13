@@ -2,6 +2,17 @@
 
 Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documentan en este archivo.
 
+## [1.1.0] - 2026-10-13
+
+### Añadido — preparación para lanzamiento comercial en Hotmart
+
+- `paquete-hotmart/`: carpeta con el entregable exacto que recibe el comprador — la app renombrada a `Bookfluence-Kids-Mi-Dia-Genial.html`, la guía en PDF, y versiones en texto plano (sin marcado Markdown) de la licencia de uso y el aviso de privacidad, más un `LEEME-PRIMERO.txt` de bienvenida.
+- `Bookfluence-Kids-Mi-Dia-Genial-ENTREGABLE.zip`: el paquete anterior comprimido, listo para subir como archivo de entrega en Hotmart.
+- `LICENCIA-DE-USO.md` / `AVISO-DE-PRIVACIDAD.md`: plantillas legales en la raíz del proyecto (para edición del vendedor), adaptadas a un producto digital de pago único que no recolecta datos.
+- `COPY-PAGINA-VENTA-HOTMART.md`: copy completo para la ficha de producto (título, descripción, bullets, FAQ, llamado a la acción, sugerencias de imágenes).
+- `PRECIO-Y-POSICIONAMIENTO.md`: investigación de precios comparables y recomendación de precio de lanzamiento/regular, con nota sobre comisiones de Hotmart.
+- Verificación de regresión: 12 pruebas end-to-end (Playwright) repetidas contra el archivo renombrado dentro del paquete, incluyendo que no quedó ninguna referencia interna al nombre de archivo original `index.html`.
+
 ## [1.0.0] - 2026-07-16
 
 ### Añadido

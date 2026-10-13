@@ -2,6 +2,17 @@
 
 Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documentan en este archivo.
 
+## [1.1.1] - 2026-10-13
+
+### Corregido
+
+- **Configuración ya no era accesible sin PIN**: desde el perfil de un niño o niña se podía entrar a `#/configuracion` libremente (cambiar el límite diario de estrellas, duraciones de estudio, tema, etc.) sin pasar por el modo adulto, aunque las acciones destructivas individuales (borrar datos, restaurar respaldo, cambiar PIN) sí pedían PIN por separado. Ahora toda la sección de Configuración queda protegida con la misma pantalla de candado que el Panel de padres. Reportado al probar la app con un usuario real.
+
+### Añadido
+
+- **Gestión de materias desde el Panel de padres**: nueva pestaña "Materias" para crear, renombrar, cambiar de color y activar/desactivar materias después del onboarding (antes `SubjectService.crear`/`actualizar` existían pero no estaban conectados a ningún botón — solo se podían definir materias durante el asistente inicial).
+- 4 verificaciones nuevas en la prueba de regresión cubriendo ambos cambios (16 pruebas en total, 0 fallas).
+
 ## [1.1.0] - 2026-10-13
 
 ### Añadido — preparación para lanzamiento comercial en Hotmart

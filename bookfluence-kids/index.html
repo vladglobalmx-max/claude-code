@@ -4217,7 +4217,7 @@ const ParentPanel = (function(){
   let filtroSemana = "";
 
   const SECCIONES = [
-    {v:"resumen", l:"Resumen"}, {v:"perfiles", l:"Perfiles"}, {v:"tareas", l:"Tareas"},
+    {v:"resumen", l:"Resumen"}, {v:"perfiles", l:"Perfiles"}, {v:"materias", l:"Materias"}, {v:"tareas", l:"Tareas"},
     {v:"habitos", l:"Hábitos"}, {v:"recompensas", l:"Recompensas"}, {v:"reportes", l:"Reportes"},
     {v:"configuracion", l:"Configuración"}, {v:"respaldo", l:"Respaldo"}
   ];
@@ -4243,6 +4243,7 @@ const ParentPanel = (function(){
     switch(seccionActiva){
       case "resumen": return seccionResumen();
       case "perfiles": return seccionPerfiles();
+      case "materias": return seccionMaterias();
       case "tareas": return seccionTareas();
       case "habitos": return seccionHabitos();
       case "recompensas": return seccionRecompensas();
@@ -4316,6 +4317,60 @@ const ParentPanel = (function(){
             <button class="btn btn-chico btn-peligro" data-eliminar-perfil="${p.id}">Eliminar</button>
           </div>
         </div>`).join("")}</div>`;
+  }
+
+  function seccionMaterias(){
+    const perfil = ProfileService.activo();
+    if(!perfil) return `<p class="texto-secundario">Crea un perfil primero.</p>`;
+    const materias = SubjectService.listar(perfil.id, false);
+    return `<div class="vista-titulo"><h3>Materias de ${SanitizationService.escapeHtml(perfil.name)}</h3><button class="btn btn-primario" data-accion-nueva-materia>${icono("plus")} Nueva materia</button></div>
+      <p class="texto-secundario mt-8">Activa o desactiva materias, cámbiales el color, o crea una nueva. Las materias inactivas dejan de aparecer para elegir en tareas y sesiones de estudio nuevas, pero no se borra lo ya registrado con ellas.</p>
+      <div class="rejilla rejilla-3 mt-8">${materias.map(m=>`
+        <div class="tarjeta">
+          <div class="flex gap-8" style="align-items:center;"><span class="franja-color" style="background:${m.color}"></span><strong>${SanitizationService.escapeHtml(m.name)}</strong></div>
+          <p class="mt-8 etiqueta-chip">${m.active?'Activa':'Inactiva'}</p>
+          <div class="flex gap-8 mt-8" style="flex-wrap:wrap;">
+            <button class="btn btn-chico btn-fantasma" data-editar-materia="${m.id}">Editar</button>
+            <button class="btn btn-chico ${m.active?'btn-fantasma':'btn-exito'}" data-alternar-materia="${m.id}">${m.active?'Desactivar':'Activar'}</button>
+          </div>
+        </div>`).join("") || `<p class="texto-secundario">Aún no hay materias. Crea la primera.</p>`}</div>`;
+  }
+
+  function abrirFormularioMateria(materiaId){
+    const perfil = ProfileService.activo();
+    if(!perfil) return;
+    const m = materiaId ? SubjectService.obtener(materiaId) : null;
+    const modal = ModalManager.abrir({
+      titulo: m?"Editar materia":"Nueva materia",
+      html:`<div class="encabezado-modal"><h2>${m?"Editar materia":"Nueva materia"}</h2><button class="btn btn-icono btn-fantasma" data-cerrar-modal aria-label="Cerrar">${ICONS.close}</button></div>
+      <form data-form-materia-padres>
+        <div class="campo"><label for="mat-nombre">Nombre</label><input id="mat-nombre" type="text" maxlength="30" value="${m?SanitizationService.escapeHtml(m.name):''}" data-autofoco></div>
+        <div class="campo"><label>Color</label><div class="selector-color" data-selector-color-materia>${DEFAULTS.coloresPerfil.map(c=>`<button type="button" class="bola-color" style="background:${c}" data-color-mat="${c}" aria-pressed="${(m?m.color:DEFAULTS.coloresPerfil[0])===c}"></button>`).join("")}</div></div>
+        ${m?`<div class="campo"><label><input type="checkbox" id="mat-activa" ${m.active?'checked':''} style="width:auto;"> Materia activa</label></div>`:''}
+        <div class="pie-modal"><button type="button" class="btn btn-fantasma" data-cerrar-modal>Cancelar</button><button type="submit" class="btn btn-primario">Guardar</button></div>
+      </form>`
+    });
+    let colorElegido = m ? m.color : DEFAULTS.coloresPerfil[0];
+    modal.querySelectorAll("[data-color-mat]").forEach(btn=>btn.addEventListener("click",()=>{
+      colorElegido = btn.getAttribute("data-color-mat");
+      modal.querySelectorAll("[data-color-mat]").forEach(b=>b.setAttribute("aria-pressed", b===btn));
+    }));
+    modal.querySelector("[data-form-materia-padres]").addEventListener("submit",(e)=>{
+      e.preventDefault();
+      const nombre = document.getElementById("mat-nombre").value;
+      if(!ValidationService.required(nombre,"").ok){ ToastManager.mostrar("Escribe el nombre de la materia.","error"); return; }
+      if(m){
+        const cambios = { name:nombre, color:colorElegido };
+        const chk = document.getElementById("mat-activa");
+        if(chk) cambios.active = chk.checked;
+        SubjectService.actualizar(m.id, cambios);
+      } else {
+        SubjectService.crear(perfil.id, nombre, colorElegido);
+      }
+      ModalManager.cerrar();
+      ToastManager.mostrar(m?"Materia actualizada.":"Materia creada.","exito");
+      UI.renderVista("padres");
+    });
   }
 
   function seccionTareas(){
@@ -4488,7 +4543,7 @@ const ParentPanel = (function(){
     });
   }
 
-  return { render, cambiarSeccion, abrirFormularioPerfil, abrirFormularioRecompensa, confirmarEliminarPerfil, seccionActiva:()=>seccionActiva,
+  return { render, cambiarSeccion, abrirFormularioPerfil, abrirFormularioRecompensa, abrirFormularioMateria, confirmarEliminarPerfil, seccionActiva:()=>seccionActiva,
     establecerFiltroPerfil:(v)=>{ filtroPerfil=v; UI.renderVista("padres"); },
     establecerFiltroSemana:(v)=>{ filtroSemana=v; UI.renderVista("padres"); } };
 })();
@@ -4525,6 +4580,15 @@ Acciones["data-eliminar-recompensa"] = function(el){
   ModalManager.confirmar({ titulo:"Eliminar recompensa", mensaje:"¿Eliminar esta recompensa? Las solicitudes ya aprobadas no se modifican.", claseConfirmar:"btn-peligro", textoConfirmar:"Eliminar",
     alConfirmar: ()=>{ RewardService.eliminar(el.getAttribute("data-eliminar-recompensa")); UI.renderVista("padres"); } });
 };
+Acciones["data-accion-nueva-materia"] = function(){ ParentPanel.abrirFormularioMateria(null); };
+Acciones["data-editar-materia"] = function(el){ ParentPanel.abrirFormularioMateria(el.getAttribute("data-editar-materia")); };
+Acciones["data-alternar-materia"] = function(el){
+  const id = el.getAttribute("data-alternar-materia");
+  const m = SubjectService.obtener(id);
+  if(!m) return;
+  SubjectService.actualizar(id, { active: !m.active });
+  UI.renderVista("padres");
+};
 VistaHooks.padres = function(){
   const selPerfil = document.getElementById("pp-filtro-perfil");
   if(selPerfil) selPerfil.addEventListener("change", ()=>ParentPanel.establecerFiltroPerfil(selPerfil.value));
@@ -4534,6 +4598,11 @@ VistaHooks.padres = function(){
 
 /* ===================== Views.configuracion (#/configuracion) ===================== */
 Views.configuracion = function(){
+  if(!AuthService.esModoAdulto()){
+    return `<div class="vista"><div class="tarjeta estado-vacio"><span class="insignia-vacio">${icono("lock")}</span>
+      <p>Esta sección está protegida con el PIN familiar.</p>
+      <button class="btn btn-primario" data-accion-modo-adulto>Entrar con PIN</button></div></div>`;
+  }
   const datos = Store.obtener();
   const s = datos.appSettings;
   const tienePinYaConfigurado = AuthService.tienePinConfigurado();

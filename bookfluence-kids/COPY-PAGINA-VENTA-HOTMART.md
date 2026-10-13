@@ -7,8 +7,10 @@ Todo lo que sigue está listo para copiar y pegar en el editor de producto de Ho
 ## Nombre del producto (campo "Nombre")
 
 ```
-Bookfluence Kids: Mi Día Genial — App Organizador para Niños (7 a 12 años)
+Mi Día Genial — App Organizador para Niños 7-12 años | Bookfluence Kids
 ```
+
+El beneficio va primero porque quien ve el producto por primera vez en el marketplace todavía no conoce la marca "Bookfluence" — lo que lo hace detenerse es entender de inmediato qué hace la app. "Bookfluence Kids" queda al final como tu marca/tienda, útil para cuando tengas más productos bajo el mismo nombre.
 
 ## Categoría sugerida en Hotmart
 

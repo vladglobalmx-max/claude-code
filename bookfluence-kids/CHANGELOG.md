@@ -68,3 +68,11 @@ Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documenta
 
 - La salida del modo adulto era ambigua: el botón del encabezado seguía diciendo "Modo adulto" estando ya adentro, sin dejar claro que tocarlo de nuevo cierra la sesión de adulto. Ahora dice "Salir de modo adulto" (con ícono de cerrar) cuando ya estás dentro, y además se agregó el mismo botón directamente en el Panel de padres, no solo en el encabezado. Reportado al probar la app con un usuario real.
 - 3 verificaciones nuevas en la prueba de regresión (19 pruebas en total, 0 fallas).
+
+## [1.1.3] - 2026-10-13
+
+### Corregido
+
+- La guía PDF para padres no explicaba cómo salir del modo adulto (el mismo punto de confusión que se corrigió en la app en 1.1.2), y no mencionaba la pestaña nueva de "Materias" en el panel de padres. Ambos se agregaron a la sección 5 ("Tu panel de padres").
+- Regenerado el PDF confirmando que las 10 páginas siguen cabiendo exactas en A4 sin desbordes.
+- Sincronizada la guía actualizada dentro del paquete de entrega y el ZIP para Hotmart.

@@ -61,3 +61,10 @@ Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documenta
 - Tarjeta de onboarding con franja superior en degradado y puntos de progreso de colores distintos por paso.
 - Corrección: las tarjetas de hábitos usaban una cuadrícula de dos columnas que recortaba la fila de 7 días en pantallas angostas; ahora se listan a ancho completo con desplazamiento horizontal solo si hace falta, sin romper el objetivo táctil mínimo de 44 px.
 - Corrección: `contenedor.focus()` provocaba que el navegador desplazara la página lo suficiente para tapar el encabezado de la vista (más notorio con el nuevo banner de degradado); ahora usa `preventScroll` y el scroll al inicio de página solo ocurre en una navegación real de ruta.
+
+## [1.1.2] - 2026-10-13
+
+### Cambiado
+
+- La salida del modo adulto era ambigua: el botón del encabezado seguía diciendo "Modo adulto" estando ya adentro, sin dejar claro que tocarlo de nuevo cierra la sesión de adulto. Ahora dice "Salir de modo adulto" (con ícono de cerrar) cuando ya estás dentro, y además se agregó el mismo botón directamente en el Panel de padres, no solo en el encabezado. Reportado al probar la app con un usuario real.
+- 3 verificaciones nuevas en la prueba de regresión (19 pruebas en total, 0 fallas).

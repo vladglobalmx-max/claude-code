@@ -1259,7 +1259,7 @@ const UI = (function(){
             </div>
             <div class="grupo-encabezado">
               <span class="estrellas-contador" aria-label="Estrellas disponibles">${icono("star")} ${perfil ? StarService.saldo(perfil.id) : 0}</span>
-              <button class="btn btn-chico ${esAdulto?'btn-violeta':'btn-fantasma'}" data-accion-modo-adulto>${icono("lock")} ${esAdulto ? "Modo adulto" : "Entrar padres"}</button>
+              <button class="btn btn-chico ${esAdulto?'btn-violeta':'btn-fantasma'}" data-accion-modo-adulto title="${esAdulto ? 'Salir y volver al modo niño' : 'Entrar con tu PIN familiar'}">${icono(esAdulto?'close':'lock')} ${esAdulto ? "Salir de modo adulto" : "Entrar padres"}</button>
             </div>
           </header>
           <main class="principal" id="contenido-principal" tabindex="-1"></main>
@@ -4231,6 +4231,7 @@ const ParentPanel = (function(){
     return `<div class="vista">
       <div class="vista-titulo">
         ${tituloVista('padres','family','Panel de padres','Consulta avances y gestiona la aplicación en lenguaje claro y neutral.')}
+        <button class="btn btn-chico btn-fantasma no-imprimir" data-accion-modo-adulto title="Salir y volver al modo niño">${icono("close")} Salir de modo adulto</button>
       </div>
       <div class="tarjeta no-imprimir" style="padding:8px;">
         <div class="grupo-opciones">${SECCIONES.map(s=>`<button type="button" class="opcion-pastilla" data-seccion-padres="${s.v}" aria-pressed="${seccionActiva===s.v}">${s.l}</button>`).join("")}</div>

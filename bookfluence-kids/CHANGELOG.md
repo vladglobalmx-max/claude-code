@@ -2,6 +2,12 @@
 
 Todas las versiones notables de Bookfluence Kids — Mi Día Genial se documentan en este archivo.
 
+## [1.1.5] - 2026-10-14
+
+### Añadido
+
+- Favicon de la app: ícono de pestaña del navegador (antes mostraba el globo genérico). Insertado como PNG en base64 dentro del propio `<head>` para no romper el requisito de archivo único autocontenido. Mismo ícono de marca (círculo con libro) usado en la página de ventas.
+
 ## [1.1.1] - 2026-10-13
 
 ### Corregido

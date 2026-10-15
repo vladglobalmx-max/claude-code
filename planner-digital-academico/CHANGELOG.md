@@ -1,4 +1,4 @@
-# Changelog — Planner Digital Académico 2026
+# Changelog — Planner Digital Académico
 
 Todas las fechas en horario de Ciudad de México.
 

@@ -1,4 +1,4 @@
-# Precio y posicionamiento — Planner Digital Académico 2026 (Bookfluence Teachers)
+# Precio y posicionamiento — Planner Digital Académico (Bookfluence Teachers)
 
 ## Qué encontré al comparar el mercado
 

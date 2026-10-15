@@ -1,4 +1,4 @@
-# Copy para la página de venta en Hotmart — Planner Digital Académico 2026
+# Copy para la página de venta en Hotmart — Planner Digital Académico
 
 Todo lo que sigue está listo para copiar y pegar en el editor de producto de Hotmart (título, descripción, bullets, FAQs). Ajusta donde veas `[ ]`.
 
@@ -7,7 +7,7 @@ Todo lo que sigue está listo para copiar y pegar en el editor de producto de Ho
 ## Nombre del producto (campo "Nombre")
 
 ```
-Planner Digital Académico 2026 — Sistema de Planeación y Seguimiento para Docentes | Bookfluence Teachers
+Planner Digital Académico — Sistema de Planeación y Seguimiento para Docentes | Bookfluence Teachers
 ```
 
 ## Categoría sugerida en Hotmart
@@ -29,7 +29,7 @@ El sistema digital que organiza tus grupos, planeaciones, asistencia, calificaci
 ```
 ¿Cuántas horas a la semana se te van entre planeaciones, listas de asistencia, calificaciones en hojas sueltas y reportes de último momento?
 
-Planner Digital Académico 2026 es un sistema digital completo para que un docente organice toda su práctica profesional en un solo lugar: grupos, estudiantes, planeaciones, asistencia, evaluaciones, seguimiento, comunicación con familias, reuniones, sustituciones, recursos e inventario — con reportes imprimibles listos cuando los necesites.
+Planner Digital Académico es un sistema digital completo para que un docente organice toda su práctica profesional en un solo lugar: grupos, estudiantes, planeaciones, asistencia, evaluaciones, seguimiento, comunicación con familias, reuniones, sustituciones, recursos e inventario — con reportes imprimibles listos cuando los necesites.
 
 No es una suscripción. No es una plantilla para llenar a mano. Es una aplicación real, de pago único, que calcula, organiza y recuerda por ti.
 
@@ -74,7 +74,7 @@ Funciona en cualquier navegador moderno (Chrome, Edge, Brave, Firefox o Safari a
 ```
 ¿Cuántas horas a la semana se te van entre planeaciones, listas de asistencia, calificaciones sueltas y reportes de último momento?
 
-Planner Digital Académico 2026 organiza toda tu práctica docente en un solo lugar: grupos, estudiantes, planeaciones, asistencia, evaluaciones, seguimiento, comunicación con familias, reuniones, sustituciones, recursos e inventario, con reportes imprimibles listos cuando los necesites.
+Planner Digital Académico organiza toda tu práctica docente en un solo lugar: grupos, estudiantes, planeaciones, asistencia, evaluaciones, seguimiento, comunicación con familias, reuniones, sustituciones, recursos e inventario, con reportes imprimibles listos cuando los necesites.
 
 No es una suscripción ni una plantilla para llenar a mano: es una aplicación real, de pago único, que calcula y organiza por ti.
 

@@ -1,4 +1,4 @@
-# QA Report — Planner Digital Académico 2026 (v1.0.0)
+# QA Report — Planner Digital Académico (v1.0.0)
 
 Método: revisión de código, verificación de sintaxis (`node --check`) y pruebas automatizadas end-to-end con Playwright/Chromium headless contra `index.html` cargado vía `file://`, además de inspección visual de capturas de pantalla en escritorio, tableta y móvil, en tema claro y oscuro.
 

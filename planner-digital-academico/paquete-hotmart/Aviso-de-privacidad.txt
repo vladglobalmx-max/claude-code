@@ -1,4 +1,4 @@
-# Aviso de privacidad — Planner Digital Académico 2026 (Bookfluence Teachers)
+# Aviso de privacidad — Planner Digital Académico (Bookfluence Teachers)
 
 > **Nota:** plantilla en lenguaje simple para un producto que, por diseño, no recolecta datos en servidores propios. No sustituye asesoría legal profesional. Como esta aplicación puede llegar a contener datos de estudiantes menores de edad y de sus familias (capturados por el propio docente, no por el vendedor), es especialmente importante que confirmes el cumplimiento de la legislación de protección de datos aplicable en tu país (en México, la LFPDPPP y los lineamientos del INAI) antes de publicar el producto, y que el texto deje claro quién es responsable de esos datos. Reemplaza los campos `[ ]`.
 
@@ -8,7 +8,7 @@
 
 ## En una frase
 
-La aplicación Planner Digital Académico 2026 **no recolecta, no transmite ni almacena en ningún servidor** la información que registres. Todo lo que la app guarda (tu perfil docente, grupos, estudiantes, calificaciones, asistencia, seguimientos, etc.) se queda **únicamente en el navegador del dispositivo** donde la uses.
+La aplicación Planner Digital Académico **no recolecta, no transmite ni almacena en ningún servidor** la información que registres. Todo lo que la app guarda (tu perfil docente, grupos, estudiantes, calificaciones, asistencia, seguimientos, etc.) se queda **únicamente en el navegador del dispositivo** donde la uses.
 
 ## Quién es responsable de los datos que capturas
 

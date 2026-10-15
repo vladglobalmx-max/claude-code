@@ -1,4 +1,4 @@
-PLANNER DIGITAL ACADÉMICO 2026 — BOOKFLUENCE TEACHERS
+PLANNER DIGITAL ACADÉMICO — BOOKFLUENCE TEACHERS
 ¡Gracias por tu compra!
 ================================================================
 
@@ -7,7 +7,7 @@ la aplicación hoy mismo.
 
 QUÉ INCLUYE ESTE PAQUETE
 ----------------------------------------------------------------
-1. Planner-Digital-Academico-2026.html
+1. Planner-Digital-Academico.html
    -> Este es el archivo de la aplicación. Ábrelo y listo.
 
 2. Manual-de-uso-Planner-Digital-Academico-2026.pdf
@@ -28,7 +28,7 @@ QUÉ INCLUYE ESTE PAQUETE
 CÓMO ABRIR LA APLICACIÓN
 ----------------------------------------------------------------
 EN COMPUTADORA (Windows o Mac):
-  Haz doble clic sobre "Planner-Digital-Academico-2026.html".
+  Haz doble clic sobre "Planner-Digital-Academico.html".
   Se abrirá en tu navegador (Chrome, Edge, Brave, Firefox o
   Safari).
 

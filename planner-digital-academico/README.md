@@ -1,7 +1,7 @@
-# Planner Digital Académico 2026
+# Planner Digital Académico
 ### Bookfluence Teachers — Sistema digital de planificación, clases y seguimiento docente
 
-Planner Digital Académico 2026 es una aplicación web **100% local**, en un solo archivo (`index.html`), pensada para docentes de primaria, secundaria, preparatoria, profesores independientes y educadores homeschool. No requiere internet, cuentas, instalación ni servidor.
+Planner Digital Académico es una aplicación web **100% local**, en un solo archivo (`index.html`), pensada para docentes de primaria, secundaria, preparatoria, profesores independientes y educadores homeschool. No requiere internet, cuentas, instalación ni servidor.
 
 ---
 
@@ -105,4 +105,4 @@ planner-digital-academico/
 
 ---
 
-**Bookfluence Teachers** · Planner Digital Académico 2026
+**Bookfluence Teachers** · Planner Digital Académico

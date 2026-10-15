@@ -1,15 +1,15 @@
-# Licencia de uso — Planner Digital Académico 2026 (Bookfluence Teachers)
+# Licencia de uso — Planner Digital Académico (Bookfluence Teachers)
 
 > **Nota antes de usar este documento:** esta es una plantilla estándar para un producto digital de pago único, escrita en lenguaje simple. No sustituye asesoría legal profesional. Si vas a vender a mayor escala, te conviene que un abogado la revise una vez, sobre todo las cláusulas de responsabilidad y la jurisdicción aplicable. Reemplaza los campos `[ ]` con tus datos antes de publicarla.
 
-**Producto:** Planner Digital Académico 2026 — Bookfluence Teachers
+**Producto:** Planner Digital Académico — Bookfluence Teachers
 **Vendedor:** [Tu nombre o razón social]
 **Contacto:** [tu correo de soporte]
 **Última actualización:** [fecha]
 
 ## 1. Qué estás comprando
 
-Al comprar Planner Digital Académico 2026 adquieres una **licencia de uso individual**, no la propiedad del software. Esta licencia te permite:
+Al comprar Planner Digital Académico adquieres una **licencia de uso individual**, no la propiedad del software. Esta licencia te permite:
 
 - Instalar y usar la aplicación en tus propios dispositivos (computadora, tableta), para tu práctica docente personal.
 - Registrar tus propios ciclos escolares, grupos, estudiantes, planeaciones, calificaciones y demás información docente.
@@ -37,7 +37,7 @@ Cuentas con **[7] días** a partir de tu compra para solicitar un reembolso comp
 
 ## 5. Limitación de responsabilidad
 
-Planner Digital Académico 2026 es una **herramienta personal de planificación y seguimiento docente**. No es un sistema institucional oficial, no sustituye el expediente académico que tu escuela esté obligada a mantener conforme a la normativa educativa aplicable, y no garantiza resultados pedagógicos, administrativos o de evaluación específicos. Eres responsable de verificar que el uso que le des cumpla con las políticas de tu institución y con la legislación de protección de datos de estudiantes y familias aplicable en tu país.
+Planner Digital Académico es una **herramienta personal de planificación y seguimiento docente**. No es un sistema institucional oficial, no sustituye el expediente académico que tu escuela esté obligada a mantener conforme a la normativa educativa aplicable, y no garantiza resultados pedagógicos, administrativos o de evaluación específicos. Eres responsable de verificar que el uso que le des cumpla con las políticas de tu institución y con la legislación de protección de datos de estudiantes y familias aplicable en tu país.
 
 En la medida permitida por la ley aplicable, el vendedor no será responsable por daños indirectos derivados del uso o la imposibilidad de uso de la aplicación, incluyendo la pérdida de información por no haber generado respaldos. Nada en este documento limita los derechos que te reconozca de forma irrenunciable la legislación de protección al consumidor de tu país.
 

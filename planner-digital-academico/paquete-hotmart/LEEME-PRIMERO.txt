@@ -1,0 +1,72 @@
+PLANNER DIGITAL ACADÉMICO 2026 — BOOKFLUENCE TEACHERS
+¡Gracias por tu compra!
+================================================================
+
+Este paquete contiene todo lo que necesitas para empezar a usar
+la aplicación hoy mismo.
+
+QUÉ INCLUYE ESTE PAQUETE
+----------------------------------------------------------------
+1. Planner-Digital-Academico-2026.html
+   -> Este es el archivo de la aplicación. Ábrelo y listo.
+
+2. Manual-de-uso-Planner-Digital-Academico-2026.pdf
+   -> Guía paso a paso de cada módulo: configuración inicial,
+      grupos y estudiantes, respaldos, reportes, PIN, y más.
+      Te recomendamos leerla antes de tu primer uso.
+
+3. Licencia-de-uso.txt
+   -> Los términos de uso de tu compra (uso profesional
+      individual, qué sí y qué no incluye tu licencia).
+
+4. Aviso-de-privacidad.txt
+   -> Cómo funciona la privacidad de la aplicación (resumen:
+      no se recolecta ni se envía ninguna información a
+      ningún lado; todo se queda en tu dispositivo).
+
+
+CÓMO ABRIR LA APLICACIÓN
+----------------------------------------------------------------
+EN COMPUTADORA (Windows o Mac):
+  Haz doble clic sobre "Planner-Digital-Academico-2026.html".
+  Se abrirá en tu navegador (Chrome, Edge, Brave, Firefox o
+  Safari).
+
+EN TABLETA (iPad):
+  Los archivos .html no siempre se abren solos al tocarlos en
+  iOS. Si al tocarlo solo ves texto/código en vez de la app:
+    1. Mantén el dedo presionado sobre el archivo.
+    2. Toca "Compartir".
+    3. Busca el ícono de Safari en esa lista y tócalo
+       ("Abrir en Safari").
+  Eso abrirá la aplicación funcionando correctamente.
+
+No necesitas instalar nada, no necesitas internet para usarla
+el día a día, y no necesitas crear ninguna cuenta.
+
+
+PRIMEROS PASOS
+----------------------------------------------------------------
+La primera vez que abras la aplicación verás:
+
+  1. Aviso de privacidad
+  2. Asistente de configuración (9 pasos): perfil docente,
+     ciclo escolar, materias, grupos, esquema de evaluación
+     y (opcional) tus estudiantes
+
+Si solo quieres explorar la aplicación antes de capturar tu
+información real, elige "Probar con datos de ejemplo" en la
+primera pantalla del asistente.
+
+Te recomendamos hacer tu respaldo semanal (Configuración ->
+Respaldos -> Exportar respaldo) para no perder tu información.
+
+
+¿DUDAS O PROBLEMAS?
+----------------------------------------------------------------
+Escríbenos a: [tu correo de soporte]
+
+Gracias por darle a tu práctica docente un sistema que
+organiza, calcula y recuerda por ti.
+
+— Bookfluence Teachers

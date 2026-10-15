@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEDDING SYNC - Planificador de Bodas para Parejas</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRAD/AP8A/6C9p5MAAAAHdElNRQfqCg8TIDIq6/K4AAAFh0lEQVRIx52Wy28b1xXGzzn3zgxJiXqQlp1EsgQ/5KR249pFGqBBHCAN2myKIEWBtCjQIKuskv4B3fa/KFAUWbSboF0URdCnm7RoAyOOXduK5MSNJDuS7VgPDiVxSM7ce74uSNmSOOQi3HBwH785c+73nXsYAFRZJN3ZXL/5wdbKJ1kjBpSIABAREYGw+9cdyZ0lkbA0Nnr06SOnX4zK1Q6W1XsWiZevrl56N0tiNgGL+Qr0zgPUe5eGpdGZ535SPf4MVBlAvHx1+eIvxUZsA6gS4avRuz8WdanPWqe+91b1+DOS7myuXnpXbMTGQv0gOguYQUwsuXQQAEA9GytBtPyf37Z3Nuz6/PtZUjdRCerzM0sgYiJwljDQGVcTgYWhDyPHvh0qJmg3avdu/NVu3Z1nY6Haj67EBhlYmoefhokIINJo81bodtoUMel++i4BKiaIv5izWVJnMbmZIYKSWLRjO7H1jTf8xDHq7mfU1/mjd45nN5tUENID9M4LWSRNYumXGRBAzKTKwZ+HfnTVHatwGjhnM3fIZAs7lZ+vvnI3Gw/ZKbiX3olD1dlBmiOO0PwkOLf+2OnZYvv8eFhzrp7p10cin7XM92dv33zu8dofyAw9JBw4cwLJQM1pmwsns/mRuffem8NcLVtx2R3n7jTSJS083pw/n/yrzQWCUp6iOo8ySNEAQEL6euEv02s3fvH35mjSmKxvXErCW3MLhy//yqZbyjKADoLQQDcxwasmZvTtU18c19V/3ohbSXPx+nz12u9FGCYQ0t3VOXQisgO9Cu99q3IuHXmSxPxgcv1+M4hjO7WxGg9VrsbRVHH7ROkBE4F41zIH9WoHVALvHc+85KNppI0gWQ2S1VN+y9V4tFRtnpi8F/sv1zerI0cr21c6W/LcAJtPZ/ZpUj7xwvTzP7zy4fvhgw+j5h1AQWyIKFkZNvPHxs8cfuprZAstTsLaNUjHg/voRCS5sTPUSbF88vnl/32G2xcLyZJyAAlJArCFKYDYrH1ciK8zaTb6pAZlguulP1LRfjcwNKPy1KfLaxufflDK7nspEJQAdBWpIIItBvV5k6xqMOKLk6QOxD0oSO9Qpyy6qKouDZPbIPPoAHcXdbJBULu9RMw+Gt+dOGhbyXEyEYjZRJlP22mTmbFHhXuOEiAxWV3UwRSIOLcoSJ8qBIFreKm5wDD2nNLeIEiYmk5TrwLX2XUA1cfJICJIWg9ssOwrDO0md5/eAGLyWVyaGR6toFUjoPsRe+j9nAwiQXK/at1aOH2rVSyLc2DdnVOQAw8b/3kzHJq9MBYCOyvE8sjPe9wgvU4GAWJte0O2l89NTv6xeXKxXRgzWcDKBCEErOPWLcS4dejFp56YXlv8KHI1sO2lE5F589Vnc+sUEaO5Vh6bKpaP/O4uxxmGxQcMT7zhw4tb4wsjz77+ne/WPv+vrvzDkO9Wix4n8+Vfv5VHB4hZXRaU6YkX7vqRi3fW1rdjo00mhilMVQ699s3Tfn2xvfinUHeUTS6diPjyOz/rXmq9K4hZM88BVU5T+dimFmopmKkaypi02hufSX3BIlO21HNrdukiNiyNtbYesJjee5VIwVbIY+1j3ZyvFsYnbBFEPktcqxb6JsQqm3w6s/qsWD5iR6bOJNdXTDRE8Hl6B4jJRAKHxj3f6VOYhQ0k3LV9XuzM6rLK0bPy2JmXgtKoupSY+9xN6IREEpCJyEQkARGDtB+dWLxLw9LY1NmXJSpXZ779Y5+11Ge8t2U7eCogAqDdqpenyE5mWERd6tPW7IWfFkYmus3v5tKVpX//pt3YlIfNb7/oery6d1bVqUuj4crshTcmTnyr2/x22/dG7d7c32q3r7UbNcD3ow94N7OEw+PVmfNTZ1+Ohisd7P8BVYONxgXCu44AAAAASUVORK5CYII=">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #d4a574;
+            --secondary: #4a4a4a;
+            --accent-her: #e8b4c4;
+            --accent-him: #a8c5d6;
+            --success: #8bc34a;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light-bg: #faf8f5;
+            --border: #e0dcd6;
+            --text: #2c2c2c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f3f0;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #c09860 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+
+        /* NAV TABS */
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            overflow-x: auto;
+            padding: 0 1rem;
+        }
+
+        .nav-tabs button {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--secondary);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .nav-tabs button:hover {
+            background: var(--light-bg);
+        }
+
+        .nav-tabs button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* DUAL DASHBOARD */
+        .dual-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dual-dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .partner-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 4px solid;
+        }
+
+        .partner-section.her {
+            border-top-color: var(--accent-her);
+        }
+
+        .partner-section.him {
+            border-top-color: var(--accent-him);
+        }
+
+        .partner-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .partner-name {
+            font-size: 1.8rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .partner-emoji {
+            font-size: 2rem;
+        }
+
+        /* STATUS CARDS */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: var(--light-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .status-card .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .status-card .label {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin-top: 0.3rem;
+        }
+
+        /* PRIORITY METER */
+        .priority-meter {
+            background: var(--light-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .priority-meter h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        .priority-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .priority-label {
+            flex: 0 0 100px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .priority-bar {
+            flex: 1;
+            height: 24px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .priority-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, #c09860 100%);
+            border-radius: 3px;
+            transition: width 0.2s ease;
+        }
+
+        .priority-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            position: absolute;
+            right: 6px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* CONFLICT SECTION */
+        .conflicts-container {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--danger);
+        }
+
+        .conflicts-container h3 {
+            color: var(--danger);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .conflict-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid var(--danger);
+        }
+
+        .conflict-topic {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .conflict-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .conflict-option {
+            padding: 0.5rem;
+            background: var(--light-bg);
+            border-radius: 4px;
+            color: var(--secondary);
+        }
+
+        /* AGREEMENT METER */
+        .agreement-meter {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .agreement-meter h4 {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .agreement-bar {
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .agreement-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, #7cb342 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: width 0.3s ease;
+        }
+
+        .agreement-percentage {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* DECISIONS SECTION */
+        .decisions-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .decision-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .decision-item.decided {
+            background: #f9f9f9;
+            border-color: var(--success);
+        }
+
+        .decision-item.in-conflict {
+            background: #fffaf6;
+            border-color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .decision-status {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .decision-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .decision-inputs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .decision-input {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .decision-buttons {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-small:hover {
+            background: #c09860;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 6px rgba(212, 165, 116, 0.3);
+        }
+
+        .btn-small.delete {
+            background: var(--danger);
+        }
+
+        .btn-small.delete:hover {
+            background: #d63a2e;
+        }
+
+        .btn-small.agree {
+            background: var(--success);
+        }
+
+        .btn-small.agree:hover {
+            background: #7cb342;
+        }
+
+        /* FORM SECTIONS */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #c09860;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);
+        }
+
+        .btn.secondary {
+            background: var(--secondary);
+        }
+
+        .btn.secondary:hover {
+            background: #333;
+        }
+
+        /* COMPARISON CHART */
+        .comparison-chart {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .comparison-chart h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 150px 1fr 150px;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .chart-label {
+            font-weight: 600;
+            color: var(--secondary);
+            text-align: right;
+        }
+
+        .chart-bar {
+            height: 20px;
+            background: linear-gradient(90deg, var(--accent-her) 0%, var(--accent-her) 50%, var(--accent-him) 50%, var(--accent-him) 100%);
+            border-radius: 10px;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+
+        .chart-value {
+            text-align: right;
+            color: var(--secondary);
+        }
+
+        /* DUAL PRIORITY BAR (tug-of-war style, centered) */
+        .dual-bar-track {
+            display: flex;
+            height: 22px;
+            border-radius: 11px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #f0f0f0;
+        }
+
+        .dual-bar-her,
+        .dual-bar-him {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+            transition: width 0.2s ease;
+        }
+
+        .dual-bar-her {
+            background: var(--accent-her);
+            justify-content: flex-end;
+            padding-right: 4px;
+        }
+
+        .dual-bar-him {
+            background: var(--accent-him);
+            justify-content: flex-start;
+            padding-left: 4px;
+        }
+
+        .dual-bar-mid {
+            width: 2px;
+            background: white;
+            height: 100%;
+        }
+
+        .priority-diff-match {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .priority-diff-warn {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* ALERTS */
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .alert.warning {
+            background: #fff3cd;
+            border-left: 4px solid var(--warning);
+            color: #856404;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border-left: 4px solid var(--success);
+            color: #155724;
+        }
+
+        .alert-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+
+        /* FOOTER */
+        .footer {
+            background: var(--secondary);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 3rem;
+            font-size: 0.85rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .decision-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .decision-buttons {
+                width: 100%;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-tabs button {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>💍 WEDDING SYNC</h1>
+        <p>Planificador de bodas para parejas — Resuelve decisiones juntos</p>
+    </div>
+
+    <!-- NAV -->
+    <div class="nav-tabs">
+        <button class="nav-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-tab="decisions">✓ Decisiones</button>
+        <button class="nav-btn" data-tab="conflicts">🔥 Conflictos</button>
+        <button class="nav-btn" data-tab="priorities">⭐ Prioridades</button>
+        <button class="nav-btn" data-tab="partners">👥 Pareja</button>
+        <button class="nav-btn" data-tab="export">📥 Descargar</button>
+    </div>
+
+    <!-- CONTAINER -->
+    <div class="container">
+
+        <!-- TAB: DASHBOARD -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dual-dashboard">
+                <!-- ELLA -->
+                <div class="partner-section her">
+                    <div class="partner-header">
+                        <span class="partner-emoji">👰</span>
+                        <div class="partner-name" id="herName">Ella</div>
+                    </div>
+
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <div class="number" id="herDecided">0</div>
+                            <div class="label">Decididas</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="number" id="herConflict">0</div>
+                            <div class="label">En debate</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="number" id="herPending">0</div>
+                            <div class="label">Sin tocar</div>
+                        </div>
+                    </div>
+
+                    <div class="priority-meter">
+                        <h3>Mis Prioridades</h3>
+                        <div class="priority-item">
+                            <div class="priority-label">Estética</div>
+                            <div class="priority-bar" onclick="editPriority('her', 'aesthetic')">
+                                <div class="priority-fill" id="herAesthetic" style="width: 50%;">
+                                    <span class="priority-value" id="herAestheticValue">5/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Presupuesto</div>
+                            <div class="priority-bar" onclick="editPriority('her', 'budget')">
+                                <div class="priority-fill" id="herBudget" style="width: 30%;">
+                                    <span class="priority-value" id="herBudgetValue">3/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Tradición</div>
+                            <div class="priority-bar" onclick="editPriority('her', 'tradition')">
+                                <div class="priority-fill" id="herTradition" style="width: 50%;">
+                                    <span class="priority-value" id="herTraditionValue">5/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Diversión</div>
+                            <div class="priority-bar" onclick="editPriority('her', 'fun')">
+                                <div class="priority-fill" id="herFun" style="width: 50%;">
+                                    <span class="priority-value" id="herFunValue">5/10</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÉL -->
+                <div class="partner-section him">
+                    <div class="partner-header">
+                        <span class="partner-emoji">🤵</span>
+                        <div class="partner-name" id="hisName">Él</div>
+                    </div>
+
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <div class="number" id="hisDecided">0</div>
+                            <div class="label">Decididas</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="number" id="hisConflict">0</div>
+                            <div class="label">En debate</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="number" id="hisPending">0</div>
+                            <div class="label">Sin tocar</div>
+                        </div>
+                    </div>
+
+                    <div class="priority-meter">
+                        <h3>Mis Prioridades</h3>
+                        <div class="priority-item">
+                            <div class="priority-label">Presupuesto</div>
+                            <div class="priority-bar" onclick="editPriority('him', 'budget')">
+                                <div class="priority-fill" id="hisBudget" style="width: 70%;">
+                                    <span class="priority-value" id="hisBudgetValue">7/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Estética</div>
+                            <div class="priority-bar" onclick="editPriority('him', 'aesthetic')">
+                                <div class="priority-fill" id="hisAesthetic" style="width: 20%;">
+                                    <span class="priority-value" id="hisAestheticValue">2/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Diversión</div>
+                            <div class="priority-bar" onclick="editPriority('him', 'fun')">
+                                <div class="priority-fill" id="hisFun" style="width: 80%;">
+                                    <span class="priority-value" id="hisFunValue">8/10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <div class="priority-label">Tradición</div>
+                            <div class="priority-bar" onclick="editPriority('him', 'tradition')">
+                                <div class="priority-fill" id="hisTradition" style="width: 50%;">
+                                    <span class="priority-value" id="hisTraditionValue">5/10</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AGREEMENT METER -->
+            <div class="dual-dashboard">
+                <div class="agreement-meter">
+                    <h4>NIVEL DE ACUERDO GENERAL</h4>
+                    <div class="agreement-bar">
+                        <div class="agreement-fill" id="agreementBar" style="width: 45%;"></div>
+                    </div>
+                    <div class="agreement-percentage" id="agreementPercent">45%</div>
+                </div>
+
+                <div class="conflicts-container" id="conflictsPreview">
+                    <h3>🔥 Temas en Conflicto</h3>
+                    <div id="conflictsList" style="font-size: 0.9rem; color: var(--secondary);">
+                        <p>Sin conflictos registrados. ¡Buen trabajo! 😊</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: DECISIONES -->
+        <div id="decisions" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">✓ Decisiones Principales</h2>
+
+            <div class="alert success" id="successAlert" style="display: none;">
+                <div class="alert-icon">✓</div>
+                <div>
+                    <strong>¡Excelente!</strong> <span id="successMsg"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Agregar Nueva Decisión</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <input type="text" id="newDecisionTitle" placeholder="Ej: Hora de la ceremonia">
+                    <select id="newDecisionPartner">
+                        <option value="">Responsable: Elegir</option>
+                        <option value="shared">Decisión compartida</option>
+                        <option value="her">Responsable: Ella</option>
+                        <option value="him">Responsable: Él</option>
+                    </select>
+                    <select id="newDecisionCategory">
+                        <option value="">Categoría: Elegir</option>
+                        <option value="ceremony">Ceremonia</option>
+                        <option value="reception">Recepción</option>
+                        <option value="catering">Catering</option>
+                        <option value="budget">Presupuesto</option>
+                        <option value="guests">Invitados</option>
+                        <option value="other">Otro</option>
+                    </select>
+                    <button class="btn" onclick="addDecision()">Agregar</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; padding: 1rem; background: white; border-radius: 8px; border: 1px solid var(--border);">
+                <strong style="font-size: 0.9rem; color: var(--secondary);">Filtrar:</strong>
+                <select id="filterStatus" onchange="renderDecisions()" style="padding: 0.4rem; border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">Todos los estados</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="conflict">En conflicto</option>
+                    <option value="agreed">Acordado</option>
+                </select>
+                <select id="filterCategory" onchange="renderDecisions()" style="padding: 0.4rem; border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">Todas las categorías</option>
+                    <option value="ceremony">Ceremonia</option>
+                    <option value="reception">Recepción</option>
+                    <option value="catering">Catering</option>
+                    <option value="budget">Presupuesto</option>
+                    <option value="guests">Invitados</option>
+                    <option value="other">Otro</option>
+                </select>
+                <select id="filterOwner" onchange="renderDecisions()" style="padding: 0.4rem; border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">Todos los responsables</option>
+                    <option value="shared">Compartida</option>
+                    <option value="her">Ella</option>
+                    <option value="him">Él</option>
+                </select>
+                <span id="filterCount" style="font-size: 0.85rem; color: var(--secondary); margin-left: auto;"></span>
+            </div>
+
+            <div id="decisionsList" class="decisions-grid">
+                <!-- Las decisiones se generarán aquí -->
+            </div>
+        </div>
+
+        <!-- TAB: CONFLICTOS -->
+        <div id="conflicts" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">🔥 Resolver Conflictos</h2>
+
+            <div id="conflictsDetail">
+                <p style="text-align: center; color: var(--secondary); padding: 2rem;">
+                    Sin conflictos registrados. ¡La boda fluye sin fricción! ✨
+                </p>
+            </div>
+        </div>
+
+        <!-- TAB: PRIORIDADES -->
+        <div id="priorities" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">⭐ Tabla de Prioridades</h2>
+
+            <div class="comparison-chart">
+                <h3>Comparación de Prioridades</h3>
+                <div class="chart-row" style="font-weight: 600; border-bottom: 2px solid var(--border); padding-bottom: 1rem;">
+                    <div class="chart-label">CATEGORÍA</div>
+                    <div style="text-align: center;"><span style="color: var(--accent-her);">👰 Ella</span> &nbsp;vs&nbsp; <span style="color: var(--accent-him);">Él 🤵</span></div>
+                    <div style="text-align: center;">DIFERENCIA</div>
+                </div>
+
+                <div id="priorityComparisonRows"></div>
+
+                <div id="priorityInsight" style="margin-top: 1rem; font-size: 0.9rem;"></div>
+            </div>
+
+            <div style="background: white; border-radius: 8px; padding: 1.5rem; margin-top: 1.5rem; border: 1px solid var(--border);">
+                <h3 style="margin-bottom: 1rem;">Editar Mis Prioridades Personales</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: var(--accent-her);">👰 Ella</h4>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Estética (1-10)</label>
+                            <input type="range" id="herAestheticSlider" min="1" max="10" value="5" onchange="updatePriority('her', 'aesthetic', this.value)">
+                            <small id="herAestheticLabel">5/10</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Presupuesto (1-10)</label>
+                            <input type="range" id="herBudgetSlider" min="1" max="10" value="3" onchange="updatePriority('her', 'budget', this.value)">
+                            <small id="herBudgetLabel">3/10</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Tradición (1-10)</label>
+                            <input type="range" id="herTraditionSlider" min="1" max="10" value="5" onchange="updatePriority('her', 'tradition', this.value)">
+                            <small id="herTraditionLabel">5/10</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Diversión (1-10)</label>
+                            <input type="range" id="herFunSlider" min="1" max="10" value="5" onchange="updatePriority('her', 'fun', this.value)">
+                            <small id="herFunLabel">5/10</small>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: var(--accent-him);">🤵 Él</h4>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Presupuesto (1-10)</label>
+                            <input type="range" id="hisBudgetSlider" min="1" max="10" value="7" onchange="updatePriority('him', 'budget', this.value)">
+                            <small id="hisBudgetLabel">7/10</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Estética (1-10)</label>
+                            <input type="range" id="hisAestheticSlider" min="1" max="10" value="2" onchange="updatePriority('him', 'aesthetic', this.value)">
+                            <small id="hisAestheticLabel">2/10</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label>Diversión (1-10)</label>
+                            <input type="range" id="hisFunSlider" min="1" max="10" value="8" onchange="updatePriority('him', 'fun', this.value)">
+                            <small id="hisFunLabel">8/10</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Tradición (1-10)</label>
+                            <input type="range" id="hisTraditionSlider" min="1" max="10" value="5" onchange="updatePriority('him', 'tradition', this.value)">
+                            <small id="hisTraditionLabel">5/10</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: PAREJA -->
+        <div id="partners" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">👥 Información de la Pareja</h2>
+
+            <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 800px; margin: 0 auto;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre de Ella</label>
+                        <input type="text" id="herNameInput" placeholder="Ej: María" onchange="saveName('her')">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de Él</label>
+                        <input type="text" id="hisNameInput" placeholder="Ej: Juan" onchange="saveName('him')">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha de Boda</label>
+                        <input type="date" id="weddingDate" onchange="saveWeddingData()">
+                    </div>
+                    <div class="form-group">
+                        <label>Presupuesto Total ($)</label>
+                        <input type="number" id="totalBudget" placeholder="Ej: 25000" onchange="saveWeddingData()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Número de Invitados Aproximado</label>
+                    <input type="number" id="guestCount" placeholder="Ej: 75" onchange="saveWeddingData()">
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Boda</label>
+                    <select id="weddingType" onchange="saveWeddingData()">
+                        <option value="">Elegir...</option>
+                        <option value="traditional">Tradicional</option>
+                        <option value="modern">Moderna</option>
+                        <option value="intimate">Íntima</option>
+                        <option value="beach">Playa</option>
+                        <option value="garden">Jardín</option>
+                        <option value="destination">Destino</option>
+                    </select>
+                </div>
+
+                <div id="weddingStats" class="status-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 1rem;"></div>
+
+                <button class="btn" onclick="clearAllData()" style="background: var(--danger); width: 100%; margin-top: 1.5rem;">
+                    ⚠️ Limpiar Todos los Datos
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB: DESCARGAR -->
+        <div id="export" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">📥 Exportar Información</h2>
+
+            <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 600px;">
+                <div class="alert success">
+                    <div class="alert-icon">💾</div>
+                    <div>Descarga toda la información de tu planificación en formato JSON</div>
+                </div>
+
+                <button class="btn" onclick="exportJSON()" style="width: 100%; margin-bottom: 1rem;">
+                    📄 Descargar como JSON
+                </button>
+
+                <button class="btn secondary" onclick="exportCSV()" style="width: 100%; margin-bottom: 1rem;">
+                    📊 Descargar Decisiones como CSV
+                </button>
+
+                <input type="file" id="importFileInput" accept="application/json" style="display: none;" onchange="importJSON(event)">
+                <button class="btn secondary" onclick="document.getElementById('importFileInput').click()" style="width: 100%; margin-bottom: 1rem;">
+                    📤 Importar Respaldo JSON
+                </button>
+
+                <button class="btn" onclick="loadDemoData()" style="width: 100%; background: var(--secondary);">
+                    ✨ Cargar Datos de Ejemplo
+                </button>
+
+                <div style="background: var(--light-bg); padding: 1.5rem; border-radius: 6px; margin-top: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">📋 Resumen Rápido</h4>
+                    <div id="summary" style="font-size: 0.95rem; line-height: 1.8;">
+                        <p>Cargando información...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>💍 Wedding Sync v1.0 — Todos los datos se guardan localmente en tu navegador</p>
+    </div>
+
+    <script>
+        // ===== DATA STRUCTURE =====
+        const defaultData = {
+            partners: {
+                her: { name: 'Ella', emoji: '👰' },
+                him: { name: 'Él', emoji: '🤵' }
+            },
+            wedding: {
+                date: '',
+                totalBudget: 0,
+                guestCount: 0,
+                type: ''
+            },
+            priorities: {
+                her: { aesthetic: 5, budget: 3, tradition: 5, fun: 5 },
+                him: { budget: 7, aesthetic: 2, fun: 8, tradition: 5 }
+            },
+            decisions: []
+        };
+
+        // ===== LOAD / SAVE DATA =====
+        function loadData() {
+            const stored = localStorage.getItem('weddingSyncData');
+            return stored ? JSON.parse(stored) : defaultData;
+        }
+
+        function saveData(data) {
+            localStorage.setItem('weddingSyncData', JSON.stringify(data));
+            updateDashboard();
+        }
+
+        let appData = loadData();
+
+        // ===== TAB NAVIGATION =====
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                showTab(this.dataset.tab, this);
+            });
+        });
+
+        function showTab(tabName, btnEl) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active from all buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            const activeBtn = btnEl || document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Update content
+            if (tabName === 'decisions') renderDecisions();
+            if (tabName === 'conflicts') renderConflicts();
+            if (tabName === 'priorities') renderPriorityComparison();
+            if (tabName === 'partners') updateWeddingStats();
+            if (tabName === 'export') renderSummary();
+        }
+
+        // ===== DASHBOARD UPDATE =====
+        function updateDashboard() {
+            appData = loadData();
+
+            // Update names
+            document.getElementById('herName').textContent = appData.partners.her.name;
+            document.getElementById('hisName').textContent = appData.partners.him.name;
+            document.getElementById('herNameInput').value = appData.partners.her.name;
+            document.getElementById('hisNameInput').value = appData.partners.him.name;
+
+            // Count decisions
+            const herDecisions = appData.decisions.filter(d => d.owner === 'her' || d.owner === 'shared');
+            const himDecisions = appData.decisions.filter(d => d.owner === 'him' || d.owner === 'shared');
+
+            const herDecided = herDecisions.filter(d => d.status === 'agreed').length;
+            const herConflict = herDecisions.filter(d => d.status === 'conflict').length;
+            const herPending = herDecisions.filter(d => d.status === 'pending').length;
+
+            const hisDecided = himDecisions.filter(d => d.status === 'agreed').length;
+            const hisConflict = himDecisions.filter(d => d.status === 'conflict').length;
+            const hisPending = himDecisions.filter(d => d.status === 'pending').length;
+
+            document.getElementById('herDecided').textContent = herDecided;
+            document.getElementById('herConflict').textContent = herConflict;
+            document.getElementById('herPending').textContent = herPending;
+
+            document.getElementById('hisDecided').textContent = hisDecided;
+            document.getElementById('hisConflict').textContent = hisConflict;
+            document.getElementById('hisPending').textContent = hisPending;
+
+            // Update priorities
+            updatePriorityBars();
+            renderPriorityComparison();
+
+            // Calculate agreement
+            calculateAgreement();
+
+            // Update conflicts preview
+            updateConflictsPreview();
+
+            // Update wedding data inputs
+            document.getElementById('weddingDate').value = appData.wedding.date || '';
+            document.getElementById('totalBudget').value = appData.wedding.totalBudget || '';
+            document.getElementById('guestCount').value = appData.wedding.guestCount || '';
+            document.getElementById('weddingType').value = appData.wedding.type || '';
+            updateWeddingStats();
+        }
+
+        function updatePriorityBars() {
+            const herPriorities = appData.priorities.her;
+            const himPriorities = appData.priorities.him;
+
+            // Ella
+            updatePriorityBar('her', 'aesthetic', herPriorities.aesthetic);
+            updatePriorityBar('her', 'budget', herPriorities.budget);
+            updatePriorityBar('her', 'tradition', herPriorities.tradition);
+            updatePriorityBar('her', 'fun', herPriorities.fun ?? 5);
+
+            // Él
+            updatePriorityBar('him', 'budget', himPriorities.budget);
+            updatePriorityBar('him', 'aesthetic', himPriorities.aesthetic);
+            updatePriorityBar('him', 'fun', himPriorities.fun);
+            updatePriorityBar('him', 'tradition', himPriorities.tradition ?? 5);
+
+            // Update sliders
+            document.getElementById('herAestheticSlider').value = herPriorities.aesthetic;
+            document.getElementById('herBudgetSlider').value = herPriorities.budget;
+            document.getElementById('herTraditionSlider').value = herPriorities.tradition;
+            document.getElementById('herFunSlider').value = herPriorities.fun ?? 5;
+            document.getElementById('hisBudgetSlider').value = himPriorities.budget;
+            document.getElementById('hisAestheticSlider').value = himPriorities.aesthetic;
+            document.getElementById('hisFunSlider').value = himPriorities.fun;
+            document.getElementById('hisTraditionSlider').value = himPriorities.tradition ?? 5;
+
+            updateSliderLabels();
+        }
+
+        function updatePriorityBar(partner, category, value) {
+            const percent = (value / 10) * 100;
+            const fillId = partner === 'her' 
+                ? `her${category.charAt(0).toUpperCase() + category.slice(1)}`
+                : `his${category.charAt(0).toUpperCase() + category.slice(1)}`;
+            const valueId = fillId + 'Value';
+
+            const fillEl = document.getElementById(fillId);
+            const valueEl = document.getElementById(valueId);
+
+            if (fillEl) {
+                fillEl.style.width = percent + '%';
+                if (valueEl) valueEl.textContent = value + '/10';
+            }
+        }
+
+        function updateSliderLabels() {
+            document.getElementById('herAestheticLabel').textContent = appData.priorities.her.aesthetic + '/10';
+            document.getElementById('herBudgetLabel').textContent = appData.priorities.her.budget + '/10';
+            document.getElementById('herTraditionLabel').textContent = appData.priorities.her.tradition + '/10';
+            document.getElementById('herFunLabel').textContent = (appData.priorities.her.fun ?? 5) + '/10';
+            document.getElementById('hisBudgetLabel').textContent = appData.priorities.him.budget + '/10';
+            document.getElementById('hisAestheticLabel').textContent = appData.priorities.him.aesthetic + '/10';
+            document.getElementById('hisFunLabel').textContent = appData.priorities.him.fun + '/10';
+            document.getElementById('hisTraditionLabel').textContent = (appData.priorities.him.tradition ?? 5) + '/10';
+        }
+
+        function updatePriority(partner, category, value) {
+            if (!appData.priorities[partner]) {
+                appData.priorities[partner] = {};
+            }
+            appData.priorities[partner][category] = parseInt(value);
+            updateSliderLabels();
+            calculateAgreement();
+            renderPriorityComparison();
+            saveData(appData);
+        }
+
+        // ===== PRIORITY COMPARISON CHART (dinámico) =====
+        const PRIORITY_LABELS = {
+            aesthetic: 'Estética',
+            budget: 'Presupuesto',
+            tradition: 'Tradición',
+            fun: 'Diversión'
+        };
+
+        const CATEGORY_LABELS = {
+            ceremony: 'Ceremonia',
+            reception: 'Recepción',
+            catering: 'Catering',
+            budget: 'Presupuesto',
+            guests: 'Invitados',
+            other: 'Otro'
+        };
+
+        const WEDDING_TYPE_LABELS = {
+            traditional: 'Tradicional',
+            modern: 'Moderna',
+            intimate: 'Íntima',
+            beach: 'Playa',
+            garden: 'Jardín',
+            destination: 'Destino'
+        };
+
+        function renderPriorityComparison() {
+            const her = appData.priorities.her || {};
+            const him = appData.priorities.him || {};
+            const categories = Array.from(new Set([...Object.keys(her), ...Object.keys(him)]));
+
+            const rowsEl = document.getElementById('priorityComparisonRows');
+            const insightEl = document.getElementById('priorityInsight');
+            if (!rowsEl) return;
+
+            if (categories.length === 0) {
+                rowsEl.innerHTML = '<p style="color: var(--secondary); text-align:center; padding: 1rem;">Agrega prioridades en la sección de abajo.</p>';
+                insightEl.innerHTML = '';
+                return;
+            }
+
+            const diffs = [];
+            let html = '';
+            categories.forEach(cat => {
+                const herVal = her[cat] ?? 0;
+                const himVal = him[cat] ?? 0;
+                const diff = Math.abs(herVal - himVal);
+                diffs.push({ cat, diff });
+
+                const herPct = (herVal / 10) * 50;
+                const himPct = (himVal / 10) * 50;
+                const label = PRIORITY_LABELS[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
+                const diffClass = diff <= 2 ? 'priority-diff-match' : diff >= 5 ? 'priority-diff-warn' : '';
+
+                html += `
+                    <div class="chart-row">
+                        <div class="chart-label">${label}</div>
+                        <div class="dual-bar-track">
+                            <div class="dual-bar-her" style="width: ${herPct}%;">${herVal > 0 ? herVal : ''}</div>
+                            <div class="dual-bar-mid"></div>
+                            <div class="dual-bar-him" style="width: ${himPct}%;">${himVal > 0 ? himVal : ''}</div>
+                        </div>
+                        <div class="chart-value"><span class="${diffClass}">${herVal} vs ${himVal} (±${diff})</span></div>
+                    </div>
+                `;
+            });
+            rowsEl.innerHTML = html;
+
+            // Insight: top differences to focus on
+            const topDiffs = diffs.filter(d => d.diff >= 3).sort((a, b) => b.diff - a.diff).slice(0, 3);
+            if (topDiffs.length === 0) {
+                insightEl.innerHTML = '<div class="alert success" style="margin:0;"><div class="alert-icon">✓</div><div>Sus prioridades están bastante alineadas. ¡Buena señal!</div></div>';
+            } else {
+                const names = topDiffs.map(d => PRIORITY_LABELS[d.cat] || d.cat).join(', ');
+                insightEl.innerHTML = `<div class="alert warning" style="margin:0;"><div class="alert-icon">💡</div><div><strong>Sugerencia:</strong> enfóquense primero en: ${names} — son donde más se diferencian.</div></div>`;
+            }
+        }
+
+        // ===== EDIT PRIORITY FROM DASHBOARD =====
+        function editPriority(partner, category) {
+            const tabBtn = document.querySelector('.nav-btn[data-tab="priorities"]');
+            showTab('priorities', tabBtn);
+            setTimeout(() => {
+                const prefix = partner === 'her' ? 'her' : 'his';
+                const sliderId = `${prefix}${category.charAt(0).toUpperCase() + category.slice(1)}Slider`;
+                const slider = document.getElementById(sliderId);
+                if (slider) {
+                    slider.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    slider.focus();
+                    slider.style.outline = '3px solid var(--primary)';
+                    setTimeout(() => { slider.style.outline = ''; }, 1500);
+                }
+            }, 50);
+        }
+
+        // ===== AGREEMENT CALCULATION =====
+        function calculateAgreement() {
+            const decisions = appData.decisions;
+            if (decisions.length === 0) {
+                document.getElementById('agreementPercent').textContent = '0%';
+                document.getElementById('agreementBar').style.width = '0%';
+                return;
+            }
+
+            const agreed = decisions.filter(d => d.status === 'agreed').length;
+            const percentage = Math.round((agreed / decisions.length) * 100);
+
+            document.getElementById('agreementPercent').textContent = percentage + '%';
+            document.getElementById('agreementBar').style.width = percentage + '%';
+        }
+
+        // ===== CONFLICTS PREVIEW =====
+        function updateConflictsPreview() {
+            const conflictDecisions = appData.decisions.filter(d => d.status === 'conflict');
+
+            if (conflictDecisions.length === 0) {
+                document.getElementById('conflictsList').innerHTML = '<p>Sin conflictos registrados. ¡Buen trabajo! 😊</p>';
+                return;
+            }
+
+            let html = '';
+            conflictDecisions.forEach(d => {
+                html += `
+                    <div class="conflict-item" style="margin-bottom: 0.8rem;">
+                        <div class="conflict-topic">${d.title}</div>
+                        <div class="conflict-details">
+                            <div class="conflict-option">👰: ${d.herOption || 'Sin definir'}</div>
+                            <div class="conflict-option">🤵: ${d.hisOption || 'Sin definir'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('conflictsList').innerHTML = html;
+        }
+
+        // ===== DECISIONS MANAGEMENT =====
+        function addDecision() {
+            const title = document.getElementById('newDecisionTitle').value.trim();
+            const partner = document.getElementById('newDecisionPartner').value;
+            const category = document.getElementById('newDecisionCategory').value;
+
+            if (!title || !partner || !category) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+
+            const decision = {
+                id: Date.now(),
+                title,
+                owner: partner,
+                category,
+                status: 'pending',
+                herOption: '',
+                hisOption: '',
+                sharedOption: '',
+                notes: ''
+            };
+
+            appData.decisions.push(decision);
+            saveData(appData);
+
+            document.getElementById('newDecisionTitle').value = '';
+            document.getElementById('newDecisionPartner').value = '';
+            document.getElementById('newDecisionCategory').value = '';
+
+            showSuccess('Decisión agregada. Ahora agrega las opciones de cada uno.');
+            renderDecisions();
+        }
+
+        function renderDecisions() {
+            const list = document.getElementById('decisionsList');
+            const allDecisions = appData.decisions;
+
+            if (allDecisions.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✨</div><p>No hay decisiones aún. Comienza agregando decisiones importantes.</p></div>';
+                const countEl = document.getElementById('filterCount');
+                if (countEl) countEl.textContent = '';
+                return;
+            }
+
+            const statusFilter = document.getElementById('filterStatus')?.value || '';
+            const categoryFilter = document.getElementById('filterCategory')?.value || '';
+            const ownerFilter = document.getElementById('filterOwner')?.value || '';
+
+            const decisions = allDecisions.filter(d => {
+                if (statusFilter && d.status !== statusFilter) return false;
+                if (categoryFilter && d.category !== categoryFilter) return false;
+                if (ownerFilter && d.owner !== ownerFilter) return false;
+                return true;
+            });
+
+            const countEl = document.getElementById('filterCount');
+            if (countEl) countEl.textContent = `Mostrando ${decisions.length} de ${allDecisions.length}`;
+
+            if (decisions.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Ninguna decisión coincide con estos filtros.</p></div>';
+                return;
+            }
+
+            list.innerHTML = decisions.map(d => `
+                <div class="decision-item ${d.status === 'conflict' ? 'in-conflict' : d.status === 'agreed' ? 'decided' : ''}">
+                    <div class="decision-status">
+                        ${d.status === 'agreed' ? '✓' : d.status === 'conflict' ? '🔥' : '?'}
+                    </div>
+                    <div>
+                        <div class="decision-title">${d.title}</div>
+                        <div style="font-size: 0.85rem; color: var(--secondary); margin-top: 0.3rem;">
+                            ${d.owner === 'shared' ? '👥 Decisión compartida' : d.owner === 'her' ? '👰 Ella' : '🤵 Él'} • ${CATEGORY_LABELS[d.category] || d.category}
+                        </div>
+                    </div>
+                    <div class="decision-inputs" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+                        ${d.owner !== 'him' ? `
+                            <input type="text" placeholder="Opción Ella" value="${d.herOption}" onchange="updateDecision(${d.id}, 'herOption', this.value)" class="decision-input">
+                        ` : ''}
+                        ${d.owner !== 'her' ? `
+                            <input type="text" placeholder="Opción Él" value="${d.hisOption}" onchange="updateDecision(${d.id}, 'hisOption', this.value)" class="decision-input">
+                        ` : ''}
+                        ${d.owner === 'shared' ? `
+                            <input type="text" placeholder="Opción compartida" value="${d.sharedOption}" onchange="updateDecision(${d.id}, 'sharedOption', this.value)" class="decision-input">
+                        ` : ''}
+                        <input type="text" placeholder="Notas" value="${d.notes}" onchange="updateDecision(${d.id}, 'notes', this.value)" class="decision-input">
+                    </div>
+                    <div class="decision-buttons">
+                        ${d.status !== 'agreed' ? `<button class="btn-small agree" onclick="resolveDecision(${d.id})">Acordar</button>` : ''}
+                        ${d.status !== 'conflict' && d.status !== 'agreed' ? `<button class="btn-small" style="background: var(--warning);" onclick="markConflict(${d.id})">Conflicto</button>` : ''}
+                        <button class="btn-small delete" onclick="deleteDecision(${d.id})">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateDecision(id, field, value) {
+            const decision = appData.decisions.find(d => d.id === id);
+            if (decision) {
+                decision[field] = value;
+                saveData(appData);
+            }
+        }
+
+        function resolveDecision(id) {
+            const decision = appData.decisions.find(d => d.id === id);
+            if (decision) {
+                decision.status = 'agreed';
+                showSuccess(`"${decision.title}" marcada como acordada ✓`);
+                saveData(appData);
+                renderDecisions();
+            }
+        }
+
+        function markConflict(id) {
+            const decision = appData.decisions.find(d => d.id === id);
+            if (decision) {
+                decision.status = 'conflict';
+                showSuccess(`"${decision.title}" marcada en conflicto 🔥`);
+                saveData(appData);
+                renderDecisions();
+            }
+        }
+
+        function deleteDecision(id) {
+            if (confirm('¿Eliminar esta decisión?')) {
+                appData.decisions = appData.decisions.filter(d => d.id !== id);
+                saveData(appData);
+                renderDecisions();
+            }
+        }
+
+        // ===== CONFLICTS TAB =====
+        function renderConflicts() {
+            const conflicts = appData.decisions.filter(d => d.status === 'conflict');
+            const detail = document.getElementById('conflictsDetail');
+
+            if (conflicts.length === 0) {
+                detail.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 2rem;">Sin conflictos registrados. ¡La boda fluye sin fricción! ✨</p>';
+                return;
+            }
+
+            let html = '<div class="decisions-grid">';
+            conflicts.forEach(c => {
+                html += `
+                    <div class="conflict-item" style="border: 2px solid var(--danger); padding: 1.5rem; background: white;">
+                        <h3 style="color: var(--danger); margin-bottom: 1rem;">${c.title}</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="background: #ffe8e8; padding: 1rem; border-radius: 6px;">
+                                <div style="font-weight: 600; color: var(--accent-her); margin-bottom: 0.5rem;">👰 Ella propone:</div>
+                                <div>${c.herOption || 'Sin definir'}</div>
+                            </div>
+                            <div style="background: #e8f4ff; padding: 1rem; border-radius: 6px;">
+                                <div style="font-weight: 600; color: var(--accent-him); margin-bottom: 0.5rem;">🤵 Él propone:</div>
+                                <div>${c.hisOption || 'Sin definir'}</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Notas / Comentarios</label>
+                            <textarea style="height: 80px;" onchange="updateDecision(${c.id}, 'notes', this.value)">${c.notes}</textarea>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-small agree" onclick="resolveDecision(${c.id})">✓ Resolvió el conflicto</button>
+                            <button class="btn-small delete" onclick="deleteDecision(${c.id})">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            detail.innerHTML = html;
+        }
+
+        // ===== PARTNER NAMES =====
+        function saveName(partner) {
+            const inputId = partner === 'her' ? 'herNameInput' : 'hisNameInput';
+            const name = document.getElementById(inputId).value.trim();
+            if (name) {
+                appData.partners[partner].name = name;
+                saveData(appData);
+            }
+        }
+
+        // ===== WEDDING DATA =====
+        function saveWeddingData() {
+            appData.wedding.date = document.getElementById('weddingDate').value;
+            appData.wedding.totalBudget = parseFloat(document.getElementById('totalBudget').value) || 0;
+            appData.wedding.guestCount = parseInt(document.getElementById('guestCount').value) || 0;
+            appData.wedding.type = document.getElementById('weddingType').value;
+            saveData(appData);
+            updateWeddingStats();
+        }
+
+        function updateWeddingStats() {
+            const statsEl = document.getElementById('weddingStats');
+            if (!statsEl) return;
+
+            let daysLabel = '—';
+            if (appData.wedding.date) {
+                const weddingDate = new Date(appData.wedding.date + 'T00:00:00');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const days = Math.ceil((weddingDate - today) / (1000 * 60 * 60 * 24));
+                daysLabel = days > 0 ? `${days}` : (days === 0 ? '¡Hoy!' : 'Pasada');
+            }
+
+            const budget = appData.wedding.totalBudget || 0;
+            const guests = appData.wedding.guestCount || 0;
+            const perGuest = guests > 0 ? (budget / guests) : 0;
+            const perPerson = budget / 2;
+
+            statsEl.innerHTML = `
+                <div class="status-card">
+                    <div class="number">${daysLabel}</div>
+                    <div class="label">Días para la boda</div>
+                </div>
+                <div class="status-card">
+                    <div class="number">$${perPerson.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                    <div class="label">Presupuesto por persona</div>
+                </div>
+                <div class="status-card">
+                    <div class="number">${guests > 0 ? '$' + perGuest.toLocaleString(undefined, {maximumFractionDigits: 0}) : '—'}</div>
+                    <div class="label">Presupuesto por invitado</div>
+                </div>
+            `;
+        }
+
+        // ===== EXPORT FUNCTIONS =====
+        function renderSummary() {
+            appData = loadData();
+            const decisions = appData.decisions;
+            const agreed = decisions.filter(d => d.status === 'agreed').length;
+            const conflicts = decisions.filter(d => d.status === 'conflict').length;
+            const pending = decisions.filter(d => d.status === 'pending').length;
+
+            let daysUntilWedding = 'No definida';
+            if (appData.wedding.date) {
+                const weddingDate = new Date(appData.wedding.date);
+                const today = new Date();
+                const days = Math.ceil((weddingDate - today) / (1000 * 60 * 60 * 24));
+                daysUntilWedding = days > 0 ? `${days} días` : 'Fecha pasada';
+            }
+
+            document.getElementById('summary').innerHTML = `
+                <p><strong>👰 Ella:</strong> ${appData.partners.her.name}</p>
+                <p><strong>🤵 Él:</strong> ${appData.partners.him.name}</p>
+                <p><strong>📅 Fecha:</strong> ${appData.wedding.date || 'No definida'} (${daysUntilWedding})</p>
+                <p><strong>💰 Presupuesto:</strong> $${appData.wedding.totalBudget.toLocaleString()}</p>
+                <p><strong>👥 Invitados:</strong> ${appData.wedding.guestCount} personas</p>
+                <p><strong>🎉 Tipo:</strong> ${WEDDING_TYPE_LABELS[appData.wedding.type] || 'No definido'}</p>
+                <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+                <p><strong>✓ Decisiones acordadas:</strong> ${agreed}</p>
+                <p><strong>🔥 Conflictos:</strong> ${conflicts}</p>
+                <p><strong>⏳ Pendientes:</strong> ${pending}</p>
+                <p><strong>📊 Total decisiones:</strong> ${decisions.length}</p>
+            `;
+        }
+
+        function exportJSON() {
+            appData = loadData();
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            downloadFile(blob, 'wedding-sync-backup.json');
+        }
+
+        function exportCSV() {
+            appData = loadData();
+            const decisions = appData.decisions;
+
+            let csv = 'Tema,Responsable,Categoría,Estado,Opción Ella,Opción Él,Notas\n';
+            decisions.forEach(d => {
+                csv += `"${d.title}","${d.owner}","${d.category}","${d.status}","${d.herOption}","${d.hisOption}","${d.notes}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            downloadFile(blob, 'decisiones-boda.csv');
+        }
+
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function refreshAllViews() {
+            renderDecisions();
+            renderConflicts();
+            renderPriorityComparison();
+            renderSummary();
+            updateWeddingStats();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    const valid = imported && imported.partners && imported.wedding
+                        && imported.priorities && Array.isArray(imported.decisions);
+                    if (!valid) {
+                        alert('❌ El archivo no tiene el formato esperado de Wedding Sync.');
+                        return;
+                    }
+                    if (!confirm('Esto reemplazará todos los datos actuales con los del archivo importado. ¿Continuar?')) return;
+                    appData = imported;
+                    saveData(appData);
+                    refreshAllViews();
+                    showSuccess('Datos importados correctamente.');
+                } catch (err) {
+                    alert('❌ No se pudo leer el archivo. Verifica que sea un JSON válido exportado desde Wedding Sync.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function loadDemoData() {
+            if (appData.decisions.length > 0 || appData.wedding.date) {
+                if (!confirm('Esto reemplazará los datos actuales con un ejemplo de muestra. ¿Continuar?')) return;
+            }
+
+            const demoDate = new Date();
+            demoDate.setMonth(demoDate.getMonth() + 5);
+            const ts = Date.now();
+
+            const demo = {
+                partners: {
+                    her: { name: 'Camila', emoji: '👰' },
+                    him: { name: 'Diego', emoji: '🤵' }
+                },
+                wedding: {
+                    date: demoDate.toISOString().split('T')[0],
+                    totalBudget: 28000,
+                    guestCount: 80,
+                    type: 'garden'
+                },
+                priorities: {
+                    her: { aesthetic: 9, budget: 4, tradition: 6, fun: 5 },
+                    him: { budget: 8, aesthetic: 3, fun: 7, tradition: 2 }
+                },
+                decisions: [
+                    { id: ts - 9000, title: 'Lugar de la ceremonia', owner: 'shared', category: 'ceremony', status: 'agreed', herOption: 'Jardín botánico', hisOption: 'Jardín botánico', sharedOption: 'Jardín botánico', notes: 'Reservado y pagado.' },
+                    { id: ts - 8000, title: 'Menú del banquete', owner: 'shared', category: 'catering', status: 'conflict', herOption: 'Menú gourmet de 3 tiempos', hisOption: 'Buffet con barra de tacos', sharedOption: '', notes: '' },
+                    { id: ts - 7000, title: 'Lista de invitados', owner: 'shared', category: 'guests', status: 'conflict', herOption: '120 personas', hisOption: '60 personas máximo', sharedOption: '', notes: 'El presupuesto limita el número.' },
+                    { id: ts - 6000, title: 'Banda vs. DJ', owner: 'him', category: 'reception', status: 'pending', herOption: '', hisOption: 'DJ con repertorio variado', sharedOption: '', notes: '' },
+                    { id: ts - 5000, title: 'Vestido de novia', owner: 'her', category: 'other', status: 'agreed', herOption: 'Diseñador local, corte sirena', hisOption: '', sharedOption: '', notes: '' },
+                    { id: ts - 4000, title: 'Presupuesto de flores', owner: 'shared', category: 'budget', status: 'conflict', herOption: '$3,500 en arreglos florales', hisOption: '$1,200 máximo', sharedOption: '', notes: '' },
+                    { id: ts - 3000, title: 'Luna de miel', owner: 'shared', category: 'other', status: 'agreed', herOption: 'Playa del Carmen, 5 días', hisOption: 'Playa del Carmen, 5 días', sharedOption: 'Playa del Carmen, 5 días', notes: '' },
+                    { id: ts - 2000, title: 'Fotógrafo', owner: 'shared', category: 'other', status: 'pending', herOption: 'Estilo editorial', hisOption: '', sharedOption: '', notes: '' },
+                    { id: ts - 1000, title: 'Pastel de boda', owner: 'her', category: 'reception', status: 'agreed', herOption: 'Pastel de 3 pisos, red velvet', hisOption: '', sharedOption: '', notes: '' },
+                    { id: ts, title: 'Transporte de invitados', owner: 'him', category: 'guests', status: 'pending', herOption: '', hisOption: 'Camión para traslado desde el hotel', sharedOption: '', notes: '' }
+                ]
+            };
+
+            appData = demo;
+            saveData(appData);
+            refreshAllViews();
+            showSuccess('Datos de ejemplo cargados.');
+        }
+
+        // ===== UTILITIES =====
+        function showSuccess(msg) {
+            const alert = document.getElementById('successAlert');
+            document.getElementById('successMsg').textContent = msg;
+            alert.style.display = 'flex';
+            setTimeout(() => alert.style.display = 'none', 3000);
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ ¿Estás seguro? Esto eliminará TODO. No se puede deshacer.')) {
+                if (confirm('Confirma una vez más para eliminar permanentemente todos los datos.')) {
+                    localStorage.removeItem('weddingSyncData');
+                    appData = loadData();
+                    updateDashboard();
+                    refreshAllViews();
+                    showSuccess('Todos los datos fueron eliminados.');
+                }
+            }
+        }
+
+        // ===== INIT =====
+        updateDashboard();
+        refreshAllViews();
+    </script>
+</body>
+</html>

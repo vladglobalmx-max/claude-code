@@ -39,4 +39,6 @@ Tipo de cambio de referencia (sep. 2026): ~$17.15 MXN por USD.
 
 **Alternativa conservadora:** $344 MXN (paridad exacta con el Planner) si prefieres simplicidad de precio único en todo el catálogo Bookfluence.
 
-¿Con cuál te quedas?
+## Decisión final
+
+**Precio de lanzamiento: $344 MXN** (precio final, impuesto incluido — se pone directamente así en "Precio base" de Hotmart).

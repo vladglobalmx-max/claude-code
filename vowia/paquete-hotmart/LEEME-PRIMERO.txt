@@ -1,0 +1,72 @@
+VOWIA — BOOKFLUENCE WEDDINGS
+¡Gracias por tu compra!
+================================================================
+
+Este paquete contiene todo lo que necesitas para empezar a usar
+la aplicación hoy mismo.
+
+QUÉ INCLUYE ESTE PAQUETE
+----------------------------------------------------------------
+1. Vowia.html
+   -> Este es el archivo de la aplicación. Ábrelo y listo.
+
+2. Manual-de-uso-Vowia.pdf
+   -> Guía paso a paso de cada sección: Dashboard, Decisiones,
+      Conflictos, Prioridades, Pareja y Descargar. Te
+      recomendamos leerla antes de tu primer uso.
+
+3. Licencia-de-uso.txt
+   -> Los términos de uso de tu compra (uso personal de
+      pareja, qué sí y qué no incluye tu licencia).
+
+4. Aviso-de-privacidad.txt
+   -> Cómo funciona la privacidad de la aplicación (resumen:
+      no se recolecta ni se envía ninguna información a
+      ningún lado; todo se queda en tu dispositivo).
+
+
+CÓMO ABRIR LA APLICACIÓN
+----------------------------------------------------------------
+EN COMPUTADORA (Windows o Mac):
+  Haz doble clic sobre "Vowia.html".
+  Se abrirá en tu navegador (Chrome, Edge, Brave, Firefox o
+  Safari).
+
+EN TABLETA (iPad):
+  Los archivos .html no siempre se abren solos al tocarlos en
+  iOS. Si al tocarlo solo ves texto/código en vez de la app:
+    1. Mantén el dedo presionado sobre el archivo.
+    2. Toca "Compartir".
+    3. Busca el ícono de Safari en esa lista y tócalo
+       ("Abrir en Safari").
+  Eso abrirá la aplicación funcionando correctamente.
+
+No necesitas instalar nada, no necesitas internet para usarla
+el día a día, y no necesitas crear ninguna cuenta.
+
+
+PRIMEROS PASOS
+----------------------------------------------------------------
+La primera vez que abran la aplicación van a ver el Dashboard
+vacío. Les recomendamos:
+
+  1. Ir primero a la pestaña "Pareja" y capturar sus nombres,
+     fecha de boda, presupuesto e invitados.
+  2. Ir a "Decisiones" y empezar a agregar los temas importantes
+     de su boda.
+  3. Si solo quieren explorar la aplicación antes de capturar su
+     información real, usen "Cargar Datos de Ejemplo" en la
+     pestaña "Descargar".
+
+Les recomendamos hacer su respaldo cada semana (pestaña
+Descargar -> Descargar como JSON) para no perder su información.
+
+
+¿DUDAS O PROBLEMAS?
+----------------------------------------------------------------
+Escríbenos a: [tu correo de soporte]
+
+Gracias por dejar que Vowia los acompañe a planear su boda
+juntos, con menos fricción y más claridad.
+
+— Bookfluence Weddings

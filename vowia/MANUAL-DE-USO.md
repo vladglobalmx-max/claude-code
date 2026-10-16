@@ -1,6 +1,6 @@
 # Manual de uso — Vowia
 
-### El planificador de bodas para parejas que no se ponen de acuerdo
+### El planificador de bodas hecho para los dos
 
 ---
 

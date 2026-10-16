@@ -19,7 +19,7 @@ Relaciones (alternativa: Desarrollo Personal)
 ## Subtítulo / frase corta (campo "Resumen" o "Headline")
 
 ```
-La herramienta que ayuda a una pareja a ponerse de acuerdo en su boda — decisiones, conflictos y prioridades, en un solo lugar, sin internet, pago único.
+El planificador de bodas hecho para los dos — decisiones, prioridades y presupuesto, en un solo lugar, sin internet, pago único.
 ```
 
 ---
@@ -27,9 +27,9 @@ La herramienta que ayuda a una pareja a ponerse de acuerdo en su boda — decisi
 ## Descripción larga — versión completa (para la página externa/landing)
 
 ```
-¿Él quiere algo sencillo y ustedes están peleando por el menú, la lista de invitados o cuánto gastar en flores? No están solos — y no es un problema de amor, es un problema de organización.
+La mayoría de los planificadores de boda están pensados para que una sola persona los llene. Vowia es distinto: está hecho para que los dos participen, desde el primer día.
 
-Vowia es el primer planificador de boda diseñado específicamente para parejas con gustos, prioridades y presupuestos distintos. No es otra lista de pendientes genérica: es un sistema que registra en qué están de acuerdo, en qué no, y les ayuda a encontrar el punto medio — con números, no con gritos.
+Vowia es el planificador de boda que muestra el panorama completo desde la perspectiva de cada quien — sus prioridades, sus decisiones, su presupuesto — y los ayuda a mantenerse alineados conforme van planeando, se lleven de maravilla o tengan sus diferencias en el camino.
 
 No es una suscripción. No es una hoja de Excel que alguien más tiene que llenar. Es una aplicación real, de pago único, que calcula su nivel de acuerdo en tiempo real.
 
@@ -44,16 +44,15 @@ QUÉ PUEDES HACER
 
 • Ver el panorama completo de la boda desde la perspectiva de cada quien, lado a lado
 • Registrar decisiones importantes (ceremonia, recepción, catering, presupuesto, invitados) y asignar quién decide qué
-• Detectar automáticamente en qué están en conflicto, antes de que se vuelva una pelea
-• Resolver conflictos uno por uno, con espacio para que cada quien proponga su opción y lleguen a un acuerdo documentado
-• Comparar sus prioridades (estética, presupuesto, tradición, diversión) con una tabla visual que les dice en qué enfocarse primero
+• Comparar sus prioridades (estética, presupuesto, tradición, diversión) con una tabla visual que les dice en qué coinciden y en qué no
+• Detectar automáticamente si algo quedó en desacuerdo, para resolverlo con espacio y claridad en vez de dejarlo pendiente
 • Ver su cuenta regresiva, presupuesto por persona y presupuesto por invitado, siempre a la mano
 • Filtrar sus decisiones por estado, categoría o responsable conforme la lista crece
 • Exportar todo su progreso como respaldo o como CSV para compartir con quien los esté ayudando a planear
 
 ¿PARA QUIÉN ES?
 
-Para parejas comprometidas que ya empezaron a planear su boda y se han dado cuenta de que no siempre están de acuerdo — y prefieren resolverlo con claridad antes de que la planeación se vuelva una fuente de tensión.
+Para cualquier pareja comprometida que quiere planear su boda juntos de verdad — no que uno organice y el otro se entere al final.
 
 ¿PARA QUIÉN NO ES?
 
@@ -67,9 +66,9 @@ Funciona en cualquier navegador moderno (Chrome, Edge, Brave, Firefox o Safari a
 ## Descripción corta — versión para el campo de Hotmart (≤2000 caracteres)
 
 ```
-¿Están peleando por el menú, la lista de invitados o cuánto gastar en flores? No es un problema de amor, es un problema de organización.
+La mayoría de los planificadores de boda están pensados para que una sola persona los llene. Vowia es distinto: está hecho para que los dos participen, desde el primer día.
 
-Vowia es el primer planificador de boda diseñado para parejas con gustos y prioridades distintas. No es otra lista de pendientes: registra en qué están de acuerdo, en qué no, y les ayuda a encontrar el punto medio — con números, no con gritos.
+Muestra el panorama completo desde la perspectiva de cada quien — prioridades, decisiones, presupuesto — y los ayuda a mantenerse alineados conforme planean, se lleven de maravilla o tengan sus diferencias en el camino.
 
 No es suscripción ni una hoja que alguien tiene que llenar a mano: es una aplicación real, de pago único, que calcula su nivel de acuerdo en tiempo real.
 
@@ -82,15 +81,14 @@ QUÉ INCLUYE
 QUÉ PUEDES HACER
 • Panorama de la boda desde la perspectiva de cada quien, lado a lado
 • Decisiones importantes con responsable asignado (ceremonia, catering, presupuesto, invitados...)
-• Detección automática de conflictos antes de que se vuelvan pelea
-• Resolución de conflictos con espacio para que cada quien proponga su opción
 • Comparación visual de prioridades (estética, presupuesto, tradición, diversión)
+• Detección automática de desacuerdos, para resolverlos con claridad
 • Cuenta regresiva, presupuesto por persona y por invitado
 • Filtros de decisiones por estado, categoría o responsable
 • Exportar a JSON o CSV
 
 PARA QUIÉN ES
-Parejas comprometidas que ya empezaron a planear su boda y quieren resolver sus diferencias con claridad, no con fricción.
+Cualquier pareja comprometida que quiere planear su boda juntos de verdad, no que uno organice y el otro se entere al final.
 
 PARA QUIÉN NO ES
 No es directorio de proveedores, no gestiona RSVP de invitados y no sustituye a un wedding planner profesional.
@@ -106,8 +104,8 @@ Navegador moderno (Chrome, Edge, Brave, Firefox, Safari), computadora o tableta.
 ```
 💍 Dashboard dual: la perspectiva de cada quien, lado a lado
 ✅ Decisiones con responsable asignado y seguimiento de estado
-🔥 Detección y resolución de conflictos antes de que se vuelvan pelea
-⭐ Comparador de prioridades con sugerencia de en qué enfocarse
+⭐ Comparador de prioridades: en qué coinciden y en qué no
+🔥 Detección de desacuerdos antes de que se vuelvan pelea
 📅 Cuenta regresiva + presupuesto por persona y por invitado
 🔍 Filtros de decisiones por estado, categoría o responsable
 📴 Sin internet, sin cuentas en línea, sin suscripción
@@ -127,11 +125,14 @@ No. Toda la información se guarda únicamente en el navegador del dispositivo d
 ¿Los dos podemos usarla al mismo tiempo en dispositivos distintos?
 Sí, cada quien puede capturar su parte en su propio dispositivo. Como no sincroniza automáticamente entre dispositivos, usen la función de exportar/importar respaldo para juntar su información en un solo lugar cuando quieran revisarla juntos.
 
+¿Es solo para parejas que no se ponen de acuerdo?
+No, es para cualquier pareja que quiera planear su boda juntos, viendo el panorama completo desde ambas perspectivas. Si además tienen diferencias en el camino, Vowia también los ayuda a resolverlas con claridad.
+
 ¿Es compatible con computadora y tableta?
 Sí, funciona en cualquier dispositivo con un navegador moderno (Chrome, Edge, Brave, Firefox o Safari).
 
 ¿Sustituye a un wedding planner?
-No. Es la herramienta que ustedes dos usan para organizarse y ponerse de acuerdo; si necesitan ejecución profesional (proveedores, logística del día), sigue siendo valioso contratar a alguien.
+No. Es la herramienta que ustedes dos usan para organizarse y mantenerse alineados; si necesitan ejecución profesional (proveedores, logística del día), sigue siendo valioso contratar a alguien.
 
 ¿Tiene anuncios o costos ocultos?
 No, nunca. Es un pago único, sin suscripción ni compras adicionales.
@@ -148,7 +149,7 @@ Sí, cuentan con [7] días de garantía: si no es para ustedes, solicitan su ree
 ## Llamado a la acción (botón / cierre de página)
 
 ```
-Dejen de discutir por los detalles — organicen su boda juntos, con claridad, hoy mismo.
+Planeen su boda juntos, con el panorama completo — hoy mismo.
 
 [Quiero mi copia de Vowia]
 ```
@@ -157,11 +158,11 @@ Dejen de discutir por los detalles — organicen su boda juntos, con claridad, h
 
 ## Ideas para las imágenes de la ficha de producto
 
-Orden recomendado (usar las capturas del nuevo diseño editorial):
+Orden recomendado (usar las capturas del diseño editorial):
 
 1. Dashboard dual (primera impresión: "esto es para los dos")
-2. Prioridades / comparador (el beneficio diferenciador: "por fin entendemos en qué no coincidimos")
-3. Conflictos (muestra la resolución concreta)
-4. Decisiones con filtros (demuestra que escala conforme crece la lista)
+2. Prioridades / comparador (el beneficio diferenciador: "vemos en qué coincidimos y en qué no")
+3. Decisiones con filtros (demuestra que escala conforme crece la lista)
+4. Conflictos (muestra la resolución concreta, como beneficio secundario)
 5. Pareja / cuenta regresiva y presupuesto (dato emocional + práctico)
 6. Vista móvil (demuestra flexibilidad de uso)

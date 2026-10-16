@@ -7,7 +7,7 @@ Todo lo que sigue está listo para copiar y pegar en el editor de producto de Ho
 ## Nombre del producto (campo "Nombre")
 
 ```
-Vowia — El Planificador de Bodas para Parejas que No Se Ponen de Acuerdo
+Vowia - Planificador de Bodas
 ```
 
 ## Categoría sugerida en Hotmart

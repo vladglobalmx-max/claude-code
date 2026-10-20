@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FAF7F1; --surface:#FFFFFF; --surface-soft:#F3EEE4;
+  --ink:#2B2420; --ink-soft:#6B6054; --borde:#E6DED2;
+  --terracotta:#B5664A; --terracotta-deep:#96503A;
+  --sage:#7D8F82; --sage-deep:#5E6E62; --gold:#BFA06A;
+  --grad-marca:linear-gradient(135deg,#B5664A 0%,#96503A 50%,#7D8F82 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Inter',sans-serif;}
+.canvas{
+  width:1080px;height:1920px;position:relative;
+  background:
+    radial-gradient(ellipse 900px 700px at 90% 100%, rgba(125,143,130,0.14) 0%, transparent 60%),
+    var(--bg);
+}
+.logo{position:absolute; top:300px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px;}
+.anillo{width:48px;height:48px;border-radius:50%;background:var(--grad-marca);display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 6px 16px rgba(150,80,58,0.25);}
+.wordmark{font-family:'Playfair Display',serif;font-weight:700;font-size:1.8rem;color:var(--ink);}
+
+.headline{
+  position:absolute; top:416px; left:90px; right:90px; text-align:center;
+  font-family:'Playfair Display',serif; font-size:66px; line-height:1.15; font-weight:700; color:var(--ink);
+}
+.subtext{
+  position:absolute; top:558px; left:130px; right:130px; text-align:center;
+  font-size:28px; line-height:1.55; color:var(--ink-soft);
+}
+.badge{
+  position:absolute; top:710px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--bg); font-size:19px; letter-spacing:2px; font-weight:700;
+  padding:14px 30px; border-radius:30px; white-space:nowrap;
+}
+
+.mockup{
+  position:absolute; top:860px; left:50px; width:980px; height:502px;
+  border-radius:22px; overflow:hidden; box-shadow:0 36px 80px rgba(43,36,32,0.24); border:1px solid var(--borde);
+  background:var(--surface);
+}
+.mockup img{width:100%; display:block; margin-top:-24px;}
+</style></head><body>
+<div class="canvas">
+  <div class="logo"><span class="anillo">💍</span><span class="wordmark">Vowia</span></div>
+  <div class="headline">La boda es<br>de los dos.</div>
+  <div class="subtext">Con Vowia, ambos pueden expresar sus prioridades y construir juntos su plan.</div>
+  <div class="badge">DOS PERSPECTIVAS. UN SOLO PLAN.</div>
+  <div class="mockup"><img src="dashboard.png" alt=""></div>
+</div>
+</body></html>

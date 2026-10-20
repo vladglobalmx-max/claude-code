@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FAF7F1; --ink:#2B2420; --ink-deep:#1C1713; --ink-soft:#C9BDB0;
+  --terracotta:#D08563; --sage:#9BAC9D; --gold:#BFA06A;
+  --grad-marca:linear-gradient(135deg,#D08563 0%,#B5664A 50%,#7D8F82 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Inter',sans-serif;}
+.canvas{
+  width:1080px;height:1920px;position:relative;
+  background:
+    radial-gradient(ellipse 900px 700px at 50% 15%, rgba(208,133,99,0.14) 0%, transparent 60%),
+    linear-gradient(180deg,#241F1A 0%, #1C1713 100%);
+}
+.safe{position:absolute; top:250px; left:90px; right:90px; bottom:250px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
+
+.logo{position:absolute; top:300px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px;}
+.anillo{width:50px;height:50px;border-radius:50%;background:var(--grad-marca);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.wordmark{font-family:'Playfair Display',serif;font-weight:700;font-size:1.9rem;color:#FAF7F1;}
+
+.headline{
+  margin-top:120px;
+  font-family:'Playfair Display',serif; font-size:68px; line-height:1.28; font-weight:700; color:#FAF7F1;
+}
+.headline em{font-style:normal; color:var(--terracotta);}
+.subtext{
+  margin-top:48px; font-size:30px; line-height:1.55; color:var(--ink-soft); max-width:760px;
+}
+.linea{width:70px; height:2px; background:var(--gold); margin-top:48px;}
+</style></head><body>
+<div class="canvas">
+  <div class="logo"><span class="anillo">💍</span><span class="wordmark">Vowia</span></div>
+  <div class="safe">
+    <div class="headline">¿Por qué <em>una sola persona</em><br>termina planeando<br>toda la boda?</div>
+    <div class="linea"></div>
+    <div class="subtext">Organizar su gran día debería ser una experiencia compartida.</div>
+  </div>
+</div>
+</body></html>

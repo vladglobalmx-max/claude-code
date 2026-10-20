@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FAF7F1; --surface:#FFFFFF; --surface-soft:#F3EEE4;
+  --ink:#2B2420; --ink-soft:#6B6054; --borde:#E6DED2;
+  --terracotta:#B5664A; --terracotta-deep:#96503A;
+  --sage:#7D8F82; --sage-deep:#5E6E62; --gold:#BFA06A;
+  --grad-marca:linear-gradient(135deg,#B5664A 0%,#96503A 50%,#7D8F82 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1080px;overflow:hidden;font-family:'Inter',sans-serif;}
+.canvas{
+  width:1080px;height:1080px;position:relative;
+  background:
+    radial-gradient(ellipse 900px 700px at 50% -10%, rgba(125,143,130,0.14) 0%, transparent 60%),
+    var(--bg);
+  display:flex; align-items:center; justify-content:center;
+}
+.logo{position:absolute; top:60px; left:64px; display:flex; align-items:center; gap:12px;}
+.anillo{width:42px;height:42px;border-radius:50%;background:var(--grad-marca);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 16px rgba(150,80,58,0.25);}
+.wordmark{font-family:'Playfair Display',serif;font-weight:700;font-size:1.5rem;color:var(--ink);}
+
+.headline{
+  position:absolute; top:150px; left:90px; right:90px; text-align:center;
+  font-family:'Playfair Display',serif; font-size:50px; line-height:1.2; font-weight:700; color:var(--ink);
+}
+
+.tarjeta{
+  position:absolute; top:330px; left:190px; width:700px; height:640px;
+  background:var(--surface); border:1px solid var(--borde); border-radius:24px;
+  box-shadow:0 30px 70px rgba(43,36,32,0.18);
+  display:flex; flex-direction:column; align-items:center; padding-top:48px;
+}
+.pildora{background:var(--surface-soft); color:var(--sage-deep); font-size:15px; letter-spacing:2px; text-transform:uppercase; font-weight:700; padding:8px 20px; border-radius:20px;}
+.precio{font-family:'Playfair Display',serif; font-size:100px; font-weight:700; color:var(--ink); line-height:1; margin-top:28px; font-variant-numeric:tabular-nums;}
+.precio sup{font-size:38px; font-weight:600; vertical-align:top; margin-right:4px;}
+.precio .mxn{font-size:32px; font-weight:600; color:var(--ink-soft);}
+.precio-nota{font-size:20px; color:var(--ink-soft); margin-top:10px; font-weight:600;}
+
+.lista{margin-top:40px; display:flex; flex-direction:column; gap:16px; align-self:stretch; padding:0 56px;}
+.item{display:flex; align-items:center; gap:12px; font-size:23px; color:var(--ink);}
+.item .check{color:var(--sage-deep); font-weight:700; font-size:22px;}
+
+.cta{
+  margin-top:40px; background:var(--terracotta); color:#fff; font-weight:600; font-size:25px;
+  padding:20px 56px; border-radius:40px; box-shadow:0 14px 30px rgba(181,102,74,0.35);
+}
+</style></head><body>
+<div class="canvas">
+  <div class="logo"><span class="anillo">💍</span><span class="wordmark">Vowia</span></div>
+  <div class="headline">El planificador de bodas<br>hecho para los dos.</div>
+  <div class="tarjeta">
+    <div class="pildora">Oferta de lanzamiento</div>
+    <div class="precio"><sup>$</sup>344<span class="mxn"> MXN</span></div>
+    <div class="precio-nota">IVA incluido · Pago único · Sin mensualidades</div>
+    <div class="lista">
+      <div class="item"><span class="check">✓</span>Aplicación completa</div>
+      <div class="item"><span class="check">✓</span>Manual incluido</div>
+      <div class="item"><span class="check">✓</span>Actualizaciones futuras</div>
+    </div>
+    <div class="cta">Quiero mi copia</div>
+  </div>
+</div>
+</body></html>

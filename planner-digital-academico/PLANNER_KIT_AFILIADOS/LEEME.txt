@@ -1,0 +1,41 @@
+PLANNER DIGITAL ACADÉMICO — KIT PUBLICITARIO PARA AFILIADOS
+================================================================
+
+CONTENIDO
+----------------------------------------------------------------
+6 piezas terminadas, listas para publicar:
+
+  PLANNER_POST_01_EMOCIONAL.png     1080x1080 px
+  PLANNER_POST_02_PRACTICO.png      1080x1080 px
+  PLANNER_POST_03_PRECIO.png        1080x1080 px
+  PLANNER_STORY_01_PROBLEMA.png     1080x1920 px
+  PLANNER_STORY_02_SOLUCION.png     1080x1920 px
+  PLANNER_STORY_03_CONVERSION.png   1080x1920 px
+
+  contact-sheet.png  -> vista previa conjunta de las 6 piezas
+  src/                -> archivos fuente editables (HTML/CSS) +
+                          las capturas reales de la app, tomadas
+                          directamente de planner.bookfluence.shop
+
+IDENTIDAD VISUAL USADA
+----------------------------------------------------------------
+Tomada directamente de tu página real en planner.bookfluence.shop:
+  - Tipografías: Sora (títulos) + Inter (texto)
+  - Paleta: degradado navy #1B2A4A -> azul #25406E -> turquesa
+    #1FA996, acento ámbar #F2C14E
+  - Logo: insignia "Bookfluence Teachers"
+  - Capturas: dashboard y planeaciones reales de la app (se
+    regeneraron frescas para quitar cualquier rastro de "2026")
+
+PRECIO CONFIRMADO: $344 MXN, IVA incluido, pago único.
+
+REGLAS PARA AFILIADOS
+----------------------------------------------------------------
+- Ninguna pieza incluye link de seguimiento ni código QR: cada
+  afiliado debe usar su propio link de afiliado de Hotmart.
+- No menciones tu comisión como afiliado en anuncios dirigidos
+  al comprador.
+- No prometas funciones que la app no tiene.
+- Los CTA son visuales ("Conoce el Planner", "Quiero mi copia",
+  "Descubre cómo funciona") — no son links clicables dentro de
+  la imagen.

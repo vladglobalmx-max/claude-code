@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{ --navy:#1B2A4A; --turquesa:#1FA996; --ambar:#F2C14E; --ink-soft:#C7CEDA; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Inter',sans-serif;}
+.canvas{width:1080px;height:1920px;position:relative; background:linear-gradient(180deg,#14213D 0%, #0E1830 100%); display:flex; align-items:center; justify-content:center;}
+.safe{position:absolute; top:250px; left:90px; right:90px; bottom:250px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
+
+.logo{display:flex; align-items:center; gap:12px; margin-bottom:76px;}
+.badge{width:48px;height:48px;border-radius:13px;background:linear-gradient(120deg,#1B2A4A,#1FA996);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:1.7rem;color:#fff;}
+
+.headline{font-family:'Sora',sans-serif; font-size:62px; line-height:1.22; font-weight:800; color:#fff;}
+.linea{width:70px; height:3px; background:var(--ambar); margin:44px 0;}
+
+.precio-row{display:flex; align-items:baseline; gap:16px; font-family:'Sora',sans-serif; color:#fff;}
+.precio-row .marca{font-size:34px; font-weight:800;}
+.precio-row .precio{font-size:62px; font-weight:800; color:var(--turquesa); font-variant-numeric:tabular-nums;}
+.nota{margin-top:20px; font-size:28px; color:var(--ink-soft);}
+
+.cta{margin-top:64px; background:var(--ambar); color:var(--navy); font-weight:700; font-size:28px; padding:24px 64px; border-radius:44px; box-shadow:0 18px 40px rgba(242,193,78,0.3);}
+</style></head><body>
+<div class="canvas">
+  <div class="safe">
+    <div class="logo"><span class="badge">📘</span><span class="wordmark">Bookfluence Teachers</span></div>
+    <div class="headline">Organiza tu ciclo<br>escolar hoy.</div>
+    <div class="linea"></div>
+    <div class="precio-row"><span class="marca">PLANNER —</span><span class="precio">$344 MXN</span></div>
+    <div class="nota">Pago único. Sin mensualidades.</div>
+    <div class="cta">Conoce el Planner</div>
+  </div>
+</div>
+</body></html>

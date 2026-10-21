@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --azul:#4C8DFF; --turquesa:#34C1BC; --violeta:#8A7CF5; --amarillo:#F6C84C;
+  --ink:#253047; --ink-soft:#5A6478; --bg:#F7F9FD; --borde:#E1E7F5;
+  --grad-marca:linear-gradient(135deg,#4C8DFF 0%,#34C1BC 50%,#8A7CF5 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1080px;overflow:hidden;font-family:'Work Sans',sans-serif;}
+.canvas{width:1080px;height:1080px;position:relative;background:var(--grad-marca);}
+.logo{position:absolute; top:64px; left:64px; display:flex; align-items:center; gap:12px;}
+.badge{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.wordmark{font-family:'Fredoka',sans-serif;font-weight:600;font-size:1.3rem;color:#fff;}
+
+.pill{position:absolute; top:168px; left:64px; right:64px; text-align:center;}
+.pill span{display:inline-block; background:rgba(255,255,255,0.2); color:#fff; font-size:16px; font-weight:600; padding:8px 20px; border-radius:30px;}
+.headline{position:absolute; top:226px; left:64px; right:64px; text-align:center; font-family:'Fredoka',sans-serif; font-size:56px; line-height:1.2; font-weight:600; color:#fff;}
+.headline em{font-style:normal; color:var(--amarillo);}
+.subtext{position:absolute; top:424px; left:140px; right:140px; text-align:center; font-size:24px; line-height:1.5; color:rgba(255,255,255,0.92);}
+
+.mockup-wrap{position:absolute; top:552px; left:110px; width:860px; height:432px;}
+.mockup{width:100%; height:100%; border-radius:18px; overflow:hidden; box-shadow:0 30px 70px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.25); background:#fff; transform:rotate(1deg);}
+.mockup img{width:100%; display:block; margin-top:0;}
+.badge-flotante{position:absolute; display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 16px; box-shadow:0 10px 24px rgba(0,0,0,0.25); font-size:16px; font-weight:700; color:var(--ink); white-space:nowrap;}
+.badge-1{top:-16px; right:-14px;}
+.badge-2{bottom:16px; left:-20px;}
+.badge .star{color:var(--amarillo);}
+
+.cta{position:absolute; bottom:70px; left:50%; transform:translateX(-50%); background:var(--amarillo); color:var(--ink); font-weight:700; font-size:25px; padding:20px 48px; border-radius:40px; box-shadow:0 14px 30px rgba(0,0,0,0.22);}
+</style></head><body>
+<div class="canvas">
+  <div class="logo"><span class="badge">📖</span><span class="wordmark">Bookfluence Kids</span></div>
+  <div class="pill"><span>Para niñas y niños de 7 a 12 años</span></div>
+  <div class="headline">Un día <em>organizado</em><br>empieza por<br>ellos mismos.</div>
+  <div class="subtext">Organiza su día, crea hábitos y celebra sus logros con estrellas.</div>
+  <div class="mockup-wrap">
+    <div class="mockup"><img src="kids-dashboard.png" alt=""></div>
+    <div class="badge-flotante badge-1"><span class="star">⭐</span>+3 estrellas hoy</div>
+    <div class="badge-flotante badge-2">✓ Hábito cumplido</div>
+  </div>
+  <div class="cta">Conoce Mi Día Genial →</div>
+</div>
+</body></html>

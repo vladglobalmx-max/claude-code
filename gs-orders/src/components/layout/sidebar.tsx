@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,6 +13,21 @@ import type { ToggleableModuleKey } from "@/lib/organization-modules";
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(href + "/");
+}
+
+/**
+ * THÖREN | SIDEBAR DESPLEGABLE — qué grupo (de los 5 departamentos:
+ * Ventas/Logística/Compras/Almacén/Administración, los únicos con
+ * `group.label` no-null) contiene la ruta activa. Inicio/Configuración
+ * (`label: null`) nunca son colapsables — quedan fuera de esta búsqueda a
+ * propósito, siempre visibles (requisito "Inicio siempre visible").
+ */
+function findActiveGroupLabel(pathname: string): string | null {
+  for (const group of NAV_GROUPS) {
+    if (!group.label) continue;
+    if (group.items.some((item) => isActive(pathname, item.href))) return group.label;
+  }
+  return null;
 }
 
 /**
@@ -53,6 +69,37 @@ export function Sidebar({
   onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
+
+  // THÖREN | SIDEBAR DESPLEGABLE — un Set de labels de grupo ABIERTOS,
+  // nunca de rutas/permisos: puramente visual, independiente del filtrado
+  // de `items` de abajo (que sigue intacto). Inicializa con el
+  // departamento de la página con la que se carga la sesión (lazy
+  // initializer, usePathname() ya resuelto en el primer render) — y el
+  // efecto de abajo agrega (nunca quita) el departamento activo en cada
+  // navegación subsecuente dentro de la SPA, sin recargar la página. Cada
+  // grupo se abre/cierra de forma independiente (requisito 2): el usuario
+  // puede tener varios abiertos a la vez, o cerrar el que está activo —
+  // el efecto solo garantiza que, AL ENTRAR a una página, su departamento
+  // aparezca abierto (requisito 3), nunca fuerza a cerrar los demás.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const activeLabel = findActiveGroupLabel(pathname);
+    return new Set(activeLabel ? [activeLabel] : []);
+  });
+
+  useEffect(() => {
+    const activeLabel = findActiveGroupLabel(pathname);
+    if (!activeLabel) return;
+    setOpenGroups((prev) => (prev.has(activeLabel) ? prev : new Set(prev).add(activeLabel)));
+  }, [pathname]);
+
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
 
   return (
     <>
@@ -121,14 +168,36 @@ export function Sidebar({
               });
               if (items.length === 0) return null;
 
+              // THÖREN | SIDEBAR DESPLEGABLE — solo los 5 departamentos
+              // (`group.label` no-null) son colapsables; Inicio/
+              // Configuración (`label: null`) siguen siempre visibles,
+              // sin encabezado ni chevron, exactamente como antes. En
+              // modo colapsado (riel de iconos, desktop) el acordeón se
+              // omite por completo — mismo criterio que ya usaba la
+              // etiqueta de grupo (`!collapsed`): no hay espacio para
+              // texto/chevron, así que los items se muestran siempre,
+              // igual que ya funcionaba.
+              const isCollapsibleGroup = Boolean(group.label) && !collapsed;
+              const isOpen = !isCollapsibleGroup || openGroups.has(group.label!);
+
               return (
                 <div key={group.label ?? `group-${groupIndex}`} className="space-y-0.5">
-                  {group.label && !collapsed && (
-                    <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-sidebar-ink-soft/70">
-                      {group.label}
-                    </p>
-                  )}
-                  {items.map((item) => {
+                  {isCollapsibleGroup ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.label!)}
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center justify-between rounded-md px-3 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-sidebar-ink-soft/70 transition-colors hover:text-sidebar-ink-soft"
+                    >
+                      <span>{group.label}</span>
+                      {isOpen ? (
+                        <ChevronDown className="h-3 w-3 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 shrink-0" />
+                      )}
+                    </button>
+                  ) : null}
+                  {isOpen && items.map((item) => {
                     const active = isActive(pathname, item.href);
                     const link = (
                       <Link

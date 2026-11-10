@@ -4,6 +4,7 @@ import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { getCurrentOrganizationName, getDisabledModules } from "@/lib/auth/organization";
 import { canManageUsers as canManageUsersGuard } from "@/lib/auth/user-management";
 import { canManageCommissions as canManageCommissionsGuard, canViewOwnCommissions as canViewOwnCommissionsGuard } from "@/lib/auth/logistics";
+import { resolveAssignedDepartments } from "@/lib/auth/departments";
 import { AppShell } from "@/components/layout/app-shell";
 
 /**
@@ -38,6 +39,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // las entradas correspondientes del sidebar (la protección real por URL
   // vive en middleware.ts, no aquí — ver DECISIÓN en sidebar.tsx).
   const disabledModules = await getDisabledModules();
+  // THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — mismo criterio que
+  // disabledModules arriba: se resuelve en el servidor y se pasa como
+  // array plano (no Set) porque un Set no cruza limpio la frontera
+  // server/client component. La protección real por URL vive en
+  // middleware.ts (resuelve sus propios departamentos de forma
+  // independiente, idéntico criterio vía isModuleAllowedForDepartments) —
+  // esto es solo para que el sidebar oculte lo mismo que el servidor ya
+  // bloquea, nunca al revés.
+  const departments = resolveAssignedDepartments(capabilities);
 
   return (
     <AppShell
@@ -46,6 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       canManageCommissions={canManageCommissionsGuard(profile, capabilities)}
       canViewOwnCommissions={canViewOwnCommissionsGuard(profile, capabilities)}
       disabledModules={disabledModules}
+      departments={departments}
       name={profile.name}
       email={profile.email}
       organizationName={organizationName}

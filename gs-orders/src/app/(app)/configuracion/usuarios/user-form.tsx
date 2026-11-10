@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils/cn";
 import { USER_ROLE_LABELS, type UserAccessRow, type UserRole } from "@/types/domain";
+import { DEPARTMENT_KEYS, DEPARTMENT_LABELS, type DepartmentKey } from "@/lib/auth/departments";
 import type { UserAccessFormState } from "./actions";
-import { resetUserPassword, createUserAccessLink, generatePasswordResetLink } from "./actions";
+import { resetUserPassword, createUserAccessLink, generatePasswordResetLink, updateUserDepartments } from "./actions";
 
 interface SalespersonOption {
   id: string;
@@ -76,12 +77,75 @@ function GeneratedLinkBox({
   );
 }
 
+/**
+ * THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — fieldset independiente
+ * del formulario principal (su propio "Guardar departamentos", nunca el
+ * submit de arriba): otorgar/revocar capacidades es autoridad EXCLUSIVA de
+ * isFullAdmin (ver DECISIÓN en actions.ts), distinta de canChooseRole
+ * (admin O can_manage_users) — mantenerlo separado evita que ambas
+ * autorizaciones se confundan. Solo se renderiza cuando el caller ya
+ * decidió `canManageDepartments` (admin pleno Y no es la propia cuenta del
+ * que edita — ver editar/page.tsx).
+ */
+function DepartmentAssignmentFieldset({ userId, assignedDepartments }: { userId: string; assignedDepartments: DepartmentKey[] }) {
+  const [selected, setSelected] = useState<Set<DepartmentKey>>(() => new Set(assignedDepartments));
+  const [isPending, startSave] = useTransition();
+
+  function toggle(department: DepartmentKey) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(department)) next.delete(department);
+      else next.add(department);
+      return next;
+    });
+  }
+
+  function handleSave() {
+    startSave(async () => {
+      const result = await updateUserDepartments(userId, Array.from(selected));
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Departamentos actualizados");
+    });
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <Label>Departamentos</Label>
+      <p className="text-xs text-ink-faint">
+        Controla qué departamentos puede ver y navegar este usuario. Sin ninguno seleccionado, conserva su acceso
+        actual sin cambios (no se le restringe nada todavía).
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {DEPARTMENT_KEYS.map((department) => (
+          <label key={department} className="flex items-center gap-2 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={selected.has(department)}
+              onChange={() => toggle(department)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+            />
+            {DEPARTMENT_LABELS[department]}
+          </label>
+        ))}
+      </div>
+      <Button type="button" variant="outline" loading={isPending} disabled={isPending} onClick={handleSave}>
+        Guardar departamentos
+      </Button>
+    </div>
+  );
+}
+
 export function UserAccessForm({
   action,
   user,
   availableSalespeople,
   submitLabel,
   canChooseRole = true,
+  canManageDepartments = false,
+  assignedDepartments = [],
 }: {
   action: (state: UserAccessFormState, formData: FormData) => Promise<UserAccessFormState>;
   user?: UserAccessRow;
@@ -96,6 +160,9 @@ export function UserAccessForm({
    * única barrera.
    */
   canChooseRole?: boolean;
+  /** THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — true solo para isFullAdmin editando una cuenta que no es la suya. */
+  canManageDepartments?: boolean;
+  assignedDepartments?: DepartmentKey[];
 }) {
   const [state, formAction] = useFormState(action, undefined);
   const [role, setRole] = useState<UserRole>(canChooseRole ? user?.role ?? "vendedor" : "vendedor");
@@ -224,6 +291,10 @@ export function UserAccessForm({
             Solo se listan vendedores sin otro usuario ya asociado{isEdit ? " (además del actual, si aplica)" : ""}.
           </p>
         </div>
+      )}
+
+      {isEdit && canManageDepartments && (
+        <DepartmentAssignmentFieldset userId={user.user_id} assignedDepartments={assignedDepartments} />
       )}
 
       <label className="flex items-center gap-2 text-sm text-ink-soft">

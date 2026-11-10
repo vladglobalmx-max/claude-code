@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { MODULE_KEY_BY_PATH_PREFIX } from "@/lib/organization-modules";
+import { DEPARTMENT_CAPABILITY, DEPARTMENT_KEYS, isModuleAllowedForDepartments, resolveAssignedDepartments } from "@/lib/auth/departments";
 
 const PUBLIC_PATHS = ["/login", "/set-password"];
 // Rutas cuya sección completa requiere rol ADMIN. Esto es defensa en
@@ -162,6 +163,38 @@ export async function middleware(request: NextRequest) {
 
       if (moduleRow) {
         return NextResponse.redirect(new URL("/inicio", request.url));
+      }
+
+      // THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — capa ADITIVA sobre
+      // el chequeo de módulo-deshabilitado de arriba, nunca un sustituto:
+      // esto solo puede RESTRINGIR más, nunca ampliar lo que ya permiten
+      // RLS/el bloqueo de arriba. admin siempre pasa
+      // (isModuleAllowedForDepartments bypassa por rol, ver
+      // src/lib/auth/departments.ts) — se evita la consulta para admin,
+      // mismo criterio de "no tocar lo que ya funciona" que el resto de
+      // este middleware. "Transición segura": si el usuario no tiene
+      // ninguna de las 5 capabilities de departamento otorgada todavía,
+      // isModuleAllowedForDepartments deja pasar sin cambios (el filtro
+      // solo se activa una vez que Dirección asigna al menos un
+      // departamento). Comisiones (moduleKey "comisiones") nunca entra
+      // aquí: DEPARTMENT_BY_MODULE_KEY no lo mapea a ningún departamento,
+      // así que isModuleAllowedForDepartments siempre permite — su propio
+      // gate (arriba, independiente) sigue siendo la única autoridad.
+      if (profile.role !== "admin") {
+        const { data: departmentCapabilities } = await supabase
+          .from("user_capabilities")
+          .select("capability")
+          .eq("user_id", user.id)
+          .in("capability", DEPARTMENT_KEYS.map((department) => DEPARTMENT_CAPABILITY[department]))
+          .eq("active", true);
+
+        const assignedDepartments = resolveAssignedDepartments(
+          (departmentCapabilities ?? []).map((row) => row.capability)
+        );
+
+        if (!isModuleAllowedForDepartments(moduleKey, profile.role, assignedDepartments)) {
+          return NextResponse.redirect(new URL("/inicio", request.url));
+        }
       }
     }
   }

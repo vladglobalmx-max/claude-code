@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import type { UserRole } from "@/types/domain";
 import type { ToggleableModuleKey } from "@/lib/organization-modules";
+import type { DepartmentKey } from "@/lib/auth/departments";
 
 const COLLAPSED_STORAGE_KEY = "thoren.sidebar.collapsed";
 
@@ -21,6 +22,7 @@ export function AppShell({
   canManageCommissions,
   canViewOwnCommissions,
   disabledModules,
+  departments,
   name,
   email,
   organizationName,
@@ -33,6 +35,8 @@ export function AppShell({
   canViewOwnCommissions: boolean;
   /** THÖREN 0084 — module_key deshabilitados para la organización activa. */
   disabledModules: ToggleableModuleKey[];
+  /** THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — departamentos asignados al usuario actual. */
+  departments: DepartmentKey[];
   name: string;
   email: string | null;
   organizationName: string;
@@ -62,6 +66,7 @@ export function AppShell({
         canManageCommissions={canManageCommissions}
         canViewOwnCommissions={canViewOwnCommissions}
         disabledModules={disabledModules}
+        departments={departments}
         organizationName={organizationName}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}

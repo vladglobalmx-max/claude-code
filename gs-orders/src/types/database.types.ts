@@ -4404,6 +4404,19 @@ export interface Database {
           pending_to_deliver: number;
         }[];
       };
+      // THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS (0093) — SECURITY
+      // DEFINER, exige is_organization_admin() sobre la organización del
+      // usuario destino y bloquea auto-asignación. p_departments es un
+      // array de capability keys (can_access_ventas/administracion/
+      // compras/almacen/logistica) — reemplaza por completo la asignación
+      // previa (ausentes se revocan, presentes se otorgan/conservan).
+      rpc_set_user_departments: {
+        Args: {
+          p_user_id: string;
+          p_departments: string[];
+        };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
   };

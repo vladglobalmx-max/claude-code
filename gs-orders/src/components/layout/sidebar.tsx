@@ -9,6 +9,7 @@ import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { UserRole } from "@/types/domain";
 import type { ToggleableModuleKey } from "@/lib/organization-modules";
+import { isModuleAllowedForDepartments, type DepartmentKey } from "@/lib/auth/departments";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -41,6 +42,16 @@ function findActiveGroupLabel(pathname: string): string | null {
  * (MODULE_KEY_BY_PATH_PREFIX + organization_modules). Un admin cuya propia
  * organización deshabilitó un módulo tampoco lo ve — el filtro de módulo
  * corre ANTES que el de rol/capability, sin excepción de rol.
+ *
+ * THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — mismo criterio exacto que
+ * `disabledModules`: ocultar el link aquí es solo UX, la protección real
+ * por URL vive en middleware.ts (misma función compartida
+ * `isModuleAllowedForDepartments`, ver src/lib/auth/departments.ts, para
+ * que sidebar y servidor nunca puedan desacordar). admin siempre pasa
+ * (Dirección General conserva acceso completo). Un `departments` vacío
+ * ("transición segura": el usuario todavía no tiene ninguna asignación)
+ * no oculta nada — el filtro solo se activa una vez que Dirección asigna
+ * al menos un departamento a ese usuario.
  */
 export function Sidebar({
   role,
@@ -48,6 +59,7 @@ export function Sidebar({
   canManageCommissions,
   canViewOwnCommissions,
   disabledModules,
+  departments,
   organizationName,
   collapsed,
   onToggleCollapsed,
@@ -61,6 +73,8 @@ export function Sidebar({
   canViewOwnCommissions: boolean;
   /** THÖREN 0084 — module_key deshabilitados para la organización activa (organization_modules, default-on: ausente = habilitado). Array (no Set) para cruzar limpio la frontera server/client component. Ver DECISIÓN en nav-config.ts. */
   disabledModules: ToggleableModuleKey[];
+  /** THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — departamentos asignados al usuario actual (array, mismo criterio que disabledModules). Vacío = sin restricción todavía ("transición segura", ver departments.ts). */
+  departments: DepartmentKey[];
   /** THÖREN 7B — nombre real de la organización activa (ver src/lib/auth/organization.ts), nunca hardcodeado. */
   organizationName: string;
   collapsed: boolean;
@@ -164,6 +178,7 @@ export function Sidebar({
               const items = group.items.filter((item) => {
                 if (item.moduleKey && disabledModules.includes(item.moduleKey)) return false;
                 if (item.commissionsOnly) return canManageCommissions || canViewOwnCommissions;
+                if (!isModuleAllowedForDepartments(item.moduleKey, role, departments)) return false;
                 return !item.adminOnly || role === "admin" || (item.visibleForUserManager && canManageUsers);
               });
               if (items.length === 0) return null;

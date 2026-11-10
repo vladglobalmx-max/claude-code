@@ -24,6 +24,7 @@ const baseProps = {
   canManageCommissions: true,
   canViewOwnCommissions: false,
   disabledModules: [],
+  departments: [],
   organizationName: "THÖREN Test",
   collapsed: false,
   onToggleCollapsed: vi.fn(),
@@ -89,5 +90,68 @@ describe("Sidebar — menú desplegable por departamento", () => {
     render(<Sidebar {...baseProps} collapsed />);
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(19);
+  });
+});
+
+describe("Sidebar — control de acceso por departamentos (filtro ADITIVO sobre el de siempre)", () => {
+  const vendedorBaseProps = {
+    ...baseProps,
+    role: "vendedor" as const,
+    canManageUsers: false,
+    canManageCommissions: false,
+    canViewOwnCommissions: false,
+  };
+
+  it("transición segura — sin ninguna asignación todavía, un vendedor conserva exactamente su acceso actual", () => {
+    mockPathname = "/inicio";
+    render(<Sidebar {...vendedorBaseProps} departments={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Ventas/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Compras/ }));
+
+    expect(screen.getByRole("link", { name: /^Clientes$/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^Compras$/ })).toBeTruthy();
+  });
+
+  it("vendedor con Ventas asignado ve únicamente el departamento de Ventas — Compras no aparece ni siquiera su encabezado", () => {
+    mockPathname = "/inicio";
+    render(<Sidebar {...vendedorBaseProps} departments={["ventas"]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Ventas$/ }));
+    expect(screen.getByRole("link", { name: /^Clientes$/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^Cotizaciones$/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Compras$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Almacén$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Logística$/ })).toBeNull();
+  });
+
+  it("vendedor con Compras+Almacén asignados ve ambos departamentos, nada de Ventas", () => {
+    mockPathname = "/inicio";
+    render(<Sidebar {...vendedorBaseProps} departments={["compras", "almacen"]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Compras$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Almacén$/ }));
+
+    expect(screen.getByRole("link", { name: /^Proveedores$/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^Inventario$/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Ventas$/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Clientes$/ })).toBeNull();
+  });
+
+  it("admin conserva acceso completo sin importar los departamentos asignados", () => {
+    mockPathname = "/inicio";
+    render(<Sidebar {...baseProps} departments={["ventas"]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Compras$/ }));
+    expect(screen.getByRole("link", { name: /^Proveedores$/ })).toBeTruthy();
+  });
+
+  it("Inicio/Configuración (sin moduleKey) y Unidades de Negocio nunca se restringen por departamento", () => {
+    mockPathname = "/inicio";
+    render(<Sidebar {...vendedorBaseProps} departments={["ventas"]} />);
+
+    expect(screen.getByRole("link", { name: /^Inicio$/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Administración$/ }));
+    expect(screen.getByRole("link", { name: /^Unidades de Negocio$/ })).toBeTruthy();
   });
 });

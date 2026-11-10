@@ -9,6 +9,7 @@ import { UserAccessForm } from "../../user-form";
 import { updateUserAccess } from "../../actions";
 import { ADMIN_PROTECTED_ERROR } from "../../constants";
 import type { UserAccessRow } from "@/types/domain";
+import { DEPARTMENT_CAPABILITY, resolveAssignedDepartments } from "@/lib/auth/departments";
 
 interface OneOrMany<T> {
   [index: number]: T;
@@ -31,6 +32,24 @@ export default async function EditarUsuarioPage({ params }: { params: { id: stri
   const users = (usersData ?? []) as UserAccessRow[];
   const user = users.find((u) => u.user_id === params.id);
   if (!user) notFound();
+
+  // THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — isFullAdmin pleno Y no
+  // es la propia cuenta del que edita (auto-asignación bloqueada, ver
+  // DECISIÓN en actions.ts/0093). Gateado también aquí (no solo en la UI)
+  // para no disparar una consulta que la RLS de user_capabilities
+  // (0040, select_own_or_admin) de todas formas respondería vacía para un
+  // no-admin consultando a otro usuario.
+  const canManageDepartments = admin && profile?.userId !== user.user_id;
+  let assignedDepartments: ReturnType<typeof resolveAssignedDepartments> = [];
+  if (canManageDepartments) {
+    const { data: departmentCapabilities } = await supabase
+      .from("user_capabilities")
+      .select("capability")
+      .eq("user_id", user.user_id)
+      .in("capability", Object.values(DEPARTMENT_CAPABILITY))
+      .eq("active", true);
+    assignedDepartments = resolveAssignedDepartments((departmentCapabilities ?? []).map((row) => row.capability));
+  }
 
   // THÖREN 6R.1B-4B — guard server-side obligatorio (sección 6 de la
   // autorización): un titular de can_manage_users que abre directamente la
@@ -75,6 +94,8 @@ export default async function EditarUsuarioPage({ params }: { params: { id: stri
             availableSalespeople={availableSalespeople}
             submitLabel="Guardar cambios"
             canChooseRole={canChooseRole}
+            canManageDepartments={canManageDepartments}
+            assignedDepartments={assignedDepartments}
           />
         </CardContent>
       </Card>

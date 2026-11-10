@@ -11,6 +11,7 @@ import { mapDbError } from "@/lib/db-errors";
 import { mapAuthError } from "@/lib/auth-errors";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { isFullAdmin, canManageUsers } from "@/lib/auth/user-management";
+import { isValidDepartmentKey, type DepartmentKey } from "@/lib/auth/departments";
 import {
   preflightSalespersonTaken,
   insertProfileAndMembershipOrCompensate,
@@ -332,4 +333,44 @@ export async function generatePasswordResetLink(email: string): Promise<Generate
     actionLink: buildSetPasswordLink(getSiteUrl(), linkData.properties.hashed_token, "recovery"),
     email,
   };
+}
+
+/**
+ * THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — a diferencia de
+ * `updateUserAccess` (admin O can_manage_users), esta acción exige
+ * `isFullAdmin` ESTRICTO: otorgar/revocar capacidades (incluidas las de
+ * departamento) es autoridad EXCLUSIVA del Super Admin desde 0040, nunca
+ * de can_manage_users — ver DECISIÓN en 0040 y en 0093. El bloqueo de
+ * auto-asignación y la validación de claves son defensa en profundidad:
+ * rpc_set_user_departments (0093) y la RLS de user_capabilities ya los
+ * exigen de todas formas, pero un mensaje claro aquí evita depender del
+ * error crudo de Postgres.
+ */
+export async function updateUserDepartments(
+  userId: string,
+  departments: string[]
+): Promise<{ error: string } | { ok: true }> {
+  const profile = await getCurrentProfile();
+  if (!isFullAdmin(profile) || !profile) {
+    return { error: "Solo un administrador puede asignar departamentos." };
+  }
+  if (userId === profile.userId) {
+    return { error: "No puedes asignarte departamentos a ti mismo." };
+  }
+  if (!departments.every((department): department is DepartmentKey => isValidDepartmentKey(department))) {
+    return { error: "Departamento inválido." };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("rpc_set_user_departments", {
+    p_user_id: userId,
+    p_departments: departments,
+  });
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar los departamentos.") };
+  }
+
+  revalidatePath(`/configuracion/usuarios/${userId}/editar`);
+  revalidatePath("/configuracion/usuarios");
+  return { ok: true };
 }

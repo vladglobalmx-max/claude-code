@@ -181,18 +181,36 @@ describe("[15]-[16] salesperson link disponible; roles NUNCA editables por user 
   });
 });
 
-describe("[17] capabilities fuera de alcance — ninguna UI las administra", () => {
-  it("actions.ts SOLO lee capabilities para el guard de autorización (getCurrentCapabilities), nunca escribe user_capabilities", () => {
+describe("[17] capabilities siguen fuera de alcance para can_manage_users — THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS (0093) solo las administra vía isFullAdmin", () => {
+  it("actions.ts SOLO lee capabilities para el guard de can_manage_users (getCurrentCapabilities), y nunca escribe user_capabilities directamente — toda escritura de departamento pasa por rpc_set_user_departments", () => {
     expect(actionsSource).toContain("getCurrentCapabilities");
-    expect(actionsSource).not.toMatch(/user_capabilities/);
     expect(actionsSource).not.toMatch(/\.(insert|update|upsert|delete)\([^)]*capabilit/i);
+    expect(actionsSource).not.toMatch(/\.from\(["']user_capabilities["']\)/);
+    expect(actionsSource).toContain('rpc("rpc_set_user_departments"');
   });
 
-  it("user-form.tsx y las páginas de usuarios no ofrecen ningún control para asignar/revocar/ver capabilities", () => {
-    const surfaces = [userFormSource, editarPageSource, nuevoPageSource, usuariosPageSource];
-    for (const source of surfaces) {
+  it("updateUserDepartments exige isFullAdmin estricto — un titular de can_manage_users (no admin) nunca puede asignar departamentos", () => {
+    const fn = actionsSource.slice(actionsSource.indexOf("export async function updateUserDepartments"));
+    expect(fn).toContain("isFullAdmin(profile)");
+    expect(fn).not.toContain("canManageUsers(profile");
+    expect(fn).not.toContain("requireAdminOrUserManager");
+  });
+
+  it("user-form.tsx y nuevo/page.tsx (compartidos con can_manage_users) no ofrecen ningún control de capabilities fuera del fieldset de departamentos, gateado por canManageDepartments", () => {
+    for (const source of [nuevoPageSource]) {
       expect(source.toLowerCase()).not.toMatch(/capabilit(y|ies)/);
     }
+    // userFormSource SÍ referencia departamentos (DepartmentAssignmentFieldset),
+    // pero nunca el término genérico "capabilit(y|ies)" — el control habla de
+    // "departamentos", nunca expone el nombre crudo de la capability en la UI.
+    expect(userFormSource.toLowerCase()).not.toMatch(/capabilit(y|ies)/);
+    expect(userFormSource).toContain("canManageDepartments");
+    expect(userFormSource).toMatch(/isEdit\s*&&\s*canManageDepartments/);
+  });
+
+  it("editar/page.tsx y usuarios/page.tsx SOLO resuelven departamentos cuando el actor es isFullAdmin pleno — nunca para can_manage_users", () => {
+    expect(editarPageSource).toMatch(/canManageDepartments\s*=\s*admin\s*&&/);
+    expect(usuariosPageSource).toMatch(/if\s*\(admin\)\s*\{/);
   });
 });
 

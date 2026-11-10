@@ -12,6 +12,7 @@ import { ActiveBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { USER_ROLE_LABELS, type UserAccessRow } from "@/types/domain";
 import { ADMIN_PROTECTED_ERROR } from "./constants";
+import { DEPARTMENT_CAPABILITY, DEPARTMENT_LABELS, resolveAssignedDepartments, type DepartmentKey } from "@/lib/auth/departments";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,27 @@ export default async function UsuariosPage({ searchParams }: { searchParams?: { 
   for (const row of (linksData ?? []) as { user_id: string; people: PersonLink | OneOrMany<PersonLink> | null }[]) {
     const person = one(row.people);
     if (person) personByUserId.set(row.user_id, person);
+  }
+
+  // THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — badges informativos,
+  // solo para admin (can_manage_users no gestiona departamentos — ver
+  // DECISIÓN en actions.ts). Una sola consulta batched (no una por fila) —
+  // la RLS de user_capabilities (0040) ya la limita a la organización del
+  // admin que consulta.
+  const departmentsByUserId = new Map<string, DepartmentKey[]>();
+  if (admin) {
+    const { data: departmentCapabilities } = await supabase
+      .from("user_capabilities")
+      .select("user_id, capability")
+      .in("capability", Object.values(DEPARTMENT_CAPABILITY))
+      .eq("active", true);
+    const capabilitiesByUserId = new Map<string, string[]>();
+    for (const row of departmentCapabilities ?? []) {
+      capabilitiesByUserId.set(row.user_id, [...(capabilitiesByUserId.get(row.user_id) ?? []), row.capability]);
+    }
+    for (const [userId, caps] of capabilitiesByUserId) {
+      departmentsByUserId.set(userId, resolveAssignedDepartments(caps));
+    }
   }
 
   return (
@@ -121,6 +143,11 @@ export default async function UsuariosPage({ searchParams }: { searchParams?: { 
                     <Badge variant="neutral">
                       {u.salesperson_name ? `Vendedor (${u.salesperson_prefix})` : "Sin perfil comercial"}
                     </Badge>
+                    {(departmentsByUserId.get(u.user_id) ?? []).map((department) => (
+                      <Badge key={department} variant="neutral">
+                        {DEPARTMENT_LABELS[department]}
+                      </Badge>
+                    ))}
                   </div>
                   <p className="mt-2 text-xs text-ink-faint">
                     Persona:{" "}
@@ -145,6 +172,7 @@ export default async function UsuariosPage({ searchParams }: { searchParams?: { 
                   <Th>Persona</Th>
                   <Th>Vendedor</Th>
                   <Th>Rol</Th>
+                  <Th>Departamentos</Th>
                   <Th>Estado</Th>
                   <Th />
                 </Tr>
@@ -172,6 +200,16 @@ export default async function UsuariosPage({ searchParams }: { searchParams?: { 
                       </Td>
                       <Td>
                         <Badge variant={u.role === "admin" ? "accent" : "neutral"}>{USER_ROLE_LABELS[u.role]}</Badge>
+                      </Td>
+                      <Td className="text-ink-soft">
+                        <div className="flex flex-wrap gap-1">
+                          {(departmentsByUserId.get(u.user_id) ?? []).map((department) => (
+                            <Badge key={department} variant="neutral">
+                              {DEPARTMENT_LABELS[department]}
+                            </Badge>
+                          ))}
+                          {(departmentsByUserId.get(u.user_id) ?? []).length === 0 && "—"}
+                        </div>
                       </Td>
                       <Td>
                         <ActiveBadge active={u.active} />

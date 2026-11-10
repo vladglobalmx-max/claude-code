@@ -16,6 +16,7 @@ import { QuoteForm, type EligibleQuotePair } from "@/components/quotes/quote-for
 import { emptyQuoteForm, type QuoteCatalogProductOption } from "@/components/quotes/types";
 import { createQuote } from "../actions";
 import type { Customer, ProductCatalogItem } from "@/types/domain";
+import { isBusinessUnitAllowedForPerson } from "@/lib/quotes/business-unit-assignment";
 
 export const dynamic = "force-dynamic";
 
@@ -35,19 +36,24 @@ function one<T>(value: T | OneOrMany<T> | null | undefined): T | null {
 interface SequenceJoinRow {
   salesperson_id: string;
   business_unit_id: string;
-  salespeople: { name: string } | OneOrMany<{ name: string }> | null;
+  salespeople: { name: string; person_id: string | null } | OneOrMany<{ name: string; person_id: string | null }> | null;
   business_units: { name: string } | OneOrMany<{ name: string }> | null;
 }
 
 /**
  * ¿Qué Business Units puede elegir un vendedor al crear una Quote? La
- * fuente real es salesperson_quote_sequences (activas), NO
- * person_business_units directamente — ver Discovery de Q4:
- * person_business_units solo gatea si un ADMIN puede *configurar* una
- * secuencia (fallback legacy de 0020); salesperson_quote_sequences
- * (filtrada a active=true) es lo que determina qué puede elegir el
- * vendedor al cotizar. Si un VENDEDOR tiene 0 filas activas, no puede crear
- * ninguna Quote — se bloquea con un estado explícito, no un formulario roto.
+ * fuente BASE es salesperson_quote_sequences (activas) — ver Discovery de
+ * Q4: sin una fila activa ahí, ni configurar el folio es posible, sin
+ * importar person_business_units. SOBRE esa base, THÖREN | ASIGNACIÓN DE
+ * BUSINESS UNITS A USUARIOS (0094) agrega un segundo filtro, ADITIVO:
+ * si la Person del salesperson tiene 1+ Business Units ACTIVAS asignadas
+ * en person_business_units, solo esas quedan elegibles aquí — mismo
+ * criterio fallback-safe que el chequeo real en rpc_create_quote (0094):
+ * sin ninguna asignación, no se restringe nada. Esto es solo UX — la
+ * autoridad real vive en el RPC (requisito 10 del ticket: "aplicar la
+ * restricción también en el servidor, no únicamente en el selector
+ * visual"), así que aunque este filtro tuviera un hueco, el RPC rechazaría
+ * igual cualquier combinación no asignada.
  */
 export default async function NuevaCotizacionPage() {
   const profile = await getCurrentProfile();
@@ -57,7 +63,7 @@ export default async function NuevaCotizacionPage() {
   const [{ data: sequencesData }, { data: customersData }, catalogResult, catalogBuResult] = await Promise.all([
     supabase
       .from("salesperson_quote_sequences")
-      .select("salesperson_id, business_unit_id, salespeople(name), business_units(name)")
+      .select("salesperson_id, business_unit_id, salespeople(name, person_id), business_units(name)")
       .eq("active", true),
     supabase.from("customers").select("*").order("name"),
     // DECISIÓN — fix "FIX SISTÉMICO DE PAGINACIÓN DE PRODUCT CATALOG":
@@ -108,14 +114,61 @@ export default async function NuevaCotizacionPage() {
     );
   }
 
-  const allPairs: EligibleQuotePair[] = ((sequencesData ?? []) as unknown as SequenceJoinRow[]).map((row) => ({
+  const allPairsWithPersonId = ((sequencesData ?? []) as unknown as SequenceJoinRow[]).map((row) => ({
     salespersonId: row.salesperson_id,
     salespersonName: one(row.salespeople)?.name ?? "—",
     businessUnitId: row.business_unit_id,
     businessUnitName: one(row.business_units)?.name ?? "—",
+    personId: one(row.salespeople)?.person_id ?? null,
   }));
 
-  const eligiblePairs = isAdmin ? allPairs : allPairs.filter((pair) => pair.salespersonId === profile?.salespersonId);
+  const preEligiblePairs = isAdmin
+    ? allPairsWithPersonId
+    : allPairsWithPersonId.filter((pair) => pair.salespersonId === profile?.salespersonId);
+
+  // THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS — ver comentario de
+  // SequenceJoinRow arriba. ADMIN lee person_business_units directo (su
+  // propia RLS ya lo permite, 0017); un VENDEDOR no puede leerla
+  // directamente (RLS admin-only), así que usa rpc_list_own_business_units
+  // (SECURITY DEFINER, "vista propia", 0094) — nunca acepta un person_id
+  // ajeno, solo puede traer la asignación del propio usuario.
+  const personIds = [...new Set(preEligiblePairs.map((pair) => pair.personId).filter((id): id is string => !!id))];
+  const assignedBusinessUnitIdsByPersonId = new Map<string, string[]>();
+  if (isAdmin) {
+    if (personIds.length > 0) {
+      const { data: assignments } = await supabase
+        .from("person_business_units")
+        .select("person_id, business_unit_id")
+        .in("person_id", personIds)
+        .eq("active", true);
+      for (const row of assignments ?? []) {
+        assignedBusinessUnitIdsByPersonId.set(row.person_id, [
+          ...(assignedBusinessUnitIdsByPersonId.get(row.person_id) ?? []),
+          row.business_unit_id,
+        ]);
+      }
+    }
+  } else if (personIds[0]) {
+    const { data: ownAssignments } = await supabase.rpc("rpc_list_own_business_units");
+    assignedBusinessUnitIdsByPersonId.set(
+      personIds[0],
+      (ownAssignments ?? []).map((row) => row.business_unit_id)
+    );
+  }
+
+  const eligiblePairs: EligibleQuotePair[] = preEligiblePairs
+    .filter((pair) =>
+      isBusinessUnitAllowedForPerson(
+        pair.businessUnitId,
+        pair.personId ? assignedBusinessUnitIdsByPersonId.get(pair.personId) ?? [] : []
+      )
+    )
+    .map(({ salespersonId, salespersonName, businessUnitId, businessUnitName }) => ({
+      salespersonId,
+      salespersonName,
+      businessUnitId,
+      businessUnitName,
+    }));
 
   if (eligiblePairs.length === 0) {
     return (

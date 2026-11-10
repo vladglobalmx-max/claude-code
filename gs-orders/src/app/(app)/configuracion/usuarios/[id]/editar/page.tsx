@@ -11,6 +11,11 @@ import { ADMIN_PROTECTED_ERROR } from "../../constants";
 import type { UserAccessRow } from "@/types/domain";
 import { DEPARTMENT_CAPABILITY, resolveAssignedDepartments } from "@/lib/auth/departments";
 
+interface BusinessUnitOption {
+  id: string;
+  name: string;
+}
+
 interface OneOrMany<T> {
   [index: number]: T;
 }
@@ -71,6 +76,24 @@ export default async function EditarUsuarioPage({ params }: { params: { id: stri
   );
   const person = one((personLink as { people: { id: string; name: string } | { id: string; name: string }[] | null } | null)?.people);
 
+  // THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS — mismo criterio
+  // EXACTO que canManageDepartments arriba: isFullAdmin pleno Y no es la
+  // propia cuenta del que edita (ver DECISIÓN en actions.ts/0094). Sin
+  // `person` (usuario sin Persona vinculada, caso marginal — ver
+  // diagnóstico) no hay a qué asignar Business Units: el fieldset queda
+  // oculto en vez de romper la pantalla.
+  const canManageBusinessUnits = admin && profile?.userId !== user.user_id && !!person;
+  let assignedBusinessUnitIds: string[] = [];
+  let availableBusinessUnits: BusinessUnitOption[] = [];
+  if (canManageBusinessUnits && person) {
+    const [{ data: businessUnitAssignments }, { data: businessUnitsData }] = await Promise.all([
+      supabase.from("person_business_units").select("business_unit_id").eq("person_id", person.id).eq("active", true),
+      supabase.from("business_units").select("id, name").eq("active", true).order("name"),
+    ]);
+    assignedBusinessUnitIds = (businessUnitAssignments ?? []).map((row) => row.business_unit_id);
+    availableBusinessUnits = (businessUnitsData ?? []) as BusinessUnitOption[];
+  }
+
   const action = updateUserAccess.bind(null, user.user_id);
 
   return (
@@ -96,6 +119,9 @@ export default async function EditarUsuarioPage({ params }: { params: { id: stri
             canChooseRole={canChooseRole}
             canManageDepartments={canManageDepartments}
             assignedDepartments={assignedDepartments}
+            canManageBusinessUnits={canManageBusinessUnits}
+            assignedBusinessUnitIds={assignedBusinessUnitIds}
+            availableBusinessUnits={availableBusinessUnits}
           />
         </CardContent>
       </Card>

@@ -12,12 +12,23 @@ import { cn } from "@/lib/utils/cn";
 import { USER_ROLE_LABELS, type UserAccessRow, type UserRole } from "@/types/domain";
 import { DEPARTMENT_KEYS, DEPARTMENT_LABELS, type DepartmentKey } from "@/lib/auth/departments";
 import type { UserAccessFormState } from "./actions";
-import { resetUserPassword, createUserAccessLink, generatePasswordResetLink, updateUserDepartments } from "./actions";
+import {
+  resetUserPassword,
+  createUserAccessLink,
+  generatePasswordResetLink,
+  updateUserDepartments,
+  updateUserBusinessUnits,
+} from "./actions";
 
 interface SalespersonOption {
   id: string;
   name: string;
   prefix: string;
+}
+
+interface BusinessUnitOption {
+  id: string;
+  name: string;
 }
 
 function SubmitButton({ label }: { label: string }) {
@@ -138,6 +149,78 @@ function DepartmentAssignmentFieldset({ userId, assignedDepartments }: { userId:
   );
 }
 
+/**
+ * THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS — mismo patrón EXACTO
+ * que DepartmentAssignmentFieldset arriba: fieldset independiente, su
+ * propio "Guardar Business Units", autorización EXCLUSIVA de isFullAdmin
+ * (ver DECISIÓN en actions.ts/0094), nunca can_manage_users. A diferencia
+ * de Departamentos (catálogo fijo de 5), las Business Units son
+ * dinámicas por organización — `availableBusinessUnits` las trae ya
+ * resueltas desde el servidor (editar/page.tsx).
+ */
+function BusinessUnitAssignmentFieldset({
+  userId,
+  assignedBusinessUnitIds,
+  availableBusinessUnits,
+}: {
+  userId: string;
+  assignedBusinessUnitIds: string[];
+  availableBusinessUnits: BusinessUnitOption[];
+}) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(assignedBusinessUnitIds));
+  const [isPending, startSave] = useTransition();
+
+  function toggle(businessUnitId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(businessUnitId)) next.delete(businessUnitId);
+      else next.add(businessUnitId);
+      return next;
+    });
+  }
+
+  function handleSave() {
+    startSave(async () => {
+      const result = await updateUserBusinessUnits(userId, Array.from(selected));
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Business Units actualizadas");
+    });
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <Label>Business Units</Label>
+      <p className="text-xs text-ink-faint">
+        Controla para qué Business Units puede cotizar este usuario. Sin ninguna seleccionada, conserva su acceso
+        actual sin cambios (no se le restringe nada todavía).
+      </p>
+      {availableBusinessUnits.length === 0 ? (
+        <p className="text-sm text-ink-faint">Esta organización no tiene Business Units activas.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {availableBusinessUnits.map((bu) => (
+            <label key={bu.id} className="flex items-center gap-2 text-sm text-ink-soft">
+              <input
+                type="checkbox"
+                checked={selected.has(bu.id)}
+                onChange={() => toggle(bu.id)}
+                className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+              />
+              {bu.name}
+            </label>
+          ))}
+        </div>
+      )}
+      <Button type="button" variant="outline" loading={isPending} disabled={isPending} onClick={handleSave}>
+        Guardar Business Units
+      </Button>
+    </div>
+  );
+}
+
 export function UserAccessForm({
   action,
   user,
@@ -146,6 +229,9 @@ export function UserAccessForm({
   canChooseRole = true,
   canManageDepartments = false,
   assignedDepartments = [],
+  canManageBusinessUnits = false,
+  assignedBusinessUnitIds = [],
+  availableBusinessUnits = [],
 }: {
   action: (state: UserAccessFormState, formData: FormData) => Promise<UserAccessFormState>;
   user?: UserAccessRow;
@@ -163,6 +249,10 @@ export function UserAccessForm({
   /** THÖREN | CONTROL DE ACCESO POR DEPARTAMENTOS — true solo para isFullAdmin editando una cuenta que no es la suya. */
   canManageDepartments?: boolean;
   assignedDepartments?: DepartmentKey[];
+  /** THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS — true solo para isFullAdmin editando una cuenta que no es la suya. */
+  canManageBusinessUnits?: boolean;
+  assignedBusinessUnitIds?: string[];
+  availableBusinessUnits?: BusinessUnitOption[];
 }) {
   const [state, formAction] = useFormState(action, undefined);
   const [role, setRole] = useState<UserRole>(canChooseRole ? user?.role ?? "vendedor" : "vendedor");
@@ -295,6 +385,14 @@ export function UserAccessForm({
 
       {isEdit && canManageDepartments && (
         <DepartmentAssignmentFieldset userId={user.user_id} assignedDepartments={assignedDepartments} />
+      )}
+
+      {isEdit && canManageBusinessUnits && (
+        <BusinessUnitAssignmentFieldset
+          userId={user.user_id}
+          assignedBusinessUnitIds={assignedBusinessUnitIds}
+          availableBusinessUnits={availableBusinessUnits}
+        />
       )}
 
       <label className="flex items-center gap-2 text-sm text-ink-soft">

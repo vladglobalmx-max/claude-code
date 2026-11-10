@@ -4417,6 +4417,25 @@ export interface Database {
         };
         Returns: undefined;
       };
+      // THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS (0094) — SECURITY
+      // DEFINER, exige is_organization_admin() sobre la organización de la
+      // Person destino. p_business_unit_ids reemplaza por completo la
+      // asignación previa (ausentes se desactivan, presentes se otorgan/
+      // conservan) — nunca DELETE.
+      rpc_set_person_business_units: {
+        Args: {
+          p_person_id: string;
+          p_business_unit_ids: string[];
+        };
+        Returns: undefined;
+      };
+      // THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS (0094) — SECURITY
+      // DEFINER, sin parámetros: resuelve auth.uid() -> user_profiles.
+      // person_id internamente, nunca acepta un person_id del cliente.
+      rpc_list_own_business_units: {
+        Args: Record<string, never>;
+        Returns: { business_unit_id: string }[];
+      };
     };
     Enums: Record<string, never>;
   };

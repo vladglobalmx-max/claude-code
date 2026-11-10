@@ -374,3 +374,44 @@ export async function updateUserDepartments(
   revalidatePath("/configuracion/usuarios");
   return { ok: true };
 }
+
+/**
+ * THÖREN | ASIGNACIÓN DE BUSINESS UNITS A USUARIOS — mismo criterio
+ * EXACTO que `updateUserDepartments`: `isFullAdmin` ESTRICTO (requisito 2
+ * del ticket: "autorización exclusiva para administradores"), nunca
+ * can_manage_users. `person_business_units` vive sobre `people`, no sobre
+ * `user_profiles` directamente — se resuelve aquí el `person_id` del
+ * usuario destino (ya poblado para todo usuario creado por el flujo
+ * estándar, ver rpc_create_person_for_user) antes de llamar al RPC real.
+ */
+export async function updateUserBusinessUnits(
+  userId: string,
+  businessUnitIds: string[]
+): Promise<{ error: string } | { ok: true }> {
+  const profile = await getCurrentProfile();
+  if (!isFullAdmin(profile)) {
+    return { error: "Solo un administrador puede asignar Business Units." };
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data: targetProfile } = await supabase
+    .from("user_profiles")
+    .select("person_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!targetProfile?.person_id) {
+    return { error: "Este usuario no tiene una Persona vinculada — no se le pueden asignar Business Units." };
+  }
+
+  const { error } = await supabase.rpc("rpc_set_person_business_units", {
+    p_person_id: targetProfile.person_id,
+    p_business_unit_ids: businessUnitIds,
+  });
+  if (error) {
+    return { error: mapDbError(error, "No se pudieron guardar las Business Units.") };
+  }
+
+  revalidatePath(`/configuracion/usuarios/${userId}/editar`);
+  revalidatePath("/configuracion/usuarios");
+  return { ok: true };
+}

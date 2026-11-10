@@ -11,7 +11,7 @@ import { mapDbError } from "@/lib/db-errors";
 import { mapAuthError } from "@/lib/auth-errors";
 import { getCurrentCapabilities } from "@/lib/auth/capabilities";
 import { isFullAdmin, canManageUsers } from "@/lib/auth/user-management";
-import { isValidDepartmentKey, type DepartmentKey } from "@/lib/auth/departments";
+import { isValidDepartmentKey, DEPARTMENT_CAPABILITY, type DepartmentKey } from "@/lib/auth/departments";
 import {
   preflightSalespersonTaken,
   insertProfileAndMembershipOrCompensate,
@@ -361,10 +361,19 @@ export async function updateUserDepartments(
     return { error: "Departamento inválido." };
   }
 
+  // rpc_set_user_departments (0093) valida p_departments contra las claves
+  // LARGAS de capability (user_capabilities.capability, ej.
+  // "can_access_ventas") — nunca contra las claves cortas de DepartmentKey
+  // ("ventas") que usa esta UI/el sidebar/middleware. Sin esta traducción,
+  // el RPC rechazaba toda asignación real con "Departamento inválido."
+  // (bug de producción, THÖREN | ERROR REAL EN PRODUCCIÓN — DEPARTAMENTO
+  // INVÁLIDO) porque nunca escribía ninguna fila.
+  const capabilities = departments.map((department) => DEPARTMENT_CAPABILITY[department as DepartmentKey]);
+
   const supabase = createSupabaseServerClient();
   const { error } = await supabase.rpc("rpc_set_user_departments", {
     p_user_id: userId,
-    p_departments: departments,
+    p_departments: capabilities,
   });
   if (error) {
     return { error: mapDbError(error, "No se pudieron guardar los departamentos.") };

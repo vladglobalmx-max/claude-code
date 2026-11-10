@@ -420,6 +420,45 @@ export async function updateUserBusinessUnits(
     return { error: mapDbError(error, "No se pudieron guardar las Business Units.") };
   }
 
+  // THÖREN | DIAGNÓSTICO FINAL DE PERSISTENCIA BUSINESS UNITS — rpc_set_person_business_units
+  // puede devolver éxito (sin excepción) sin que la asignación solicitada
+  // quede realmente activa en person_business_units, por una causa aún no
+  // identificada en un caso real de producción. Antes de reportar éxito al
+  // cliente, se relee la asignación tal como quedó y se compara contra lo
+  // solicitado — si no coincide, se devuelve un error explícito en vez de
+  // un falso "ok: true". Esto NO cambia rpc_set_person_business_units ni su
+  // firma (0094 sigue intacta) — es exclusivamente una verificación de
+  // lectura adicional en la Server Action.
+  const { data: persistedRows, error: verifyError } = await supabase
+    .from("person_business_units")
+    .select("business_unit_id")
+    .eq("person_id", targetProfile.person_id)
+    .eq("active", true);
+
+  if (verifyError) {
+    return { error: mapDbError(verifyError, "No se pudo verificar si las Business Units quedaron guardadas.") };
+  }
+
+  const persistedIds = new Set((persistedRows ?? []).map((row) => row.business_unit_id));
+  const requestedIds = new Set(businessUnitIds);
+  const matchesRequest =
+    persistedIds.size === requestedIds.size && [...requestedIds].every((id) => persistedIds.has(id));
+
+  if (!matchesRequest) {
+    // Sin datos sensibles (email/nombre) — solo ids y conteos, para poder
+    // diagnosticar en los logs del servidor sin exponer información
+    // personal.
+    console.error("updateUserBusinessUnits: la verificación post-escritura no coincide con lo solicitado", {
+      personId: targetProfile.person_id,
+      requestedCount: requestedIds.size,
+      persistedCount: persistedIds.size,
+    });
+    return {
+      error:
+        "La asignación de Business Units no quedó guardada como se esperaba. No se realizó ningún cambio visible — vuelve a intentarlo o contacta soporte.",
+    };
+  }
+
   revalidatePath(`/configuracion/usuarios/${userId}/editar`);
   revalidatePath("/configuracion/usuarios");
   return { ok: true };

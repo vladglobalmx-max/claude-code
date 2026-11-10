@@ -26,7 +26,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Antes "20": gs-orders depende de jsdom 30, cuyo engines.node
+          # declara `^22.22.2 || ^24.15.0 || >=26.0.0` — Node 20 NO está
+          # en esa lista. Bajo Node 20 real (confirmado instalado por este
+          # mismo step), el undici empaquetado por jsdom 30 explota con
+          # "TypeError: webidl.util.markAsUncloneable is not a function"
+          # al cargar jsdom — exactamente el error visto en los runs de
+          # este workflow. Node 22 ya está probado localmente con la
+          # suite completa (850/850) sin este error.
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: gs-orders/package-lock.json
 

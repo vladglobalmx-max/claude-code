@@ -855,6 +855,14 @@ export interface SalesOrder {
   organization_id: string;
   customer_id: string;
   salesperson_id: string;
+  /**
+   * THÖREN 0088 — ambas nullable, sin backfill histórico. Faltaban en esta
+   * interfaz (declaradas solo en comentario, nunca como campo real) pese a
+   * existir en DB desde 0088 — corregido aquí al necesitarlas por primera
+   * vez desde TS (branding del PDF, ver sales-order.ts).
+   */
+  business_unit_id: string | null;
+  source_quote_id: string | null;
 
   order_number: string;
   sequence_number: number;

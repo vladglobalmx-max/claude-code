@@ -65,10 +65,34 @@ export interface NavGroup {
 /**
  * Árbol de navegación THÖREN (ver THÖREN Experience 1 Discovery, sección G).
  *
+ * THÖREN IMPLEMENTACIÓN 02 — reorganización visual por departamento
+ * (Ventas/Administración/Compras/Almacén/Logística), autorizada tras la
+ * auditoría previa. Es EXCLUSIVAMENTE un reagrupamiento visual: mismas 19
+ * entradas, mismos href/moduleKey/adminOnly/commissionsOnly/
+ * visibleForUserManager de siempre — solo cambia a qué `NavGroup` pertenece
+ * cada ítem y el `label` de los grupos. Mapa de grupo nuevo -> anterior:
+ *   - Ventas: Clientes, Cotizaciones, Pedidos (antes "Comercial").
+ *   - Logística: Entregas, Pedidos históricos (antes "Operación").
+ *   - Compras: Requisiciones de Compra, Compras, Proveedores (mismo grupo
+ *     de antes, menos Recepciones de Mercancía que se mueve a Almacén).
+ *   - Almacén: Recepciones de Mercancía (antes en "Compras"), Inventario,
+ *     Surtidos (antes en "Comercial"), Almacenes (antes en "Inventario") —
+ *     Surtidos y Almacenes no estaban explícitos en la lista aprobada del
+ *     ticket; se ubican aquí por ser el emparejamiento funcional obvio
+ *     ("preservar todas, si no encaja indicar dónde quedó").
+ *   - Administración: Facturas, Comisiones, Vendedores, Personas (antes en
+ *     "Comercial"), Unidades de Negocio (antes su propio grupo
+ *     "Organización" — tampoco explícito en la lista aprobada, se ubica
+ *     aquí como "otro elemento administrativo").
+ *   - Inicio/Configuración siguen sueltos (`label: null`), igual que antes.
+ *
  * Comercial > Personas y Organización > Unidades de Negocio se agregaron en
  * Experience 1D (READ-ONLY). Comercial > Clientes se agregó en THÖREN
  * Quotes Q1 (0018_core_customers.sql). `adminOnly` refleja exactamente lo
- * que RLS ya impone, no una restricción inventada aquí:
+ * que RLS ya impone, no una restricción inventada aquí — las referencias a
+ * "Comercial"/"Operación"/"Inventario"/"Organización" abajo son HISTÓRICAS
+ * (de qué grupo salió cada ítem), no el agrupamiento visual vigente (ver
+ * mapa arriba):
  * - Personas: `people`/`person_business_units` solo tienen policy SELECT
  *   para admin (ver 0015/0017_core_*.sql) — VENDEDOR no puede leer nada de
  *   esto, así que el link ni se muestra.
@@ -189,28 +213,53 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ href: "/inicio", label: "Inicio", icon: Home, adminOnly: false }],
   },
   {
-    label: "Operación",
-    items: [
-      // THÖREN Ticket E1 — decisión confirmada: sales_orders es el Pedido
-      // oficial; orders (esta ruta, sin cambiar) queda como pipeline
-      // histórico/legado, relabeled a "Pedidos históricos" (antes "Órdenes
-      // de Trabajo") para que el usuario vea UN solo concepto "Pedidos" en
-      // el árbol de navegación — el de abajo, en Comercial. Ruta/moduleKey/
-      // agrupación SIN CAMBIOS a propósito (ver DECISIÓN de alcance en el
-      // reporte de E1): mover físicamente /pedidos a sales_orders
-      // habría roto deep links de PDF/entregas/compras/editar del pipeline
-      // legado, que el ticket exige preservar intactos.
-      { href: "/pedidos", label: "Pedidos históricos", icon: FileText, adminOnly: false, moduleKey: "ordenes_trabajo" },
-      { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false, moduleKey: "entregas" },
-    ],
-  },
-  {
-    label: "Comercial",
+    label: "Ventas",
     items: [
       { href: "/clientes", label: "Clientes", icon: Briefcase, adminOnly: false, moduleKey: "clientes" },
       { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, adminOnly: false, moduleKey: "cotizaciones" },
+      // THÖREN Ticket E1 — decisión confirmada: sales_orders es el Pedido
+      // oficial. Ruta/moduleKey sin cambios a propósito (ver DECISIÓN de
+      // alcance en el reporte de E1).
       { href: "/ordenes-venta", label: "Pedidos", icon: ClipboardList, adminOnly: false, moduleKey: "ordenes_venta" },
+    ],
+  },
+  {
+    label: "Logística",
+    items: [
+      { href: "/entregas", label: "Entregas", icon: PackageCheck, adminOnly: false, moduleKey: "entregas" },
+      // THÖREN Ticket E1 — orders (esta ruta, sin cambiar) queda como
+      // pipeline histórico/legado, relabeled a "Pedidos históricos" (antes
+      // "Órdenes de Trabajo"). Ruta/moduleKey SIN CAMBIOS a propósito (ver
+      // DECISIÓN de alcance en el reporte de E1): mover físicamente
+      // /pedidos a sales_orders habría roto deep links de PDF/entregas/
+      // compras/editar del pipeline legado, que el ticket exige preservar
+      // intactos.
+      { href: "/pedidos", label: "Pedidos históricos", icon: FileText, adminOnly: false, moduleKey: "ordenes_trabajo" },
+    ],
+  },
+  {
+    label: "Compras",
+    items: [
+      { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false, moduleKey: "requisiciones" },
+      { href: "/compras", label: "Compras", icon: Package, adminOnly: false, moduleKey: "compras" },
+      { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false, moduleKey: "proveedores" },
+    ],
+  },
+  {
+    label: "Almacén",
+    items: [
+      { href: "/recepciones", label: "Recepciones de Mercancía", icon: PackageCheck, adminOnly: false, moduleKey: "recepciones" },
+      { href: "/inventario", label: "Inventario", icon: Boxes, adminOnly: false, moduleKey: "inventario" },
       { href: "/surtidos", label: "Surtidos", icon: PackageCheck, adminOnly: false, moduleKey: "surtidos" },
+      // THÖREN IMPLEMENTACIÓN 02 — no estaba en la lista aprobada de
+      // ALMACÉN; se ubica aquí por ser el emparejamiento funcional obvio
+      // (gestión de bodegas, antes vivía en el grupo "Inventario").
+      { href: "/almacenes", label: "Almacenes", icon: Building2, adminOnly: false, moduleKey: "almacenes" },
+    ],
+  },
+  {
+    label: "Administración",
+    items: [
       { href: "/facturas", label: "Facturas", icon: Receipt, adminOnly: false, moduleKey: "facturas" },
       {
         href: "/comisiones",
@@ -220,29 +269,13 @@ export const NAV_GROUPS: NavGroup[] = [
         commissionsOnly: true,
         moduleKey: "comisiones",
       },
-      { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
       { href: "/vendedores", label: "Vendedores", icon: Users, adminOnly: true },
+      { href: "/personas", label: "Personas", icon: Contact, adminOnly: true },
+      // THÖREN IMPLEMENTACIÓN 02 — no estaba explícita en la lista
+      // aprobada; se ubica aquí como "otro elemento administrativo" (antes
+      // tenía su propio grupo "Organización").
+      { href: "/unidades-negocio", label: "Unidades de Negocio", icon: Building2, adminOnly: false },
     ],
-  },
-  {
-    label: "Compras",
-    items: [
-      { href: "/compras", label: "Compras", icon: Package, adminOnly: false, moduleKey: "compras" },
-      { href: "/requisiciones", label: "Requisiciones de Compra", icon: ClipboardCheck, adminOnly: false, moduleKey: "requisiciones" },
-      { href: "/recepciones", label: "Recepciones de Mercancía", icon: PackageCheck, adminOnly: false, moduleKey: "recepciones" },
-      { href: "/proveedores", label: "Proveedores", icon: Truck, adminOnly: false, moduleKey: "proveedores" },
-    ],
-  },
-  {
-    label: "Inventario",
-    items: [
-      { href: "/inventario", label: "Inventario", icon: Boxes, adminOnly: false, moduleKey: "inventario" },
-      { href: "/almacenes", label: "Almacenes", icon: Building2, adminOnly: false, moduleKey: "almacenes" },
-    ],
-  },
-  {
-    label: "Organización",
-    items: [{ href: "/unidades-negocio", label: "Unidades de Negocio", icon: Building2, adminOnly: false }],
   },
   {
     label: null,

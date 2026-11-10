@@ -28,10 +28,22 @@ export const salesOrderPdfAdapter: PdfDocumentAdapter = {
     ]);
     const items = (itemsData ?? []) as SalesOrderItem[];
 
-    const branding = await resolveBranding(supabase, salesOrder.organization_id, null);
+    // THÖREN | PDF — CORRECCIÓN FINAL DE DISEÑO: a diferencia de los otros
+    // 6 adapters (que no tienen concepto de Business Unit propio, 0078),
+    // sales_orders.business_unit_id SÍ existe desde 0088 — se resuelve el
+    // logo real de la BU en vez de pasar null a propósito, como hacían
+    // antes los 7. Si la BU no tiene logo o business_unit_id es null (SO
+    // creada antes de tener BU asignada), resolveBranding cae a texto
+    // plano (nombre de BU/organización) — nunca una inicial decorativa.
+    const branding = await resolveBranding(supabase, salesOrder.organization_id, salesOrder.business_unit_id);
 
     const spec: PdfDocumentSpec = {
-      documentTypeLabel: "Sales Order",
+      // THÖREN | PDF — CORRECCIÓN FINAL DE DISEÑO: "Pedido" (no "Sales
+      // Order") — mismo término ya usado en la navegación/UI desde el
+      // Ticket E1 ("Pedidos" en nav-config.ts); el nombre técnico interno
+      // (Sales Order) queda en comentarios de código, nunca en lo que ve
+      // el usuario.
+      documentTypeLabel: "Pedido",
       folio: salesOrder.order_number,
       statusLabel: SALES_ORDER_STATUS_LABELS[salesOrder.status] ?? salesOrder.status,
       dateLabel: `Creada: ${formatDate(salesOrder.created_at)}`,
